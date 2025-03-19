@@ -1,5 +1,5 @@
 import type { NextPage } from 'next';
-import {CustomConnectButton} from '../components/ConnectButton/CustomConnectButton';
+import {CustomConnectButton} from '../components/ui/ConnectButton/CustomConnectButton';
 import MainPage from './page';
 
 const Home: NextPage = () => {
