@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+     "test": "echo \"No tests specified\" && exit 0"
   },
   "dependencies": {
     "@rainbow-me/rainbowkit": "^2.2.4",
