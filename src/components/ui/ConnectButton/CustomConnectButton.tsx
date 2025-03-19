@@ -79,7 +79,7 @@ export const CustomConnectButton: React.FC = () => {
                         )}
                       </div>
                     )}
-                    {chain.name}
+                    {/* {chain.name} */}
                   </button>
 
                   <button
@@ -88,9 +88,7 @@ export const CustomConnectButton: React.FC = () => {
                     className={styles.accountButton}
                   >
                     {account.displayName}
-                    {account.displayBalance
-                      ? ` (${account.displayBalance})`
-                      : ''}
+                  
                   </button>
                 </div>
               );
