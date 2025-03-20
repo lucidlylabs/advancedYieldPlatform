@@ -7,7 +7,7 @@ const Home: NextPage = () => {
     <div>
       <main>
         <MainPage />
-        <CustomConnectButton />
+     
     
       </main>
     </div>
