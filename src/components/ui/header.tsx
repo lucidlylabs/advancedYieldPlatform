@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-// import { XIcon } from "lucide-react";
 
 interface HeaderProps {
   className?: string;
@@ -30,10 +29,23 @@ export function Header({ className, children, ...props }: HeaderProps) {
             </span>
           </div>
           <button
-            className="absolute right-2 top-2 h-6 w-6 p-0"
+            className="absolute right-2 top-2 h-6 w-6 p-0 flex items-center justify-center text-amber-800 dark:text-amber-200 hover:bg-amber-200 dark:hover:bg-amber-800 rounded"
             onClick={() => setShouldShowBanner(false)}
           >
-            {/* <XIcon className="h-4 w-4" /> */}
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              width="16" 
+              height="16" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
             <span className="sr-only">Close</span>
           </button>
         </div>
