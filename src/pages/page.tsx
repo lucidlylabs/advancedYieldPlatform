@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { CustomConnectButton } from "../components/ui/ConnectButton/CustomConnectButton";
 import { Header } from '../components/ui/header';
 import PortfolioSubpage from './portfolio-subpage';
@@ -18,7 +19,15 @@ export default function Page() {
     <div className="min-h-screen flex flex-col">
       <Header>
         <div className="flex items-center space-x-4">
-          <div className="text-xl font-bold">AdvancedYield</div>
+          <div className="flex items-center">
+            <Image
+              src="/images/logo/logo-desktop.svg"
+              alt="Lucidity Logo"
+              width={140}
+              height={32}
+              priority
+            />
+          </div>
           <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] mx-4"></div>
           <nav className="hidden md:flex">
             <div className="relative flex">
