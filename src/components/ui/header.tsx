@@ -11,7 +11,7 @@ export function Header({ className, children, ...props }: HeaderProps) {
   return (
     <div className={`flex flex-col w-full ${className}`} {...props}>
       {shouldShowBanner && (
-        <div className="w-full bg-amber-100 dark:bg-amber-900 py-2 px-4 relative">
+        <div className="w-full bg-amber-900 text-amber-100 py-2 px-4 relative">
           <div className="flex flex-col sm:flex-row items-center justify-center text-center text-sm gap-2">
             <span>
               This app is built for emergencies, so it prioritizes resilience over speed. Please be patient as it loads.
@@ -29,7 +29,7 @@ export function Header({ className, children, ...props }: HeaderProps) {
             </span>
           </div>
           <button
-            className="absolute right-2 top-2 h-6 w-6 p-0 flex items-center justify-center text-amber-800 dark:text-amber-200 hover:bg-amber-200 dark:hover:bg-amber-800 rounded"
+            className="absolute right-2 top-2 h-6 w-6 p-0 flex items-center justify-center text-amber-200 hover:bg-amber-800 rounded"
             onClick={() => setShouldShowBanner(false)}
           >
             <svg 
@@ -51,7 +51,7 @@ export function Header({ className, children, ...props }: HeaderProps) {
         </div>
       )}
       
-      <div className="flex items-center justify-between py-4 px-6 bg-white dark:bg-gray-800 shadow-sm">
+      <div className="flex items-center justify-between py-0 px-6 bg-[#080B17] text-white border-b border-[rgba(255,255,255,0.1)] backdrop-blur-sm">
         {children}
       </div>
     </div>
