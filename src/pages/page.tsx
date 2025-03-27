@@ -53,7 +53,7 @@ export default function Page() {
                 }`}
                 onClick={() => setSelectedSubPage(SubPage.Yield)}
               >
-                Yield
+                Earn
                 {selectedSubPage === SubPage.Yield && (
                   <div className="absolute bottom-0 left-0 h-[2px] w-full bg-[#B88AF8]"></div>
                 )}
