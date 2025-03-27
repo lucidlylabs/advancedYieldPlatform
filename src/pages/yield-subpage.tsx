@@ -1,9 +1,17 @@
 import React, { useState } from "react";
 import { CustomCard } from "@/components/ui/card";
+import { DepositView } from "@/components/deposit-view";
 
 interface SelectedAsset {
   asset: string;
   duration: string;
+}
+
+interface SelectedStrategy {
+  type: "stable" | "incentive";
+  asset: string;
+  duration: string;
+  apy: string;
 }
 
 type AssetType = "USD" | "ETH" | "BTC";
@@ -72,14 +80,39 @@ const STRATEGY_INFO: StrategyData = {
 
 const MarketsSubpage = () => {
   const [selectedAsset, setSelectedAsset] = useState<SelectedAsset | null>(null);
+  const [selectedStrategy, setSelectedStrategy] = useState<SelectedStrategy | null>(null);
 
   const handleDurationSelect = (asset: string, duration: string) => {
     setSelectedAsset({ asset, duration });
   };
 
+  const handleStrategySelect = (type: "stable" | "incentive", asset: AssetType) => {
+    if (selectedAsset) {
+      setSelectedStrategy({
+        type,
+        asset: selectedAsset.asset,
+        duration: selectedAsset.duration,
+        apy: STRATEGY_INFO[type === "stable" ? "stable" : "incentives"][asset].apy.value
+      });
+    }
+  };
+
   const resetSelection = () => {
     setSelectedAsset(null);
+    setSelectedStrategy(null);
   };
+
+  if (selectedStrategy) {
+    return (
+      <DepositView
+        selectedAsset={selectedStrategy.asset}
+        duration={selectedStrategy.duration}
+        strategy={selectedStrategy.type}
+        apy={selectedStrategy.apy}
+        onBack={() => setSelectedStrategy(null)}
+      />
+    );
+  }
 
   if (selectedAsset) {
     const asset = selectedAsset.asset as AssetType;
@@ -117,34 +150,44 @@ const MarketsSubpage = () => {
           </div>
         </div>
         <div className="flex gap-6">
-          <CustomCard
-            heading={`Stable ${asset}`}
-            imageSrc={`/images/icons/stable-${asset.toLowerCase()}.svg`}
-            hoverColor={
-              asset === "USD" 
-                ? "#627EEA" 
-                : asset === "ETH"
-                  ? "#627EEA"
-                  : "#F7931A"
-            }
-            info={STRATEGY_INFO.stable[asset].description}
-            apy={STRATEGY_INFO.stable[asset].apy}
-            isStrategyCard={true}
-          />
-          <CustomCard
-            heading={`Incentives ${asset}`}
-            imageSrc={`/images/icons/incentives-${asset.toLowerCase()}.svg`}
-            hoverColor={
-              asset === "USD"
-                ? "#B88AF8"
-                : asset === "ETH"
-                  ? "#627EEA"
-                  : "#F7931A"
-            }
-            info={STRATEGY_INFO.incentives[asset].description}
-            apy={STRATEGY_INFO.incentives[asset].apy}
-            isStrategyCard={true}
-          />
+          <div 
+            onClick={() => handleStrategySelect("stable", asset)}
+            className="cursor-pointer"
+          >
+            <CustomCard
+              heading={`Stable ${asset}`}
+              imageSrc={`/images/icons/stable-${asset.toLowerCase()}.svg`}
+              hoverColor={
+                asset === "USD" 
+                  ? "#627EEA" 
+                  : asset === "ETH"
+                    ? "#627EEA"
+                    : "#F7931A"
+              }
+              info={STRATEGY_INFO.stable[asset].description}
+              apy={STRATEGY_INFO.stable[asset].apy}
+              isStrategyCard={true}
+            />
+          </div>
+          <div 
+            onClick={() => handleStrategySelect("incentive", asset)}
+            className="cursor-pointer"
+          >
+            <CustomCard
+              heading={`Incentives ${asset}`}
+              imageSrc={`/images/icons/incentives-${asset.toLowerCase()}.svg`}
+              hoverColor={
+                asset === "USD"
+                  ? "#B88AF8"
+                  : asset === "ETH"
+                    ? "#627EEA"
+                    : "#F7931A"
+              }
+              info={STRATEGY_INFO.incentives[asset].description}
+              apy={STRATEGY_INFO.incentives[asset].apy}
+              isStrategyCard={true}
+            />
+          </div>
         </div>
       </div>
     );
