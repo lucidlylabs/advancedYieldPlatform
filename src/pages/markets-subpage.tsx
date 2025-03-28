@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
+import { MarketsTable } from "@/components/ui/markets-table";
+import { YieldDetailsView } from "@/components/yield-details-view";
 import {
   Tooltip,
   TooltipContent,
@@ -16,26 +18,11 @@ interface MarketItem {
   baseYield: string;
   incentives: string[];
   tvl: string;
+  description?: string;
+  riskLevel?: string;
+  network?: string;
+  contractAddress?: string;
 }
-
-// InfoIcon component for tooltips
-const InfoIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      d="M12 16V12M12 8H12.01M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
 
 // Custom Asset Button Component
 const AssetButton: React.FC<{
@@ -76,6 +63,7 @@ const MarketsSubpage: React.FC = () => {
   const [selectedAsset, setSelectedAsset] = useState<AssetType>("ALL");
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [selectedItem, setSelectedItem] = useState<MarketItem | null>(null);
 
   // Market data
   const marketData: Record<AssetType, MarketItem[]> = {
@@ -88,6 +76,11 @@ const MarketsSubpage: React.FC = () => {
         baseYield: "6.64%",
         incentives: ["eth", "usdc"],
         tvl: "$1,016.96",
+        description:
+          "Provides a stable yield through diversified ETH lending protocols with lower risk exposure.",
+        riskLevel: "Low",
+        network: "Ethereum",
+        contractAddress: "0x82...2d",
       },
       {
         id: 2,
@@ -96,6 +89,11 @@ const MarketsSubpage: React.FC = () => {
         baseYield: "23.43%",
         incentives: ["eth"],
         tvl: "$1,403.72",
+        description:
+          "Higher yield strategy combining ETH staking with protocol incentives and token rewards.",
+        riskLevel: "Medium",
+        network: "Ethereum",
+        contractAddress: "0x74...5e",
       },
     ],
     BTC: [
@@ -106,6 +104,11 @@ const MarketsSubpage: React.FC = () => {
         baseYield: "6.64%",
         incentives: ["btc", "usdc"],
         tvl: "$1,016.96",
+        description:
+          "Generates consistent returns through secure BTC lending across multiple platforms.",
+        riskLevel: "Low",
+        network: "Bitcoin",
+        contractAddress: "0x91...3f",
       },
       {
         id: 4,
@@ -114,6 +117,11 @@ const MarketsSubpage: React.FC = () => {
         baseYield: "10.00%",
         incentives: ["btc"],
         tvl: "$450.00",
+        description:
+          "Maximizes BTC yield through a combination of lending and liquidity provision with token incentives.",
+        riskLevel: "Medium",
+        network: "Bitcoin",
+        contractAddress: "0x47...8a",
       },
     ],
     USD: [
@@ -124,6 +132,11 @@ const MarketsSubpage: React.FC = () => {
         baseYield: "25.00%",
         incentives: ["usdc"],
         tvl: "$1,403.72",
+        description:
+          "Conservative stablecoin strategy focused on capital preservation with consistent returns.",
+        riskLevel: "Very Low",
+        network: "Ethereum",
+        contractAddress: "0x33...9c",
       },
       {
         id: 6,
@@ -132,64 +145,17 @@ const MarketsSubpage: React.FC = () => {
         baseYield: "15.20%",
         incentives: ["usdc"],
         tvl: "$320.00",
+        description:
+          "Enhanced stablecoin yield through protocol incentives and optimized position management.",
+        riskLevel: "Low",
+        network: "Ethereum",
+        contractAddress: "0x59...4d",
       },
     ],
   };
 
   // Fill the "ALL" category
   marketData.ALL = [...marketData.ETH, ...marketData.BTC, ...marketData.USD];
-
-  // Function to get icon based on asset type
-  const getAssetIcon = (type: string) => {
-    switch (type) {
-      case "eth":
-        return (
-          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center mr-3">
-            🔷
-          </div>
-        );
-      case "btc":
-        return (
-          <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center mr-3">
-            🟠
-          </div>
-        );
-      case "usd":
-        return (
-          <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center mr-3">
-            💲
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
-
-  // Incentive icon component
-  const IncentiveIcon = ({ type }: { type: string }) => {
-    switch (type) {
-      case "eth":
-        return (
-          <div className="w-6 h-6 bg-gray-700 rounded-full flex items-center justify-center">
-            🔷
-          </div>
-        );
-      case "btc":
-        return (
-          <div className="w-6 h-6 bg-gray-700 rounded-full flex items-center justify-center">
-            🟠
-          </div>
-        );
-      case "usdc":
-        return (
-          <div className="w-6 h-6 bg-gray-700 rounded-full flex items-center justify-center">
-            💲
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
 
   // Handler for sorting
   const handleSort = (column: string) => {
@@ -201,7 +167,12 @@ const MarketsSubpage: React.FC = () => {
     }
   };
 
-  // Sort the data based on the selected column and direction
+  // Handler for row clicks
+  const handleRowClick = (item: MarketItem) => {
+    setSelectedItem(item);
+  };
+
+  // Get sorted data
   const getSortedData = () => {
     const dataToSort = [...marketData[selectedAsset]];
 
@@ -270,87 +241,50 @@ const MarketsSubpage: React.FC = () => {
           />
         </div>
 
-        {/* Table Header */}
-        <div className="grid grid-cols-4 py-4 border-b border-gray-700 text-gray-400 text-sm">
-          <div
-            className="cursor-pointer flex items-center"
-            onClick={() => handleSort("name")}
-          >
-            Available Yields
-            {sortColumn === "name" && (
-              <span className="ml-1">
-                {sortDirection === "asc" ? "↑" : "↓"}
-              </span>
-            )}
-          </div>
-          <div
-            className="cursor-pointer flex items-center"
-            onClick={() => handleSort("baseYield")}
-          >
-            Base APY
-            {sortColumn === "baseYield" && (
-              <span className="ml-1">
-                {sortDirection === "asc" ? "↑" : "↓"}
-              </span>
-            )}
-          </div>
-          <div>Incentives</div>
-          <div
-            className="cursor-pointer flex items-center"
-            onClick={() => handleSort("tvl")}
-          >
-            TVL
-            {sortColumn === "tvl" && (
-              <span className="ml-1">
-                {sortDirection === "asc" ? "↑" : "↓"}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Table Rows */}
-        <div className="space-y-4 mt-4">
-          {getSortedData().map((item) => (
-            <div
-              key={item.id}
-              className="grid grid-cols-4 items-center py-4 border-b border-gray-800 hover:bg-gray-800 rounded-md cursor-pointer transition duration-200"
-            >
-              <div className="flex items-center">
-                {getAssetIcon(item.type)}
-                <span>{item.name}</span>
-              </div>
-              <div>{item.baseYield}</div>
-              <div className="flex">
-                {item.incentives.map((incentive, index) => (
-                  <div key={index} className="mr-1">
-                    <IncentiveIcon type={incentive} />
-                  </div>
-                ))}
-              </div>
-              <div>{item.tvl}</div>
-            </div>
-          ))}
-        </div>
+        {/* Market Table */}
+        <MarketsTable
+          data={getSortedData()}
+          sortColumn={sortColumn}
+          sortDirection={sortDirection}
+          onSort={handleSort}
+          onRowClick={handleRowClick}
+          selectedItemId={selectedItem?.id}
+        />
       </div>
 
       {/* Right side - 50% */}
-      <div className="w-1/2 bg-gray-800 p-8 flex items-center justify-center">
-        <div className="max-w-md text-center">
-          <div className="mb-8">
-            <img
-              src="/api/placeholder/400/300"
-              alt="Yield Options Illustration"
-              className="mx-auto"
-            />
+      <div className="w-1/2 bg-gray-800">
+        {selectedItem ? (
+          <YieldDetailsView
+            name={selectedItem.name}
+            tvl={selectedItem.tvl}
+            baseApy={selectedItem.baseYield}
+            contractAddress={selectedItem.contractAddress}
+            network={selectedItem.network}
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full p-8">
+            <div className="max-w-md text-center">
+              <div className="mb-8 flex justify-center">
+                <div className="relative w-64 h-64">
+                  <div className="absolute w-full h-full bg-blue-500 opacity-30 rounded-full transform scale-75 animate-pulse"></div>
+                  <div className="absolute w-full h-full flex items-center justify-center">
+                    <div className="bg-gray-700 w-32 h-32 rounded-full flex items-center justify-center">
+                      <span className="text-4xl">💰</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold mb-4">
+                Select a Yield Option to View Details
+              </h2>
+              <p className="text-gray-400">
+                Discover key insights, performance metrics, and potential
+                returns for each yield source.
+              </p>
+            </div>
           </div>
-          <h2 className="text-2xl font-bold mb-4">
-            Select a Yield Option to View Details
-          </h2>
-          <p className="text-gray-400">
-            Discover key insights, performance metrics, and potential returns
-            for each yield source.
-          </p>
-        </div>
+        )}
       </div>
     </div>
   );
