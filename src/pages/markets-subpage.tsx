@@ -201,8 +201,10 @@ const MarketsSubpage: React.FC = () => {
           : valueB.localeCompare(valueA);
       }
 
-      if (valueA < valueB) return sortDirection === "asc" ? -1 : 1;
-      if (valueA > valueB) return sortDirection === "asc" ? 1 : -1;
+      if (valueA && valueB) {
+        if (valueA < valueB) return sortDirection === "asc" ? -1 : 1;
+        if (valueA > valueB) return sortDirection === "asc" ? 1 : -1;
+      }
       return 0;
     });
   };
