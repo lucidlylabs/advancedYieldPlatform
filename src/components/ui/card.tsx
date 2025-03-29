@@ -60,7 +60,10 @@ const CustomCard: React.FC<CustomCardProps> = ({
   return (
     <div 
       className={cn(
-        "relative overflow-hidden rounded-[4px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.02)] text-card-foreground shadow-sm w-[264px] h-[311px] flex flex-col group transition-all duration-300 ease-out cursor-pointer",
+        "relative overflow-hidden rounded-[4px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.02)] text-card-foreground shadow-sm flex flex-col group transition-all duration-300 ease-out cursor-pointer",
+        isStrategyCard 
+          ? "w-[247px] h-[263px] justify-center items-center gap-[10px]" 
+          : "w-[264px] h-[311px]",
         className,
         isStrategyCard && "hover:bg-[linear-gradient(180deg,_rgba(0,_0,_0,_0.00)_61.22%,_rgba(0,_209,_160,_0.10)_110.27%),_linear-gradient(180deg,_rgba(0,_209,_160,_0.10)_-10.08%,_rgba(153,_153,_153,_0.00)_35.74%)]"
       )} 

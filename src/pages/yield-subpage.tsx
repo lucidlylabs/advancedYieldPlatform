@@ -152,65 +152,54 @@ const MarketsSubpage = () => {
               selectedDuration={selectedAsset.duration}
               onReset={resetSelection}
               disableHover={true}
+              className="h-[311px]"
             />
-            <div
-              onClick={() =>
-                handleStrategySelect("stable", selectedAsset.asset as AssetType)
-              }
-              className="cursor-pointer"
-            >
-              <CustomCard
-                heading={`Stable ${selectedAsset.asset}`}
-                imageSrc={`/images/icons/${(
-                  selectedAsset.asset as AssetType
-                ).toLowerCase()}-stable.svg`}
-                hoverColor={
-                  selectedAsset.asset === "USD"
-                    ? "#627EEA"
-                    : selectedAsset.asset === "ETH"
-                    ? "#627EEA"
-                    : "#F7931A"
+            <div className="flex items-center justify-center gap-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] w-[555px] h-[311px] p-6">
+              <div
+                onClick={() =>
+                  handleStrategySelect("stable", selectedAsset.asset as AssetType)
                 }
-                info={
-                  STRATEGY_INFO.stable[selectedAsset.asset as AssetType]
-                    .description
+                className="cursor-pointer"
+              >
+                <CustomCard
+                  heading={`Stable ${selectedAsset.asset}`}
+                  imageSrc={`/images/icons/${(
+                    selectedAsset.asset as AssetType
+                  ).toLowerCase()}-stable.svg`}
+                  info={
+                    STRATEGY_INFO.stable[selectedAsset.asset as AssetType]
+                      .description
+                  }
+                  apy={STRATEGY_INFO.stable[selectedAsset.asset as AssetType].apy}
+                  isStrategyCard={true}
+                  disableHover={true}
+                />
+              </div>
+              <div
+                onClick={() =>
+                  handleStrategySelect(
+                    "incentive",
+                    selectedAsset.asset as AssetType
+                  )
                 }
-                apy={STRATEGY_INFO.stable[selectedAsset.asset as AssetType].apy}
-                isStrategyCard={true}
-                disableHover={true}
-              />
-            </div>
-            <div
-              onClick={() =>
-                handleStrategySelect(
-                  "incentive",
-                  selectedAsset.asset as AssetType
-                )
-              }
-              className="cursor-pointer"
-            >
-              <CustomCard
-                heading={`Incentives ${selectedAsset.asset}`}
-                imageSrc={`/images/icons/${(
-                  selectedAsset.asset as AssetType
-                ).toLowerCase()}-incentive.svg`}
-                hoverColor={
-                  selectedAsset.asset === "USD"
-                    ? "#B88AF8"
-                    : selectedAsset.asset === "ETH"
-                    ? "#627EEA"
-                    : "#F7931A"
-                }
-                info={
-                  STRATEGY_INFO.incentives[selectedAsset.asset as AssetType]
-                    .description
-                }
-                apy={
-                  STRATEGY_INFO.incentives[selectedAsset.asset as AssetType].apy
-                }
-                isStrategyCard={true}
-                disableHover={true}
-              />
+                className="cursor-pointer"
+              >
+                <CustomCard
+                  heading={`Incentives ${selectedAsset.asset}`}
+                  imageSrc={`/images/icons/${(
+                    selectedAsset.asset as AssetType
+                  ).toLowerCase()}-incentive.svg`}
+                  info={
+                    STRATEGY_INFO.incentives[selectedAsset.asset as AssetType]
+                      .description
+                  }
+                  apy={
+                    STRATEGY_INFO.incentives[selectedAsset.asset as AssetType].apy
+                  }
+                  isStrategyCard={true}
+                  disableHover={true}
+                />
+              </div>
             </div>
           </div>
         </div>
