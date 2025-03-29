@@ -13,7 +13,7 @@ enum SubPage {
 }
 
 export default function Page() {
-  const [selectedSubPage, setSelectedSubPage] = useState<SubPage>(SubPage.Markets);
+  const [selectedSubPage, setSelectedSubPage] = useState<SubPage>(SubPage.Yield);
 
   return (
     <div className="min-h-screen flex flex-col">
