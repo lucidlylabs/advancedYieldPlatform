@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import Image from 'next/image';
+import React, { useState } from "react";
+import Image from "next/image";
 import { CustomConnectButton } from "../components/ui/ConnectButton/CustomConnectButton";
-import { Header } from '../components/ui/header';
-import PortfolioSubpage from './portfolio-subpage';
-import YieldSubpage from './yield-subpage';
-import MarketsSubpage from './markets-subpage';
+import { Header } from "../components/ui/header";
+import PortfolioSubpage from "./portfolio-subpage";
+import YieldSubpage from "./yield-subpage";
+import MarketsSubpage from "./markets-subpage";
 
 enum SubPage {
   Portfolio = "portfolio",
@@ -13,12 +13,14 @@ enum SubPage {
 }
 
 export default function Page() {
-  const [selectedSubPage, setSelectedSubPage] = useState<SubPage>(SubPage.Yield);
+  const [selectedSubPage, setSelectedSubPage] = useState<SubPage>(
+    SubPage.Yield
+  );
 
   return (
     <div className="min-h-screen flex flex-col">
       <Header>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-stretch h-full">
           <div className="flex items-center">
             <Image
               src="/images/logo/logo-desktop.svg"
@@ -28,25 +30,11 @@ export default function Page() {
               priority
             />
           </div>
-          <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] mx-4"></div>
+          <div className="w-[1px] bg-[rgba(255,255,255,0.1)] mx-4"></div>
           <nav className="hidden md:flex">
             <div className="relative flex">
               <button
-                className={`px-4 py-4 text-sm transition-colors relative ${
-                  selectedSubPage === SubPage.Portfolio
-                    ? "text-[#B88AF8]"
-                    : "text-white hover:text-gray-300"
-                }`}
-                onClick={() => setSelectedSubPage(SubPage.Portfolio)}
-              >
-                Portfolio
-                {selectedSubPage === SubPage.Portfolio && (
-                  <div className="absolute bottom-0 left-0 h-[2px] w-full bg-[#B88AF8]"></div>
-                )}
-              </button>
-              
-              <button
-                className={`px-4 py-4 text-sm transition-colors relative ${
+                className={`px-6 py-4 text-sm transition-colors relative ${
                   selectedSubPage === SubPage.Yield
                     ? "text-[#B88AF8]"
                     : "text-white hover:text-gray-300"
@@ -55,21 +43,39 @@ export default function Page() {
               >
                 Earn
                 {selectedSubPage === SubPage.Yield && (
-                  <div className="absolute bottom-0 left-0 h-[2px] w-full bg-[#B88AF8]"></div>
+                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#B88AF8]"></div>
                 )}
               </button>
-              
+
+              <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
+
               <button
-                className={`px-4 py-4 text-sm transition-colors relative ${
+                className={`px-6 py-4 text-sm transition-colors relative ${
                   selectedSubPage === SubPage.Markets
                     ? "text-[#B88AF8]"
                     : "text-white hover:text-gray-300"
                 }`}
                 onClick={() => setSelectedSubPage(SubPage.Markets)}
               >
-                Markets
+                Yields
                 {selectedSubPage === SubPage.Markets && (
-                  <div className="absolute bottom-0 left-0 h-[2px] w-full bg-[#B88AF8]"></div>
+                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#B88AF8]"></div>
+                )}
+              </button>
+
+              <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
+
+              <button
+                className={`px-6 py-4 text-sm transition-colors relative ${
+                  selectedSubPage === SubPage.Portfolio
+                    ? "text-[#B88AF8]"
+                    : "text-white hover:text-gray-300"
+                }`}
+                onClick={() => setSelectedSubPage(SubPage.Portfolio)}
+              >
+                Portfolio
+                {selectedSubPage === SubPage.Portfolio && (
+                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#B88AF8]"></div>
                 )}
               </button>
             </div>
@@ -77,11 +83,15 @@ export default function Page() {
         </div>
         <CustomConnectButton />
       </Header>
-      
+
       <main className="flex-1 container mx-auto px-4 py-6">
-        {selectedSubPage === SubPage.Portfolio ? <PortfolioSubpage /> : 
-         selectedSubPage === SubPage.Yield ? <YieldSubpage /> : 
-         <MarketsSubpage />}
+        {selectedSubPage === SubPage.Portfolio ? (
+          <PortfolioSubpage />
+        ) : selectedSubPage === SubPage.Yield ? (
+          <YieldSubpage />
+        ) : (
+          <MarketsSubpage />
+        )}
       </main>
     </div>
   );
