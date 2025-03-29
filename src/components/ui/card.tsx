@@ -21,6 +21,7 @@ interface CustomCardProps {
     info: string;
   };
   isStrategyCard?: boolean;
+  disableHover?: boolean;
 }
 
 const InfoIcon = () => (
@@ -41,6 +42,7 @@ const CustomCard = ({
   info,
   apy,
   isStrategyCard,
+  disableHover,
   ...props
 }: CustomCardProps) => {
   const handleDurationClick = (duration: string) => {
@@ -60,12 +62,18 @@ const CustomCard = ({
       {/* Heading section with color transition */}
       <div className="relative">
         <div 
-          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+          className={cn(
+            "absolute inset-0 opacity-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+            !disableHover && "group-hover:opacity-100"
+          )}
           style={{ backgroundColor: hoverColor }}
         />
         <div className="p-6 relative z-10">
           <div className="flex items-center gap-2">
-            <h3 className="text-[32px] leading-none tracking-tight text-white group-hover:text-[#1A1B1E] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] w-full flex flex-col items-center justify-center">
+            <h3 className={cn(
+              "text-[32px] leading-none tracking-tight text-white transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] w-full flex flex-col items-center justify-center",
+              !disableHover && "group-hover:text-[#1A1B1E]"
+            )}>
               {heading}
               {selectedDuration && (
                 <div className="text-lg opacity-60 mt-2">{selectedDuration}</div>
@@ -155,10 +163,16 @@ const CustomCard = ({
             <img
               src={imageSrc}
               alt={imageAlt}
-              className="absolute bottom-0 w-full h-[200px] object-contain transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] transform group-hover:translate-y-[-20px] group-hover:opacity-0"
+              className={cn(
+                "absolute bottom-0 w-full h-[200px] object-contain transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                !disableHover && "transform group-hover:translate-y-[-20px] group-hover:opacity-0"
+              )}
             />
           ) : (
-            <div className="absolute bottom-0 w-full h-[200px] bg-gray-200 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] transform group-hover:translate-y-[-20px] group-hover:opacity-0">
+            <div className={cn(
+              "absolute bottom-0 w-full h-[200px] bg-gray-200 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+              !disableHover && "transform group-hover:translate-y-[-20px] group-hover:opacity-0"
+            )}>
               {/* Placeholder semi-circle */}
             </div>
           )}

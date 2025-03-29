@@ -148,6 +148,7 @@ const MarketsSubpage = () => {
                   : "#F7931A"
               }
               selectedDuration={selectedAsset.duration}
+              disableHover={true}
             />
             <div
               onClick={() => handleStrategySelect("stable", selectedAsset.asset as AssetType)}
@@ -166,6 +167,7 @@ const MarketsSubpage = () => {
                 info={STRATEGY_INFO.stable[selectedAsset.asset as AssetType].description}
                 apy={STRATEGY_INFO.stable[selectedAsset.asset as AssetType].apy}
                 isStrategyCard={true}
+                disableHover={true}
               />
             </div>
             <div
@@ -185,6 +187,7 @@ const MarketsSubpage = () => {
                 info={STRATEGY_INFO.incentives[selectedAsset.asset as AssetType].description}
                 apy={STRATEGY_INFO.incentives[selectedAsset.asset as AssetType].apy}
                 isStrategyCard={true}
+                disableHover={true}
               />
             </div>
           </div>
