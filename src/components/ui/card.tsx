@@ -22,6 +22,7 @@ interface CustomCardProps {
   };
   isStrategyCard?: boolean;
   disableHover?: boolean;
+  onReset?: () => void;
 }
 
 const InfoIcon = () => (
@@ -43,6 +44,7 @@ const CustomCard: React.FC<CustomCardProps> = ({
   apy,
   isStrategyCard,
   disableHover,
+  onReset,
   ...props
 }) => {
   const handleDurationClick = (duration: string) => {
@@ -146,8 +148,32 @@ const CustomCard: React.FC<CustomCardProps> = ({
                   !disableHover && "group-hover:text-[#1A1B1E]"
                 )}>
                   {heading}
-                  {selectedDuration && (
-                    <div className="text-lg opacity-60 mt-2">{selectedDuration}</div>
+                  {selectedDuration && onReset && (
+                    <div className="flex flex-col items-center gap-4 mt-2">
+                      <div 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onReset();
+                        }}
+                        className="text-lg opacity-60 hover:opacity-100 transition-all duration-200 underline decoration-[rgba(255,255,255,0.6)] hover:decoration-white cursor-pointer"
+                      >
+                        {selectedDuration}
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onReset();
+                        }}
+                        className="text-white opacity-60 hover:opacity-100 transition-all duration-200 text-sm"
+                      >
+                        Change Asset
+                      </button>
+                    </div>
+                  )}
+                  {selectedDuration && !onReset && (
+                    <div className="text-lg opacity-60 mt-2">
+                      {selectedDuration}
+                    </div>
                   )}
                 </h3>
               </div>

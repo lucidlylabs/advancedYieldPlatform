@@ -139,7 +139,9 @@ const MarketsSubpage = () => {
           <div className="flex gap-6 justify-center items-center">
             <CustomCard
               heading={selectedAsset.asset as AssetType}
-              imageSrc={`/images/icons/card-${(selectedAsset.asset as AssetType).toLowerCase()}.svg`}
+              imageSrc={`/images/icons/card-${(
+                selectedAsset.asset as AssetType
+              ).toLowerCase()}.svg`}
               hoverColor={
                 selectedAsset.asset === "USD"
                   ? "#B88AF8"
@@ -148,15 +150,20 @@ const MarketsSubpage = () => {
                   : "#F7931A"
               }
               selectedDuration={selectedAsset.duration}
+              onReset={resetSelection}
               disableHover={true}
             />
             <div
-              onClick={() => handleStrategySelect("stable", selectedAsset.asset as AssetType)}
+              onClick={() =>
+                handleStrategySelect("stable", selectedAsset.asset as AssetType)
+              }
               className="cursor-pointer"
             >
               <CustomCard
                 heading={`Stable ${selectedAsset.asset}`}
-                imageSrc={`/images/icons/${(selectedAsset.asset as AssetType).toLowerCase()}-stable.svg`}
+                imageSrc={`/images/icons/${(
+                  selectedAsset.asset as AssetType
+                ).toLowerCase()}-stable.svg`}
                 hoverColor={
                   selectedAsset.asset === "USD"
                     ? "#627EEA"
@@ -164,19 +171,29 @@ const MarketsSubpage = () => {
                     ? "#627EEA"
                     : "#F7931A"
                 }
-                info={STRATEGY_INFO.stable[selectedAsset.asset as AssetType].description}
+                info={
+                  STRATEGY_INFO.stable[selectedAsset.asset as AssetType]
+                    .description
+                }
                 apy={STRATEGY_INFO.stable[selectedAsset.asset as AssetType].apy}
                 isStrategyCard={true}
                 disableHover={true}
               />
             </div>
             <div
-              onClick={() => handleStrategySelect("incentive", selectedAsset.asset as AssetType)}
+              onClick={() =>
+                handleStrategySelect(
+                  "incentive",
+                  selectedAsset.asset as AssetType
+                )
+              }
               className="cursor-pointer"
             >
               <CustomCard
                 heading={`Incentives ${selectedAsset.asset}`}
-                imageSrc={`/images/icons/${(selectedAsset.asset as AssetType).toLowerCase()}-incentive.svg`}
+                imageSrc={`/images/icons/${(
+                  selectedAsset.asset as AssetType
+                ).toLowerCase()}-incentive.svg`}
                 hoverColor={
                   selectedAsset.asset === "USD"
                     ? "#B88AF8"
@@ -184,19 +201,18 @@ const MarketsSubpage = () => {
                     ? "#627EEA"
                     : "#F7931A"
                 }
-                info={STRATEGY_INFO.incentives[selectedAsset.asset as AssetType].description}
-                apy={STRATEGY_INFO.incentives[selectedAsset.asset as AssetType].apy}
+                info={
+                  STRATEGY_INFO.incentives[selectedAsset.asset as AssetType]
+                    .description
+                }
+                apy={
+                  STRATEGY_INFO.incentives[selectedAsset.asset as AssetType].apy
+                }
                 isStrategyCard={true}
                 disableHover={true}
               />
             </div>
           </div>
-          <button
-            onClick={resetSelection}
-            className="text-white opacity-60 hover:opacity-100 transition-all duration-200 text-sm text-center"
-          >
-            Change Asset
-          </button>
         </div>
       ) : (
         <div className="flex flex-col gap-6 items-center pt-[8vh]">
