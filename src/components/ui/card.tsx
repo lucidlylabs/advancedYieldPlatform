@@ -82,7 +82,7 @@ const CustomCard: React.FC<CustomCardProps> = ({
               <h3 className="text-white font-inter text-base font-semibold leading-5">{heading}</h3>
               {info && (
                 <TooltipProvider>
-                  <Tooltip>
+                  <Tooltip delayDuration={0}>
                     <TooltipTrigger asChild>
                       <button 
                         onClick={handleTooltipClick}
@@ -107,9 +107,9 @@ const CustomCard: React.FC<CustomCardProps> = ({
           {apy && (
             <div className="mt-auto px-6 pb-8 text-white text-center">
               <div className="flex items-center justify-center gap-2 mb-2">
-                <span className="opacity-60">APY</span>
+                <span className="opacity-60">{isStrategyCard && heading.includes('Incentives') ? 'Incentive' : 'APY'}</span>
                 <TooltipProvider>
-                  <Tooltip>
+                  <Tooltip delayDuration={0}>
                     <TooltipTrigger asChild>
                       <button 
                         onClick={handleTooltipClick}
