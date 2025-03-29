@@ -116,13 +116,13 @@ const MarketsSubpage = () => {
   };
 
   return (
-    <div 
+    <div
       className="h-[calc(100vh-128px)] relative overflow-hidden"
       style={{
         backgroundImage: "url('/images/background/earn-page-bg.svg')",
         backgroundPosition: "bottom",
         backgroundRepeat: "no-repeat",
-        backgroundSize: "100% auto"
+        backgroundSize: "100% auto",
       }}
     >
       {selectedStrategy ? (
@@ -134,68 +134,70 @@ const MarketsSubpage = () => {
           onBack={() => setSelectedStrategy(null)}
         />
       ) : selectedAsset ? (
-        <div className="flex flex-col gap-8 justify-center items-center min-h-full">
-          <h1>Select a asset you want yield on</h1>
-          <div className="flex gap-6 items-start">
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-2">
-                <CustomCard
-                  heading={selectedAsset.asset as AssetType}
-                  imageSrc={`/images/icons/card-${(selectedAsset.asset as AssetType).toLowerCase()}.svg`}
-                  hoverColor={
-                    selectedAsset.asset === "USD"
-                      ? "#B88AF8"
-                      : selectedAsset.asset === "ETH"
-                      ? "#627EEA"
-                      : "#F7931A"
-                  }
-                  selectedDuration={selectedAsset.duration}
-                />
-                <button
-                  onClick={resetSelection}
-                  className="text-white opacity-60 hover:opacity-100 transition-all duration-200 text-sm text-center"
-                >
-                  Change Asset
-                </button>
-              </div>
-            </div>
-            <div className="flex gap-6">
+        <div className="flex flex-col gap-6 items-center pt-[8vh]">
+          <h1 className="text-[32px] font-normal">Select a yield source</h1>
+          <div className="flex gap-6 justify-center items-center">
+            <CustomCard
+              heading={selectedAsset.asset as AssetType}
+              imageSrc={`/images/icons/card-${(
+                selectedAsset.asset as AssetType
+              ).toLowerCase()}.svg`}
+              hoverColor={
+                selectedAsset.asset === "USD"
+                  ? "#B88AF8"
+                  : selectedAsset.asset === "ETH"
+                  ? "#627EEA"
+                  : "#F7931A"
+              }
+              selectedDuration={selectedAsset.duration}
+              onReset={resetSelection}
+              disableHover={true}
+              className="h-[311px]"
+            />
+            <div className="flex items-center justify-center gap-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] w-[555px] h-[311px] p-6">
               <div
-                onClick={() => handleStrategySelect("stable", selectedAsset.asset as AssetType)}
+                onClick={() =>
+                  handleStrategySelect("stable", selectedAsset.asset as AssetType)
+                }
                 className="cursor-pointer"
               >
                 <CustomCard
                   heading={`Stable ${selectedAsset.asset}`}
-                  imageSrc={`/images/icons/stable-${(selectedAsset.asset as AssetType).toLowerCase()}.svg`}
-                  hoverColor={
-                    selectedAsset.asset === "USD"
-                      ? "#627EEA"
-                      : selectedAsset.asset === "ETH"
-                      ? "#627EEA"
-                      : "#F7931A"
+                  imageSrc={`/images/icons/${(
+                    selectedAsset.asset as AssetType
+                  ).toLowerCase()}-stable.svg`}
+                  info={
+                    STRATEGY_INFO.stable[selectedAsset.asset as AssetType]
+                      .description
                   }
-                  info={STRATEGY_INFO.stable[selectedAsset.asset as AssetType].description}
                   apy={STRATEGY_INFO.stable[selectedAsset.asset as AssetType].apy}
                   isStrategyCard={true}
+                  disableHover={true}
                 />
               </div>
               <div
-                onClick={() => handleStrategySelect("incentive", selectedAsset.asset as AssetType)}
+                onClick={() =>
+                  handleStrategySelect(
+                    "incentive",
+                    selectedAsset.asset as AssetType
+                  )
+                }
                 className="cursor-pointer"
               >
                 <CustomCard
                   heading={`Incentives ${selectedAsset.asset}`}
-                  imageSrc={`/images/icons/incentives-${(selectedAsset.asset as AssetType).toLowerCase()}.svg`}
-                  hoverColor={
-                    selectedAsset.asset === "USD"
-                      ? "#B88AF8"
-                      : selectedAsset.asset === "ETH"
-                      ? "#627EEA"
-                      : "#F7931A"
+                  imageSrc={`/images/icons/${(
+                    selectedAsset.asset as AssetType
+                  ).toLowerCase()}-incentive.svg`}
+                  info={
+                    STRATEGY_INFO.incentives[selectedAsset.asset as AssetType]
+                      .description
                   }
-                  info={STRATEGY_INFO.incentives[selectedAsset.asset as AssetType].description}
-                  apy={STRATEGY_INFO.incentives[selectedAsset.asset as AssetType].apy}
+                  apy={
+                    STRATEGY_INFO.incentives[selectedAsset.asset as AssetType].apy
+                  }
                   isStrategyCard={true}
+                  disableHover={true}
                 />
               </div>
             </div>
@@ -203,25 +205,33 @@ const MarketsSubpage = () => {
         </div>
       ) : (
         <div className="flex flex-col gap-6 items-center pt-[8vh]">
-          <h1 className="text-[32px] font-normal">Select a asset you want yield on</h1>
+          <h1 className="text-[32px] font-normal">
+            Select a asset you want yield on
+          </h1>
           <div className="flex gap-6 justify-center items-center">
             <CustomCard
               heading="USD"
               imageSrc="/images/icons/card-usd.svg"
               hoverColor="#B88AF8"
-              onDurationSelect={(duration) => handleDurationSelect("USD", duration)}
+              onDurationSelect={(duration) =>
+                handleDurationSelect("USD", duration)
+              }
             />
             <CustomCard
               heading="Ethereum"
               imageSrc="/images/icons/card-eth.svg"
               hoverColor="#627EEA"
-              onDurationSelect={(duration) => handleDurationSelect("ETH", duration)}
+              onDurationSelect={(duration) =>
+                handleDurationSelect("ETH", duration)
+              }
             />
             <CustomCard
               heading="Bitcoin"
               imageSrc="/images/icons/card-btc.svg"
               hoverColor="#F7931A"
-              onDurationSelect={(duration) => handleDurationSelect("BTC", duration)}
+              onDurationSelect={(duration) =>
+                handleDurationSelect("BTC", duration)
+              }
             />
           </div>
         </div>
