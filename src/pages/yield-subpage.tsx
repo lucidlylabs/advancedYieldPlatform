@@ -156,7 +156,7 @@ const MarketsSubpage = () => {
             >
               <CustomCard
                 heading={`Stable ${selectedAsset.asset}`}
-                imageSrc={`/images/icons/stable-${(selectedAsset.asset as AssetType).toLowerCase()}.svg`}
+                imageSrc={`/images/icons/${(selectedAsset.asset as AssetType).toLowerCase()}-stable.svg`}
                 hoverColor={
                   selectedAsset.asset === "USD"
                     ? "#627EEA"
@@ -176,7 +176,7 @@ const MarketsSubpage = () => {
             >
               <CustomCard
                 heading={`Incentives ${selectedAsset.asset}`}
-                imageSrc={`/images/icons/incentives-${(selectedAsset.asset as AssetType).toLowerCase()}.svg`}
+                imageSrc={`/images/icons/${(selectedAsset.asset as AssetType).toLowerCase()}-incentive.svg`}
                 hoverColor={
                   selectedAsset.asset === "USD"
                     ? "#B88AF8"
