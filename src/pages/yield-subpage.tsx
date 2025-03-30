@@ -110,7 +110,7 @@ const MarketsSubpage = () => {
     }
   };
 
-  const resetSelection = () => {
+  const handleReset = () => {
     setSelectedAsset(null);
     setSelectedStrategy(null);
   };
@@ -132,6 +132,7 @@ const MarketsSubpage = () => {
           strategy={selectedStrategy.type}
           apy={selectedStrategy.apy}
           onBack={() => setSelectedStrategy(null)}
+          onReset={handleReset}
         />
       ) : selectedAsset ? (
         <div className="flex flex-col gap-6 items-center pt-[8vh]">
@@ -150,7 +151,7 @@ const MarketsSubpage = () => {
                   : "#F7931A"
               }
               selectedDuration={selectedAsset.duration}
-              onReset={resetSelection}
+              onReset={handleReset}
               disableHover={true}
               className="h-[311px]"
             />

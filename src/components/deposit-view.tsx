@@ -14,6 +14,7 @@ interface DepositViewProps {
   strategy: "stable" | "incentive";
   apy: string;
   onBack: () => void;
+  onReset: () => void;
 }
 
 const InfoIcon = () => (
@@ -40,6 +41,7 @@ const DepositView: React.FC<DepositViewProps> = ({
   strategy,
   apy,
   onBack,
+  onReset,
 }) => {
   const [amount, setAmount] = useState<string>("");
   const [slippage, setSlippage] = useState<string>("0.03");
@@ -68,31 +70,10 @@ const DepositView: React.FC<DepositViewProps> = ({
     <div className="h-[calc(100vh-128px)] relative overflow-hidden">
       <div className="flex flex-col gap-6 items-center pt-[8vh]">
         <div className="w-[552px] h-[459px] flex-shrink-0">
-          <h1 className="text-[32px] font-normal">Deposit {selectedAsset}</h1>
           <div className="flex gap-6 justify-center items-center">
             {/* Left Card - Deposit Input */}
             <div className="w-[264px] h-[311px] bg-[rgba(255,255,255,0.02)] rounded-[4px] border border-[rgba(255,255,255,0.05)] p-6">
               <div className="flex items-center justify-between mb-6">
-                <button
-                  onClick={onBack}
-                  className="text-white opacity-60 hover:opacity-100 transition-all duration-200 flex items-center gap-2"
-                >
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M19 12H5M5 12L12 19M5 12L12 5"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
                 <div className="flex items-center gap-2">
                   <img
                     src={`/images/icons/card-${selectedAsset.toLowerCase()}.svg`}
@@ -134,22 +115,47 @@ const DepositView: React.FC<DepositViewProps> = ({
             {/* Right Card - Strategy Info */}
             <div className="w-[264px] h-[311px] bg-[rgba(255,255,255,0.02)] rounded-[4px] border border-[rgba(255,255,255,0.05)] p-6">
               <div className="flex flex-col gap-4">
+                {/* Asset Info */}
                 <div>
-                  <h3 className="text-3xl font-semibold text-white mb-1">
-                    {selectedAsset}
-                  </h3>
-                  <div className="text-[rgba(255,255,255,0.6)]">{duration}</div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-3xl font-semibold text-white">
+                      {selectedAsset}
+                    </h3>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <div
+                      onClick={onReset}
+                      className="text-[rgba(255,255,255,0.6)] cursor-pointer decoration-[rgba(255,255,255,0.3)] hover:decoration-[rgba(255,255,255,0.6)] underline underline-offset-4 transition-all duration-200"
+                    >
+                      {duration}
+                    </div>
+                    <div
+                      onClick={onReset}
+                      className="text-[#B88AF8] cursor-pointer font-inter text-xs font-light"
+                    >
+                      Change Asset
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                {/* Strategy Info */}
+                <div className="flex items-center gap-3 p-4 bg-[rgba(255,255,255,0.02)] rounded-[4px] border border-[rgba(255,255,255,0.05)]">
                   <img
-                    src={`/images/icons/${strategy}-${selectedAsset.toLowerCase()}.svg`}
+                    src={`/images/icons/${selectedAsset.toLowerCase()}-${strategy}.svg`}
                     alt={strategy}
-                    className="w-8 h-8"
+                    className="w-10 h-10"
                   />
                   <div>
-                    <div className="text-white font-semibold capitalize">
-                      {strategy} {selectedAsset}
+                    <div className="flex items-center gap-2">
+                      <div className="text-white font-semibold capitalize">
+                        {strategy} {selectedAsset}
+                      </div>
+                      <img
+                        src="/images/icons/select-icon.svg"
+                        alt="select"
+                        className="w-4 h-4 cursor-pointer"
+                        onClick={onBack}
+                      />
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[rgba(255,255,255,0.6)]">APY</span>
