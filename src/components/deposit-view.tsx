@@ -69,10 +69,10 @@ const DepositView: React.FC<DepositViewProps> = ({
   return (
     <div className="h-[calc(100vh-128px)] relative overflow-hidden">
       <div className="flex flex-col gap-6 items-center pt-[8vh]">
-        <div className="w-[552px] h-[459px] flex-shrink-0">
+        <div className="w-[580px] h-[459px] flex-shrink-0">
           <div className="flex gap-6 justify-center items-center">
             {/* Left Card - Deposit Input */}
-            <div className="w-[264px] h-[311px] bg-[rgba(255,255,255,0.02)] rounded-[4px] border border-[rgba(255,255,255,0.05)] p-6">
+            <div className="w-[280px] h-[311px] bg-[rgba(255,255,255,0.02)] rounded-[4px] border border-[rgba(255,255,255,0.05)] p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                   <img
@@ -113,7 +113,7 @@ const DepositView: React.FC<DepositViewProps> = ({
             </div>
 
             {/* Right Card - Strategy Info */}
-            <div className="w-[264px] h-[311px] bg-[rgba(255,255,255,0.02)] rounded-[4px] border border-[rgba(255,255,255,0.05)] p-6">
+            <div className="w-[280px] h-[311px] bg-[rgba(255,255,255,0.02)] rounded-[4px] border border-[rgba(255,255,255,0.05)] p-6">
               <div className="flex flex-col gap-4">
                 {/* Asset Info */}
                 <div>
