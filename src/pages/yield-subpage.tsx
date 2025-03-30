@@ -143,6 +143,11 @@ const MarketsSubpage = () => {
               imageSrc={`/images/icons/card-${(
                 selectedAsset.asset as AssetType
               ).toLowerCase()}.svg`}
+              imageStyles={{
+                position: 'absolute',
+                bottom: '0',
+                transform: 'translateY(50%)'
+              }}
               hoverColor={
                 selectedAsset.asset === "USD"
                   ? "#B88AF8"

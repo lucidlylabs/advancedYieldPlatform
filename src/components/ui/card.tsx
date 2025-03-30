@@ -227,8 +227,10 @@ const CustomCard: React.FC<CustomCardProps> = ({
                 src={imageSrc}
                 alt={imageAlt}
                 className={cn(
-                  "absolute bottom-0 w-full h-[200px] object-contain transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-                  !disableHover && "transform group-hover:translate-y-[-20px] group-hover:opacity-0"
+                  "absolute w-full h-[200px] object-contain transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                  selectedDuration 
+                    ? "bottom-[-30%] translate-y-[30%]"
+                    : "bottom-0 group-hover:translate-y-[-20px] group-hover:opacity-0"
                 )}
               />
             </div>
