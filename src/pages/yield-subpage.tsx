@@ -143,11 +143,6 @@ const MarketsSubpage = () => {
               imageSrc={`/images/icons/card-${(
                 selectedAsset.asset as AssetType
               ).toLowerCase()}.svg`}
-              imageStyles={{
-                position: 'absolute',
-                bottom: '0',
-                transform: 'translateY(50%)'
-              }}
               hoverColor={
                 selectedAsset.asset === "USD"
                   ? "#B88AF8"
@@ -163,7 +158,10 @@ const MarketsSubpage = () => {
             <div className="flex items-center justify-center gap-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] w-[555px] h-[311px] p-6">
               <div
                 onClick={() =>
-                  handleStrategySelect("stable", selectedAsset.asset as AssetType)
+                  handleStrategySelect(
+                    "stable",
+                    selectedAsset.asset as AssetType
+                  )
                 }
                 className="cursor-pointer"
               >
@@ -176,7 +174,9 @@ const MarketsSubpage = () => {
                     STRATEGY_INFO.stable[selectedAsset.asset as AssetType]
                       .description
                   }
-                  apy={STRATEGY_INFO.stable[selectedAsset.asset as AssetType].apy}
+                  apy={
+                    STRATEGY_INFO.stable[selectedAsset.asset as AssetType].apy
+                  }
                   isStrategyCard={true}
                   disableHover={true}
                 />
@@ -200,7 +200,8 @@ const MarketsSubpage = () => {
                       .description
                   }
                   apy={
-                    STRATEGY_INFO.incentives[selectedAsset.asset as AssetType].apy
+                    STRATEGY_INFO.incentives[selectedAsset.asset as AssetType]
+                      .apy
                   }
                   isStrategyCard={true}
                   disableHover={true}
