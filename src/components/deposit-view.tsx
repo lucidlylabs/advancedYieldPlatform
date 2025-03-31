@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -7,10 +7,35 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useAccount } from "wagmi";
+import { USD_STRATEGIES } from '../config/env';
+import { ethers } from 'ethers';
+
+type DurationType = "30_DAYS" | "60_DAYS" | "180_DAYS" | "PERPETUAL";
+type StrategyType = "STABLE" | "INCENTIVE";
+
+interface StrategyConfig {
+  network: string;
+  contract: string;
+  deposit_token: string;
+  deposit_contract: string;
+  deposit_token_contract?: string;  // Optional field for backward compatibility
+  description: string;
+  apy: string;
+  incentives: string;
+  tvl: string;
+  rpc?: string;  // Optional field for backward compatibility
+}
+
+// ERC20 ABI for balanceOf
+const ERC20_ABI = [
+  "function balanceOf(address owner) view returns (uint256)",
+  "function decimals() view returns (uint8)"
+];
 
 interface DepositViewProps {
   selectedAsset: string;
-  duration: string;
+  duration: DurationType;
   strategy: "stable" | "incentive";
   apy: string;
   onBack: () => void;
@@ -45,7 +70,62 @@ const DepositView: React.FC<DepositViewProps> = ({
 }) => {
   const [amount, setAmount] = useState<string>("");
   const [slippage, setSlippage] = useState<string>("0.03");
-  const balance = "0.00"; // This would come from your wallet connection
+  const [balance, setBalance] = useState<string>("0.00");
+  const [isLoadingBalance, setIsLoadingBalance] = useState<boolean>(false);
+  const { address } = useAccount();
+
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (!address || selectedAsset !== "USD") return;
+
+      setIsLoadingBalance(true);
+      try {
+        const strategyConfig = USD_STRATEGIES[duration][strategy === "stable" ? "STABLE" : "INCENTIVE"] as StrategyConfig;
+        
+        // Use deposit_token_contract instead of deposit_contract
+        const tokenContractAddress = strategyConfig.deposit_token_contract || strategyConfig.deposit_contract;
+        
+        // Validate contract address
+        if (!tokenContractAddress || tokenContractAddress === "0x0000000000000000000000000000000000000000") {
+          console.warn("Invalid token contract address for", duration, strategy);
+          setBalance("0.00");
+          return;
+        }
+
+        // Use the RPC from the strategy config or fallback to a default
+        const rpcUrl = strategyConfig.rpc || "https://rpc.soniclabs.com";
+        console.log("Using RPC:", rpcUrl);
+        console.log("Token contract:", tokenContractAddress);
+        
+        const provider = new ethers.JsonRpcProvider(rpcUrl);
+        const tokenContract = new ethers.Contract(
+          tokenContractAddress,
+          ERC20_ABI,
+          provider
+        );
+
+        const [balance, decimals] = await Promise.all([
+          tokenContract.balanceOf(address),
+          tokenContract.decimals()
+        ]);
+
+        const formattedBalance = ethers.formatUnits(balance, decimals);
+        console.log("Balance fetched:", formattedBalance);
+        setBalance(formattedBalance);
+      } catch (error) {
+        console.error("Error fetching balance:", error);
+        setBalance("0.00");
+      } finally {
+        setIsLoadingBalance(false);
+      }
+    };
+
+    fetchBalance();
+  }, [address, selectedAsset, duration, strategy]);
+
+  const depositToken = selectedAsset === "USD" 
+    ? USD_STRATEGIES[duration as keyof typeof USD_STRATEGIES][strategy === "stable" ? "STABLE" : "INCENTIVE"]["deposit_token"]
+    : selectedAsset;
 
   const handleMaxClick = () => {
     setAmount(balance);
@@ -81,7 +161,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                     className="w-[56px] h-[56px]"
                   />
                   <span className="text-[#EDF2F8] text-center font-inter text-[14px] font-semibold leading-normal mt-[16px]">
-                    Deposit {selectedAsset}
+                    Deposit {depositToken}
                   </span>
                   <span className="text-[#00D1A0] text-center font-inter text-[12px] font-normal leading-normal">
                     +0.00 in 1 year
@@ -109,9 +189,17 @@ const DepositView: React.FC<DepositViewProps> = ({
                 </div>
                 <div className="mt-[12px]">
                   <span className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
-                    Balance: <span className="text-white">
-                      {balance}
-                    </span>
+                    Balance: {isLoadingBalance ? (
+                      <span className="inline-flex items-center gap-1">
+                        <svg className="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span className="text-white">Loading...</span>
+                      </span>
+                    ) : (
+                      <span className="text-white">{balance}</span>
+                    )}
                   </span>
                 </div>
               </div>

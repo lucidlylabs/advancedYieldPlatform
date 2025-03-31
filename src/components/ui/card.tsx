@@ -7,14 +7,16 @@ import {
   TooltipProvider
 } from "@/components/ui/tooltip";
 
+type DurationType = "30_DAYS" | "60_DAYS" | "180_DAYS" | "PERPETUAL";
+
 interface CustomCardProps {
   heading: string;
   imageSrc: string;
   imageAlt?: string;
   className?: string;
   hoverColor?: string;
-  onDurationSelect?: (duration: string) => void;
-  selectedDuration?: string;
+  onDurationSelect?: (duration: DurationType) => void;
+  selectedDuration?: DurationType;
   info?: string;
   apy?: {
     value: string;
@@ -47,7 +49,7 @@ const CustomCard: React.FC<CustomCardProps> = ({
   onReset,
   ...props
 }) => {
-  const handleDurationClick = (duration: string) => {
+  const handleDurationClick = (duration: DurationType) => {
     if (onDurationSelect) {
       onDurationSelect(duration);
     }
@@ -194,25 +196,25 @@ const CustomCard: React.FC<CustomCardProps> = ({
               </p>
               <div className="flex flex-wrap gap-2">
                 <button 
-                  onClick={() => handleDurationClick("30 Days")}
+                  onClick={() => handleDurationClick("30_DAYS")}
                   className="w-[calc(50%-4px)] px-4 py-2 rounded-[4px] border border-[rgba(184,138,248,0.30)] text-white bg-transparent hover:bg-white hover:text-[#1A1B1E] transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] hover:cursor-pointer"
                 >
                   30 Days
                 </button>
                 <button 
-                  onClick={() => handleDurationClick("90 Days")}
+                  onClick={() => handleDurationClick("60_DAYS")}
                   className="w-[calc(50%-4px)] px-4 py-2 rounded-[4px] border border-[rgba(184,138,248,0.30)] text-white bg-transparent hover:bg-white hover:text-[#1A1B1E] transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] hover:cursor-pointer"
                 >
-                  90 Days
+                  60 Days
                 </button>
                 <button 
-                  onClick={() => handleDurationClick("180 Days")}
+                  onClick={() => handleDurationClick("180_DAYS")}
                   className="w-full px-4 py-2 rounded-[4px] border border-[rgba(184,138,248,0.30)] text-white bg-transparent hover:bg-white hover:text-[#1A1B1E] transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] hover:cursor-pointer"
                 >
                   180 Days
                 </button>
                 <button 
-                  onClick={() => handleDurationClick("Perpetual Duration")}
+                  onClick={() => handleDurationClick("PERPETUAL")}
                   className="w-full px-4 py-2 rounded-[4px] border border-[rgba(184,138,248,0.30)] text-white bg-transparent hover:bg-white hover:text-[#1A1B1E] transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] hover:cursor-pointer"
                 >
                   Perpetual Duration

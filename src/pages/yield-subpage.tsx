@@ -1,10 +1,14 @@
 import React, { useState } from "react";
 import { CustomCard } from "@/components/ui/card";
 import { DepositView } from "@/components/deposit-view";
+import { USD_STRATEGIES } from '../config/env';
+
+type DurationType = "30_DAYS" | "60_DAYS" | "180_DAYS" | "PERPETUAL";
+type StrategyType = "STABLE" | "INCENTIVE";
 
 interface SelectedAsset {
   asset: string;
-  duration: string;
+  duration: DurationType;
 }
 
 interface SelectedStrategy {
@@ -29,15 +33,14 @@ interface StrategyData {
   incentives: Record<AssetType, StrategyInfo>;
 }
 
-const STRATEGY_INFO: StrategyData = {
+export const getStrategyInfo = (duration: DurationType) => ({
   stable: {
     USD: {
-      description:
-        "Stable USD strategy focuses on maintaining consistent returns through low-risk lending protocols.",
+      description: USD_STRATEGIES[duration]["STABLE"]["description"],
       apy: {
-        value: "4.12%",
-        info: "Annual Percentage Yield based on current market conditions and protocol performance.",
-      },
+        value: USD_STRATEGIES[duration]["STABLE"]["apy"],
+        info: `Base APY ${USD_STRATEGIES[duration]["STABLE"]["apy"]} ${USD_STRATEGIES[duration]["STABLE"]["incentives"]}`
+      }
     },
     ETH: {
       description:
@@ -58,11 +61,10 @@ const STRATEGY_INFO: StrategyData = {
   },
   incentives: {
     USD: {
-      description:
-        "Incentivized USD strategy maximizes returns through protocol rewards and yield farming.",
+      description: USD_STRATEGIES[duration]["INCENTIVE"]["description"],
       apy: {
-        value: "8.45%",
-        info: "Enhanced APY including protocol incentives and bonus rewards.",
+        value: USD_STRATEGIES[duration]["INCENTIVE"]["apy"],
+        info: `Base APY ${USD_STRATEGIES[duration]["INCENTIVE"]["apy"]} with ${USD_STRATEGIES[duration]["INCENTIVE"]["incentives"]}`
       },
     },
     ETH: {
@@ -82,7 +84,7 @@ const STRATEGY_INFO: StrategyData = {
       },
     },
   },
-};
+});
 
 const MarketsSubpage = () => {
   const [selectedAsset, setSelectedAsset] = useState<SelectedAsset | null>(
@@ -91,7 +93,7 @@ const MarketsSubpage = () => {
   const [selectedStrategy, setSelectedStrategy] =
     useState<SelectedStrategy | null>(null);
 
-  const handleDurationSelect = (asset: string, duration: string) => {
+  const handleDurationSelect = (asset: string, duration: DurationType) => {
     setSelectedAsset({ asset, duration });
   };
 
@@ -104,7 +106,7 @@ const MarketsSubpage = () => {
         type,
         asset: selectedAsset.asset,
         duration: selectedAsset.duration,
-        apy: STRATEGY_INFO[type === "stable" ? "stable" : "incentives"][asset]
+        apy: getStrategyInfo(selectedAsset.duration)[type === "stable" ? "stable" : "incentives"][asset]
           .apy.value,
       });
     }
@@ -171,11 +173,11 @@ const MarketsSubpage = () => {
                     selectedAsset.asset as AssetType
                   ).toLowerCase()}-stable.svg`}
                   info={
-                    STRATEGY_INFO.stable[selectedAsset.asset as AssetType]
+                    getStrategyInfo(selectedAsset.duration).stable[selectedAsset.asset as AssetType]
                       .description
                   }
                   apy={
-                    STRATEGY_INFO.stable[selectedAsset.asset as AssetType].apy
+                    getStrategyInfo(selectedAsset.duration).stable[selectedAsset.asset as AssetType].apy
                   }
                   isStrategyCard={true}
                   disableHover={true}
@@ -196,11 +198,11 @@ const MarketsSubpage = () => {
                     selectedAsset.asset as AssetType
                   ).toLowerCase()}-incentive.svg`}
                   info={
-                    STRATEGY_INFO.incentives[selectedAsset.asset as AssetType]
+                    getStrategyInfo(selectedAsset.duration).incentives[selectedAsset.asset as AssetType]
                       .description
                   }
                   apy={
-                    STRATEGY_INFO.incentives[selectedAsset.asset as AssetType]
+                    getStrategyInfo(selectedAsset.duration).incentives[selectedAsset.asset as AssetType]
                       .apy
                   }
                   isStrategyCard={true}
@@ -220,7 +222,7 @@ const MarketsSubpage = () => {
               heading="USD"
               imageSrc="/images/icons/card-usd.svg"
               hoverColor="#B88AF8"
-              onDurationSelect={(duration) =>
+              onDurationSelect={(duration: DurationType) =>
                 handleDurationSelect("USD", duration)
               }
             />
@@ -228,7 +230,7 @@ const MarketsSubpage = () => {
               heading="Ethereum"
               imageSrc="/images/icons/card-eth.svg"
               hoverColor="#627EEA"
-              onDurationSelect={(duration) =>
+              onDurationSelect={(duration: DurationType) =>
                 handleDurationSelect("ETH", duration)
               }
             />
@@ -236,7 +238,7 @@ const MarketsSubpage = () => {
               heading="Bitcoin"
               imageSrc="/images/icons/card-btc.svg"
               hoverColor="#F7931A"
-              onDurationSelect={(duration) =>
+              onDurationSelect={(duration: DurationType) =>
                 handleDurationSelect("BTC", duration)
               }
             />
