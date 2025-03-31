@@ -11,7 +11,7 @@ import { useAccount } from "wagmi";
 import { USD_STRATEGIES } from '../config/env';
 import { ethers } from 'ethers';
 
-type DurationType = "30_DAYS" | "60_DAYS" | "180_DAYS" | "PERPETUAL";
+type DurationType = "30_DAYS" | "60_DAYS" | "180_DAYS" | "PERPETUAL_DURATION";
 type StrategyType = "STABLE" | "INCENTIVE";
 
 interface StrategyConfig {

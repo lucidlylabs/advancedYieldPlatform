@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { CustomCard } from "@/components/ui/card";
 import { DepositView } from "@/components/deposit-view";
-import { USD_STRATEGIES } from '../config/env';
+import { USD_STRATEGIES } from "../config/env";
 
-type DurationType = "30_DAYS" | "60_DAYS" | "180_DAYS" | "PERPETUAL";
+type DurationType = "30_DAYS" | "60_DAYS" | "180_DAYS" | "PERPETUAL_DURATION";
 type StrategyType = "STABLE" | "INCENTIVE";
 
 interface SelectedAsset {
@@ -14,7 +14,7 @@ interface SelectedAsset {
 interface SelectedStrategy {
   type: "stable" | "incentive";
   asset: string;
-  duration: string;
+  duration: DurationType;
   apy: string;
 }
 
@@ -65,7 +65,7 @@ export const getStrategyInfo = (duration: DurationType) => ({
       apy: {
         value: USD_STRATEGIES[duration]["INCENTIVE"]["apy"],
         info: `Base APY ${USD_STRATEGIES[duration]["INCENTIVE"]["apy"]} with ${USD_STRATEGIES[duration]["INCENTIVE"]["incentives"]}`
-      },
+      }
     },
     ETH: {
       description:
@@ -106,8 +106,9 @@ const MarketsSubpage = () => {
         type,
         asset: selectedAsset.asset,
         duration: selectedAsset.duration,
-        apy: getStrategyInfo(selectedAsset.duration)[type === "stable" ? "stable" : "incentives"][asset]
-          .apy.value,
+        apy: getStrategyInfo(selectedAsset.duration)[
+          type === "stable" ? "stable" : "incentives"
+        ][asset].apy.value,
       });
     }
   };
@@ -173,11 +174,14 @@ const MarketsSubpage = () => {
                     selectedAsset.asset as AssetType
                   ).toLowerCase()}-stable.svg`}
                   info={
-                    getStrategyInfo(selectedAsset.duration).stable[selectedAsset.asset as AssetType]
-                      .description
+                    getStrategyInfo(selectedAsset.duration).stable[
+                      selectedAsset.asset as AssetType
+                    ].description
                   }
                   apy={
-                    getStrategyInfo(selectedAsset.duration).stable[selectedAsset.asset as AssetType].apy
+                    getStrategyInfo(selectedAsset.duration).stable[
+                      selectedAsset.asset as AssetType
+                    ].apy
                   }
                   isStrategyCard={true}
                   disableHover={true}
@@ -198,12 +202,14 @@ const MarketsSubpage = () => {
                     selectedAsset.asset as AssetType
                   ).toLowerCase()}-incentive.svg`}
                   info={
-                    getStrategyInfo(selectedAsset.duration).incentives[selectedAsset.asset as AssetType]
-                      .description
+                    getStrategyInfo(selectedAsset.duration).incentives[
+                      selectedAsset.asset as AssetType
+                    ].description
                   }
                   apy={
-                    getStrategyInfo(selectedAsset.duration).incentives[selectedAsset.asset as AssetType]
-                      .apy
+                    getStrategyInfo(selectedAsset.duration).incentives[
+                      selectedAsset.asset as AssetType
+                    ].apy
                   }
                   isStrategyCard={true}
                   disableHover={true}

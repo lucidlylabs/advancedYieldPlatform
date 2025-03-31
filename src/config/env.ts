@@ -71,7 +71,7 @@ export const USD_STRATEGIES = {
       rpc: "https://rpc.soniclabs.com",
     },
   },
-  PERPETUAL: {
+  PERPETUAL_DURATION: {
     STABLE: {
       network: "Sonic",
       contract: "0x0000000000000000000000000000000000000000",
