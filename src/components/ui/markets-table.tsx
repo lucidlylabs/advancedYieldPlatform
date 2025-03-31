@@ -146,9 +146,9 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
     <div className="w-full">
       {/* Table Header */}
       <div className="pl-[32px]">
-        <div className="grid grid-cols-12 pr-6 py-2 border-y border-[rgba(255,255,255,0.15)]">
+        <div className="grid grid-cols-12 pr-6 py-2 border-y-[0.5px] border-[rgba(255,255,255,0.15)]">
           <div
-            className="col-span-4 cursor-pointer flex items-center text-white opacity-60 font-inter text-[11px] font-normal leading-[14px]"
+            className="col-span-4 cursor-pointer flex items-center text-white opacity-60 font-inter text-[11px] font-normal leading-[14px] py-[5px]"
             onClick={() => onSort("name")}
           >
             Available Yields

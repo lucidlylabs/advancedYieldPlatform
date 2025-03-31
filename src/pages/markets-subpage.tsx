@@ -258,8 +258,8 @@ const MarketsSubpage: React.FC = () => {
         </div>
 
         {/* Asset Selection */}
-        <div className="pl-[32px]">
-          <div className="flex border-b border-[rgba(255,255,255,0.15)] pr-6">
+        <div className="pl-[32px] mt-[16px]">
+          <div className="flex border-b-[0.5px] border-[rgba(255,255,255,0.15)] pr-6">
             <AssetButton
               asset="ALL"
               activeAsset={selectedAsset}
