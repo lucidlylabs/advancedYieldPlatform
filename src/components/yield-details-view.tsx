@@ -268,7 +268,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
       {/* Stats */}
       <div className="flex items-center border-b border-gray-700 pb-2">
-        <div className="flex flex-col pl-0 pr-6 relative after:content-[''] after:absolute after:right-0 after:top-[4px] after:w-[1px] after:h-[calc(100%-4px)] after:bg-[#2D2F3D]">
+        <div className="w-[100px] flex flex-col pl-0 pr-6 relative after:content-[''] after:absolute after:right-0 after:top-[4px] after:w-[1px] after:h-[calc(100%-4px)] after:bg-[#2D2F3D]">
           <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-normal">TVL</div>
           <div className="text-white font-inter text-[14px] font-semibold leading-normal mt-[8px] text-left">{tvl}</div>
         </div>
