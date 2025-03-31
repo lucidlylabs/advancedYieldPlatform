@@ -57,7 +57,7 @@ const AssetButton: React.FC<{
   return (
     <button
       className={cn(
-        "flex items-center gap-[4px] py-2 transition-all duration-200 mr-[16px] last:mr-0 relative",
+        "flex items-center gap-[4px] py-2 pb-[8px] transition-all duration-200 mr-[24px] last:mr-0 relative",
         activeAsset === asset ? "opacity-100" : "opacity-50",
         "hover:opacity-100"
       )}
@@ -72,7 +72,7 @@ const AssetButton: React.FC<{
           className="object-contain rounded-full"
         />
       </div>
-      <span className="text-white font-inter text-base font-medium">{asset}</span>
+      <span className="text-white font-inter text-[12px] font-normal leading-[16px]">{asset}</span>
       {activeAsset === asset && (
         <div className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-white" />
       )}
@@ -240,8 +240,8 @@ const MarketsSubpage: React.FC = () => {
   return (
     <div className="flex min-h-screen text-white">
       {/* Left side - 50% */}
-      <div className="w-[757px] flex flex-col ml-10 relative">
-        <div className="w-[757px] h-[124px] flex flex-col justify-center items-start relative">
+      <div className="w-[757px] flex flex-col relative">
+        <div className="w-[757px] h-[124px] flex flex-col justify-center items-start relative pl-[32px]">
           <div 
             className="absolute inset-0 bg-[url('/images/background/earn-page-heading-bg.svg')] bg-no-repeat bg-cover"
             style={{ height: '100%' }}
@@ -258,27 +258,29 @@ const MarketsSubpage: React.FC = () => {
         </div>
 
         {/* Asset Selection */}
-        <div className="flex pr-6 mb-0 border-b border-gray-700">
-          <AssetButton
-            asset="ALL"
-            activeAsset={selectedAsset}
-            onClick={setSelectedAsset}
-          />
-          <AssetButton
-            asset="USD"
-            activeAsset={selectedAsset}
-            onClick={setSelectedAsset}
-          />
-          <AssetButton
-            asset="ETH"
-            activeAsset={selectedAsset}
-            onClick={setSelectedAsset}
-          />
-          <AssetButton
-            asset="BTC"
-            activeAsset={selectedAsset}
-            onClick={setSelectedAsset}
-          />
+        <div className="pl-[32px]">
+          <div className="flex border-b border-[rgba(255,255,255,0.15)] pr-6">
+            <AssetButton
+              asset="ALL"
+              activeAsset={selectedAsset}
+              onClick={setSelectedAsset}
+            />
+            <AssetButton
+              asset="USD"
+              activeAsset={selectedAsset}
+              onClick={setSelectedAsset}
+            />
+            <AssetButton
+              asset="ETH"
+              activeAsset={selectedAsset}
+              onClick={setSelectedAsset}
+            />
+            <AssetButton
+              asset="BTC"
+              activeAsset={selectedAsset}
+              onClick={setSelectedAsset}
+            />
+          </div>
         </div>
 
         {/* Market Table */}
@@ -307,7 +309,7 @@ const MarketsSubpage: React.FC = () => {
       <div className="w-[1px] bg-[rgba(255,255,255,0.1)]" />
 
       {/* Right side - 50% */}
-      <div className="w-1/2">
+      <div className="w-1/2 ml-[30px]">
         {selectedItem ? (
           <YieldDetailsView
             name={selectedItem.name}
