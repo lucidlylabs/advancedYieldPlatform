@@ -205,34 +205,38 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
         {data.map((item, index) => (
           <div
             key={item.id}
-            className={cn(
-              "cursor-pointer transition duration-200",
-              index % 2 === 1 && "bg-[rgba(255,255,255,0.02)]",
-              "hover:bg-[linear-gradient(90deg,rgba(0,209,160,0.15)_0%,rgba(153,153,153,0.00)_61.23%)]",
-              selectedItemId === item.id &&
-                "bg-[linear-gradient(90deg,rgba(0,209,160,0.15)_0%,rgba(153,153,153,0.00)_61.23%)]"
-            )}
             onClick={() => onRowClick && onRowClick(item)}
+            className="cursor-pointer pl-[32px]"
           >
-            <div className="grid grid-cols-12 pl-[32px] pr-6 py-4">
-              <div className="col-span-4 flex items-center">
-                {getAssetIcon(item.type)}
-                <span className="text-white font-inter text-xs font-normal leading-4">
-                  {item.name}
-                </span>
-              </div>
-              <div className="col-span-3 flex items-center text-white font-inter text-xs font-normal leading-4">
-                {item.baseYield}
-              </div>
-              <div className="col-span-3 flex items-center">
-                {item.incentives.map((incentive, index) => (
-                  <div key={index} className="-ml-1 first:ml-0">
-                    <IncentiveIcon type={incentive} />
-                  </div>
-                ))}
-              </div>
-              <div className="col-span-2 flex items-center justify-end text-white font-inter text-xs font-normal leading-4">
-                {item.tvl}
+            <div
+              className={cn(
+                "transition duration-200",
+                index % 2 === 1 && "bg-[rgba(255,255,255,0.02)]",
+                "hover:bg-[linear-gradient(90deg,rgba(0,209,160,0.15)_0%,rgba(153,153,153,0.00)_61.23%)]",
+                selectedItemId === item.id &&
+                  "bg-[linear-gradient(90deg,rgba(0,209,160,0.15)_0%,rgba(153,153,153,0.00)_61.23%)]"
+              )}
+            >
+              <div className="grid grid-cols-12 pr-6 py-4 pl-4">
+                <div className="col-span-4 flex items-center">
+                  {getAssetIcon(item.type)}
+                  <span className="text-white font-inter text-xs font-normal leading-4">
+                    {item.name}
+                  </span>
+                </div>
+                <div className="col-span-3 flex items-center text-white font-inter text-xs font-normal leading-4">
+                  {item.baseYield}
+                </div>
+                <div className="col-span-3 flex items-center">
+                  {item.incentives.map((incentive, index) => (
+                    <div key={index} className="-ml-1 first:ml-0">
+                      <IncentiveIcon type={incentive} />
+                    </div>
+                  ))}
+                </div>
+                <div className="col-span-2 flex items-center justify-end text-white font-inter text-xs font-normal leading-4">
+                  {item.tvl}
+                </div>
               </div>
             </div>
           </div>
