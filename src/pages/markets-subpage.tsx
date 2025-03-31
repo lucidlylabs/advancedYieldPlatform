@@ -31,31 +31,48 @@ const AssetButton: React.FC<{
   activeAsset: AssetType;
   onClick: (asset: AssetType) => void;
 }> = ({ asset, activeAsset, onClick }) => {
-  const getIcon = () => {
+  const getAssetDetails = () => {
     switch (asset) {
       case "ALL":
-        return "⚪";
+        return {
+          icon: "/images/icons/selector-all.svg"
+        };
       case "USD":
-        return "💲";
+        return {
+          icon: "/images/icons/selector-usd.svg"
+        };
       case "ETH":
-        return "🔷";
+        return {
+          icon: "/images/icons/selector-eth.svg"
+        };
       case "BTC":
-        return "🟠";
-      default:
-        return "⚪";
+        return {
+          icon: "/images/icons/selector-btc.svg"
+        };
     }
   };
+
+  const { icon } = getAssetDetails() || {};
 
   return (
     <button
       className={cn(
-        "rounded-full px-4 py-2 flex items-center gap-2",
-        activeAsset === asset ? "bg-blue-600" : "bg-gray-800"
+        "flex items-center gap-[4px] py-2 transition-all duration-200 mr-[16px] last:mr-0",
+        activeAsset === asset ? "opacity-100" : "opacity-50",
+        "hover:opacity-100"
       )}
       onClick={() => onClick(asset)}
     >
-      <span>{getIcon()}</span>
-      {asset}
+      <div className="w-4 h-4 flex items-center justify-center flex-shrink-0 rounded-full overflow-hidden">
+        <Image
+          src={icon}
+          alt={`${asset} icon`}
+          width={16}
+          height={16}
+          className="object-contain rounded-full"
+        />
+      </div>
+      <span className="text-white font-inter text-base font-medium">{asset}</span>
     </button>
   );
 };
@@ -220,13 +237,13 @@ const MarketsSubpage: React.FC = () => {
   return (
     <div className="flex min-h-screen text-white">
       {/* Left side - 50% */}
-      <div className="w-[757px] flex flex-col items-start gap-2">
-        <div className="w-[757px] h-[124px] flex flex-col justify-center items-start gap-[10px] flex-shrink-0 relative">
+      <div className="w-[757px] flex flex-col ml-10 relative">
+        <div className="w-[757px] h-[124px] flex flex-col justify-center items-start relative">
           <div 
             className="absolute inset-0 bg-[url('/images/background/earn-page-heading-bg.svg')] bg-no-repeat bg-cover"
             style={{ height: '100%' }}
           />
-          <div className="relative z-10 flex flex-col items-start gap-[10px] pl-[25px]">
+          <div className="relative z-10 flex flex-col items-start gap-[10px]">
             <div className="text-[#D7E3EF] font-inter text-[16px] font-semibold leading-[20px]">
               Explore Yields
             </div>
@@ -238,7 +255,7 @@ const MarketsSubpage: React.FC = () => {
         </div>
 
         {/* Asset Selection */}
-        <div className="flex">
+        <div className="flex pr-6 mb-6">
           <AssetButton
             asset="ALL"
             activeAsset={selectedAsset}
@@ -262,41 +279,29 @@ const MarketsSubpage: React.FC = () => {
         </div>
 
         {/* Market Table */}
-        <MarketsTable
-          data={getSortedData()}
-          sortColumn={sortColumn}
-          sortDirection={sortDirection}
-          onSort={handleSort}
-          onRowClick={handleRowClick}
-          selectedItemId={selectedItem?.id}
-        />
+        <div>
+          <MarketsTable
+            data={getSortedData()}
+            sortColumn={sortColumn}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+            onRowClick={handleRowClick}
+            selectedItemId={selectedItem?.id}
+          />
+        </div>
+        {/* Overlay to hide divider for selected row */}
+        {selectedItem && (
+          <div 
+            className="absolute right-0 w-[1px] h-[60px] bg-[#0E1117]"
+            style={{
+              top: `${124 + 48 + (getSortedData().findIndex(item => item.id === selectedItem.id) * 60) + 60}px`
+            }}
+          />
+        )}
       </div>
 
       {/* Divider */}
-      <div className="w-[1px] relative">
-        {selectedItem ? (
-          <>
-            {/* Top part of divider */}
-            <div
-              className="absolute w-[1px] bg-[rgba(255,255,255,0.1)]"
-              style={{
-                top: 0,
-                height: `${240 + getSelectedItemPosition() * 64}px`, // 240px header + table header, 64px row height
-              }}
-            />
-            {/* Bottom part of divider */}
-            <div
-              className="absolute w-[1px] bg-[rgba(255,255,255,0.1)]"
-              style={{
-                top: `${240 + (getSelectedItemPosition() + 1) * 64}px`,
-                bottom: 0,
-              }}
-            />
-          </>
-        ) : (
-          <div className="absolute inset-0 w-[1px] bg-[rgba(255,255,255,0.1)]" />
-        )}
-      </div>
+      <div className="w-[1px] bg-[rgba(255,255,255,0.1)]" />
 
       {/* Right side - 50% */}
       <div className="w-1/2">
