@@ -57,7 +57,7 @@ const AssetButton: React.FC<{
   return (
     <button
       className={cn(
-        "flex items-center gap-[4px] py-2 transition-all duration-200 mr-[16px] last:mr-0",
+        "flex items-center gap-[4px] py-2 transition-all duration-200 mr-[16px] last:mr-0 relative",
         activeAsset === asset ? "opacity-100" : "opacity-50",
         "hover:opacity-100"
       )}
@@ -73,6 +73,9 @@ const AssetButton: React.FC<{
         />
       </div>
       <span className="text-white font-inter text-base font-medium">{asset}</span>
+      {activeAsset === asset && (
+        <div className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-white" />
+      )}
     </button>
   );
 };
@@ -255,7 +258,7 @@ const MarketsSubpage: React.FC = () => {
         </div>
 
         {/* Asset Selection */}
-        <div className="flex pr-6 mb-6">
+        <div className="flex pr-6 mb-0 border-b border-gray-700">
           <AssetButton
             asset="ALL"
             activeAsset={selectedAsset}
