@@ -8,6 +8,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import Image from "next/image";
 
 type AssetType = "ALL" | "USD" | "ETH" | "BTC";
 
@@ -209,18 +210,35 @@ const MarketsSubpage: React.FC = () => {
     });
   };
 
+  // Calculate the selected item's position in the current list
+  const getSelectedItemPosition = () => {
+    if (!selectedItem) return 0;
+    const currentData = getSortedData();
+    return currentData.findIndex((item) => item.id === selectedItem.id);
+  };
+
   return (
-    <div className="flex min-h-screen bg-gray-900 text-white">
+    <div className="flex min-h-screen text-white">
       {/* Left side - 50% */}
-      <div className="w-1/2 p-8">
-        <h1 className="text-3xl font-bold mb-2">Explore Yields</h1>
-        <p className="text-gray-400 mb-6">
-          Maximize your investment returns and diversify your portfolio. Unlock
-          higher earnings with smart yield strategies.
-        </p>
+      <div className="w-[757px] flex flex-col items-start gap-2">
+        <div className="w-[757px] h-[124px] flex flex-col justify-center items-start gap-[10px] flex-shrink-0 relative">
+          <div 
+            className="absolute inset-0 bg-[url('/images/background/earn-page-heading-bg.svg')] bg-no-repeat bg-cover"
+            style={{ height: '100%' }}
+          />
+          <div className="relative z-10 flex flex-col items-start gap-[10px] pl-[25px]">
+            <div className="text-[#D7E3EF] font-inter text-[16px] font-semibold leading-[20px]">
+              Explore Yields
+            </div>
+            <p className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-[20px]">
+              Maximize your investment returns and diversify your portfolio. <br />
+              Unlock higher earnings with smart yield strategies.
+            </p>
+          </div>
+        </div>
 
         {/* Asset Selection */}
-        <div className="flex space-x-4 mb-8">
+        <div className="flex">
           <AssetButton
             asset="ALL"
             activeAsset={selectedAsset}
@@ -254,8 +272,34 @@ const MarketsSubpage: React.FC = () => {
         />
       </div>
 
+      {/* Divider */}
+      <div className="w-[1px] relative">
+        {selectedItem ? (
+          <>
+            {/* Top part of divider */}
+            <div
+              className="absolute w-[1px] bg-[rgba(255,255,255,0.1)]"
+              style={{
+                top: 0,
+                height: `${240 + getSelectedItemPosition() * 64}px`, // 240px header + table header, 64px row height
+              }}
+            />
+            {/* Bottom part of divider */}
+            <div
+              className="absolute w-[1px] bg-[rgba(255,255,255,0.1)]"
+              style={{
+                top: `${240 + (getSelectedItemPosition() + 1) * 64}px`,
+                bottom: 0,
+              }}
+            />
+          </>
+        ) : (
+          <div className="absolute inset-0 w-[1px] bg-[rgba(255,255,255,0.1)]" />
+        )}
+      </div>
+
       {/* Right side - 50% */}
-      <div className="w-1/2 bg-gray-800">
+      <div className="w-1/2">
         {selectedItem ? (
           <YieldDetailsView
             name={selectedItem.name}
@@ -265,24 +309,25 @@ const MarketsSubpage: React.FC = () => {
             network={selectedItem.network}
           />
         ) : (
-          <div className="flex items-center justify-center h-full p-8">
-            <div className="max-w-md text-center">
-              <div className="mb-8 flex justify-center">
-                <div className="relative w-64 h-64">
-                  <div className="absolute w-full h-full bg-blue-500 opacity-30 rounded-full transform scale-75 animate-pulse"></div>
-                  <div className="absolute w-full h-full flex items-center justify-center">
-                    <div className="bg-gray-700 w-32 h-32 rounded-full flex items-center justify-center">
-                      <span className="text-4xl">💰</span>
-                    </div>
-                  </div>
+          <div className="flex items-center justify-center h-full">
+            <div className="max-w-md text-center flex flex-col items-center justify-center">
+              <div className="flex justify-center">
+                <div className="relative">
+                  <Image
+                    src="/images/background/yields-page-bg.svg"
+                    alt="Yields Background"
+                    width={188}
+                    height={140}
+                    priority
+                  />
                 </div>
               </div>
-              <h2 className="text-2xl font-bold mb-4">
+              <h2 className="text-[20px] font-semibold text-[#D7E3EF] font-inter leading-normal mt-8">
                 Select a Yield Option to View Details
               </h2>
-              <p className="text-gray-400">
-                Discover key insights, performance metrics, and potential
-                returns for each yield source.
+              <p className="text-[#9C9DA2] text-center font-inter text-[14px] font-normal leading-[19.2px] mt-2">
+                Discover key insights, performance metrics, and <br />
+                potential returns for each yield source.
               </p>
             </div>
           </div>
