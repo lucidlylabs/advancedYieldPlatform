@@ -21,12 +21,12 @@ export default function Page() {
     <div className="min-h-screen flex flex-col">
       <Header>
         <div className="flex items-stretch h-full">
-          <div className="flex items-center">
+          <div className="flex items-center pl-3">
             <Image
               src="/images/logo/logo-desktop.svg"
               alt="Lucidity Logo"
-              width={140}
-              height={32}
+              width={80}
+              height={16}
               priority
             />
           </div>
@@ -84,7 +84,7 @@ export default function Page() {
         <CustomConnectButton />
       </Header>
 
-      <main className="flex-1 container mx-auto px-4 py-6">
+      <main className="flex-1">
         {selectedSubPage === SubPage.Portfolio ? (
           <PortfolioSubpage />
         ) : selectedSubPage === SubPage.Yield ? (

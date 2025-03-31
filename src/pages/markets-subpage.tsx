@@ -8,6 +8,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import Image from "next/image";
 
 type AssetType = "ALL" | "USD" | "ETH" | "BTC";
 
@@ -30,31 +31,51 @@ const AssetButton: React.FC<{
   activeAsset: AssetType;
   onClick: (asset: AssetType) => void;
 }> = ({ asset, activeAsset, onClick }) => {
-  const getIcon = () => {
+  const getAssetDetails = () => {
     switch (asset) {
       case "ALL":
-        return "⚪";
+        return {
+          icon: "/images/icons/selector-all.svg"
+        };
       case "USD":
-        return "💲";
+        return {
+          icon: "/images/icons/selector-usd.svg"
+        };
       case "ETH":
-        return "🔷";
+        return {
+          icon: "/images/icons/selector-eth.svg"
+        };
       case "BTC":
-        return "🟠";
-      default:
-        return "⚪";
+        return {
+          icon: "/images/icons/selector-btc.svg"
+        };
     }
   };
+
+  const { icon } = getAssetDetails() || {};
 
   return (
     <button
       className={cn(
-        "rounded-full px-4 py-2 flex items-center gap-2",
-        activeAsset === asset ? "bg-blue-600" : "bg-gray-800"
+        "flex items-center gap-[4px] py-2 pb-[8px] transition-all duration-200 mr-[24px] last:mr-0 relative",
+        activeAsset === asset ? "opacity-100" : "opacity-50",
+        "hover:opacity-100"
       )}
       onClick={() => onClick(asset)}
     >
-      <span>{getIcon()}</span>
-      {asset}
+      <div className="w-4 h-4 flex items-center justify-center flex-shrink-0 rounded-full overflow-hidden">
+        <Image
+          src={icon}
+          alt={`${asset} icon`}
+          width={16}
+          height={16}
+          className="object-contain rounded-full"
+        />
+      </div>
+      <span className="text-white font-inter text-[12px] font-normal leading-[16px]">{asset}</span>
+      {activeAsset === asset && (
+        <div className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-white" />
+      )}
     </button>
   );
 };
@@ -209,53 +230,86 @@ const MarketsSubpage: React.FC = () => {
     });
   };
 
+  // Calculate the selected item's position in the current list
+  const getSelectedItemPosition = () => {
+    if (!selectedItem) return 0;
+    const currentData = getSortedData();
+    return currentData.findIndex((item) => item.id === selectedItem.id);
+  };
+
   return (
-    <div className="flex min-h-screen bg-gray-900 text-white">
+    <div className="flex min-h-screen text-white">
       {/* Left side - 50% */}
-      <div className="w-1/2 p-8">
-        <h1 className="text-3xl font-bold mb-2">Explore Yields</h1>
-        <p className="text-gray-400 mb-6">
-          Maximize your investment returns and diversify your portfolio. Unlock
-          higher earnings with smart yield strategies.
-        </p>
+      <div className="w-[757px] flex flex-col relative">
+        <div className="w-[757px] h-[124px] flex flex-col justify-center items-start relative pl-[32px]">
+          <div 
+            className="absolute inset-0 bg-[url('/images/background/earn-page-heading-bg.svg')] bg-no-repeat bg-cover"
+            style={{ height: '100%' }}
+          />
+          <div className="relative z-10 flex flex-col items-start gap-[10px]">
+            <div className="text-[#D7E3EF] font-inter text-[16px] font-semibold leading-[20px]">
+              Explore Yields
+            </div>
+            <p className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-[20px]">
+              Maximize your investment returns and diversify your portfolio. <br />
+              Unlock higher earnings with smart yield strategies.
+            </p>
+          </div>
+        </div>
 
         {/* Asset Selection */}
-        <div className="flex space-x-4 mb-8">
-          <AssetButton
-            asset="ALL"
-            activeAsset={selectedAsset}
-            onClick={setSelectedAsset}
-          />
-          <AssetButton
-            asset="USD"
-            activeAsset={selectedAsset}
-            onClick={setSelectedAsset}
-          />
-          <AssetButton
-            asset="ETH"
-            activeAsset={selectedAsset}
-            onClick={setSelectedAsset}
-          />
-          <AssetButton
-            asset="BTC"
-            activeAsset={selectedAsset}
-            onClick={setSelectedAsset}
-          />
+        <div className="pl-[32px] mt-[16px]">
+          <div className="flex border-b-[0.5px] border-[rgba(255,255,255,0.15)] pr-6">
+            <AssetButton
+              asset="ALL"
+              activeAsset={selectedAsset}
+              onClick={setSelectedAsset}
+            />
+            <AssetButton
+              asset="USD"
+              activeAsset={selectedAsset}
+              onClick={setSelectedAsset}
+            />
+            <AssetButton
+              asset="ETH"
+              activeAsset={selectedAsset}
+              onClick={setSelectedAsset}
+            />
+            <AssetButton
+              asset="BTC"
+              activeAsset={selectedAsset}
+              onClick={setSelectedAsset}
+            />
+          </div>
         </div>
 
         {/* Market Table */}
-        <MarketsTable
-          data={getSortedData()}
-          sortColumn={sortColumn}
-          sortDirection={sortDirection}
-          onSort={handleSort}
-          onRowClick={handleRowClick}
-          selectedItemId={selectedItem?.id}
-        />
+        <div>
+          <MarketsTable
+            data={getSortedData()}
+            sortColumn={sortColumn}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+            onRowClick={handleRowClick}
+            selectedItemId={selectedItem?.id}
+          />
+        </div>
+        {/* Overlay to hide divider for selected row */}
+        {selectedItem && (
+          <div 
+            className="absolute right-0 w-[1px] h-[60px] bg-[#0E1117]"
+            style={{
+              top: `${124 + 48 + (getSortedData().findIndex(item => item.id === selectedItem.id) * 60) + 60}px`
+            }}
+          />
+        )}
       </div>
 
+      {/* Divider */}
+      <div className="w-[1px] bg-[rgba(255,255,255,0.1)]" />
+
       {/* Right side - 50% */}
-      <div className="w-1/2 bg-gray-800">
+      <div className="w-1/2 ml-[30px]">
         {selectedItem ? (
           <YieldDetailsView
             name={selectedItem.name}
@@ -265,24 +319,25 @@ const MarketsSubpage: React.FC = () => {
             network={selectedItem.network}
           />
         ) : (
-          <div className="flex items-center justify-center h-full p-8">
-            <div className="max-w-md text-center">
-              <div className="mb-8 flex justify-center">
-                <div className="relative w-64 h-64">
-                  <div className="absolute w-full h-full bg-blue-500 opacity-30 rounded-full transform scale-75 animate-pulse"></div>
-                  <div className="absolute w-full h-full flex items-center justify-center">
-                    <div className="bg-gray-700 w-32 h-32 rounded-full flex items-center justify-center">
-                      <span className="text-4xl">💰</span>
-                    </div>
-                  </div>
+          <div className="flex items-center justify-center h-full">
+            <div className="max-w-md text-center flex flex-col items-center justify-center">
+              <div className="flex justify-center">
+                <div className="relative">
+                  <Image
+                    src="/images/background/yields-page-bg.svg"
+                    alt="Yields Background"
+                    width={188}
+                    height={140}
+                    priority
+                  />
                 </div>
               </div>
-              <h2 className="text-2xl font-bold mb-4">
+              <h2 className="text-[20px] font-semibold text-[#D7E3EF] font-inter leading-normal mt-8">
                 Select a Yield Option to View Details
               </h2>
-              <p className="text-gray-400">
-                Discover key insights, performance metrics, and potential
-                returns for each yield source.
+              <p className="text-[#9C9DA2] text-center font-inter text-[14px] font-normal leading-[19.2px] mt-2">
+                Discover key insights, performance metrics, and <br />
+                potential returns for each yield source.
               </p>
             </div>
           </div>
