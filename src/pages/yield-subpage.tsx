@@ -1,10 +1,31 @@
 import React, { useState } from "react";
 import { CustomCard } from "@/components/ui/card";
 import { DepositView } from "@/components/deposit-view";
-import { USD_STRATEGIES } from "../config/env";
+import { USD_STRATEGIES, BTC_STRATEGIES, ETH_STRATEGIES } from "../config/env";
 
 type DurationType = "30_DAYS" | "60_DAYS" | "180_DAYS" | "PERPETUAL_DURATION";
 type StrategyType = "STABLE" | "INCENTIVE";
+
+interface StrategyConfig {
+  network: string;
+  contract: string;
+  deposit_token: string;
+  deposit_token_contract: string;
+  description: string;
+  apy: string;
+  incentives: string;
+  tvl: string;
+  rpc: string;
+}
+
+interface StrategyDuration {
+  STABLE: StrategyConfig;
+  INCENTIVE: StrategyConfig;
+}
+
+interface StrategyAsset {
+  [key: string]: StrategyDuration;
+}
 
 interface SelectedAsset {
   asset: string;
@@ -33,58 +54,69 @@ interface StrategyData {
   incentives: Record<AssetType, StrategyInfo>;
 }
 
-export const getStrategyInfo = (duration: DurationType) => ({
-  stable: {
-    USD: {
-      description: USD_STRATEGIES[duration]["STABLE"]["description"],
-      apy: {
-        value: USD_STRATEGIES[duration]["STABLE"]["apy"],
-        info: `Base APY ${USD_STRATEGIES[duration]["STABLE"]["apy"]} ${USD_STRATEGIES[duration]["STABLE"]["incentives"]}`
-      }
-    },
-    ETH: {
-      description:
-        "Stable ETH strategy provides steady returns through diversified staking and lending.",
-      apy: {
-        value: "5.23%",
-        info: "APY includes staking rewards and lending yields, subject to market conditions.",
+const getStrategyInfo = (duration: DurationType): StrategyData => {
+  const getAssetStrategies = (asset: AssetType) => {
+    const strategies: StrategyAsset = {
+      USD: USD_STRATEGIES,
+      BTC: BTC_STRATEGIES,
+      ETH: ETH_STRATEGIES,
+    }[asset];
+
+    // Convert duration format to match the keys in our data
+    const durationKey = duration.replace("_", "");
+    const strategy = strategies[durationKey];
+
+    if (!strategy) {
+      console.error(`No strategy found for ${asset} with duration ${durationKey}`);
+      return {
+        stable: {
+          description: "Strategy not available",
+          apy: {
+            value: "0%",
+            info: "-",
+          },
+        },
+        incentives: {
+          description: "Strategy not available",
+          apy: {
+            value: "0%",
+            info: "-",
+          },
+        },
+      };
+    }
+
+    return {
+      stable: {
+        description: strategy.STABLE.description,
+        apy: {
+          value: strategy.STABLE.apy,
+          info: strategy.STABLE.incentives,
+        },
       },
-    },
-    BTC: {
-      description:
-        "Stable BTC strategy generates yield through secure wrapped Bitcoin lending.",
-      apy: {
-        value: "3.85%",
-        info: "APY derived from lending yields across multiple DeFi protocols.",
+      incentives: {
+        description: strategy.INCENTIVE.description,
+        apy: {
+          value: strategy.INCENTIVE.apy,
+          info: strategy.INCENTIVE.incentives,
+        },
       },
+    };
+  };
+
+  return {
+    stable: {
+      USD: getAssetStrategies("USD").stable,
+      BTC: getAssetStrategies("BTC").stable,
+      ETH: getAssetStrategies("ETH").stable,
     },
-  },
-  incentives: {
-    USD: {
-      description: USD_STRATEGIES[duration]["INCENTIVE"]["description"],
-      apy: {
-        value: USD_STRATEGIES[duration]["INCENTIVE"]["apy"],
-        info: `Base APY ${USD_STRATEGIES[duration]["INCENTIVE"]["apy"]} with ${USD_STRATEGIES[duration]["INCENTIVE"]["incentives"]}`
-      }
+    incentives: {
+      USD: getAssetStrategies("USD").incentives,
+      BTC: getAssetStrategies("BTC").incentives,
+      ETH: getAssetStrategies("ETH").incentives,
     },
-    ETH: {
-      description:
-        "Incentivized ETH strategy combines staking rewards with protocol incentives.",
-      apy: {
-        value: "9.67%",
-        info: "APY includes staking rewards, protocol incentives, and bonus yields.",
-      },
-    },
-    BTC: {
-      description:
-        "Incentivized BTC strategy leverages DeFi protocols with additional reward mechanisms.",
-      apy: {
-        value: "7.92%",
-        info: "APY includes lending yields and protocol-specific rewards.",
-      },
-    },
-  },
-});
+  };
+};
 
 const MarketsSubpage = () => {
   const [selectedAsset, setSelectedAsset] = useState<SelectedAsset | null>(

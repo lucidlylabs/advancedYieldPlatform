@@ -80,11 +80,10 @@ const DepositView: React.FC<DepositViewProps> = ({
 
       setIsLoadingBalance(true);
       try {
-        const strategyConfig = USD_STRATEGIES[duration][strategy === "stable" ? "STABLE" : "INCENTIVE"] as StrategyConfig;
+        const strategyConfig = USD_STRATEGIES[duration as keyof typeof USD_STRATEGIES][strategy === "stable" ? "STABLE" : "INCENTIVE"] as StrategyConfig;
         
         // Use deposit_token_contract instead of deposit_contract
         const tokenContractAddress = strategyConfig.deposit_token_contract || strategyConfig.deposit_contract;
-        
         // Validate contract address
         if (!tokenContractAddress || tokenContractAddress === "0x0000000000000000000000000000000000000000") {
           console.warn("Invalid token contract address for", duration, strategy);
