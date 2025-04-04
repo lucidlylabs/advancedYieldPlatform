@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -40,6 +40,9 @@ interface StrategyConfig {
   incentives: string;
   tvl: string;
   rpc?: string; // Optional field for backward compatibility
+  show_cap: boolean;
+  filled_cap: string;
+  cap_limit: string;
 }
 
 // ERC20 ABI for token operations
@@ -92,6 +95,20 @@ const VAULT_ABI = [
     ],
     outputs: [{ name: "", type: "uint256" }],
   },
+  {
+    name: "totalAssets",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    name: "depositCap",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
 ] as const;
 
 interface DepositViewProps {
@@ -123,7 +140,7 @@ const InfoIcon = () => (
 
 const formatDuration = (duration: string) => {
   if (duration === "PERPETUAL_DURATION") return "Perpetual";
-  const [number, period] = duration.split('_');
+  const [number, period] = duration.split("_");
   return `${number} ${period.toLowerCase()}`;
 };
 
@@ -141,7 +158,7 @@ const DepositView: React.FC<DepositViewProps> = ({
   const [isLoadingBalance, setIsLoadingBalance] = useState<boolean>(false);
   const [isApproving, setIsApproving] = useState(false);
   const [isDepositing, setIsDepositing] = useState(false);
-  const { address } = useAccount();
+  const [isApproved, setIsApproved] = useState(false);
 
   // Get strategy config based on asset type
   const strategyConfigs = {
@@ -149,11 +166,36 @@ const DepositView: React.FC<DepositViewProps> = ({
     BTC: BTC_STRATEGIES,
     ETH: ETH_STRATEGIES,
   };
-  
-  const strategyConfig = strategyConfigs[selectedAsset as keyof typeof strategyConfigs][
-    duration as keyof typeof USD_STRATEGIES
-  ][strategy === "stable" ? "STABLE" : "INCENTIVE"] as StrategyConfig;
-  
+
+  const strategyConfig = strategyConfigs[
+    selectedAsset as keyof typeof strategyConfigs
+  ][duration as keyof typeof USD_STRATEGIES][
+    strategy === "stable" ? "STABLE" : "INCENTIVE"
+  ] as StrategyConfig;
+
+  // Calculate deposit cap values from env config
+  const showDepositCap = strategyConfig.show_cap;
+  const depositCap = useMemo(() => ({
+    used: strategyConfig.filled_cap || "0",
+    total: strategyConfig.cap_limit || "0",
+  }), [strategyConfig]);
+
+  // Calculate remaining space
+  const remainingSpace = useMemo(() => {
+    const total = parseFloat(depositCap.total.replace(/,/g, ""));
+    const used = parseFloat(depositCap.used.replace(/,/g, ""));
+    return (total - used).toLocaleString();
+  }, [depositCap]);
+
+  // Calculate progress percentage
+  const progressPercentage = useMemo(() => {
+    const total = parseFloat(depositCap.total.replace(/,/g, ""));
+    const used = parseFloat(depositCap.used.replace(/,/g, ""));
+    return (used / total) * 100;
+  }, [depositCap]);
+
+  const { address } = useAccount();
+
   // Get deposit token name and image path (only if defined in config)
   const depositToken = strategyConfig.deposit_token;
   const depositTokenImage = strategyConfig.deposit_token_image;
@@ -259,107 +301,110 @@ const DepositView: React.FC<DepositViewProps> = ({
           amountHex: `0x${amountInWei.toString(16)}`,
         });
         setIsApproving(true);
+        setIsApproved(false);
         await approve({
-          address: tokenContractAddress as Address, // USDC contract for approval
+          address: tokenContractAddress as Address,
           abi: ERC20_ABI,
           functionName: "approve",
           args: [vaultContractAddress as Address, amountInWei],
-          chainId: 146, // Sonic network
-        });
-      } else {
-        console.log("Sufficient allowance exists, proceeding with deposit", {
-          vaultContract: vaultContractAddress,
-          amount: amountInWei.toString(),
-          amountHex: `0x${amountInWei.toString(16)}`,
-          receiver: address,
-        });
-        setIsDepositing(true);
-
-        // Create a public client to check balance before deposit
-        const strategyConfig = USD_STRATEGIES[
-          duration as keyof typeof USD_STRATEGIES
-        ][strategy === "stable" ? "STABLE" : "INCENTIVE"] as StrategyConfig;
-        const rpcUrl = strategyConfig.rpc || "https://rpc.soniclabs.com";
-
-        const client = createPublicClient({
-          transport: http(rpcUrl),
-          chain: {
-            id: 146,
-            name: "Sonic",
-            network: "sonic",
-            nativeCurrency: {
-              decimals: 18,
-              name: "Sonic",
-              symbol: "S",
-            },
-            rpcUrls: {
-              default: { http: [rpcUrl] },
-              public: { http: [rpcUrl] },
-            },
-          },
-        });
-
-        // Check token balance before deposit
-        const balance = await client.readContract({
-          address: tokenContractAddress as Address, // USDC contract for balance check
-          abi: ERC20_ABI,
-          functionName: "balanceOf",
-          args: [address as Address],
-        });
-
-        console.log("Current token balance:", {
-          balance: balance.toString(),
-          required: amountInWei.toString(),
-          balanceHex: `0x${balance.toString(16)}`,
-          requiredHex: `0x${amountInWei.toString(16)}`,
-        });
-
-        if (balance < amountInWei) {
-          throw new Error("Insufficient token balance for deposit");
-        }
-
-        // Check minimum deposit amount (if we can get it from the contract)
-        try {
-          const minDeposit = await client.readContract({
-            address: vaultContractAddress as Address, // Vault contract for min deposit check
-            abi: [
-              ...VAULT_ABI,
-              {
-                name: "minDeposit",
-                type: "function",
-                stateMutability: "view",
-                inputs: [],
-                outputs: [{ name: "", type: "uint256" }],
-              },
-            ],
-            functionName: "minDeposit",
-          });
-
-          if (minDeposit && amountInWei < minDeposit) {
-            throw new Error(
-              `Minimum deposit amount is ${formatUnits(minDeposit, 6)} USDC`
-            );
-          }
-        } catch (error) {
-          console.log("Could not check minimum deposit amount:", error);
-        }
-
-        // Proceed with deposit using the vault contract
-        console.log("Sending deposit transaction to vault contract:", {
-          contract: vaultContractAddress,
-          amount: amountInWei.toString(),
-          receiver: address,
-        });
-
-        await deposit({
-          address: vaultContractAddress as Address, // Using vault contract for deposit
-          abi: VAULT_ABI,
-          functionName: "deposit",
-          args: [amountInWei, address as Address],
           chainId: 146,
-          account: address as Address,
         });
+        return; // Exit here and wait for approval to complete
       }
+
+      // If we reach here, either approval was not needed or it's already completed
+      console.log("Proceeding with deposit", {
+        vaultContract: vaultContractAddress,
+        amount: amountInWei.toString(),
+        amountHex: `0x${amountInWei.toString(16)}`,
+        receiver: address,
+      });
+      setIsDepositing(true);
+
+      // Create a public client to check balance before deposit
+      const strategyConfig = USD_STRATEGIES[
+        duration as keyof typeof USD_STRATEGIES
+      ][strategy === "stable" ? "STABLE" : "INCENTIVE"] as StrategyConfig;
+      const rpcUrl = strategyConfig.rpc || "https://rpc.soniclabs.com";
+
+      const client = createPublicClient({
+        transport: http(rpcUrl),
+        chain: {
+          id: 146,
+          name: "Sonic",
+          network: "sonic",
+          nativeCurrency: {
+            decimals: 18,
+            name: "Sonic",
+            symbol: "S",
+          },
+          rpcUrls: {
+            default: { http: [rpcUrl] },
+            public: { http: [rpcUrl] },
+          },
+        },
+      });
+
+      // Check token balance before deposit
+      const balance = await client.readContract({
+        address: tokenContractAddress as Address, // USDC contract for balance check
+        abi: ERC20_ABI,
+        functionName: "balanceOf",
+        args: [address as Address],
+      });
+
+      console.log("Current token balance:", {
+        balance: balance.toString(),
+        required: amountInWei.toString(),
+        balanceHex: `0x${balance.toString(16)}`,
+        requiredHex: `0x${amountInWei.toString(16)}`,
+      });
+
+      if (balance < amountInWei) {
+        throw new Error("Insufficient token balance for deposit");
+      }
+
+      // Check minimum deposit amount (if we can get it from the contract)
+      try {
+        const minDeposit = await client.readContract({
+          address: vaultContractAddress as Address, // Vault contract for min deposit check
+          abi: [
+            ...VAULT_ABI,
+            {
+              name: "minDeposit",
+              type: "function",
+              stateMutability: "view",
+              inputs: [],
+              outputs: [{ name: "", type: "uint256" }],
+            },
+          ],
+          functionName: "minDeposit",
+        });
+
+        if (minDeposit && amountInWei < minDeposit) {
+          throw new Error(
+            `Minimum deposit amount is ${formatUnits(minDeposit, 6)} USDC`
+          );
+        }
+      } catch (error) {
+        console.log("Could not check minimum deposit amount:", error);
+      }
+
+      // Proceed with deposit using the vault contract
+      console.log("Sending deposit transaction to vault contract:", {
+        contract: vaultContractAddress,
+        amount: amountInWei.toString(),
+        receiver: address,
+      });
+
+      await deposit({
+        address: vaultContractAddress as Address, // Using vault contract for deposit
+        abi: VAULT_ABI,
+        functionName: "deposit",
+        args: [amountInWei, address as Address],
+        chainId: 146,
+        account: address as Address,
+      });
     } catch (error: any) {
       console.error("Transaction failed:", {
         error,
@@ -451,19 +496,23 @@ const DepositView: React.FC<DepositViewProps> = ({
 
   // Reset loading states when transactions complete and refresh balance
   useEffect(() => {
-    if (!isWaitingForApproval) {
+    if (!isWaitingForApproval && isApproving) {
       setIsApproving(false);
+      setIsApproved(true);
       fetchBalance(); // Refresh balance after approval
     }
-    if (!isWaitingForDeposit) {
+    if (!isWaitingForDeposit && isDepositing) {
       setIsDepositing(false);
+      setIsApproved(false); // Reset approval state after deposit
       fetchBalance(); // Refresh balance after deposit
     }
   }, [isWaitingForApproval, isWaitingForDeposit]);
 
   // Initial balance fetch
   useEffect(() => {
-    fetchBalance();
+    if (address && selectedAsset === "USD") {
+      fetchBalance();
+    }
   }, [address, selectedAsset, duration, strategy]);
 
   const handleMaxClick = () => {
@@ -622,6 +671,26 @@ const DepositView: React.FC<DepositViewProps> = ({
             </div>
           </div>
 
+          {/* Deposit Cap Progress Bar - Only shown if show_cap is true */}
+          {showDepositCap && (
+            <div className="w-full mt-6 mb-4 p-4 rounded-[4px] bg-[rgba(255,255,255,0.02)]">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-[#EDF2F8] font-inter text-[14px] font-medium">
+                  ${remainingSpace} Remaining
+                </span>
+                <span className="text-[#9C9DA2] font-inter text-[14px]">
+                  Limited Space: ${depositCap.used}/${depositCap.total}
+                </span>
+              </div>
+              <div className="w-full h-[6px] bg-[#1A1B1E] rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-[#4A63D3] rounded-full"
+                  style={{ width: `${progressPercentage}%` }}
+                />
+              </div>
+            </div>
+          )}
+
           {/* Dynamic Connect/Deposit Button */}
           <ConnectButton.Custom>
             {({
@@ -640,23 +709,23 @@ const DepositView: React.FC<DepositViewProps> = ({
                   authenticationStatus === "authenticated");
 
               const isLoading =
-                isApproving ||
-                isWaitingForApproval ||
-                isDepositing ||
-                isWaitingForDeposit;
-              const buttonText =
-                isApproving || isWaitingForApproval
+                (isApproving && isWaitingForApproval) ||
+                (isDepositing && isWaitingForDeposit);
+
+              const buttonText = connected
+                ? isLoadingBalance
+                  ? "Loading..."
+                  : isApproving
                   ? "Approving..."
-                  : isDepositing || isWaitingForDeposit
+                  : isDepositing
                   ? "Depositing..."
-                  : connected
-                  ? "Deposit"
-                  : "Connect Wallet";
+                  : "Deposit"
+                : "Connect Wallet";
 
               return (
                 <button
                   onClick={connected ? handleDeposit : openConnectModal}
-                  disabled={isLoading}
+                  disabled={isLoading || isLoadingBalance}
                   className="w-full py-4 mt-6 rounded bg-[#B88AF8] text-[#1A1B1E] font-semibold hover:opacity-90 transition-all duration-200 disabled:opacity-50"
                 >
                   {buttonText}
