@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { CustomCard } from "@/components/ui/card";
 import DepositView from "@/components/deposit-view";
 import { USD_STRATEGIES, BTC_STRATEGIES, ETH_STRATEGIES } from "../config/env";
@@ -52,6 +52,14 @@ interface StrategyInfo {
 interface StrategyData {
   stable: Record<AssetType, StrategyInfo>;
   incentives: Record<AssetType, StrategyInfo>;
+}
+
+interface YieldSubpageProps {
+  depositParams?: {
+    asset: string;
+    duration: string;
+    strategy: string;
+  } | null;
 }
 
 const getStrategyInfo = (duration: DurationType): StrategyData => {
@@ -118,12 +126,34 @@ const getStrategyInfo = (duration: DurationType): StrategyData => {
   };
 };
 
-const MarketsSubpage = () => {
-  const [selectedAsset, setSelectedAsset] = useState<SelectedAsset | null>(
-    null
-  );
-  const [selectedStrategy, setSelectedStrategy] =
-    useState<SelectedStrategy | null>(null);
+const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
+  const [selectedAsset, setSelectedAsset] = useState<SelectedAsset | null>(null);
+  const [selectedStrategy, setSelectedStrategy] = useState<SelectedStrategy | null>(null);
+
+  // Add effect to handle URL parameters or parent navigation
+  useEffect(() => {
+    // Check if we have depositParams from parent
+    if (depositParams?.asset && depositParams?.duration) {
+      // Set the selected asset first
+      setSelectedAsset({ 
+        asset: depositParams.asset, 
+        duration: depositParams.duration as DurationType 
+      });
+
+      // If we also have a strategy, set that too
+      if (depositParams.strategy) {
+        const strategyInfo = getStrategyInfo(depositParams.duration as DurationType);
+        const apy = strategyInfo[depositParams.strategy === 'stable' ? 'stable' : 'incentives'][depositParams.asset as AssetType].apy.value;
+        
+        setSelectedStrategy({
+          type: depositParams.strategy as 'stable' | 'incentive',
+          asset: depositParams.asset,
+          duration: depositParams.duration as DurationType,
+          apy
+        });
+      }
+    }
+  }, [depositParams]); // Run when depositParams changes
 
   const handleDurationSelect = (asset: string, duration: DurationType) => {
     setSelectedAsset({ asset, duration });
@@ -287,4 +317,4 @@ const MarketsSubpage = () => {
   );
 };
 
-export default MarketsSubpage;
+export default YieldSubpage;

@@ -16,10 +16,20 @@ export default function Page() {
   const [selectedSubPage, setSelectedSubPage] = useState<SubPage>(
     SubPage.Yield
   );
+  const [depositParams, setDepositParams] = useState<{ asset: string; duration: string; strategy: string } | null>(null);
+
+  const handleNavigateToDeposit = (params: { asset: string; duration: string; strategy: string }) => {
+    // First switch to the Yield subpage
+    setSelectedSubPage(SubPage.Yield);
+    // Set the deposit parameters
+    setDepositParams(params);
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header>
+      <Header 
+        onNavigateToDeposit={handleNavigateToDeposit}
+      >
         <div className="flex items-stretch h-full">
           <div className="flex items-center pl-3">
             <Image
@@ -88,7 +98,7 @@ export default function Page() {
         {selectedSubPage === SubPage.Portfolio ? (
           <PortfolioSubpage />
         ) : selectedSubPage === SubPage.Yield ? (
-          <YieldSubpage />
+          <YieldSubpage depositParams={depositParams} />
         ) : (
           <MarketsSubpage />
         )}

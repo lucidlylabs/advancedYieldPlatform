@@ -5,6 +5,8 @@ interface HeaderProps {
   children?: React.ReactNode;
   currentDeposit?: number; // in thousands (e.g., 800 for 800k)
   maxDeposit?: number; // in thousands (e.g., 1000 for 1M)
+  onDepositClick?: () => void; // Callback for deposit button click
+  onNavigateToDeposit?: (params: { asset: string; duration: string; strategy: string }) => void;
 }
 
 export function Header({
@@ -12,9 +14,21 @@ export function Header({
   children,
   currentDeposit = 100,
   maxDeposit = 1000,
+  onDepositClick,
+  onNavigateToDeposit,
   ...props
 }: HeaderProps) {
   const [shouldShowBanner, setShouldShowBanner] = useState(true);
+
+  const handleDepositClick = () => {
+    if (onNavigateToDeposit) {
+      onNavigateToDeposit({
+        asset: "USD",
+        duration: "PERPETUAL_DURATION",
+        strategy: "stable"
+      });
+    }
+  };
 
   // Format number to k or M
   const formatNumber = (num: number) => {
@@ -47,13 +61,10 @@ export function Header({
               </span>
             </span>
             <span>
-              <a
-                href="https://google.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#B88AF8] font-inter text-[12px] font-normal leading-[14px] flex items-center gap-1"
+              <button
+                onClick={handleDepositClick}
+                className="text-[#B88AF8] font-inter text-[12px] font-normal leading-[14px] flex items-center gap-1 hover:opacity-80 transition-opacity"
               >
-                {" "}
                 Deposit Now
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -69,7 +80,7 @@ export function Header({
                     strokeLinejoin="round"
                   />
                 </svg>
-              </a>
+              </button>
             </span>
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#B88AF8] bg-opacity-10">
