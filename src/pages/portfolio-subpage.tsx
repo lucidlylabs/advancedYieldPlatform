@@ -47,9 +47,6 @@ const PortfolioSubpage: React.FC = () => {
             <h2 className="text-[#D7E3EF] text-xl font-semibold mb-2">
               Your Assets
             </h2>
-            <p className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-[16px]">
-              Review your available balances and current positions
-            </p>
           </div>
 
           {/* Asset List */}
