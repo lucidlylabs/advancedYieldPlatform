@@ -1,12 +1,15 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
+import { useAccount } from "wagmi";
 
 const PortfolioSubpage: React.FC = () => {
+  const { address, isConnected } = useAccount();
+
   return (
     <div className="flex flex-col min-h-screen text-white">
       {/* Top Section - Portfolio Value, PNL, and Wallet */}
-      <div className="w-full h-[124px] flex items-center px-8 bg-[#0D101C] border-b border-[rgba(255,255,255,0.1)]">
-        <div className="flex-1">
+      <div className="w-full h-[124px] flex items-center justify-between px-8 bg-[#0D101C] border-b border-[rgba(255,255,255,0.1)]">
+        <div>
           <div className="flex gap-32">
             <div className="flex flex-col">
               <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-[16px]">
@@ -26,12 +29,12 @@ const PortfolioSubpage: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="bg-[rgba(255,255,255,0.05)] px-4 py-2 rounded text-[#D7E3EF] font-mono">
-            <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-[16px]">
-              Wallet Address
-            </div>
-            0xebae51b5d9063b5149c1d4bf59d70723798ac703
+        <div className="flex flex-col justify-center items-end gap-2 py-[10px] px-4 rounded-[4px] border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)]">
+          <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-[16px]">
+            Wallet Address
+          </div>
+          <div className="text-[#D7E3EF] font-mono opacity-20">
+            {isConnected ? address : "Not connected"}
           </div>
         </div>
       </div>
