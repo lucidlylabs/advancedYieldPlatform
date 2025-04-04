@@ -3,31 +3,83 @@ import React, { useState } from "react";
 interface HeaderProps {
   className?: string;
   children?: React.ReactNode;
+  currentDeposit?: number; // in thousands (e.g., 800 for 800k)
+  maxDeposit?: number; // in thousands (e.g., 1000 for 1M)
 }
 
-export function Header({ className, children, ...props }: HeaderProps) {
+export function Header({
+  className,
+  children,
+  currentDeposit = 100,
+  maxDeposit = 1000,
+  ...props
+}: HeaderProps) {
   const [shouldShowBanner, setShouldShowBanner] = useState(true);
+
+  // Format number to k or M
+  const formatNumber = (num: number) => {
+    return num >= 1000 ? `${num / 1000}M` : `${num}k`;
+  };
+
+  // Calculate progress percentage
+  const progressPercentage = Math.min((currentDeposit / maxDeposit) * 100, 100);
 
   return (
     <div className={`flex flex-col w-full ${className}`} {...props}>
       {shouldShowBanner && (
-        <div className="w-full bg-amber-900 text-amber-100 py-2 px-4 relative">
-          <div className="flex flex-col sm:flex-row items-center justify-center text-center text-sm gap-2">
-            <span>A banner for Important Info which we want to highlight</span>
+        <div
+          className="w-[1512px] h-[40px] flex-shrink-0 bg-[rgba(53,22,95,0.10)] text-amber-100 px-4 relative flex items-center"
+        >
+          <div className="flex flex-col sm:flex-row items-center justify-center text-center text-sm gap-2 w-full">
+            <span className="text-[rgba(215,227,239,0.6)] font-inter text-[12px] font-normal leading-[14px] tracking-[0.33px] flex items-center gap-2">
+              <img
+                src="/images/icons/usd-stable.svg"
+                alt="USD Stable"
+                className="w-4 h-4"
+              />
+              Deposit cap for Perpetual Stable USD{" "}
+              <span className="font-semibold text-[#D7E3EF]">
+                ${formatNumber(currentDeposit)}
+              </span>{" "}
+              of{" "}
+              <span className="font-semibold text-[#D7E3EF]">
+                ${formatNumber(maxDeposit)}
+              </span>
+            </span>
             <span>
               <a
                 href="https://google.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline font-medium"
+                className="text-[#B88AF8] font-inter text-[12px] font-normal leading-[14px] flex items-center gap-1"
               >
                 {" "}
-                Link
+                Deposit Now
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                >
+                  <path
+                    d="M6 12L10 8L6 4"
+                    stroke="#B88AF8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
               </a>
             </span>
           </div>
+          <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#B88AF8] bg-opacity-10">
+            <div 
+              className="absolute top-0 left-0 h-full bg-[#B88AF8]" 
+              style={{ width: `${progressPercentage}%` }}
+            />
+          </div>
           <button
-            className="absolute right-2 top-2 h-6 w-6 p-0 flex items-center justify-center text-amber-200 hover:bg-amber-800 rounded"
+            className="absolute right-2 top-2 h-6 w-6 p-0 flex items-center justify-center text-[#B88AF8] hover:bg-[rgba(184,138,248,0.10)] rounded"
             onClick={() => setShouldShowBanner(false)}
           >
             <svg
