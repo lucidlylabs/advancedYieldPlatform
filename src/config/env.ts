@@ -5,6 +5,7 @@ export const USD_STRATEGIES = {
       contract: "0x2F7397FD2D49E5b636eF44503771B17EDEd67620",
       deposit_token: "USD.e",
       deposit_token_contract: "0x29219dd400f2bf60e5a23d13be72b486d4038894",
+      deposit_token_image: "/images/icons/usdc.svg",
       description: "Perpetual stable USD strategy on Sonic network",
       apy: "4.5%",
       incentives: "-",

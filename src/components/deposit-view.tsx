@@ -15,7 +15,7 @@ import {
   useTransaction,
   useReadContracts,
 } from "wagmi";
-import { USD_STRATEGIES } from "../config/env";
+import { USD_STRATEGIES, BTC_STRATEGIES, ETH_STRATEGIES } from "../config/env";
 import {
   parseEther,
   type Address,
@@ -34,6 +34,7 @@ interface StrategyConfig {
   deposit_token: string;
   deposit_contract: string;
   deposit_token_contract?: string; // Optional field for backward compatibility
+  deposit_token_image?: string; // Optional field for deposit token image
   description: string;
   apy: string;
   incentives: string;
@@ -142,10 +143,21 @@ const DepositView: React.FC<DepositViewProps> = ({
   const [isDepositing, setIsDepositing] = useState(false);
   const { address } = useAccount();
 
-  // Get strategy config
-  const strategyConfig = USD_STRATEGIES[
+  // Get strategy config based on asset type
+  const strategyConfigs = {
+    USD: USD_STRATEGIES,
+    BTC: BTC_STRATEGIES,
+    ETH: ETH_STRATEGIES,
+  };
+  
+  const strategyConfig = strategyConfigs[selectedAsset as keyof typeof strategyConfigs][
     duration as keyof typeof USD_STRATEGIES
   ][strategy === "stable" ? "STABLE" : "INCENTIVE"] as StrategyConfig;
+  
+  // Get deposit token name and image path (only if defined in config)
+  const depositToken = strategyConfig.deposit_token;
+  const depositTokenImage = strategyConfig.deposit_token_image;
+
   // USDC token contract for approvals
   const tokenContractAddress =
     strategyConfig.deposit_token_contract || strategyConfig.deposit_contract;
@@ -454,13 +466,6 @@ const DepositView: React.FC<DepositViewProps> = ({
     fetchBalance();
   }, [address, selectedAsset, duration, strategy]);
 
-  const depositToken =
-    selectedAsset === "USD"
-      ? USD_STRATEGIES[duration as keyof typeof USD_STRATEGIES][
-          strategy === "stable" ? "STABLE" : "INCENTIVE"
-        ]["deposit_token"]
-      : selectedAsset;
-
   const handleMaxClick = () => {
     setAmount(balance);
   };
@@ -489,11 +494,13 @@ const DepositView: React.FC<DepositViewProps> = ({
             <div className="w-[280px] h-[311px] bg-[#0D101C] rounded-[4px] border border-[rgba(255,255,255,0.05)] p-6 flex flex-col">
               <div className="flex items-center justify-center">
                 <div className="flex flex-col items-center mt-[20px]">
-                  <img
-                    src={`/images/icons/card-${selectedAsset.toLowerCase()}.svg`}
-                    alt={selectedAsset}
-                    className="w-[56px] h-[56px]"
-                  />
+                  {depositTokenImage && (
+                    <img
+                      src={depositTokenImage}
+                      alt={depositToken}
+                      className="w-[56px] h-[56px]"
+                    />
+                  )}
                   <span className="text-[#EDF2F8] text-center font-inter text-[14px] font-semibold leading-normal mt-[16px]">
                     Deposit {depositToken}
                   </span>
