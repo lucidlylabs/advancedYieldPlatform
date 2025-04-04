@@ -8,7 +8,7 @@ export const USD_STRATEGIES = {
       deposit_token_image: "/images/icons/usdc.svg",
       description: "Perpetual stable USD strategy on Sonic network",
       apy: "4.5%",
-      incentives: "-",
+      incentives: "None",
       tvl: "5000000",
       rpc: "https://rpc.soniclabs.com",
     },
