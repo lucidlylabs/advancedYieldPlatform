@@ -120,6 +120,12 @@ const InfoIcon = () => (
   </svg>
 );
 
+const formatDuration = (duration: string) => {
+  if (duration === "PERPETUAL_DURATION") return "Perpetual";
+  const [number, period] = duration.split('_');
+  return `${number} ${period.toLowerCase()}`;
+};
+
 const DepositView: React.FC<DepositViewProps> = ({
   selectedAsset,
   duration,
@@ -567,7 +573,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                   onClick={onReset}
                   className="text-[16px] text-[#9C9DA2] font-inter font-normal leading-normal underline decoration-solid underline-offset-auto mb-[25px] cursor-pointer hover:text-[#9C9DA2]/80 transition-all duration-200"
                 >
-                  {duration}
+                  {formatDuration(duration)}
                 </div>
                 <div
                   onClick={onReset}
