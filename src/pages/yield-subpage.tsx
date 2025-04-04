@@ -62,8 +62,8 @@ const getStrategyInfo = (duration: DurationType): StrategyData => {
       ETH: ETH_STRATEGIES,
     }[asset];
 
-    // Convert duration format to match the keys in our data
-    const durationKey = duration.replace("_", "");
+    // Use the duration as is since it matches the keys in env.ts
+    const durationKey = duration;
     const strategy = strategies[durationKey];
 
     if (!strategy) {
