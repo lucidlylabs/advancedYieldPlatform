@@ -7,9 +7,23 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useAccount, useWriteContract, useReadContract, useWatchContractEvent, useTransaction, useReadContracts } from "wagmi";
-import { USD_STRATEGIES } from '../config/env';
-import { parseEther, type Address, formatUnits, createPublicClient, http, parseUnits } from 'viem';
+import {
+  useAccount,
+  useWriteContract,
+  useReadContract,
+  useWatchContractEvent,
+  useTransaction,
+  useReadContracts,
+} from "wagmi";
+import { USD_STRATEGIES } from "../config/env";
+import {
+  parseEther,
+  type Address,
+  formatUnits,
+  createPublicClient,
+  http,
+  parseUnits,
+} from "viem";
 
 type DurationType = "30_DAYS" | "60_DAYS" | "180_DAYS" | "PERPETUAL_DURATION";
 type StrategyType = "STABLE" | "INCENTIVE";
@@ -19,64 +33,64 @@ interface StrategyConfig {
   contract: string;
   deposit_token: string;
   deposit_contract: string;
-  deposit_token_contract?: string;  // Optional field for backward compatibility
+  deposit_token_contract?: string; // Optional field for backward compatibility
   description: string;
   apy: string;
   incentives: string;
   tvl: string;
-  rpc?: string;  // Optional field for backward compatibility
+  rpc?: string; // Optional field for backward compatibility
 }
 
 // ERC20 ABI for token operations
 const ERC20_ABI = [
   {
-    name: 'approve',
-    type: 'function',
-    stateMutability: 'nonpayable',
+    name: "approve",
+    type: "function",
+    stateMutability: "nonpayable",
     inputs: [
-      { name: 'spender', type: 'address' },
-      { name: 'amount', type: 'uint256' }
+      { name: "spender", type: "address" },
+      { name: "amount", type: "uint256" },
     ],
-    outputs: [{ name: '', type: 'bool' }]
+    outputs: [{ name: "", type: "bool" }],
   },
   {
-    name: 'allowance',
-    type: 'function',
-    stateMutability: 'view',
+    name: "allowance",
+    type: "function",
+    stateMutability: "view",
     inputs: [
-      { name: 'owner', type: 'address' },
-      { name: 'spender', type: 'address' }
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
     ],
-    outputs: [{ name: '', type: 'uint256' }]
+    outputs: [{ name: "", type: "uint256" }],
   },
   {
-    name: 'balanceOf',
-    type: 'function',
-    stateMutability: 'view',
-    inputs: [{ name: 'owner', type: 'address' }],
-    outputs: [{ name: '', type: 'uint256' }]
+    name: "balanceOf",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "owner", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
   },
   {
-    name: 'decimals',
-    type: 'function',
-    stateMutability: 'view',
+    name: "decimals",
+    type: "function",
+    stateMutability: "view",
     inputs: [],
-    outputs: [{ name: '', type: 'uint8' }]
-  }
+    outputs: [{ name: "", type: "uint8" }],
+  },
 ] as const;
 
 // Vault ABI for deposit
 const VAULT_ABI = [
   {
-    name: 'deposit',
-    type: 'function',
-    stateMutability: 'nonpayable',
+    name: "deposit",
+    type: "function",
+    stateMutability: "nonpayable",
     inputs: [
-      { name: 'assets', type: 'uint256' },
-      { name: 'receiver', type: 'address' }
+      { name: "assets", type: "uint256" },
+      { name: "receiver", type: "address" },
     ],
-    outputs: [{ name: '', type: 'uint256' }]
-  }
+    outputs: [{ name: "", type: "uint256" }],
+  },
 ] as const;
 
 interface DepositViewProps {
@@ -123,16 +137,19 @@ const DepositView: React.FC<DepositViewProps> = ({
   const { address } = useAccount();
 
   // Get strategy config
-  const strategyConfig = USD_STRATEGIES[duration as keyof typeof USD_STRATEGIES][strategy === "stable" ? "STABLE" : "INCENTIVE"] as StrategyConfig;
+  const strategyConfig = USD_STRATEGIES[
+    duration as keyof typeof USD_STRATEGIES
+  ][strategy === "stable" ? "STABLE" : "INCENTIVE"] as StrategyConfig;
   // USDC token contract for approvals
-  const tokenContractAddress = strategyConfig.deposit_token_contract || strategyConfig.deposit_contract;
+  const tokenContractAddress =
+    strategyConfig.deposit_token_contract || strategyConfig.deposit_contract;
   // Vault contract for deposits
   const vaultContractAddress = strategyConfig.contract;
 
   console.log("Contract Addresses:", {
     tokenContract: tokenContractAddress,
     vaultContract: vaultContractAddress,
-    strategy: strategyConfig
+    strategy: strategyConfig,
   });
 
   // Approve token for vault
@@ -155,7 +172,7 @@ const DepositView: React.FC<DepositViewProps> = ({
   const { data: allowance } = useReadContract({
     address: tokenContractAddress as Address,
     abi: ERC20_ABI,
-    functionName: 'allowance',
+    functionName: "allowance",
     args: [address as Address, vaultContractAddress as Address],
   });
 
@@ -168,7 +185,7 @@ const DepositView: React.FC<DepositViewProps> = ({
     isDepositing,
     isWaitingForDeposit,
     tokenContract: tokenContractAddress,
-    vaultContract: vaultContractAddress
+    vaultContract: vaultContractAddress,
   });
 
   const handleDeposit = async () => {
@@ -178,15 +195,15 @@ const DepositView: React.FC<DepositViewProps> = ({
       tokenContract: tokenContractAddress,
       vaultContract: vaultContractAddress,
       strategy,
-      duration
+      duration,
     });
 
     if (!address || !amount || !approve || !deposit) {
-      console.log("Missing required fields", { 
-        hasAddress: !!address, 
-        hasAmount: !!amount, 
-        hasApprove: !!approve, 
-        hasDeposit: !!deposit 
+      console.log("Missing required fields", {
+        hasAddress: !!address,
+        hasAmount: !!amount,
+        hasApprove: !!approve,
+        hasDeposit: !!deposit,
       });
       return;
     }
@@ -206,12 +223,14 @@ const DepositView: React.FC<DepositViewProps> = ({
         original: amount,
         rounded: roundedAmount,
         inWei: amountInWei.toString(),
-        hex: `0x${amountInWei.toString(16).padStart(64, '0')}`,
-        decimals: 6
+        hex: `0x${amountInWei.toString(16).padStart(64, "0")}`,
+        decimals: 6,
       });
 
       // Check if approval is needed
-      const currentAllowance = allowance ? BigInt(allowance.toString()) : BigInt(0);
+      const currentAllowance = allowance
+        ? BigInt(allowance.toString())
+        : BigInt(0);
       console.log("Current Allowance:", currentAllowance.toString());
 
       if (currentAllowance < amountInWei) {
@@ -219,62 +238,64 @@ const DepositView: React.FC<DepositViewProps> = ({
           tokenContract: tokenContractAddress,
           spender: vaultContractAddress,
           amount: amountInWei.toString(),
-          amountHex: `0x${amountInWei.toString(16)}`
+          amountHex: `0x${amountInWei.toString(16)}`,
         });
         setIsApproving(true);
         await approve({
           address: tokenContractAddress as Address, // USDC contract for approval
           abi: ERC20_ABI,
-          functionName: 'approve',
+          functionName: "approve",
           args: [vaultContractAddress as Address, amountInWei],
-          chainId: 146 // Sonic network
+          chainId: 146, // Sonic network
         });
       } else {
         console.log("Sufficient allowance exists, proceeding with deposit", {
           vaultContract: vaultContractAddress,
           amount: amountInWei.toString(),
           amountHex: `0x${amountInWei.toString(16)}`,
-          receiver: address
+          receiver: address,
         });
         setIsDepositing(true);
 
         // Create a public client to check balance before deposit
-        const strategyConfig = USD_STRATEGIES[duration as keyof typeof USD_STRATEGIES][strategy === "stable" ? "STABLE" : "INCENTIVE"] as StrategyConfig;
+        const strategyConfig = USD_STRATEGIES[
+          duration as keyof typeof USD_STRATEGIES
+        ][strategy === "stable" ? "STABLE" : "INCENTIVE"] as StrategyConfig;
         const rpcUrl = strategyConfig.rpc || "https://rpc.soniclabs.com";
-        
+
         const client = createPublicClient({
           transport: http(rpcUrl),
           chain: {
             id: 146,
-            name: 'Sonic',
-            network: 'sonic',
+            name: "Sonic",
+            network: "sonic",
             nativeCurrency: {
               decimals: 18,
-              name: 'Sonic',
-              symbol: 'S',
+              name: "Sonic",
+              symbol: "S",
             },
             rpcUrls: {
               default: { http: [rpcUrl] },
               public: { http: [rpcUrl] },
-            }
-          }
+            },
+          },
         });
 
         // Check token balance before deposit
         const balance = await client.readContract({
           address: tokenContractAddress as Address, // USDC contract for balance check
           abi: ERC20_ABI,
-          functionName: 'balanceOf',
-          args: [address as Address]
+          functionName: "balanceOf",
+          args: [address as Address],
         });
 
         console.log("Current token balance:", {
           balance: balance.toString(),
           required: amountInWei.toString(),
           balanceHex: `0x${balance.toString(16)}`,
-          requiredHex: `0x${amountInWei.toString(16)}`
+          requiredHex: `0x${amountInWei.toString(16)}`,
         });
-        
+
         if (balance < amountInWei) {
           throw new Error("Insufficient token balance for deposit");
         }
@@ -283,18 +304,23 @@ const DepositView: React.FC<DepositViewProps> = ({
         try {
           const minDeposit = await client.readContract({
             address: vaultContractAddress as Address, // Vault contract for min deposit check
-            abi: [...VAULT_ABI, {
-              name: 'minDeposit',
-              type: 'function',
-              stateMutability: 'view',
-              inputs: [],
-              outputs: [{ name: '', type: 'uint256' }]
-            }],
-            functionName: 'minDeposit'
+            abi: [
+              ...VAULT_ABI,
+              {
+                name: "minDeposit",
+                type: "function",
+                stateMutability: "view",
+                inputs: [],
+                outputs: [{ name: "", type: "uint256" }],
+              },
+            ],
+            functionName: "minDeposit",
           });
-          
+
           if (minDeposit && amountInWei < minDeposit) {
-            throw new Error(`Minimum deposit amount is ${formatUnits(minDeposit, 6)} USDC`);
+            throw new Error(
+              `Minimum deposit amount is ${formatUnits(minDeposit, 6)} USDC`
+            );
           }
         } catch (error) {
           console.log("Could not check minimum deposit amount:", error);
@@ -304,16 +330,16 @@ const DepositView: React.FC<DepositViewProps> = ({
         console.log("Sending deposit transaction to vault contract:", {
           contract: vaultContractAddress,
           amount: amountInWei.toString(),
-          receiver: address
+          receiver: address,
         });
 
         await deposit({
           address: vaultContractAddress as Address, // Using vault contract for deposit
           abi: VAULT_ABI,
-          functionName: 'deposit',
+          functionName: "deposit",
           args: [amountInWei, address as Address],
           chainId: 146,
-          account: address as Address
+          account: address as Address,
         });
       }
     } catch (error: any) {
@@ -323,16 +349,18 @@ const DepositView: React.FC<DepositViewProps> = ({
         details: error.details,
         data: error.data,
         tokenContract: tokenContractAddress,
-        vaultContract: vaultContractAddress
+        vaultContract: vaultContractAddress,
       });
       setIsApproving(false);
       setIsDepositing(false);
-      
+
       // Show user-friendly error message
       if (error.message.includes("insufficient")) {
         alert("Insufficient balance to complete the deposit");
       } else if (error.message.includes("reverted")) {
-        alert("Transaction failed. The amount might be below the minimum deposit requirement. Please try a larger amount.");
+        alert(
+          "Transaction failed. The amount might be below the minimum deposit requirement. Please try a larger amount."
+        );
       } else if (error.message.includes("chain")) {
         alert("Please make sure you are connected to the Sonic network");
       } else if (error.message.includes("minimum deposit")) {
@@ -343,73 +371,89 @@ const DepositView: React.FC<DepositViewProps> = ({
     }
   };
 
-  // Reset loading states when transactions complete
+  const fetchBalance = async () => {
+    if (!address || selectedAsset !== "USD") return;
+
+    setIsLoadingBalance(true);
+    try {
+      const strategyConfig = USD_STRATEGIES[
+        duration as keyof typeof USD_STRATEGIES
+      ][strategy === "stable" ? "STABLE" : "INCENTIVE"] as StrategyConfig;
+
+      // Use deposit_token_contract instead of deposit_contract
+      const tokenContractAddress =
+        strategyConfig.deposit_token_contract ||
+        strategyConfig.deposit_contract;
+      // Validate contract address
+      if (
+        !tokenContractAddress ||
+        tokenContractAddress === "0x0000000000000000000000000000000000000000"
+      ) {
+        console.warn("Invalid token contract address for", duration, strategy);
+        setBalance("0.00");
+        return;
+      }
+
+      // Use the RPC from the strategy config or fallback to a default
+      const rpcUrl = strategyConfig.rpc || "https://rpc.soniclabs.com";
+      console.log("Using RPC:", rpcUrl);
+      console.log("Token contract:", tokenContractAddress);
+
+      const client = createPublicClient({
+        transport: http(rpcUrl),
+      });
+
+      const [balanceResult, decimalsResult] = await Promise.all([
+        client.readContract({
+          address: tokenContractAddress as Address,
+          abi: ERC20_ABI,
+          functionName: "balanceOf",
+          args: [address as Address],
+        }),
+        client.readContract({
+          address: tokenContractAddress as Address,
+          abi: ERC20_ABI,
+          functionName: "decimals",
+        }),
+      ]);
+
+      const formattedBalance = formatUnits(
+        balanceResult as bigint,
+        decimalsResult as number
+      );
+      console.log("Balance fetched:", formattedBalance);
+      setBalance(formattedBalance);
+    } catch (error) {
+      console.error("Error fetching balance:", error);
+      setBalance("0.00");
+    } finally {
+      setIsLoadingBalance(false);
+    }
+  };
+
+  // Reset loading states when transactions complete and refresh balance
   useEffect(() => {
     if (!isWaitingForApproval) {
       setIsApproving(false);
+      fetchBalance(); // Refresh balance after approval
     }
     if (!isWaitingForDeposit) {
       setIsDepositing(false);
+      fetchBalance(); // Refresh balance after deposit
     }
   }, [isWaitingForApproval, isWaitingForDeposit]);
 
+  // Initial balance fetch
   useEffect(() => {
-    const fetchBalance = async () => {
-      if (!address || selectedAsset !== "USD") return;
-
-      setIsLoadingBalance(true);
-      try {
-        const strategyConfig = USD_STRATEGIES[duration as keyof typeof USD_STRATEGIES][strategy === "stable" ? "STABLE" : "INCENTIVE"] as StrategyConfig;
-        
-        // Use deposit_token_contract instead of deposit_contract
-        const tokenContractAddress = strategyConfig.deposit_token_contract || strategyConfig.deposit_contract;
-        // Validate contract address
-        if (!tokenContractAddress || tokenContractAddress === "0x0000000000000000000000000000000000000000") {
-          console.warn("Invalid token contract address for", duration, strategy);
-          setBalance("0.00");
-          return;
-        }
-
-        // Use the RPC from the strategy config or fallback to a default
-        const rpcUrl = strategyConfig.rpc || "https://rpc.soniclabs.com";
-        console.log("Using RPC:", rpcUrl);
-        console.log("Token contract:", tokenContractAddress);
-        
-        const client = createPublicClient({
-          transport: http(rpcUrl)
-        });
-
-        const [balanceResult, decimalsResult] = await Promise.all([
-          client.readContract({
-            address: tokenContractAddress as Address,
-            abi: ERC20_ABI,
-            functionName: 'balanceOf',
-            args: [address as Address]
-          }),
-          client.readContract({
-            address: tokenContractAddress as Address,
-            abi: ERC20_ABI,
-            functionName: 'decimals'
-          })
-        ]);
-
-        const formattedBalance = formatUnits(balanceResult as bigint, decimalsResult as number);
-        console.log("Balance fetched:", formattedBalance);
-        setBalance(formattedBalance);
-      } catch (error) {
-        console.error("Error fetching balance:", error);
-        setBalance("0.00");
-      } finally {
-        setIsLoadingBalance(false);
-      }
-    };
-
     fetchBalance();
   }, [address, selectedAsset, duration, strategy]);
 
-  const depositToken = selectedAsset === "USD" 
-    ? USD_STRATEGIES[duration as keyof typeof USD_STRATEGIES][strategy === "stable" ? "STABLE" : "INCENTIVE"]["deposit_token"]
-    : selectedAsset;
+  const depositToken =
+    selectedAsset === "USD"
+      ? USD_STRATEGIES[duration as keyof typeof USD_STRATEGIES][
+          strategy === "stable" ? "STABLE" : "INCENTIVE"
+        ]["deposit_token"]
+      : selectedAsset;
 
   const handleMaxClick = () => {
     setAmount(balance);
@@ -473,11 +517,28 @@ const DepositView: React.FC<DepositViewProps> = ({
                 </div>
                 <div className="mt-[12px]">
                   <span className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
-                    Balance: {isLoadingBalance ? (
+                    Balance:{" "}
+                    {isLoadingBalance ? (
                       <span className="inline-flex items-center gap-1">
-                        <svg className="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        <svg
+                          className="animate-spin h-3 w-3 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
                         </svg>
                         <span className="text-white">Loading...</span>
                       </span>
@@ -564,14 +625,19 @@ const DepositView: React.FC<DepositViewProps> = ({
                 (!authenticationStatus ||
                   authenticationStatus === "authenticated");
 
-              const isLoading = isApproving || isWaitingForApproval || isDepositing || isWaitingForDeposit;
-              const buttonText = isApproving || isWaitingForApproval 
-                ? "Approving..." 
-                : isDepositing || isWaitingForDeposit 
-                ? "Depositing..." 
-                : connected 
-                ? "Deposit" 
-                : "Connect Wallet";
+              const isLoading =
+                isApproving ||
+                isWaitingForApproval ||
+                isDepositing ||
+                isWaitingForDeposit;
+              const buttonText =
+                isApproving || isWaitingForApproval
+                  ? "Approving..."
+                  : isDepositing || isWaitingForDeposit
+                  ? "Depositing..."
+                  : connected
+                  ? "Deposit"
+                  : "Connect Wallet";
 
               return (
                 <button
