@@ -101,7 +101,7 @@ export const BTC_STRATEGIES = {
   PERPETUAL_DURATION: {
     STABLE: {
       network: "Sonic",
-      contract: "0x0000000000000000000000000000000000000000",
+      contract: "0x2F7397FD2D49E5b636eF44503771B17EDEd67620",
       deposit_token: "BTC.e",
       deposit_token_contract: "0x29219dd400f2bf60e5a23d13be72b486d4038894",
       description: "Perpetual stable BTC strategy on Sonic network",
