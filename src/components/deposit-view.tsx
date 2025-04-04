@@ -7,9 +7,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useAccount } from "wagmi";
+import { useAccount, useWriteContract, useReadContract, useWatchContractEvent, useTransaction, useReadContracts } from "wagmi";
 import { USD_STRATEGIES } from '../config/env';
-import { ethers } from 'ethers';
+import { parseEther, type Address, formatUnits, createPublicClient, http, parseUnits } from 'viem';
 
 type DurationType = "30_DAYS" | "60_DAYS" | "180_DAYS" | "PERPETUAL_DURATION";
 type StrategyType = "STABLE" | "INCENTIVE";
@@ -27,11 +27,57 @@ interface StrategyConfig {
   rpc?: string;  // Optional field for backward compatibility
 }
 
-// ERC20 ABI for balanceOf
+// ERC20 ABI for token operations
 const ERC20_ABI = [
-  "function balanceOf(address owner) view returns (uint256)",
-  "function decimals() view returns (uint8)"
-];
+  {
+    name: 'approve',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'spender', type: 'address' },
+      { name: 'amount', type: 'uint256' }
+    ],
+    outputs: [{ name: '', type: 'bool' }]
+  },
+  {
+    name: 'allowance',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'owner', type: 'address' },
+      { name: 'spender', type: 'address' }
+    ],
+    outputs: [{ name: '', type: 'uint256' }]
+  },
+  {
+    name: 'balanceOf',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'owner', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }]
+  },
+  {
+    name: 'decimals',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint8' }]
+  }
+] as const;
+
+// Vault ABI for deposit
+const VAULT_ABI = [
+  {
+    name: 'deposit',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'assets', type: 'uint256' },
+      { name: 'receiver', type: 'address' }
+    ],
+    outputs: [{ name: '', type: 'uint256' }]
+  }
+] as const;
 
 interface DepositViewProps {
   selectedAsset: string;
@@ -72,7 +118,240 @@ const DepositView: React.FC<DepositViewProps> = ({
   const [slippage, setSlippage] = useState<string>("0.03");
   const [balance, setBalance] = useState<string>("0.00");
   const [isLoadingBalance, setIsLoadingBalance] = useState<boolean>(false);
+  const [isApproving, setIsApproving] = useState(false);
+  const [isDepositing, setIsDepositing] = useState(false);
   const { address } = useAccount();
+
+  // Get strategy config
+  const strategyConfig = USD_STRATEGIES[duration as keyof typeof USD_STRATEGIES][strategy === "stable" ? "STABLE" : "INCENTIVE"] as StrategyConfig;
+  // USDC token contract for approvals
+  const tokenContractAddress = strategyConfig.deposit_token_contract || strategyConfig.deposit_contract;
+  // Vault contract for deposits
+  const vaultContractAddress = strategyConfig.contract;
+
+  console.log("Contract Addresses:", {
+    tokenContract: tokenContractAddress,
+    vaultContract: vaultContractAddress,
+    strategy: strategyConfig
+  });
+
+  // Approve token for vault
+  const { writeContractAsync: approve, data: approveData } = useWriteContract();
+
+  // Watch approve transaction
+  const { isLoading: isWaitingForApproval } = useTransaction({
+    hash: approveData,
+  });
+
+  // Deposit into vault
+  const { writeContractAsync: deposit, data: depositData } = useWriteContract();
+
+  // Watch deposit transaction
+  const { isLoading: isWaitingForDeposit } = useTransaction({
+    hash: depositData,
+  });
+
+  // Check allowance against vault contract
+  const { data: allowance } = useReadContract({
+    address: tokenContractAddress as Address,
+    abi: ERC20_ABI,
+    functionName: 'allowance',
+    args: [address as Address, vaultContractAddress as Address],
+  });
+
+  console.log("Contract States:", {
+    allowance: allowance?.toString(),
+    approveData,
+    depositData,
+    isApproving,
+    isWaitingForApproval,
+    isDepositing,
+    isWaitingForDeposit,
+    tokenContract: tokenContractAddress,
+    vaultContract: vaultContractAddress
+  });
+
+  const handleDeposit = async () => {
+    console.log("Deposit clicked", {
+      address,
+      amount,
+      tokenContract: tokenContractAddress,
+      vaultContract: vaultContractAddress,
+      strategy,
+      duration
+    });
+
+    if (!address || !amount || !approve || !deposit) {
+      console.log("Missing required fields", { 
+        hasAddress: !!address, 
+        hasAmount: !!amount, 
+        hasApprove: !!approve, 
+        hasDeposit: !!deposit 
+      });
+      return;
+    }
+
+    try {
+      // Convert amount to 6 decimals for USDC using parseUnits and ensure it's properly formatted
+      const amountFloat = parseFloat(amount);
+      if (isNaN(amountFloat) || amountFloat <= 0) {
+        throw new Error("Invalid amount");
+      }
+
+      // Round to 6 decimal places to avoid precision issues
+      const roundedAmount = Math.round(amountFloat * 1_000_000) / 1_000_000;
+      const amountInWei = parseUnits(roundedAmount.toFixed(6), 6);
+
+      console.log("Amount conversion:", {
+        original: amount,
+        rounded: roundedAmount,
+        inWei: amountInWei.toString(),
+        hex: `0x${amountInWei.toString(16).padStart(64, '0')}`,
+        decimals: 6
+      });
+
+      // Check if approval is needed
+      const currentAllowance = allowance ? BigInt(allowance.toString()) : BigInt(0);
+      console.log("Current Allowance:", currentAllowance.toString());
+
+      if (currentAllowance < amountInWei) {
+        console.log("Approval needed. Sending approve transaction...", {
+          tokenContract: tokenContractAddress,
+          spender: vaultContractAddress,
+          amount: amountInWei.toString(),
+          amountHex: `0x${amountInWei.toString(16)}`
+        });
+        setIsApproving(true);
+        await approve({
+          address: tokenContractAddress as Address, // USDC contract for approval
+          abi: ERC20_ABI,
+          functionName: 'approve',
+          args: [vaultContractAddress as Address, amountInWei],
+          chainId: 146 // Sonic network
+        });
+      } else {
+        console.log("Sufficient allowance exists, proceeding with deposit", {
+          vaultContract: vaultContractAddress,
+          amount: amountInWei.toString(),
+          amountHex: `0x${amountInWei.toString(16)}`,
+          receiver: address
+        });
+        setIsDepositing(true);
+
+        // Create a public client to check balance before deposit
+        const strategyConfig = USD_STRATEGIES[duration as keyof typeof USD_STRATEGIES][strategy === "stable" ? "STABLE" : "INCENTIVE"] as StrategyConfig;
+        const rpcUrl = strategyConfig.rpc || "https://rpc.soniclabs.com";
+        
+        const client = createPublicClient({
+          transport: http(rpcUrl),
+          chain: {
+            id: 146,
+            name: 'Sonic',
+            network: 'sonic',
+            nativeCurrency: {
+              decimals: 18,
+              name: 'Sonic',
+              symbol: 'S',
+            },
+            rpcUrls: {
+              default: { http: [rpcUrl] },
+              public: { http: [rpcUrl] },
+            }
+          }
+        });
+
+        // Check token balance before deposit
+        const balance = await client.readContract({
+          address: tokenContractAddress as Address, // USDC contract for balance check
+          abi: ERC20_ABI,
+          functionName: 'balanceOf',
+          args: [address as Address]
+        });
+
+        console.log("Current token balance:", {
+          balance: balance.toString(),
+          required: amountInWei.toString(),
+          balanceHex: `0x${balance.toString(16)}`,
+          requiredHex: `0x${amountInWei.toString(16)}`
+        });
+        
+        if (balance < amountInWei) {
+          throw new Error("Insufficient token balance for deposit");
+        }
+
+        // Check minimum deposit amount (if we can get it from the contract)
+        try {
+          const minDeposit = await client.readContract({
+            address: vaultContractAddress as Address, // Vault contract for min deposit check
+            abi: [...VAULT_ABI, {
+              name: 'minDeposit',
+              type: 'function',
+              stateMutability: 'view',
+              inputs: [],
+              outputs: [{ name: '', type: 'uint256' }]
+            }],
+            functionName: 'minDeposit'
+          });
+          
+          if (minDeposit && amountInWei < minDeposit) {
+            throw new Error(`Minimum deposit amount is ${formatUnits(minDeposit, 6)} USDC`);
+          }
+        } catch (error) {
+          console.log("Could not check minimum deposit amount:", error);
+        }
+
+        // Proceed with deposit using the vault contract
+        console.log("Sending deposit transaction to vault contract:", {
+          contract: vaultContractAddress,
+          amount: amountInWei.toString(),
+          receiver: address
+        });
+
+        await deposit({
+          address: vaultContractAddress as Address, // Using vault contract for deposit
+          abi: VAULT_ABI,
+          functionName: 'deposit',
+          args: [amountInWei, address as Address],
+          chainId: 146,
+          account: address as Address
+        });
+      }
+    } catch (error: any) {
+      console.error("Transaction failed:", {
+        error,
+        message: error.message,
+        details: error.details,
+        data: error.data,
+        tokenContract: tokenContractAddress,
+        vaultContract: vaultContractAddress
+      });
+      setIsApproving(false);
+      setIsDepositing(false);
+      
+      // Show user-friendly error message
+      if (error.message.includes("insufficient")) {
+        alert("Insufficient balance to complete the deposit");
+      } else if (error.message.includes("reverted")) {
+        alert("Transaction failed. The amount might be below the minimum deposit requirement. Please try a larger amount.");
+      } else if (error.message.includes("chain")) {
+        alert("Please make sure you are connected to the Sonic network");
+      } else if (error.message.includes("minimum deposit")) {
+        alert(error.message);
+      } else {
+        alert("Failed to complete deposit. Please try again.");
+      }
+    }
+  };
+
+  // Reset loading states when transactions complete
+  useEffect(() => {
+    if (!isWaitingForApproval) {
+      setIsApproving(false);
+    }
+    if (!isWaitingForDeposit) {
+      setIsDepositing(false);
+    }
+  }, [isWaitingForApproval, isWaitingForDeposit]);
 
   useEffect(() => {
     const fetchBalance = async () => {
@@ -96,19 +375,25 @@ const DepositView: React.FC<DepositViewProps> = ({
         console.log("Using RPC:", rpcUrl);
         console.log("Token contract:", tokenContractAddress);
         
-        const provider = new ethers.JsonRpcProvider(rpcUrl);
-        const tokenContract = new ethers.Contract(
-          tokenContractAddress,
-          ERC20_ABI,
-          provider
-        );
+        const client = createPublicClient({
+          transport: http(rpcUrl)
+        });
 
-        const [balance, decimals] = await Promise.all([
-          tokenContract.balanceOf(address),
-          tokenContract.decimals()
+        const [balanceResult, decimalsResult] = await Promise.all([
+          client.readContract({
+            address: tokenContractAddress as Address,
+            abi: ERC20_ABI,
+            functionName: 'balanceOf',
+            args: [address as Address]
+          }),
+          client.readContract({
+            address: tokenContractAddress as Address,
+            abi: ERC20_ABI,
+            functionName: 'decimals'
+          })
         ]);
 
-        const formattedBalance = ethers.formatUnits(balance, decimals);
+        const formattedBalance = formatUnits(balanceResult as bigint, decimalsResult as number);
         console.log("Balance fetched:", formattedBalance);
         setBalance(formattedBalance);
       } catch (error) {
@@ -279,12 +564,22 @@ const DepositView: React.FC<DepositViewProps> = ({
                 (!authenticationStatus ||
                   authenticationStatus === "authenticated");
 
+              const isLoading = isApproving || isWaitingForApproval || isDepositing || isWaitingForDeposit;
+              const buttonText = isApproving || isWaitingForApproval 
+                ? "Approving..." 
+                : isDepositing || isWaitingForDeposit 
+                ? "Depositing..." 
+                : connected 
+                ? "Deposit" 
+                : "Connect Wallet";
+
               return (
                 <button
-                  onClick={connected ? undefined : openConnectModal}
-                  className="w-full py-4 mt-6 rounded bg-[#B88AF8] text-[#1A1B1E] font-semibold hover:opacity-90 transition-all duration-200"
+                  onClick={connected ? handleDeposit : openConnectModal}
+                  disabled={isLoading}
+                  className="w-full py-4 mt-6 rounded bg-[#B88AF8] text-[#1A1B1E] font-semibold hover:opacity-90 transition-all duration-200 disabled:opacity-50"
                 >
-                  {connected ? `Deposit` : `Connect Wallet`}
+                  {buttonText}
                 </button>
               );
             }}
@@ -295,4 +590,4 @@ const DepositView: React.FC<DepositViewProps> = ({
   );
 };
 
-export { DepositView };
+export default DepositView;

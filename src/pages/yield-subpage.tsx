@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { CustomCard } from "@/components/ui/card";
-import { DepositView } from "@/components/deposit-view";
+import DepositView from "@/components/deposit-view";
 import { USD_STRATEGIES, BTC_STRATEGIES, ETH_STRATEGIES } from "../config/env";
 
 type DurationType = "30_DAYS" | "60_DAYS" | "180_DAYS" | "PERPETUAL_DURATION";
