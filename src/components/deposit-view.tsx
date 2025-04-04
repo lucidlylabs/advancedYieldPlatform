@@ -596,7 +596,8 @@ const DepositView: React.FC<DepositViewProps> = ({
                   <img
                     src={`/images/icons/${selectedAsset.toLowerCase()}-${strategy}.svg`}
                     alt={strategy}
-                    className="w-[32px] h-[32px] ml-[4px] mr-[12px] my-auto"
+                    className="w-[32px] h-[32px] ml-[4px] mr-[12px] my-auto cursor-pointer hover:opacity-80 transition-all duration-200"
+                    onClick={onReset}
                   />
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
@@ -606,7 +607,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                       <img
                         src="/images/icons/select-icon.svg"
                         alt="select"
-                        className="w-[16px] h-[16px] flex-shrink-0 cursor-pointer ml-auto"
+                        className="w-[16px] h-[16px] flex-shrink-0 cursor-pointer ml-auto hover:opacity-80 transition-all duration-200"
                         onClick={onBack}
                       />
                     </div>

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { CustomConnectButton } from "../components/ui/ConnectButton/CustomConnectButton";
 import { Header } from "../components/ui/header";
 import PortfolioSubpage from "./portfolio-subpage";
@@ -32,13 +33,21 @@ export default function Page() {
       >
         <div className="flex items-stretch h-full">
           <div className="flex items-center pl-3">
-            <Image
-              src="/images/logo/logo-desktop.svg"
-              alt="Lucidity Logo"
-              width={80}
-              height={16}
-              priority
-            />
+            <div 
+              className="cursor-pointer" 
+              onClick={() => {
+                setSelectedSubPage(SubPage.Yield);
+                setDepositParams(null);
+              }}
+            >
+              <Image
+                src="/images/logo/logo-desktop.svg"
+                alt="Lucidity Logo"
+                width={80}
+                height={16}
+                priority
+              />
+            </div>
           </div>
           <div className="w-[1px] bg-[rgba(255,255,255,0.1)] mx-4"></div>
           <nav className="hidden md:flex">
