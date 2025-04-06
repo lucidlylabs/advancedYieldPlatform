@@ -1,9 +1,59 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { useAccount } from "wagmi";
+import { useAccount, useTransaction } from "wagmi";
 
 const PortfolioSubpage: React.FC = () => {
   const { address, isConnected } = useAccount();
+  const [depositSuccess, setDepositSuccess] = useState(false);
+  const [transactionHash, setTransactionHash] = useState<`0x${string}` | null>(null);
+  const [isDepositing, setIsDepositing] = useState(false);
+  const [isApproved, setIsApproved] = useState(false);
+  const [approvalHash, setApprovalHash] = useState<`0x${string}` | null>(null);
+  const [isApproving, setIsApproving] = useState(false);
+
+  // Watch deposit transaction
+  const { isLoading: isWaitingForDeposit, isSuccess: isDepositSuccess } = useTransaction({
+    hash: transactionHash || undefined,
+  });
+
+  // Watch for deposit completion
+  useEffect(() => {
+    if (!isWaitingForDeposit && isDepositing) {
+      setIsDepositing(false);
+      setIsApproved(false);
+      if (isDepositSuccess && transactionHash) {
+        setDepositSuccess(true);
+      }
+    }
+  }, [isWaitingForDeposit, isDepositing, isDepositSuccess, transactionHash]);
+
+  // Watch approval transaction
+  const { isLoading: isWaitingForApproval, isSuccess: isApprovalSuccess } = useTransaction({
+    hash: approvalHash || undefined,
+  });
+
+  useEffect(() => {
+    if (!isWaitingForApproval && isApproving) {
+      if (isApprovalSuccess) {
+        setIsApproved(true);
+        setIsApproving(false);
+        // Automatically trigger deposit after approval
+        // handleDeposit(); // This line is commented out as it's causing an error due to undefined function
+      } else {
+        setIsApproving(false);
+      }
+    }
+  }, [isWaitingForApproval, isApproving, isApprovalSuccess]);
+
+  const approveTx = async () => {
+    // Implement the approve function
+    // This is a placeholder and should be replaced with the actual implementation
+    // For now, we'll just set a temporary approval hash
+    const approveTx = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
+    if (typeof approveTx === 'string' && approveTx.startsWith('0x')) {
+      setApprovalHash(approveTx as `0x${string}`);
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-screen text-white">

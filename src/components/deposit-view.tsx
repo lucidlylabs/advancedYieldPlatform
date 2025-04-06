@@ -159,6 +159,9 @@ const DepositView: React.FC<DepositViewProps> = ({
   const [isApproving, setIsApproving] = useState(false);
   const [isDepositing, setIsDepositing] = useState(false);
   const [isApproved, setIsApproved] = useState(false);
+  const [depositSuccess, setDepositSuccess] = useState(false);
+  const [transactionHash, setTransactionHash] = useState<`0x${string}` | null>(null);
+  const [approvalHash, setApprovalHash] = useState<`0x${string}` | null>(null);
 
   // Get strategy config based on asset type
   const strategyConfigs = {
@@ -216,16 +219,16 @@ const DepositView: React.FC<DepositViewProps> = ({
   const { writeContractAsync: approve, data: approveData } = useWriteContract();
 
   // Watch approve transaction
-  const { isLoading: isWaitingForApproval } = useTransaction({
-    hash: approveData,
+  const { isLoading: isWaitingForApproval, isSuccess: isApprovalSuccess } = useTransaction({
+    hash: approvalHash || undefined,
   });
 
   // Deposit into vault
   const { writeContractAsync: deposit, data: depositData } = useWriteContract();
 
   // Watch deposit transaction
-  const { isLoading: isWaitingForDeposit } = useTransaction({
-    hash: depositData,
+  const { isLoading: isWaitingForDeposit, isSuccess: isDepositSuccess, data: depositTxData } = useTransaction({
+    hash: transactionHash || undefined,
   });
 
   // Check allowance against vault contract
@@ -247,6 +250,40 @@ const DepositView: React.FC<DepositViewProps> = ({
     tokenContract: tokenContractAddress,
     vaultContract: vaultContractAddress,
   });
+
+  // Reset loading states when transactions complete and refresh balance
+  useEffect(() => {
+    if (!isWaitingForApproval && isApproving) {
+      if (isApprovalSuccess) {
+        setIsApproved(true);
+        setIsApproving(false);
+        // Automatically trigger deposit after approval
+        handleDeposit();
+      } else {
+        setIsApproving(false);
+      }
+    }
+  }, [isWaitingForApproval, isApproving, isApprovalSuccess]);
+
+  useEffect(() => {
+    if (!isWaitingForDeposit && isDepositing) {
+      setIsDepositing(false);
+      setIsApproved(false);
+      fetchBalance();
+    }
+  }, [isWaitingForDeposit, isDepositing]);
+
+  // Watch for deposit success
+  useEffect(() => {
+    if (isDepositSuccess && transactionHash) {
+      setDepositSuccess(true);
+      console.log("Deposit successful!", {
+        hash: transactionHash,
+        amount,
+        token: depositToken
+      });
+    }
+  }, [isDepositSuccess, transactionHash, amount, depositToken]);
 
   const handleDeposit = async () => {
     console.log("Deposit clicked", {
@@ -294,31 +331,24 @@ const DepositView: React.FC<DepositViewProps> = ({
       console.log("Current Allowance:", currentAllowance.toString());
 
       if (currentAllowance < amountInWei) {
-        console.log("Approval needed. Sending approve transaction...", {
-          tokenContract: tokenContractAddress,
-          spender: vaultContractAddress,
-          amount: amountInWei.toString(),
-          amountHex: `0x${amountInWei.toString(16)}`,
-        });
+        console.log("Approval needed. Sending approve transaction...");
         setIsApproving(true);
-        setIsApproved(false);
-        await approve({
+        const approveTx = await approve({
           address: tokenContractAddress as Address,
           abi: ERC20_ABI,
           functionName: "approve",
           args: [vaultContractAddress as Address, amountInWei],
           chainId: 146,
         });
-        return; // Exit here and wait for approval to complete
+
+        if (typeof approveTx === 'string' && approveTx.startsWith('0x')) {
+          setApprovalHash(approveTx as `0x${string}`);
+        }
+        return;
       }
 
       // If we reach here, either approval was not needed or it's already completed
-      console.log("Proceeding with deposit", {
-        vaultContract: vaultContractAddress,
-        amount: amountInWei.toString(),
-        amountHex: `0x${amountInWei.toString(16)}`,
-        receiver: address,
-      });
+      console.log("Proceeding with deposit");
       setIsDepositing(true);
 
       // Create a public client to check balance before deposit
@@ -397,14 +427,21 @@ const DepositView: React.FC<DepositViewProps> = ({
         receiver: address,
       });
 
-      await deposit({
-        address: vaultContractAddress as Address, // Using vault contract for deposit
+      const tx = await deposit({
+        address: vaultContractAddress as Address,
         abi: VAULT_ABI,
         functionName: "deposit",
         args: [amountInWei, address as Address],
         chainId: 146,
         account: address as Address,
       });
+
+      // Set the transaction hash to track its status
+      if (tx && typeof tx === 'string' && tx.startsWith('0x')) {
+        setTransactionHash(tx as `0x${string}`);
+        setIsDepositing(true);
+      }
+
     } catch (error: any) {
       console.error("Transaction failed:", {
         error,
@@ -494,20 +531,6 @@ const DepositView: React.FC<DepositViewProps> = ({
     }
   };
 
-  // Reset loading states when transactions complete and refresh balance
-  useEffect(() => {
-    if (!isWaitingForApproval && isApproving) {
-      setIsApproving(false);
-      setIsApproved(true);
-      fetchBalance(); // Refresh balance after approval
-    }
-    if (!isWaitingForDeposit && isDepositing) {
-      setIsDepositing(false);
-      setIsApproved(false); // Reset approval state after deposit
-      fetchBalance(); // Refresh balance after deposit
-    }
-  }, [isWaitingForApproval, isWaitingForDeposit]);
-
   // Initial balance fetch
   useEffect(() => {
     if (address && selectedAsset === "USD") {
@@ -536,205 +559,251 @@ const DepositView: React.FC<DepositViewProps> = ({
 
   return (
     <div className="h-[calc(100vh-128px)] relative overflow-hidden">
-      <div className="flex flex-col gap-6 items-center pt-[calc(8vh+38px)]">
-        <div className="w-[580px] h-[459px] flex-shrink-0">
-          <div className="flex gap-6 justify-center items-center">
-            {/* Left Card - Deposit Input */}
-            <div className="w-[280px] h-[311px] bg-[#0D101C] rounded-[4px] border border-[rgba(255,255,255,0.05)] p-6 flex flex-col">
-              <div className="flex items-center justify-center">
-                <div className="flex flex-col items-center mt-[20px]">
-                  {depositTokenImage && (
-                    <img
-                      src={depositTokenImage}
-                      alt={depositToken}
-                      className="w-[56px] h-[56px]"
-                    />
-                  )}
-                  <span className="text-[#EDF2F8] text-center font-inter text-[14px] font-semibold leading-normal mt-[16px]">
-                    Deposit {depositToken}
-                  </span>
-                  <span className="text-[#00D1A0] text-center font-inter text-[12px] font-normal leading-normal">
-                    +0.00 in 1 year
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-auto flex flex-col gap-[1px]">
-                <div className="relative flex items-center">
-                  <input
-                    type="text"
-                    value={amount}
-                    onChange={handleAmountChange}
-                    placeholder="0.00"
-                    className="w-[calc(100%-70px)] bg-transparent text-[#EDF2F8] font-inter text-[24px] font-bold leading-normal outline-none focus:ring-0 border-0 border-b border-[rgba(255,255,255,0.19)]"
-                  />
-                  <button
-                    onClick={handleMaxClick}
-                    className="absolute right-0 flex justify-center items-center px-[8px] py-[4px] gap-[10px] rounded-[4px] border border-[rgba(255,255,255,0.30)] bg-transparent hover:opacity-80 transition-all duration-200"
-                  >
-                    <span className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
-                      MAX
-                    </span>
-                  </button>
-                </div>
-                <div className="mt-[12px]">
-                  <span className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
-                    Balance:{" "}
-                    {isLoadingBalance ? (
-                      <span className="inline-flex items-center gap-1">
-                        <svg
-                          className="animate-spin h-3 w-3 text-white"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                        <span className="text-white">Loading...</span>
-                      </span>
-                    ) : (
-                      <span className="text-white">{balance}</span>
-                    )}
-                  </span>
-                </div>
+      {depositSuccess ? (
+        <div className="flex flex-col items-center justify-center h-full">
+          <div className="w-[580px] bg-[#0D101C] rounded-lg p-8 text-center">
+            <div className="flex justify-center mb-6">
+              <div className="w-16 h-16 bg-[#00D1A0] rounded-full flex items-center justify-center">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 6L9 17L4 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </div>
             </div>
-
-            {/* Right Card - Strategy Info */}
-            <div className="w-[280px] h-[311px] bg-[#0D101C] rounded-[4px] border border-[rgba(255,255,255,0.05)] p-6 relative flex flex-col">
-              {/* Background gradient effect - top */}
-              <div className="absolute top-0 left-0 right-0 h-[200px] bg-gradient-to-b from-[rgba(255,255,255,0.02)] to-transparent rounded-t-[4px] pointer-events-none"></div>
-
-              {/* Background blur effect - bottom */}
-              <div className="absolute -bottom-[100px] left-1/2 -translate-x-1/2 w-[200px] h-[200px] bg-white/[0.05] blur-[25px] pointer-events-none"></div>
-
-              {/* Asset Info */}
-              <div className="flex flex-col items-center text-center relative z-10">
-                <h3 className="text-[32px] text-[#D7E3EF] font-inter font-medium leading-normal mb-[8px] mt-[12px]">
-                  {selectedAsset}
-                </h3>
-                <div
-                  onClick={onReset}
-                  className="text-[16px] text-[#9C9DA2] font-inter font-normal leading-normal underline decoration-solid underline-offset-auto mb-[25px] cursor-pointer hover:text-[#9C9DA2]/80 transition-all duration-200"
+            <h2 className="text-[#D7E3EF] text-2xl font-semibold mb-2">Deposit Success</h2>
+            <p className="text-[#9C9DA2] mb-6">Your deposit has been successfully processed</p>
+            <div className="bg-[#121521] rounded p-4 mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[#9C9DA2]">Transaction Hash</span>
+                <a 
+                  href={`https://sonicscan.io/tx/${transactionHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#B88AF8] hover:underline flex items-center gap-1"
                 >
-                  {formatDuration(duration)}
+                  {`${transactionHash?.slice(0, 6)}...${transactionHash?.slice(-4)}`}
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 13V19C18 19.5304 17.7893 20.0391 17.4142 20.4142C17.0391 20.7893 16.5304 21 16 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V8C3 7.46957 3.21071 6.96086 3.58579 6.58579C3.96086 6.21071 4.46957 6 5 6H11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M15 3H21V9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M10 14L21 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </a>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[#9C9DA2]">Amount</span>
+                <span className="text-[#D7E3EF]">{amount} {depositToken}</span>
+              </div>
+            </div>
+            <button
+              onClick={onReset}
+              className="w-full py-4 rounded bg-[#B88AF8] text-[#1A1B1E] font-semibold hover:opacity-90 transition-all duration-200"
+            >
+              Make Another Deposit
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-6 items-center pt-[calc(8vh+38px)]">
+          <div className="w-[580px] h-[459px] flex-shrink-0">
+            <div className="flex gap-6 justify-center items-center">
+              {/* Left Card - Deposit Input */}
+              <div className="w-[280px] h-[311px] bg-[#0D101C] rounded-[4px] border border-[rgba(255,255,255,0.05)] p-6 flex flex-col">
+                <div className="flex items-center justify-center">
+                  <div className="flex flex-col items-center mt-[20px]">
+                    {depositTokenImage && (
+                      <img
+                        src={depositTokenImage}
+                        alt={depositToken}
+                        className="w-[56px] h-[56px]"
+                      />
+                    )}
+                    <span className="text-[#EDF2F8] text-center font-inter text-[14px] font-semibold leading-normal mt-[16px]">
+                      Deposit {depositToken}
+                    </span>
+                    <span className="text-[#00D1A0] text-center font-inter text-[12px] font-normal leading-normal">
+                      +0.00 in 1 year
+                    </span>
+                  </div>
                 </div>
-                <div
-                  onClick={onReset}
-                  className="text-[#B88AF8] cursor-pointer font-inter text-[12px] font-light leading-normal hover:opacity-80 transition-all duration-200"
-                >
-                  Change Asset →
+
+                <div className="mt-auto flex flex-col gap-[1px]">
+                  <div className="relative flex items-center">
+                    <input
+                      type="text"
+                      value={amount}
+                      onChange={handleAmountChange}
+                      placeholder="0.00"
+                      className="w-[calc(100%-70px)] bg-transparent text-[#EDF2F8] font-inter text-[24px] font-bold leading-normal outline-none focus:ring-0 border-0 border-b border-[rgba(255,255,255,0.19)]"
+                    />
+                    <button
+                      onClick={handleMaxClick}
+                      className="absolute right-0 flex justify-center items-center px-[8px] py-[4px] gap-[10px] rounded-[4px] border border-[rgba(255,255,255,0.30)] bg-transparent hover:opacity-80 transition-all duration-200"
+                    >
+                      <span className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
+                        MAX
+                      </span>
+                    </button>
+                  </div>
+                  <div className="mt-[12px]">
+                    <span className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
+                      Balance:{" "}
+                      {isLoadingBalance ? (
+                        <span className="inline-flex items-center gap-1">
+                          <svg
+                            className="animate-spin h-3 w-3 text-white"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                          <span className="text-white">Loading...</span>
+                        </span>
+                      ) : (
+                        <span className="text-white">{balance}</span>
+                      )}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {/* Strategy Info - Positioned at bottom */}
-              <div className="mt-auto w-full p-3 bg-[#121521] rounded-[4px] border border-[rgba(255,255,255,0.05)]">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={`/images/icons/${selectedAsset.toLowerCase()}-${strategy}.svg`}
-                    alt={strategy}
-                    className="w-[32px] h-[32px] ml-[4px] mr-[12px] my-auto cursor-pointer hover:opacity-80 transition-all duration-200"
+              {/* Right Card - Strategy Info */}
+              <div className="w-[280px] h-[311px] bg-[#0D101C] rounded-[4px] border border-[rgba(255,255,255,0.05)] p-6 relative flex flex-col">
+                {/* Background gradient effect - top */}
+                <div className="absolute top-0 left-0 right-0 h-[200px] bg-gradient-to-b from-[rgba(255,255,255,0.02)] to-transparent rounded-t-[4px] pointer-events-none"></div>
+
+                {/* Background blur effect - bottom */}
+                <div className="absolute -bottom-[100px] left-1/2 -translate-x-1/2 w-[200px] h-[200px] bg-white/[0.05] blur-[25px] pointer-events-none"></div>
+
+                {/* Asset Info */}
+                <div className="flex flex-col items-center text-center relative z-10">
+                  <h3 className="text-[32px] text-[#D7E3EF] font-inter font-medium leading-normal mb-[8px] mt-[12px]">
+                    {selectedAsset}
+                  </h3>
+                  <div
                     onClick={onReset}
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <div className="text-white font-semibold capitalize">
-                        {strategy} {selectedAsset}
+                    className="text-[16px] text-[#9C9DA2] font-inter font-normal leading-normal underline decoration-solid underline-offset-auto mb-[25px] cursor-pointer hover:text-[#9C9DA2]/80 transition-all duration-200"
+                  >
+                    {formatDuration(duration)}
+                  </div>
+                  <div
+                    onClick={onReset}
+                    className="text-[#B88AF8] cursor-pointer font-inter text-[12px] font-light leading-normal hover:opacity-80 transition-all duration-200"
+                  >
+                    Change Asset →
+                  </div>
+                </div>
+
+                {/* Strategy Info - Positioned at bottom */}
+                <div className="mt-auto w-full p-3 bg-[#121521] rounded-[4px] border border-[rgba(255,255,255,0.05)]">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={`/images/icons/${selectedAsset.toLowerCase()}-${strategy}.svg`}
+                      alt={strategy}
+                      className="w-[32px] h-[32px] ml-[4px] mr-[12px] my-auto cursor-pointer hover:opacity-80 transition-all duration-200"
+                      onClick={onReset}
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <div className="text-white font-semibold capitalize">
+                          {strategy} {selectedAsset}
+                        </div>
+                        <img
+                          src="/images/icons/select-icon.svg"
+                          alt="select"
+                          className="w-[16px] h-[16px] flex-shrink-0 cursor-pointer ml-auto hover:opacity-80 transition-all duration-200"
+                          onClick={onBack}
+                        />
                       </div>
-                      <img
-                        src="/images/icons/select-icon.svg"
-                        alt="select"
-                        className="w-[16px] h-[16px] flex-shrink-0 cursor-pointer ml-auto hover:opacity-80 transition-all duration-200"
-                        onClick={onBack}
-                      />
-                    </div>
-                    <div className="flex items-center gap-4 mt-[4px]">
-                      <span className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
-                        APY {apy}
-                      </span>
+                      <div className="flex items-center gap-4 mt-[4px]">
+                        <span className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
+                          APY {apy}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Deposit Cap Progress Bar - Only shown if show_cap is true */}
+            {showDepositCap && (
+              <div className="w-full mt-6 mb-4 p-4 rounded-[4px] bg-[rgba(255,255,255,0.02)]">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-[#EDF2F8] font-inter text-[14px] font-medium">
+                    ${remainingSpace} Remaining
+                  </span>
+                  <span className="text-[#9C9DA2] font-inter text-[14px]">
+                    Limited Space: ${depositCap.used}/${depositCap.total}
+                  </span>
+                </div>
+                <div className="w-full h-[6px] bg-[#1A1B1E] rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-[#4A63D3] rounded-full"
+                    style={{ width: `${progressPercentage}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Dynamic Connect/Deposit Button */}
+            <ConnectButton.Custom>
+              {({
+                account,
+                chain,
+                openConnectModal,
+                mounted,
+                authenticationStatus,
+              }) => {
+                const ready = mounted && authenticationStatus !== "loading";
+                const connected =
+                  ready &&
+                  account &&
+                  chain &&
+                  (!authenticationStatus ||
+                    authenticationStatus === "authenticated");
+
+                const isLoading =
+                  (isApproving && isWaitingForApproval) ||
+                  (isDepositing && isWaitingForDeposit);
+
+                const buttonText = connected
+                  ? isLoadingBalance
+                    ? "Loading..."
+                    : isApproving || isWaitingForApproval
+                    ? "Approving..."
+                    : isDepositing || isWaitingForDeposit
+                    ? "Depositing..."
+                    : isApproved && !depositSuccess
+                    ? "Approval Done Click to deposit"
+                    : "Deposit"
+                  : "Connect Wallet";
+
+                return (
+                  <button
+                    onClick={connected ? handleDeposit : openConnectModal}
+                    disabled={isLoading || isLoadingBalance}
+                    className="w-full py-4 mt-6 rounded bg-[#B88AF8] text-[#1A1B1E] font-semibold hover:opacity-90 transition-all duration-200 disabled:opacity-50"
+                  >
+                    {buttonText}
+                  </button>
+                );
+              }}
+            </ConnectButton.Custom>
           </div>
-
-          {/* Deposit Cap Progress Bar - Only shown if show_cap is true */}
-          {showDepositCap && (
-            <div className="w-full mt-6 mb-4 p-4 rounded-[4px] bg-[rgba(255,255,255,0.02)]">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-[#EDF2F8] font-inter text-[14px] font-medium">
-                  ${remainingSpace} Remaining
-                </span>
-                <span className="text-[#9C9DA2] font-inter text-[14px]">
-                  Limited Space: ${depositCap.used}/${depositCap.total}
-                </span>
-              </div>
-              <div className="w-full h-[6px] bg-[#1A1B1E] rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-[#4A63D3] rounded-full"
-                  style={{ width: `${progressPercentage}%` }}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Dynamic Connect/Deposit Button */}
-          <ConnectButton.Custom>
-            {({
-              account,
-              chain,
-              openConnectModal,
-              mounted,
-              authenticationStatus,
-            }) => {
-              const ready = mounted && authenticationStatus !== "loading";
-              const connected =
-                ready &&
-                account &&
-                chain &&
-                (!authenticationStatus ||
-                  authenticationStatus === "authenticated");
-
-              const isLoading =
-                (isApproving && isWaitingForApproval) ||
-                (isDepositing && isWaitingForDeposit);
-
-              const buttonText = connected
-                ? isLoadingBalance
-                  ? "Loading..."
-                  : isApproving
-                  ? "Approving..."
-                  : isDepositing
-                  ? "Depositing..."
-                  : "Deposit"
-                : "Connect Wallet";
-
-              return (
-                <button
-                  onClick={connected ? handleDeposit : openConnectModal}
-                  disabled={isLoading || isLoadingBalance}
-                  className="w-full py-4 mt-6 rounded bg-[#B88AF8] text-[#1A1B1E] font-semibold hover:opacity-90 transition-all duration-200 disabled:opacity-50"
-                >
-                  {buttonText}
-                </button>
-              );
-            }}
-          </ConnectButton.Custom>
         </div>
-      </div>
+      )}
     </div>
   );
 };
