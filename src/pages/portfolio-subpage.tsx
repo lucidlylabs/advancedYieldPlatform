@@ -742,7 +742,7 @@ const PortfolioSubpage: React.FC = () => {
                 <div className="text-[#9C9DA2] text-[14px] rounded-[4px] bg-[rgba(255,255,255,0.02)] p-[24px]">
                   <strong>Note:</strong> By withdrawing, your vault shares will
                   be converted into the underlying asset, subject to the current
-                  market rates. s. Withdrawal amounts are calculated based on
+                  market rates. Withdrawal amounts are calculated based on
                   the latest market rates and may vary slightly due to price
                   fluctuations.
                 </div>
