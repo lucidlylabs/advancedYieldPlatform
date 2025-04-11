@@ -23,8 +23,8 @@ const sonic: Chain = {
 };
 
 export const config = getDefaultConfig({
-  appName: "RainbowKit App",
-  projectId: "YOUR_PROJECT_ID",
+  appName: "Advanced Yield Platform",
+  projectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID || "YOUR_PROJECT_ID",
   chains: [
     mainnet,
     base,
