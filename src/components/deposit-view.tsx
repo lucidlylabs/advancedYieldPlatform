@@ -807,6 +807,8 @@ const DepositView: React.FC<DepositViewProps> = ({
                     ? "Loading..."
                     : (isApproving || isWaitingForApproval) && !isCheckingApproval
                     ? "Approving..."
+                    : isApproved && !isDepositing && !isWaitingForDeposit
+                    ? "Approval Done - Click to Deposit"
                     : isDepositing || isWaitingForDeposit
                     ? "Depositing..."
                     : "Deposit"
