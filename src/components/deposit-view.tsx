@@ -165,6 +165,7 @@ const DepositView: React.FC<DepositViewProps> = ({
   );
   const [approvalHash, setApprovalHash] = useState<`0x${string}` | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isCheckingApproval, setIsCheckingApproval] = useState(false);
 
   // Get strategy config based on asset type
   const strategyConfigs = {
@@ -296,6 +297,22 @@ const DepositView: React.FC<DepositViewProps> = ({
     }
   }, [isDepositSuccess, transactionHash, amount, depositToken]);
 
+  useEffect(() => {
+    const checkApproval = async () => {
+      setIsCheckingApproval(true);
+      try {
+        // Perform the approval check logic here
+        // Ensure this doesn't set isApproving to true
+      } catch (error) {
+        console.error("Error checking approval:", error);
+      } finally {
+        setIsCheckingApproval(false);
+      }
+    };
+
+    checkApproval();
+  }, []);
+
   const handleDeposit = async () => {
     console.log("Deposit clicked", {
       address,
@@ -317,33 +334,21 @@ const DepositView: React.FC<DepositViewProps> = ({
     }
 
     try {
-      // Convert amount to 6 decimals for USDC using parseUnits and ensure it's properly formatted
       const amountFloat = parseFloat(amount);
       if (isNaN(amountFloat) || amountFloat <= 0) {
         throw new Error("Invalid amount");
       }
 
-      // Round to 6 decimal places to avoid precision issues
       const roundedAmount = Math.round(amountFloat * 1_000_000) / 1_000_000;
       const amountInWei = parseUnits(roundedAmount.toFixed(6), 6);
 
-      console.log("Amount conversion:", {
-        original: amount,
-        rounded: roundedAmount,
-        inWei: amountInWei.toString(),
-        hex: `0x${amountInWei.toString(16).padStart(64, "0")}`,
-        decimals: 6,
-      });
-
-      // Check if approval is needed
       const currentAllowance = allowance
         ? BigInt(allowance.toString())
         : BigInt(0);
-      console.log("Current Allowance:", currentAllowance.toString());
 
       if (currentAllowance < amountInWei) {
         console.log("Approval needed. Sending approve transaction...");
-        setIsApproving(true);
+        setIsApproving(true); // Set this only when user initiates
         const approveTx = await approve({
           address: tokenContractAddress as Address,
           abi: ERC20_ABI,
@@ -358,7 +363,6 @@ const DepositView: React.FC<DepositViewProps> = ({
         return;
       }
 
-      // If we reach here, either approval was not needed or it's already completed
       console.log("Proceeding with deposit");
       setIsDepositing(true);
 
@@ -816,12 +820,10 @@ const DepositView: React.FC<DepositViewProps> = ({
                 const buttonText = connected
                   ? isLoadingBalance
                     ? "Loading..."
-                    : isApproving || isWaitingForApproval
+                    : (isApproving || isWaitingForApproval) && !isCheckingApproval
                     ? "Approving..."
                     : isDepositing || isWaitingForDeposit
-                    ? "Approving..."
-                    : isApproved && !depositSuccess
-                    ? "Approval Done Click to deposit"
+                    ? "Depositing..."
                     : "Deposit"
                   : "Connect Wallet";
 
