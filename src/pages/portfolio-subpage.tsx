@@ -1,8 +1,19 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { useAccount, useTransaction, useReadContract, useWriteContract } from "wagmi";
+import {
+  useAccount,
+  useTransaction,
+  useReadContract,
+  useWriteContract,
+} from "wagmi";
 import { USD_STRATEGIES, BTC_STRATEGIES, ETH_STRATEGIES } from "../config/env";
-import { type Address, createPublicClient, http, formatUnits, parseUnits } from "viem";
+import {
+  type Address,
+  createPublicClient,
+  http,
+  formatUnits,
+  parseUnits,
+} from "viem";
 
 const ERC20_ABI = [
   {
@@ -220,10 +231,10 @@ const PortfolioSubpage: React.FC = () => {
 
     try {
       setIsWithdrawing(true);
-      
+
       // Get the contract address from the selected strategy
       const contractAddress = selectedStrategy.contract as Address;
-      
+
       // Create a client to interact with the contract
       const client = createPublicClient({
         transport: http(selectedStrategy.rpc),
@@ -242,19 +253,19 @@ const PortfolioSubpage: React.FC = () => {
           },
         },
       });
-      
+
       // Get the decimals from the contract
-      const decimals = await client.readContract({
+      const decimals = (await client.readContract({
         address: contractAddress,
         abi: VAULT_ABI,
         functionName: "decimals",
-      }) as number;
-      
+      })) as number;
+
       console.log(`Contract decimals: ${decimals}`);
-      
+
       // Parse the withdraw amount with proper decimals
       const sharesAmount = parseUnits(withdrawAmount, decimals);
-      
+
       console.log("Withdrawing from contract:", {
         contract: contractAddress,
         shares: sharesAmount.toString(),
@@ -262,7 +273,7 @@ const PortfolioSubpage: React.FC = () => {
         owner: address,
         decimals,
       });
-      
+
       try {
         // Call the redeem function on the contract
         const tx = await writeContract({
@@ -273,7 +284,7 @@ const PortfolioSubpage: React.FC = () => {
           chainId: 146, // Sonic chain ID
           account: address,
         });
-        
+
         if (tx && typeof tx === "string" && tx.startsWith("0x")) {
           console.log("Withdrawal transaction submitted:", tx);
           setWithdrawTxHash(tx as `0x${string}`);
@@ -537,141 +548,116 @@ const PortfolioSubpage: React.FC = () => {
         {/* Right Side - Withdraw Form or Info */}
         <div className="w-1/2 p-8">
           {selectedStrategy ? (
-            <div className="flex flex-col h-full bg-[#0A0E1A] rounded-lg p-6">
-              <h1 className="text-[24px] font-semibold text-white mb-4">
+            <div className="flex flex-col h-full rounded-lg p-6">
+              <h1 className="text-[#D7E3EF] font-inter text-[20px] font-semibold leading-normal mb-4">
                 Withdraw
               </h1>
 
-              <div className="flex items-center p-4 bg-[#080B17] rounded-lg mb-6">
-                <div className="flex items-center gap-4">
-                  <Image
-                    src={`/images/icons/${selectedStrategy.asset.toLowerCase()}-${
-                      selectedStrategy.type === "stable"
-                        ? "stable"
-                        : "incentive"
-                    }.svg`}
-                    alt={selectedStrategy.asset}
-                    width={40}
-                    height={40}
-                  />
-                  <div>
-                    <div className="text-white font-semibold">
-                      {selectedStrategy.type === "stable"
-                        ? "Base Yield"
-                        : "Incentive Maxi"}{" "}
-                      {selectedStrategy.asset}
-                    </div>
-                    <div className="text-[#00D1A0] text-[14px]">
-                      +0.00 in 1 year
-                    </div>
-                  </div>
-                </div>
-                <div className="ml-auto text-white">
-                  Balance: {selectedStrategy.balance.toFixed(4)}
-                </div>
-              </div>
-
-              <div className="relative mb-6">
-                <input
-                  type="text"
-                  className="w-full bg-[#0D101C] border border-[#2D2F3D] rounded-lg p-4 text-[32px] text-white focus:outline-none focus:border-[#B88AF8]"
-                  value={withdrawAmount}
-                  onChange={handleAmountChange}
-                  placeholder="0.00"
-                />
-              </div>
-
-              <div className="flex gap-2 mb-8">
-                <button
-                  className="flex-1 bg-[#13161F] text-white py-2 px-4 rounded-lg hover:bg-[#1E2436] transition-colors"
-                  onClick={() => handlePercentageClick(0.25)}
-                >
-                  25%
-                </button>
-                <button
-                  className="flex-1 bg-[#13161F] text-white py-2 px-4 rounded-lg hover:bg-[#1E2436] transition-colors"
-                  onClick={() => handlePercentageClick(0.5)}
-                >
-                  50%
-                </button>
-                <button
-                  className="flex-1 bg-[#13161F] text-white py-2 px-4 rounded-lg hover:bg-[#1E2436] transition-colors"
-                  onClick={() => handlePercentageClick(0.75)}
-                >
-                  75%
-                </button>
-                <button
-                  className="flex-1 bg-[#13161F] text-white py-2 px-4 rounded-lg hover:bg-[#1E2436] transition-colors"
-                  onClick={handleMaxClick}
-                >
-                  MAX
-                </button>
-              </div>
-
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-[#9C9DA2]">Slippage</span>
-                  <div className="text-[#9C9DA2] cursor-pointer hover:text-white transition-colors">
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M12 16V12M12 8H12.01M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </div>
-                </div>
-                <div className="flex items-center">
-                  <div className="bg-[#13161F] rounded-l-lg px-3 py-2 text-[#9C9DA2]">
-                    {slippage}%
-                  </div>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      className="w-[100px] bg-[#0D101C] border border-[#2D2F3D] rounded-r-lg p-2 text-white focus:outline-none focus:border-[#B88AF8]"
-                      value={slippage}
-                      onChange={handleSlippageChange}
-                      placeholder="0.03"
+              <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
+                {/* Header with strategy info and balance */}
+                <div className="flex items-center justify-between p-4  bg-[rgba(255,255,255,0.02)] mb-6 border-b border-[rgba(255,255,255,0.15)]">
+                  <div className="flex items-center gap-4">
+                    <Image
+                      src={`/images/icons/${selectedStrategy.asset.toLowerCase()}-${
+                        selectedStrategy.type === "stable"
+                          ? "stable"
+                          : "incentive"
+                      }.svg`}
+                      alt={selectedStrategy.asset}
+                      width={40}
+                      height={40}
                     />
-                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#9C9DA2]">
-                      %
+                    <div>
+                      <div className="text-white font-semibold">
+                        {selectedStrategy.type === "stable"
+                          ? "Base Yield"
+                          : "Incentive Maxi"}{" "}
+                        {selectedStrategy.asset}
+                      </div>
+                      <div className="text-[#00D1A0] text-[14px]">
+                        +0.00 in 1 year
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-[#9C9DA2] text-right font-inter text-[12px] font-normal leading-normal">
+                    Balance:{" "}
+                    <span className="text-[#D7E3EF] font-inter text-[12px] font-semibold leading-normal">
+                      {selectedStrategy.balance.toFixed(4)}
                     </span>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex justify-between py-4 border-t border-[#2D2F3D] mb-6">
-                <div className="text-[#9C9DA2]">You Will Receive</div>
-                <div className="text-white text-[20px] font-semibold">
-                  {parseFloat(withdrawAmount || "0").toFixed(2)}{" "}
-                  {selectedStrategy.asset}
+                {/* Input field and percentage buttons in same row */}
+                <div className="flex items-center gap-4 mb-6">
+                  {/* Input field on the left with no borders */}
+                  <div className="flex-grow ">
+                    <div>
+                      <input
+                        type="text"
+                        className="bg-transparent w-full border-none text-[20px] text-white font-medium outline-none"
+                        value={withdrawAmount}
+                        onChange={handleAmountChange}
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Percentage buttons on the right */}
+                  <div className="flex gap-2">
+                    <button
+                      className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2] font-inter text-[12px] font-normal"
+                      onClick={() => handlePercentageClick(0.25)}
+                    >
+                      25%
+                    </button>
+                    <button
+                      className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2] font-inter text-[12px] font-normal"
+                      onClick={() => handlePercentageClick(0.5)}
+                    >
+                      50%
+                    </button>
+                    <button
+                      className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2] font-inter text-[12px] font-normal"
+                      onClick={() => handlePercentageClick(0.75)}
+                    >
+                      75%
+                    </button>
+                    <button
+                      className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2] font-inter text-[12px] font-normal"
+                      onClick={handleMaxClick}
+                    >
+                      MAX
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <button
-                className={`w-full py-4 rounded-lg text-center text-[16px] font-semibold ${
-                  isWithdrawing
-                    ? "bg-[#2D2F3D] text-[#9C9DA2] cursor-not-allowed"
-                    : "bg-[#B88AF8] text-[#080B17] hover:bg-[#9F6EE9] transition-colors"
-                }`}
-                onClick={handleWithdraw}
-                disabled={
-                  isWithdrawing ||
-                  !withdrawAmount ||
-                  parseFloat(withdrawAmount) <= 0 ||
-                  parseFloat(withdrawAmount) > selectedStrategy.balance
-                }
-              >
-                {isWithdrawing ? "Withdrawing..." : "Withdraw"}
-              </button>
+                <div className="flex justify-between py-4 mb-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] px-6 items-center">
+                  <div className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
+                    You Will Receive
+                  </div>
+                  <div className="text-[#EDF2F8] font-inter text-[16px] font-medium leading-normal">
+                    {parseFloat(withdrawAmount || "0").toFixed(2)}{" "}
+                    {selectedStrategy.asset}
+                  </div>
+                </div>
+
+                <button
+                  className={`w-full py-4 rounded-[4px] border border-[rgba(255,255,255,0.30)] flex justify-center items-center gap-[10px] text-center text-[16px] font-semibold ${
+                    isWithdrawing
+                      ? "bg-[#2D2F3D] text-[#9C9DA2] cursor-not-allowed"
+                      : "bg-[#B88AF8] text-[#080B17] hover:bg-[#9F6EE9] transition-colors"
+                  }`}
+                  onClick={handleWithdraw}
+                  disabled={
+                    isWithdrawing ||
+                    !withdrawAmount ||
+                    parseFloat(withdrawAmount) <= 0 ||
+                    parseFloat(withdrawAmount) > selectedStrategy.balance
+                  }
+                >
+                  {isWithdrawing ? "Withdrawing..." : "Withdraw"}
+                </button>
+              </div>
 
               {isWithdrawing && (
                 <div className="mt-4 bg-[#13161F] rounded-lg p-4">
@@ -694,13 +680,12 @@ const PortfolioSubpage: React.FC = () => {
                 </div>
               )}
 
-              <div className="mt-auto pt-4">
-                <div className="text-[#9C9DA2] text-[14px]">
+              <div className="mt-2">
+                <div className="text-[#9C9DA2] text-[14px] rounded-[4px] bg-[rgba(255,255,255,0.02)] p-[24px]">
                   <strong>Note:</strong> By withdrawing, your vault shares will
-                  be converted into the underlying asset, subject to slippage.
-                  Ensure the slippage tolerance is set appropriately to avoid
-                  transaction failures. Withdrawal amounts are calculated based
-                  on the latest market rates and may vary slightly due to price
+                  be converted into the underlying asset, subject to the current
+                  market rates. s. Withdrawal amounts are calculated based on
+                  the latest market rates and may vary slightly due to price
                   fluctuations.
                 </div>
               </div>
