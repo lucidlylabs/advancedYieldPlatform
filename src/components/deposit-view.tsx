@@ -164,6 +164,7 @@ const DepositView: React.FC<DepositViewProps> = ({
     null
   );
   const [approvalHash, setApprovalHash] = useState<`0x${string}` | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Get strategy config based on asset type
   const strategyConfigs = {
@@ -452,31 +453,12 @@ const DepositView: React.FC<DepositViewProps> = ({
         setIsDepositing(true);
       }
     } catch (error: any) {
-      console.error("Transaction failed:", {
-        error,
-        message: error.message,
-        details: error.details,
-        data: error.data,
-        tokenContract: tokenContractAddress,
-        vaultContract: vaultContractAddress,
-      });
+      console.error("Transaction failed:", error);
       setIsApproving(false);
       setIsDepositing(false);
 
-      // Show user-friendly error message
-      if (error.message.includes("insufficient")) {
-        alert("Insufficient balance to complete the deposit");
-      } else if (error.message.includes("reverted")) {
-        alert(
-          "Transaction failed. The amount might be below the minimum deposit requirement. Please try a larger amount."
-        );
-      } else if (error.message.includes("chain")) {
-        alert("Please make sure you are connected to the Sonic network");
-      } else if (error.message.includes("minimum deposit")) {
-        alert(error.message);
-      } else {
-        alert("Failed to complete deposit. Please try again.");
-      }
+      // Set a simplified error message
+      setErrorMessage("Transaction failed");
     }
   };
 
@@ -854,6 +836,32 @@ const DepositView: React.FC<DepositViewProps> = ({
                 );
               }}
             </ConnectButton.Custom>
+
+            {errorMessage && (
+              <div
+                className="mt-2 text-red-500 text-center"
+                style={{
+                  borderRadius: '4px',
+                  background: 'rgba(248, 90, 62, 0.10)',
+                  padding: '12px 24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                }}
+              >
+                {errorMessage}
+                {transactionHash && (
+                  <a
+                    href={`https://sonicscan.io/tx/${transactionHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline"
+                  >
+                    {transactionHash.slice(0, 6)}...{transactionHash.slice(-4)}
+                  </a>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
