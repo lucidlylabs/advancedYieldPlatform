@@ -166,6 +166,8 @@ const DepositView: React.FC<DepositViewProps> = ({
   const [approvalHash, setApprovalHash] = useState<`0x${string}` | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isCheckingApproval, setIsCheckingApproval] = useState(false);
+  const [isWaitingForSignature, setIsWaitingForSignature] = useState(false);
+  const [status, setStatus] = useState<'loading' | 'waitingForSignature' | 'processing' | 'approved' | 'depositing' | 'idle'>('idle');
 
   // Get strategy config based on asset type
   const strategyConfigs = {
@@ -331,6 +333,26 @@ const DepositView: React.FC<DepositViewProps> = ({
     console.log("isWaitingForDeposit changed:", isWaitingForDeposit);
   }, [isWaitingForDeposit]);
 
+  useEffect(() => {
+    if (isLoadingBalance) {
+      setStatus('loading');
+    } else if (isWaitingForSignature) {
+      setStatus('waitingForSignature');
+    } else if (isApproving && (!isApprovalSuccess || isWaitingForApproval)) {
+      setStatus('processing');
+    } else if (isApproved && !isDepositing && !isWaitingForDeposit) {
+      setStatus('approved');
+    } else if (isDepositing && isWaitingForDeposit) {
+      setStatus('depositing');
+    } else {
+      setStatus('idle');
+    }
+  }, [isLoadingBalance, isWaitingForSignature, isApproving, isApprovalSuccess, isApproved, isDepositing, isWaitingForDeposit]);
+
+  useEffect(() => {
+    console.log("Status changed:", status);
+  }, [status]);
+
   const handleDeposit = async () => {
     console.log("Deposit clicked", {
       address,
@@ -354,6 +376,7 @@ const DepositView: React.FC<DepositViewProps> = ({
     }
 
     try {
+      setIsWaitingForSignature(true);
       const amountFloat = parseFloat(amount);
       if (isNaN(amountFloat) || amountFloat <= 0) {
         throw new Error("Invalid amount");
@@ -389,11 +412,13 @@ const DepositView: React.FC<DepositViewProps> = ({
         if (typeof approveTx === "string" && approveTx.startsWith("0x")) {
           setApprovalHash(approveTx as `0x${string}`);
         }
+        setIsWaitingForSignature(false);
         return; // Exit after starting approval
       }
 
       // If we're already approving, don't proceed with deposit
       if (isApproving) {
+        setIsWaitingForSignature(false);
         return;
       }
 
@@ -462,6 +487,8 @@ const DepositView: React.FC<DepositViewProps> = ({
       setIsApproving(false);
       setIsDepositing(false);
       setErrorMessage("Transaction failed");
+    } finally {
+      setIsWaitingForSignature(false);
     }
   };
 
@@ -811,13 +838,15 @@ const DepositView: React.FC<DepositViewProps> = ({
                   (isDepositing && isWaitingForDeposit);
 
                 const buttonText = connected
-                  ? isLoadingBalance
+                  ? status === 'loading'
                     ? "Loading..."
-                    : isApproving && isWaitingForApproval
-                    ? "Approving..."
-                    : isApproved && !isDepositing && !isWaitingForDeposit
+                    : status === 'waitingForSignature'
+                    ? "Waiting for Signature..."
+                    : status === 'processing'
+                    ? "Processing..."
+                    : status === 'approved'
                     ? "Approval Done - Click to Deposit"
-                    : isDepositing && isWaitingForDeposit
+                    : status === 'depositing'
                     ? "Depositing..."
                     : "Deposit"
                   : "Connect Wallet";
