@@ -78,6 +78,7 @@ const PortfolioSubpage: React.FC = () => {
   const [withdrawTxHash, setWithdrawTxHash] = useState<`0x${string}` | null>(
     null
   );
+  const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
 
   // Watch deposit transaction
   const { isLoading: isWaitingForDeposit, isSuccess: isDepositSuccess } =
@@ -113,8 +114,16 @@ const PortfolioSubpage: React.FC = () => {
       setIsWithdrawing(false);
       if (isWithdrawSuccess && withdrawTxHash) {
         // Handle successful withdrawal
-        // Refresh balances
-        checkAllBalances();
+        // Refresh balances with loading state
+        setIsRefreshingBalance(true);
+        checkAllBalances()
+          .then(() => {
+            setIsRefreshingBalance(false);
+          })
+          .catch((error) => {
+            console.error("Error refreshing balances:", error);
+            setIsRefreshingBalance(false);
+          });
         setSelectedStrategy(null);
         setWithdrawAmount("");
       }
@@ -137,6 +146,12 @@ const PortfolioSubpage: React.FC = () => {
     if (!address) return 0;
 
     try {
+      // Validate contract address
+      if (!strategy.contract || strategy.contract === "0x0000000000000000000000000000000000000000") {
+        console.warn("Invalid contract address for strategy:", strategy);
+        return 0;
+      }
+
       const client = createPublicClient({
         transport: http(strategy.rpc),
         chain: {
@@ -171,7 +186,7 @@ const PortfolioSubpage: React.FC = () => {
 
       return parseFloat(formatUnits(balance as bigint, decimals as number));
     } catch (error) {
-      console.error("Error checking balance:", error);
+      console.error("Error checking balance for strategy:", strategy, error);
       return 0;
     }
   };
@@ -179,43 +194,61 @@ const PortfolioSubpage: React.FC = () => {
   const checkAllBalances = async () => {
     if (!address) return;
 
-    const allStrategies = [
-      ...Object.entries(USD_STRATEGIES).flatMap(([duration, strategies]) =>
-        Object.entries(strategies).map(([type, strategy]) => ({
-          ...strategy,
-          duration,
-          type: type.toLowerCase(),
-          asset: "USD",
-        }))
-      ),
-      ...Object.entries(BTC_STRATEGIES).flatMap(([duration, strategies]) =>
-        Object.entries(strategies).map(([type, strategy]) => ({
-          ...strategy,
-          duration,
-          type: type.toLowerCase(),
-          asset: "BTC",
-        }))
-      ),
-      ...Object.entries(ETH_STRATEGIES).flatMap(([duration, strategies]) =>
-        Object.entries(strategies).map(([type, strategy]) => ({
-          ...strategy,
-          duration,
-          type: type.toLowerCase(),
-          asset: "ETH",
-        }))
-      ),
-    ];
+    try {
+      const allStrategies = [
+        ...Object.entries(USD_STRATEGIES).flatMap(([duration, strategies]) =>
+          Object.entries(strategies).map(([type, strategy]) => ({
+            ...strategy,
+            duration,
+            type: type.toLowerCase(),
+            asset: "USD",
+          }))
+        ),
+        ...Object.entries(BTC_STRATEGIES).flatMap(([duration, strategies]) =>
+          Object.entries(strategies).map(([type, strategy]) => ({
+            ...strategy,
+            duration,
+            type: type.toLowerCase(),
+            asset: "BTC",
+          }))
+        ),
+        ...Object.entries(ETH_STRATEGIES).flatMap(([duration, strategies]) =>
+          Object.entries(strategies).map(([type, strategy]) => ({
+            ...strategy,
+            duration,
+            type: type.toLowerCase(),
+            asset: "ETH",
+          }))
+        ),
+      ];
 
-    const strategiesWithBalances = await Promise.all(
-      allStrategies.map(async (strategy) => {
-        const balance = await checkStrategyBalance(strategy);
-        return { ...strategy, balance };
-      })
-    );
+      // Filter out strategies with invalid contract addresses
+      const validStrategies = allStrategies.filter(
+        (strategy) => 
+          strategy.contract && 
+          strategy.contract !== "0x0000000000000000000000000000000000000000"
+      );
 
-    setStrategiesWithBalance(
-      strategiesWithBalances.filter((s) => s.balance > 0)
-    );
+      if (validStrategies.length === 0) {
+        console.warn("No valid strategies found with proper contract addresses");
+        setStrategiesWithBalance([]);
+        return;
+      }
+
+      const strategiesWithBalances = await Promise.all(
+        validStrategies.map(async (strategy) => {
+          const balance = await checkStrategyBalance(strategy);
+          return { ...strategy, balance };
+        })
+      );
+
+      setStrategiesWithBalance(
+        strategiesWithBalances.filter((s) => s.balance > 0)
+      );
+    } catch (error) {
+      console.error("Error checking all balances:", error);
+      throw error;
+    }
   };
 
   // Check balances for all strategies
@@ -347,10 +380,35 @@ const PortfolioSubpage: React.FC = () => {
                 Portfolio
               </div>
               <div className="text-[#D7E3EF] font-inter text-[24px] font-semibold leading-normal mt-1">
-                $
-                {strategiesWithBalance
-                  .reduce((sum, s) => sum + s.balance, 0)
-                  .toFixed(2)}
+                {isRefreshingBalance ? (
+                  <span className="inline-flex items-center gap-1">
+                    <svg
+                      className="animate-spin h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    <span>Refreshing...</span>
+                  </span>
+                ) : (
+                  `$${strategiesWithBalance
+                    .reduce((sum, s) => sum + s.balance, 0)
+                    .toFixed(2)}`
+                )}
               </div>
             </div>
             <div className="flex flex-col">
