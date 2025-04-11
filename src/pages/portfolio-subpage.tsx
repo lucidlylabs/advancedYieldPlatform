@@ -24,7 +24,9 @@ const ERC20_ABI = [
 const PortfolioSubpage: React.FC = () => {
   const { address, isConnected } = useAccount();
   const [depositSuccess, setDepositSuccess] = useState(false);
-  const [transactionHash, setTransactionHash] = useState<`0x${string}` | null>(null);
+  const [transactionHash, setTransactionHash] = useState<`0x${string}` | null>(
+    null
+  );
   const [isDepositing, setIsDepositing] = useState(false);
   const [isApproved, setIsApproved] = useState(false);
   const [approvalHash, setApprovalHash] = useState<`0x${string}` | null>(null);
@@ -32,9 +34,10 @@ const PortfolioSubpage: React.FC = () => {
   const [strategiesWithBalance, setStrategiesWithBalance] = useState<any[]>([]);
 
   // Watch deposit transaction
-  const { isLoading: isWaitingForDeposit, isSuccess: isDepositSuccess } = useTransaction({
-    hash: transactionHash || undefined,
-  });
+  const { isLoading: isWaitingForDeposit, isSuccess: isDepositSuccess } =
+    useTransaction({
+      hash: transactionHash || undefined,
+    });
 
   // Watch for deposit completion
   useEffect(() => {
@@ -48,9 +51,10 @@ const PortfolioSubpage: React.FC = () => {
   }, [isWaitingForDeposit, isDepositing, isDepositSuccess, transactionHash]);
 
   // Watch approval transaction
-  const { isLoading: isWaitingForApproval, isSuccess: isApprovalSuccess } = useTransaction({
-    hash: approvalHash || undefined,
-  });
+  const { isLoading: isWaitingForApproval, isSuccess: isApprovalSuccess } =
+    useTransaction({
+      hash: approvalHash || undefined,
+    });
 
   useEffect(() => {
     if (!isWaitingForApproval && isApproving) {
@@ -146,7 +150,9 @@ const PortfolioSubpage: React.FC = () => {
         })
       );
 
-      setStrategiesWithBalance(strategiesWithBalances.filter((s) => s.balance > 0));
+      setStrategiesWithBalance(
+        strategiesWithBalances.filter((s) => s.balance > 0)
+      );
     };
 
     checkAllBalances();
@@ -163,7 +169,10 @@ const PortfolioSubpage: React.FC = () => {
                 Portfolio
               </div>
               <div className="text-[#D7E3EF] font-inter text-[24px] font-semibold leading-normal mt-1">
-                ${strategiesWithBalance.reduce((sum, s) => sum + s.balance, 0).toFixed(2)}
+                $
+                {strategiesWithBalance
+                  .reduce((sum, s) => sum + s.balance, 0)
+                  .toFixed(2)}
               </div>
             </div>
             <div className="flex flex-col">
@@ -171,7 +180,28 @@ const PortfolioSubpage: React.FC = () => {
                 PNL
               </div>
               <div className="text-[#00D1A0] font-inter text-[16px] font-normal leading-normal mt-1">
-                {strategiesWithBalance.reduce((sum, s) => sum + (s.balance * parseFloat(s.apy?.replace('%', '') || '0') / 100), 0).toFixed(2)}({strategiesWithBalance.length > 0 ? 'Avg ' + (strategiesWithBalance.reduce((sum, s) => sum + parseFloat(s.apy?.replace('%', '') || '0'), 0) / strategiesWithBalance.length).toFixed(1) + '%' : '0%'})
+                {strategiesWithBalance
+                  .reduce(
+                    (sum, s) =>
+                      sum +
+                      (s.balance * parseFloat(s.apy?.replace("%", "") || "0")) /
+                        100,
+                    0
+                  )
+                  .toFixed(2)}
+                (
+                {strategiesWithBalance.length > 0
+                  ? "" +
+                    (
+                      strategiesWithBalance.reduce(
+                        (sum, s) =>
+                          sum + parseFloat(s.apy?.replace("%", "") || "0"),
+                        0
+                      ) / strategiesWithBalance.length
+                    ).toFixed(1) +
+                    "%"
+                  : "0%"}
+                )
               </div>
             </div>
           </div>
@@ -191,9 +221,9 @@ const PortfolioSubpage: React.FC = () => {
         {/* Left Side - Assets Table */}
         <div className="w-1/2 border-r border-[rgba(255,255,255,0.1)] p-8">
           <div className="mb-6">
-            <h2 className="text-[#D7E3EF] text-xl font-semibold mb-2">
-              Your Assets
-            </h2>
+            <div className="text-[rgba(255,255,255,0.70)] font-inter text-[16px] font-bold uppercase">
+              Total Portfolio Value
+            </div>
           </div>
 
           {/* Column Headers */}
@@ -211,10 +241,7 @@ const PortfolioSubpage: React.FC = () => {
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <path
-                  d="M8 10.667L4 6.66699H12L8 10.667Z"
-                  fill="#9C9DA2"
-                />
+                <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
               </svg>
             </div>
             <div className="text-[#9C9DA2] font-inter text-[14px] font-medium flex items-center">
@@ -227,10 +254,7 @@ const PortfolioSubpage: React.FC = () => {
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <path
-                  d="M8 10.667L4 6.66699H12L8 10.667Z"
-                  fill="#9C9DA2"
-                />
+                <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
               </svg>
             </div>
             <div className="text-[#9C9DA2] font-inter text-[14px] font-medium flex items-center justify-end">
@@ -243,10 +267,7 @@ const PortfolioSubpage: React.FC = () => {
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <path
-                  d="M8 10.667L4 6.66699H12L8 10.667Z"
-                  fill="#9C9DA2"
-                />
+                <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
               </svg>
             </div>
           </div>
@@ -255,25 +276,40 @@ const PortfolioSubpage: React.FC = () => {
           <div className="flex flex-col space-y-1 max-h-[calc(100vh-280px)] overflow-y-auto">
             {strategiesWithBalance.length > 0 ? (
               strategiesWithBalance.map((strategy) => (
-                <div 
-                  key={`${strategy.asset}-${strategy.duration}-${strategy.type}`} 
-                  className={`grid grid-cols-4 items-center p-4 rounded-lg ${strategy.type === 'stable' ? 'bg-[#0D101C]' : 'bg-[#090C17]'} cursor-pointer hover:bg-[#161B2E] transition-colors`}
-                  onClick={() => {/* Handle selection */}}
+                <div
+                  key={`${strategy.asset}-${strategy.duration}-${strategy.type}`}
+                  className={`grid grid-cols-4 items-center p-4 rounded-lg ${
+                    strategy.type === "stable" ? "bg-[#0D101C]" : "bg-[#090C17]"
+                  } cursor-pointer hover:bg-[#161B2E] transition-colors`}
+                  onClick={() => {
+                    /* Handle selection */
+                  }}
                 >
                   {/* Strategy Name */}
                   <div className="flex items-center gap-4">
                     <Image
-                      src={`/images/icons/${strategy.asset.toLowerCase()}-${strategy.type === 'stable' ? 'stable' : 'incentive'}.svg`}
+                      src={`/images/icons/${strategy.asset.toLowerCase()}-${
+                        strategy.type === "stable" ? "stable" : "incentive"
+                      }.svg`}
                       alt={strategy.asset}
                       width={32}
                       height={32}
                     />
                     <div>
                       <div className="text-[#D7E3EF] font-semibold">
-                        {strategy.type === 'stable' ? 'Base Yield' : 'Incentive Maxi'} {strategy.asset}
+                        {strategy.type === "stable"
+                          ? "Base Yield"
+                          : "Incentive Maxi"}{" "}
+                        {strategy.asset}
                       </div>
                       <div className="text-[#00D1A0] font-inter text-[14px] font-normal">
-                        +{(strategy.balance * parseFloat(strategy.apy?.replace('%', '') || '0') / 100).toFixed(2)} in 1 year
+                        +
+                        {(
+                          (strategy.balance *
+                            parseFloat(strategy.apy?.replace("%", "") || "0")) /
+                          100
+                        ).toFixed(2)}{" "}
+                        in 1 year
                       </div>
                     </div>
                   </div>
@@ -281,10 +317,14 @@ const PortfolioSubpage: React.FC = () => {
                   {/* Expiry */}
                   <div className="flex flex-col">
                     <div className="text-[#D7E3EF] font-inter">
-                      {strategy.duration === 'PERPETUAL_DURATION' ? 'No Expiry' : '29th March 2025'}
+                      {strategy.duration === "PERPETUAL_DURATION"
+                        ? "No Expiry"
+                        : "29th March 2025"}
                     </div>
                     <div className="text-[#9C9DA2] font-inter text-[14px]">
-                      {strategy.duration === 'PERPETUAL_DURATION' ? 'Perpetual' : '20 days to Expire'}
+                      {strategy.duration === "PERPETUAL_DURATION"
+                        ? "Perpetual"
+                        : "20 days to Expire"}
                     </div>
                   </div>
 
@@ -298,15 +338,28 @@ const PortfolioSubpage: React.FC = () => {
                     <div className="text-[#D7E3EF] font-inter text-[16px] font-semibold">
                       ${strategy.balance.toFixed(2)}
                     </div>
-                    <div className={`${parseFloat(strategy.apy?.replace('%', '') || '0') >= 0 ? 'text-[#00D1A0]' : 'text-[#EF4444]'} font-inter text-[14px]`}>
-                      ${(strategy.balance * parseFloat(strategy.apy?.replace('%', '') || '0') / 100).toFixed(2)} ({strategy.apy})
+                    <div
+                      className={`${
+                        parseFloat(strategy.apy?.replace("%", "") || "0") >= 0
+                          ? "text-[#00D1A0]"
+                          : "text-[#EF4444]"
+                      } font-inter text-[14px]`}
+                    >
+                      $
+                      {(
+                        (strategy.balance *
+                          parseFloat(strategy.apy?.replace("%", "") || "0")) /
+                        100
+                      ).toFixed(2)}{" "}
+                      ({strategy.apy})
                     </div>
                   </div>
                 </div>
               ))
             ) : (
               <div className="text-center py-12 text-[#9C9DA2]">
-                No assets found in your portfolio. Deposit assets to get started.
+                No assets found in your portfolio. Deposit assets to get
+                started.
               </div>
             )}
           </div>
