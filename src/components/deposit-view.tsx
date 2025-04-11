@@ -600,7 +600,7 @@ const DepositView: React.FC<DepositViewProps> = ({
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[#9C9DA2]">Transaction Hash</span>
                 <a
-                  href={`https://sonicscan.io/tx/${transactionHash}`}
+                  href={`https://sonicscan.org/tx/${transactionHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[#B88AF8] hover:underline flex items-center gap-1"
@@ -840,7 +840,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                     ? "Approving..."
                     : isApproved && !depositSuccess
                     ? "Approval Done Click to deposit"
-                    : "Approval Done Click to deposit"
+                    : "Deposit"
                   : "Connect Wallet";
 
                 return (
