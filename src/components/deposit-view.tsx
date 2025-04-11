@@ -323,6 +323,14 @@ const DepositView: React.FC<DepositViewProps> = ({
     checkApproval();
   }, []);
 
+  useEffect(() => {
+    console.log("isDepositing changed:", isDepositing);
+  }, [isDepositing]);
+
+  useEffect(() => {
+    console.log("isWaitingForDeposit changed:", isWaitingForDeposit);
+  }, [isWaitingForDeposit]);
+
   const handleDeposit = async () => {
     console.log("Deposit clicked", {
       address,
@@ -805,11 +813,11 @@ const DepositView: React.FC<DepositViewProps> = ({
                 const buttonText = connected
                   ? isLoadingBalance
                     ? "Loading..."
-                    : (isApproving || isWaitingForApproval) && !isCheckingApproval
+                    : isApproving && isWaitingForApproval
                     ? "Approving..."
                     : isApproved && !isDepositing && !isWaitingForDeposit
                     ? "Approval Done - Click to Deposit"
-                    : isDepositing || isWaitingForDeposit
+                    : isDepositing && isWaitingForDeposit
                     ? "Depositing..."
                     : "Deposit"
                   : "Connect Wallet";
