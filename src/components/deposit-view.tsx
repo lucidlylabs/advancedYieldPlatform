@@ -159,6 +159,22 @@ const DepositView: React.FC<DepositViewProps> = ({
   const [isApproving, setIsApproving] = useState(false);
   const [isDepositing, setIsDepositing] = useState(false);
   const [isApproved, setIsApproved] = useState(false);
+  const [depositSuccess, setDepositSuccess] = useState(false);
+  const [transactionHash, setTransactionHash] = useState<`0x${string}` | null>(
+    null
+  );
+  const [approvalHash, setApprovalHash] = useState<`0x${string}` | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isCheckingApproval, setIsCheckingApproval] = useState(false);
+  const [isWaitingForSignature, setIsWaitingForSignature] = useState(false);
+  const [status, setStatus] = useState<
+    | "loading"
+    | "waitingForSignature"
+    | "processing"
+    | "approved"
+    | "depositing"
+    | "idle"
+  >("idle");
 
   // Get strategy config based on asset type
   const strategyConfigs = {
@@ -175,10 +191,13 @@ const DepositView: React.FC<DepositViewProps> = ({
 
   // Calculate deposit cap values from env config
   const showDepositCap = strategyConfig.show_cap;
-  const depositCap = useMemo(() => ({
-    used: strategyConfig.filled_cap || "0",
-    total: strategyConfig.cap_limit || "0",
-  }), [strategyConfig]);
+  const depositCap = useMemo(
+    () => ({
+      used: strategyConfig.filled_cap || "0",
+      total: strategyConfig.cap_limit || "0",
+    }),
+    [strategyConfig]
+  );
 
   // Calculate remaining space
   const remainingSpace = useMemo(() => {
@@ -216,20 +235,25 @@ const DepositView: React.FC<DepositViewProps> = ({
   const { writeContractAsync: approve, data: approveData } = useWriteContract();
 
   // Watch approve transaction
-  const { isLoading: isWaitingForApproval } = useTransaction({
-    hash: approveData,
-  });
+  const { isLoading: isWaitingForApproval, isSuccess: isApprovalSuccess } =
+    useTransaction({
+      hash: approvalHash || undefined,
+    });
 
   // Deposit into vault
   const { writeContractAsync: deposit, data: depositData } = useWriteContract();
 
   // Watch deposit transaction
-  const { isLoading: isWaitingForDeposit } = useTransaction({
-    hash: depositData,
+  const {
+    isLoading: isWaitingForDeposit,
+    isSuccess: isDepositSuccess,
+    data: depositTxData,
+  } = useTransaction({
+    hash: transactionHash || undefined,
   });
 
   // Check allowance against vault contract
-  const { data: allowance } = useReadContract({
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
     address: tokenContractAddress as Address,
     abi: ERC20_ABI,
     functionName: "allowance",
@@ -248,6 +272,102 @@ const DepositView: React.FC<DepositViewProps> = ({
     vaultContract: vaultContractAddress,
   });
 
+  // Watch for approval success and update allowance
+  useEffect(() => {
+    if (isApprovalSuccess && approvalHash) {
+      console.log("Approval successful, updating allowance...");
+      refetchAllowance();
+      setIsApproving(false);
+      setIsApproved(true);
+    }
+  }, [isApprovalSuccess, approvalHash, refetchAllowance]);
+
+  // Reset loading states when transactions complete and refresh balance
+  useEffect(() => {
+    if (!isWaitingForApproval && isApproving) {
+      if (isApprovalSuccess) {
+        setIsApproved(true);
+        setIsApproving(false);
+        // Automatically trigger deposit after approval
+        handleDeposit();
+      } else {
+        setIsApproving(false);
+      }
+    }
+  }, [isWaitingForApproval, isApproving, isApprovalSuccess]);
+
+  useEffect(() => {
+    if (!isWaitingForDeposit && isDepositing) {
+      setIsDepositing(false);
+      setIsApproved(false);
+      fetchBalance();
+    }
+  }, [isWaitingForDeposit, isDepositing]);
+
+  // Watch for deposit success
+  useEffect(() => {
+    if (isDepositSuccess && transactionHash) {
+      setDepositSuccess(true);
+      console.log("Deposit successful!", {
+        hash: transactionHash,
+        amount,
+        token: depositToken,
+      });
+    }
+  }, [isDepositSuccess, transactionHash, amount, depositToken]);
+
+  useEffect(() => {
+    const checkApproval = async () => {
+      setIsCheckingApproval(true);
+      try {
+        // Perform the approval check logic here
+        // Ensure this doesn't set isApproving to true
+      } catch (error) {
+        console.error("Error checking approval:", error);
+      } finally {
+        setIsCheckingApproval(false);
+      }
+    };
+
+    checkApproval();
+  }, []);
+
+  useEffect(() => {
+    console.log("isDepositing changed:", isDepositing);
+  }, [isDepositing]);
+
+  useEffect(() => {
+    console.log("isWaitingForDeposit changed:", isWaitingForDeposit);
+  }, [isWaitingForDeposit]);
+
+  useEffect(() => {
+    if (isLoadingBalance) {
+      setStatus("loading");
+    } else if (isWaitingForSignature) {
+      setStatus("waitingForSignature");
+    } else if (isApproving && (!isApprovalSuccess || isWaitingForApproval)) {
+      setStatus("processing");
+    } else if (isApproved && !isDepositing && !isWaitingForDeposit) {
+      setStatus("approved");
+    } else if (isDepositing && isWaitingForDeposit) {
+      setStatus("depositing");
+    } else {
+      setStatus("idle");
+    }
+  }, [
+    isLoadingBalance,
+    isWaitingForSignature,
+    isApproving,
+    isApprovalSuccess,
+    isApproved,
+    isDepositing,
+    isWaitingForDeposit,
+  ]);
+
+  useEffect(() => {
+    console.log("Status changed:", status);
+  }, [status]);
+
   const handleDeposit = async () => {
     console.log("Deposit clicked", {
       address,
@@ -256,6 +376,8 @@ const DepositView: React.FC<DepositViewProps> = ({
       vaultContract: vaultContractAddress,
       strategy,
       duration,
+      currentAllowance: allowance?.toString(),
+      isApproved,
     });
 
     if (!address || !amount || !approve || !deposit) {
@@ -269,56 +391,54 @@ const DepositView: React.FC<DepositViewProps> = ({
     }
 
     try {
-      // Convert amount to 6 decimals for USDC using parseUnits and ensure it's properly formatted
+      setIsWaitingForSignature(true);
       const amountFloat = parseFloat(amount);
       if (isNaN(amountFloat) || amountFloat <= 0) {
         throw new Error("Invalid amount");
       }
 
-      // Round to 6 decimal places to avoid precision issues
       const roundedAmount = Math.round(amountFloat * 1_000_000) / 1_000_000;
       const amountInWei = parseUnits(roundedAmount.toFixed(6), 6);
 
-      console.log("Amount conversion:", {
-        original: amount,
-        rounded: roundedAmount,
-        inWei: amountInWei.toString(),
-        hex: `0x${amountInWei.toString(16).padStart(64, "0")}`,
-        decimals: 6,
-      });
-
-      // Check if approval is needed
+      // Check current allowance
       const currentAllowance = allowance
         ? BigInt(allowance.toString())
         : BigInt(0);
-      console.log("Current Allowance:", currentAllowance.toString());
 
-      if (currentAllowance < amountInWei) {
-        console.log("Approval needed. Sending approve transaction...", {
-          tokenContract: tokenContractAddress,
-          spender: vaultContractAddress,
-          amount: amountInWei.toString(),
-          amountHex: `0x${amountInWei.toString(16)}`,
-        });
+      console.log("Current allowance check:", {
+        currentAllowance: currentAllowance.toString(),
+        amountInWei: amountInWei.toString(),
+        isApproved,
+        isApproving,
+      });
+
+      // Only proceed with approval if we don't have enough allowance and not already approved
+      if (currentAllowance < amountInWei && !isApproved && !isApproving) {
+        console.log("Approval needed. Sending approve transaction...");
         setIsApproving(true);
-        setIsApproved(false);
-        await approve({
+        const approveTx = await approve({
           address: tokenContractAddress as Address,
           abi: ERC20_ABI,
           functionName: "approve",
           args: [vaultContractAddress as Address, amountInWei],
           chainId: 146,
         });
-        return; // Exit here and wait for approval to complete
+
+        if (typeof approveTx === "string" && approveTx.startsWith("0x")) {
+          setApprovalHash(approveTx as `0x${string}`);
+        }
+        setIsWaitingForSignature(false);
+        return; // Exit after starting approval
       }
 
-      // If we reach here, either approval was not needed or it's already completed
-      console.log("Proceeding with deposit", {
-        vaultContract: vaultContractAddress,
-        amount: amountInWei.toString(),
-        amountHex: `0x${amountInWei.toString(16)}`,
-        receiver: address,
-      });
+      // If we're already approving, don't proceed with deposit
+      if (isApproving) {
+        setIsWaitingForSignature(false);
+        return;
+      }
+
+      // If we have enough allowance, proceed with deposit
+      console.log("Proceeding with deposit");
       setIsDepositing(true);
 
       // Create a public client to check balance before deposit
@@ -347,47 +467,14 @@ const DepositView: React.FC<DepositViewProps> = ({
 
       // Check token balance before deposit
       const balance = await client.readContract({
-        address: tokenContractAddress as Address, // USDC contract for balance check
+        address: tokenContractAddress as Address,
         abi: ERC20_ABI,
         functionName: "balanceOf",
         args: [address as Address],
       });
 
-      console.log("Current token balance:", {
-        balance: balance.toString(),
-        required: amountInWei.toString(),
-        balanceHex: `0x${balance.toString(16)}`,
-        requiredHex: `0x${amountInWei.toString(16)}`,
-      });
-
       if (balance < amountInWei) {
         throw new Error("Insufficient token balance for deposit");
-      }
-
-      // Check minimum deposit amount (if we can get it from the contract)
-      try {
-        const minDeposit = await client.readContract({
-          address: vaultContractAddress as Address, // Vault contract for min deposit check
-          abi: [
-            ...VAULT_ABI,
-            {
-              name: "minDeposit",
-              type: "function",
-              stateMutability: "view",
-              inputs: [],
-              outputs: [{ name: "", type: "uint256" }],
-            },
-          ],
-          functionName: "minDeposit",
-        });
-
-        if (minDeposit && amountInWei < minDeposit) {
-          throw new Error(
-            `Minimum deposit amount is ${formatUnits(minDeposit, 6)} USDC`
-          );
-        }
-      } catch (error) {
-        console.log("Could not check minimum deposit amount:", error);
       }
 
       // Proceed with deposit using the vault contract
@@ -397,40 +484,26 @@ const DepositView: React.FC<DepositViewProps> = ({
         receiver: address,
       });
 
-      await deposit({
-        address: vaultContractAddress as Address, // Using vault contract for deposit
+      const tx = await deposit({
+        address: vaultContractAddress as Address,
         abi: VAULT_ABI,
         functionName: "deposit",
         args: [amountInWei, address as Address],
         chainId: 146,
         account: address as Address,
       });
+
+      if (tx && typeof tx === "string" && tx.startsWith("0x")) {
+        setTransactionHash(tx as `0x${string}`);
+        setIsDepositing(true);
+      }
     } catch (error: any) {
-      console.error("Transaction failed:", {
-        error,
-        message: error.message,
-        details: error.details,
-        data: error.data,
-        tokenContract: tokenContractAddress,
-        vaultContract: vaultContractAddress,
-      });
+      console.error("Transaction failed:", error);
       setIsApproving(false);
       setIsDepositing(false);
-
-      // Show user-friendly error message
-      if (error.message.includes("insufficient")) {
-        alert("Insufficient balance to complete the deposit");
-      } else if (error.message.includes("reverted")) {
-        alert(
-          "Transaction failed. The amount might be below the minimum deposit requirement. Please try a larger amount."
-        );
-      } else if (error.message.includes("chain")) {
-        alert("Please make sure you are connected to the Sonic network");
-      } else if (error.message.includes("minimum deposit")) {
-        alert(error.message);
-      } else {
-        alert("Failed to complete deposit. Please try again.");
-      }
+      setErrorMessage("Transaction failed");
+    } finally {
+      setIsWaitingForSignature(false);
     }
   };
 
@@ -494,20 +567,6 @@ const DepositView: React.FC<DepositViewProps> = ({
     }
   };
 
-  // Reset loading states when transactions complete and refresh balance
-  useEffect(() => {
-    if (!isWaitingForApproval && isApproving) {
-      setIsApproving(false);
-      setIsApproved(true);
-      fetchBalance(); // Refresh balance after approval
-    }
-    if (!isWaitingForDeposit && isDepositing) {
-      setIsDepositing(false);
-      setIsApproved(false); // Reset approval state after deposit
-      fetchBalance(); // Refresh balance after deposit
-    }
-  }, [isWaitingForApproval, isWaitingForDeposit]);
-
   // Initial balance fetch
   useEffect(() => {
     if (address && selectedAsset === "USD") {
@@ -527,214 +586,325 @@ const DepositView: React.FC<DepositViewProps> = ({
     }
   };
 
-  const handleSlippageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    if (/^\d*\.?\d*$/.test(value)) {
-      setSlippage(value);
-    }
-  };
-
   return (
     <div className="h-[calc(100vh-128px)] relative overflow-hidden">
-      <div className="flex flex-col gap-6 items-center pt-[calc(8vh+38px)]">
-        <div className="w-[580px] h-[459px] flex-shrink-0">
-          <div className="flex gap-6 justify-center items-center">
-            {/* Left Card - Deposit Input */}
-            <div className="w-[280px] h-[311px] bg-[#0D101C] rounded-[4px] border border-[rgba(255,255,255,0.05)] p-6 flex flex-col">
-              <div className="flex items-center justify-center">
-                <div className="flex flex-col items-center mt-[20px]">
-                  {depositTokenImage && (
-                    <img
-                      src={depositTokenImage}
-                      alt={depositToken}
-                      className="w-[56px] h-[56px]"
-                    />
-                  )}
-                  <span className="text-[#EDF2F8] text-center font-inter text-[14px] font-semibold leading-normal mt-[16px]">
-                    Deposit {depositToken}
-                  </span>
-                  <span className="text-[#00D1A0] text-center font-inter text-[12px] font-normal leading-normal">
-                    +0.00 in 1 year
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-auto flex flex-col gap-[1px]">
-                <div className="relative flex items-center">
-                  <input
-                    type="text"
-                    value={amount}
-                    onChange={handleAmountChange}
-                    placeholder="0.00"
-                    className="w-[calc(100%-70px)] bg-transparent text-[#EDF2F8] font-inter text-[24px] font-bold leading-normal outline-none focus:ring-0 border-0 border-b border-[rgba(255,255,255,0.19)]"
+      {depositSuccess ? (
+        <div className="flex flex-col items-center justify-center h-full">
+          <div className="w-[580px] bg-[#0D101C] rounded-lg p-8 text-center">
+            <div className="flex justify-center mb-6">
+              <div className="w-16 h-16 bg-[#00D1A0] rounded-full flex items-center justify-center">
+                <svg
+                  width="32"
+                  height="32"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M20 6L9 17L4 12"
+                    stroke="white"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                   />
-                  <button
-                    onClick={handleMaxClick}
-                    className="absolute right-0 flex justify-center items-center px-[8px] py-[4px] gap-[10px] rounded-[4px] border border-[rgba(255,255,255,0.30)] bg-transparent hover:opacity-80 transition-all duration-200"
-                  >
-                    <span className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
-                      MAX
-                    </span>
-                  </button>
-                </div>
-                <div className="mt-[12px]">
-                  <span className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
-                    Balance:{" "}
-                    {isLoadingBalance ? (
-                      <span className="inline-flex items-center gap-1">
-                        <svg
-                          className="animate-spin h-3 w-3 text-white"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                        <span className="text-white">Loading...</span>
-                      </span>
-                    ) : (
-                      <span className="text-white">{balance}</span>
-                    )}
-                  </span>
-                </div>
+                </svg>
               </div>
             </div>
-
-            {/* Right Card - Strategy Info */}
-            <div className="w-[280px] h-[311px] bg-[#0D101C] rounded-[4px] border border-[rgba(255,255,255,0.05)] p-6 relative flex flex-col">
-              {/* Background gradient effect - top */}
-              <div className="absolute top-0 left-0 right-0 h-[200px] bg-gradient-to-b from-[rgba(255,255,255,0.02)] to-transparent rounded-t-[4px] pointer-events-none"></div>
-
-              {/* Background blur effect - bottom */}
-              <div className="absolute -bottom-[100px] left-1/2 -translate-x-1/2 w-[200px] h-[200px] bg-white/[0.05] blur-[25px] pointer-events-none"></div>
-
-              {/* Asset Info */}
-              <div className="flex flex-col items-center text-center relative z-10">
-                <h3 className="text-[32px] text-[#D7E3EF] font-inter font-medium leading-normal mb-[8px] mt-[12px]">
-                  {selectedAsset}
-                </h3>
-                <div
-                  onClick={onReset}
-                  className="text-[16px] text-[#9C9DA2] font-inter font-normal leading-normal underline decoration-solid underline-offset-auto mb-[25px] cursor-pointer hover:text-[#9C9DA2]/80 transition-all duration-200"
+            <h2 className="text-[#D7E3EF] text-2xl font-semibold mb-2">
+              Deposit Success
+            </h2>
+            <p className="text-[#9C9DA2] mb-6">
+              Your deposit has been successfully processed
+            </p>
+            <div className="bg-[#121521] rounded p-4 mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[#9C9DA2]">Transaction Hash</span>
+                <a
+                  href={`https://sonicscan.org/tx/${transactionHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#B88AF8] hover:underline flex items-center gap-1"
                 >
-                  {formatDuration(duration)}
+                  {`${transactionHash?.slice(0, 6)}...${transactionHash?.slice(
+                    -4
+                  )}`}
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M18 13V19C18 19.5304 17.7893 20.0391 17.4142 20.4142C17.0391 20.7893 16.5304 21 16 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V8C3 7.46957 3.21071 6.96086 3.58579 6.58579C3.96086 6.21071 4.46957 6 5 6H11"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M15 3H21V9"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M10 14L21 3"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </a>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[#9C9DA2]">Amount</span>
+                <span className="text-[#D7E3EF]">
+                  {amount} {depositToken}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={onReset}
+              className="w-full py-4 rounded bg-[#B88AF8] text-[#1A1B1E] font-semibold hover:opacity-90 transition-all duration-200"
+            >
+              Make Another Deposit
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-6 items-center pt-[calc(8vh+38px)]">
+          <div className="w-[580px] h-[459px] flex-shrink-0">
+            <div className="flex gap-6 justify-center items-center">
+              {/* Left Card - Deposit Input */}
+              <div className="w-[280px] h-[311px] bg-[#0D101C] rounded-[4px] border border-[rgba(255,255,255,0.05)] p-6 flex flex-col">
+                <div className="flex items-center justify-center">
+                  <div className="flex flex-col items-center mt-[20px]">
+                    {depositTokenImage && (
+                      <img
+                        src={depositTokenImage}
+                        alt={depositToken}
+                        className="w-[56px] h-[56px]"
+                      />
+                    )}
+                    <span className="text-[#EDF2F8] text-center font-inter text-[14px] font-semibold leading-normal mt-[16px]">
+                      Deposit {depositToken}
+                    </span>
+                    <span className="text-[#00D1A0] text-center font-inter text-[12px] font-normal leading-normal">
+                      +0.00 in 1 year
+                    </span>
+                  </div>
                 </div>
-                <div
-                  onClick={onReset}
-                  className="text-[#B88AF8] cursor-pointer font-inter text-[12px] font-light leading-normal hover:opacity-80 transition-all duration-200"
-                >
-                  Change Asset →
+
+                <div className="mt-auto flex flex-col gap-[1px]">
+                  <div className="relative flex items-center">
+                    <input
+                      type="text"
+                      value={amount}
+                      onChange={handleAmountChange}
+                      placeholder="0.00"
+                      className="w-[calc(100%-70px)] bg-transparent text-[#EDF2F8] font-inter text-[24px] font-bold leading-normal outline-none focus:ring-0 border-0 border-b border-[rgba(255,255,255,0.19)]"
+                    />
+                    <button
+                      onClick={handleMaxClick}
+                      className="absolute right-0 flex justify-center items-center px-[8px] py-[4px] gap-[10px] rounded-[4px] border border-[rgba(255,255,255,0.30)] bg-transparent hover:opacity-80 transition-all duration-200"
+                    >
+                      <span className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
+                        MAX
+                      </span>
+                    </button>
+                  </div>
+                  <div className="mt-[12px]">
+                    <span className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
+                      Balance:{" "}
+                      {isLoadingBalance ? (
+                        <span className="inline-flex items-center gap-1">
+                          <svg
+                            className="animate-spin h-3 w-3 text-white"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                          <span className="text-white">Loading...</span>
+                        </span>
+                      ) : (
+                        <span className="text-white">{balance}</span>
+                      )}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {/* Strategy Info - Positioned at bottom */}
-              <div className="mt-auto w-full p-3 bg-[#121521] rounded-[4px] border border-[rgba(255,255,255,0.05)]">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={`/images/icons/${selectedAsset.toLowerCase()}-${strategy}.svg`}
-                    alt={strategy}
-                    className="w-[32px] h-[32px] ml-[4px] mr-[12px] my-auto cursor-pointer hover:opacity-80 transition-all duration-200"
+              {/* Right Card - Strategy Info */}
+              <div className="w-[280px] h-[311px] bg-[#0D101C] rounded-[4px] border border-[rgba(255,255,255,0.05)] p-6 relative flex flex-col">
+                {/* Background gradient effect - top */}
+                <div className="absolute top-0 left-0 right-0 h-[200px] bg-gradient-to-b from-[rgba(255,255,255,0.02)] to-transparent rounded-t-[4px] pointer-events-none"></div>
+
+                {/* Background blur effect - bottom */}
+                <div className="absolute -bottom-[100px] left-1/2 -translate-x-1/2 w-[200px] h-[200px] bg-white/[0.05] blur-[25px] pointer-events-none"></div>
+
+                {/* Asset Info */}
+                <div className="flex flex-col items-center text-center relative z-10">
+                  <h3 className="text-[32px] text-[#D7E3EF] font-inter font-medium leading-normal mb-[8px] mt-[12px]">
+                    {selectedAsset}
+                  </h3>
+                  <div
                     onClick={onReset}
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <div className="text-white font-semibold capitalize">
-                        {strategy} {selectedAsset}
+                    className="text-[16px] text-[#9C9DA2] font-inter font-normal leading-normal underline decoration-solid underline-offset-auto mb-[25px] cursor-pointer hover:text-[#9C9DA2]/80 transition-all duration-200"
+                  >
+                    {formatDuration(duration)}
+                  </div>
+                  <div
+                    onClick={onReset}
+                    className="text-[#B88AF8] cursor-pointer font-inter text-[12px] font-light leading-normal hover:opacity-80 transition-all duration-200"
+                  >
+                    Change Asset →
+                  </div>
+                </div>
+
+                {/* Strategy Info - Positioned at bottom */}
+                <div className="mt-auto w-full p-3 bg-[#121521] rounded-[4px] border border-[rgba(255,255,255,0.05)]">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={`/images/icons/${selectedAsset.toLowerCase()}-${strategy}.svg`}
+                      alt={strategy}
+                      className="w-[32px] h-[32px] ml-[4px] mr-[12px] my-auto cursor-pointer hover:opacity-80 transition-all duration-200"
+                      onClick={onReset}
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <div className="text-white font-semibold capitalize">
+                          {strategy} {selectedAsset}
+                        </div>
+                        <img
+                          src="/images/icons/select-icon.svg"
+                          alt="select"
+                          className="w-[16px] h-[16px] flex-shrink-0 cursor-pointer ml-auto hover:opacity-80 transition-all duration-200"
+                          onClick={onBack}
+                        />
                       </div>
-                      <img
-                        src="/images/icons/select-icon.svg"
-                        alt="select"
-                        className="w-[16px] h-[16px] flex-shrink-0 cursor-pointer ml-auto hover:opacity-80 transition-all duration-200"
-                        onClick={onBack}
-                      />
-                    </div>
-                    <div className="flex items-center gap-4 mt-[4px]">
-                      <span className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
-                        APY {apy}
-                      </span>
+                      <div className="flex items-center gap-4 mt-[4px]">
+                        <span className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
+                          APY {apy}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Deposit Cap Progress Bar - Only shown if show_cap is true */}
+            {showDepositCap && (
+              <div className="w-full mt-6 mb-4 p-4 rounded-[4px] bg-[rgba(255,255,255,0.02)]">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-[#EDF2F8] font-inter text-[14px] font-medium">
+                    ${remainingSpace} Remaining
+                  </span>
+                  <span className="text-[#9C9DA2] font-inter text-[14px]">
+                    Limited Space: ${depositCap.used}/${depositCap.total}
+                  </span>
+                </div>
+                <div className="w-full h-[6px] bg-[#1A1B1E] rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-[#4A63D3] rounded-full"
+                    style={{ width: `${progressPercentage}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Dynamic Connect/Deposit Button */}
+            <ConnectButton.Custom>
+              {({
+                account,
+                chain,
+                openConnectModal,
+                mounted,
+                authenticationStatus,
+              }) => {
+                const ready = mounted && authenticationStatus !== "loading";
+                const connected =
+                  ready &&
+                  account &&
+                  chain &&
+                  (!authenticationStatus ||
+                    authenticationStatus === "authenticated");
+
+                const isLoading =
+                  (isApproving && isWaitingForApproval) ||
+                  (isDepositing && isWaitingForDeposit);
+
+                const buttonText = connected
+                  ? status === "loading"
+                    ? "Loading..."
+                    : status === "waitingForSignature"
+                    ? "Waiting for Signature..."
+                    : status === "processing"
+                    ? "Processing..."
+                    : status === "approved"
+                    ? "Approval Done - Click to Deposit"
+                    : status === "depositing"
+                    ? "Depositing..."
+                    : "Deposit"
+                  : "Connect Wallet";
+
+                return (
+                  <button
+                    onClick={connected ? handleDeposit : openConnectModal}
+                    disabled={isLoading || isLoadingBalance}
+                    className="w-full py-4 mt-6 rounded bg-[#B88AF8] text-[#1A1B1E] font-semibold hover:opacity-90 transition-all duration-200 disabled:opacity-50"
+                  >
+                    {buttonText}
+                  </button>
+                );
+              }}
+            </ConnectButton.Custom>
+
+            {errorMessage && (
+              <div
+                className="mt-2 text-red-500 text-center"
+                style={{
+                  borderRadius: "4px",
+                  background: "rgba(248, 90, 62, 0.10)",
+                  padding: "12px 24px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                }}
+              >
+                {errorMessage}
+                {transactionHash && (
+                  <a
+                    href={`https://sonicscan.io/tx/${transactionHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline"
+                  >
+                    {transactionHash.slice(0, 6)}...{transactionHash.slice(-4)}
+                  </a>
+                )}
+              </div>
+            )}
           </div>
-
-          {/* Deposit Cap Progress Bar - Only shown if show_cap is true */}
-          {showDepositCap && (
-            <div className="w-full mt-6 mb-4 p-4 rounded-[4px] bg-[rgba(255,255,255,0.02)]">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-[#EDF2F8] font-inter text-[14px] font-medium">
-                  ${remainingSpace} Remaining
-                </span>
-                <span className="text-[#9C9DA2] font-inter text-[14px]">
-                  Limited Space: ${depositCap.used}/${depositCap.total}
-                </span>
-              </div>
-              <div className="w-full h-[6px] bg-[#1A1B1E] rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-[#4A63D3] rounded-full"
-                  style={{ width: `${progressPercentage}%` }}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Dynamic Connect/Deposit Button */}
-          <ConnectButton.Custom>
-            {({
-              account,
-              chain,
-              openConnectModal,
-              mounted,
-              authenticationStatus,
-            }) => {
-              const ready = mounted && authenticationStatus !== "loading";
-              const connected =
-                ready &&
-                account &&
-                chain &&
-                (!authenticationStatus ||
-                  authenticationStatus === "authenticated");
-
-              const isLoading =
-                (isApproving && isWaitingForApproval) ||
-                (isDepositing && isWaitingForDeposit);
-
-              const buttonText = connected
-                ? isLoadingBalance
-                  ? "Loading..."
-                  : isApproving
-                  ? "Approving..."
-                  : isDepositing
-                  ? "Depositing..."
-                  : "Deposit"
-                : "Connect Wallet";
-
-              return (
-                <button
-                  onClick={connected ? handleDeposit : openConnectModal}
-                  disabled={isLoading || isLoadingBalance}
-                  className="w-full py-4 mt-6 rounded bg-[#B88AF8] text-[#1A1B1E] font-semibold hover:opacity-90 transition-all duration-200 disabled:opacity-50"
-                >
-                  {buttonText}
-                </button>
-              );
-            }}
-          </ConnectButton.Custom>
         </div>
-      </div>
+      )}
     </div>
   );
 };

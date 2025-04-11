@@ -242,7 +242,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
               <span className="font-medium">Platform Token</span>
             </div>
             <div className="text-2xl font-bold mb-1">150 LCY</div>
-            <div className="text-gray-400 text-sm">~$75.00 USD</div>
+            <div className="text-gray-400 text-sm">$75 USD</div>
           </div>
         </div>
       </div>
