@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { useAccount, useTransaction, useReadContract } from "wagmi";
+import { useAccount, useTransaction, useReadContract, useWriteContract } from "wagmi";
 import { USD_STRATEGIES, BTC_STRATEGIES, ETH_STRATEGIES } from "../config/env";
-import { type Address, createPublicClient, http, formatUnits } from "viem";
+import { type Address, createPublicClient, http, formatUnits, parseUnits } from "viem";
 
 const ERC20_ABI = [
   {
@@ -10,6 +10,34 @@ const ERC20_ABI = [
     type: "function",
     stateMutability: "view",
     inputs: [{ name: "owner", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    name: "decimals",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint8" }],
+  },
+] as const;
+
+const VAULT_ABI = [
+  {
+    stateMutability: "nonpayable",
+    type: "function",
+    name: "redeem",
+    inputs: [
+      { name: "shares", type: "uint256" },
+      { name: "receiver", type: "address" },
+      { name: "owner", type: "address" },
+    ],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    name: "balanceOf",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "addr", type: "address" }],
     outputs: [{ name: "", type: "uint256" }],
   },
   {
@@ -184,18 +212,19 @@ const PortfolioSubpage: React.FC = () => {
     checkAllBalances();
   }, [address]);
 
+  // Use wagmi's useWriteContract hook
+  const { writeContractAsync: writeContract } = useWriteContract();
+
   const handleWithdraw = async () => {
     if (!selectedStrategy || !withdrawAmount || !address) return;
 
     try {
       setIsWithdrawing(true);
-      // Simulating a transaction hash for demo purposes
-      // In a real implementation, you would call the contract's withdraw function
-      const mockTxHash = "0x012x23...232" as `0x${string}`;
-      setWithdrawTxHash(mockTxHash);
-
-      // In a real implementation, you'd use the following pattern:
-      /*
+      
+      // Get the contract address from the selected strategy
+      const contractAddress = selectedStrategy.contract as Address;
+      
+      // Create a client to interact with the contract
       const client = createPublicClient({
         transport: http(selectedStrategy.rpc),
         chain: {
@@ -213,19 +242,54 @@ const PortfolioSubpage: React.FC = () => {
           },
         },
       });
-
-      const tx = await writeContract({
-        address: selectedStrategy.contract as Address,
+      
+      // Get the decimals from the contract
+      const decimals = await client.readContract({
+        address: contractAddress,
         abi: VAULT_ABI,
-        functionName: "withdraw",
-        args: [parseUnits(withdrawAmount, 18), address],
+        functionName: "decimals",
+      }) as number;
+      
+      console.log(`Contract decimals: ${decimals}`);
+      
+      // Parse the withdraw amount with proper decimals
+      const sharesAmount = parseUnits(withdrawAmount, decimals);
+      
+      console.log("Withdrawing from contract:", {
+        contract: contractAddress,
+        shares: sharesAmount.toString(),
+        receiver: address,
+        owner: address,
+        decimals,
       });
       
-      setWithdrawTxHash(tx);
-      */
+      try {
+        // Call the redeem function on the contract
+        const tx = await writeContract({
+          address: contractAddress,
+          abi: VAULT_ABI,
+          functionName: "redeem",
+          args: [sharesAmount, address, address],
+          chainId: 146, // Sonic chain ID
+          account: address,
+        });
+        
+        if (tx && typeof tx === "string" && tx.startsWith("0x")) {
+          console.log("Withdrawal transaction submitted:", tx);
+          setWithdrawTxHash(tx as `0x${string}`);
+        } else {
+          throw new Error("Failed to get transaction hash");
+        }
+      } catch (error) {
+        console.error("Contract call failed:", error);
+        setIsWithdrawing(false);
+        // Show error to user
+        alert("Withdrawal failed. Please try again.");
+      }
     } catch (error) {
       console.error("Error withdrawing:", error);
       setIsWithdrawing(false);
+      alert("Error preparing withdrawal. Please try again.");
     }
   };
 
@@ -477,12 +541,14 @@ const PortfolioSubpage: React.FC = () => {
               <h1 className="text-[24px] font-semibold text-white mb-4">
                 Withdraw
               </h1>
-              
+
               <div className="flex items-center p-4 bg-[#080B17] rounded-lg mb-6">
                 <div className="flex items-center gap-4">
                   <Image
                     src={`/images/icons/${selectedStrategy.asset.toLowerCase()}-${
-                      selectedStrategy.type === "stable" ? "stable" : "incentive"
+                      selectedStrategy.type === "stable"
+                        ? "stable"
+                        : "incentive"
                     }.svg`}
                     alt={selectedStrategy.asset}
                     width={40}
@@ -585,7 +651,8 @@ const PortfolioSubpage: React.FC = () => {
               <div className="flex justify-between py-4 border-t border-[#2D2F3D] mb-6">
                 <div className="text-[#9C9DA2]">You Will Receive</div>
                 <div className="text-white text-[20px] font-semibold">
-                  {parseFloat(withdrawAmount || "0").toFixed(2)} {selectedStrategy.asset}
+                  {parseFloat(withdrawAmount || "0").toFixed(2)}{" "}
+                  {selectedStrategy.asset}
                 </div>
               </div>
 
@@ -596,7 +663,12 @@ const PortfolioSubpage: React.FC = () => {
                     : "bg-[#B88AF8] text-[#080B17] hover:bg-[#9F6EE9] transition-colors"
                 }`}
                 onClick={handleWithdraw}
-                disabled={isWithdrawing || !withdrawAmount || parseFloat(withdrawAmount) <= 0 || parseFloat(withdrawAmount) > selectedStrategy.balance}
+                disabled={
+                  isWithdrawing ||
+                  !withdrawAmount ||
+                  parseFloat(withdrawAmount) <= 0 ||
+                  parseFloat(withdrawAmount) > selectedStrategy.balance
+                }
               >
                 {isWithdrawing ? "Withdrawing..." : "Withdraw"}
               </button>
@@ -605,20 +677,31 @@ const PortfolioSubpage: React.FC = () => {
                 <div className="mt-4 bg-[#13161F] rounded-lg p-4">
                   <div className="flex justify-between mb-2">
                     <div className="text-[#9C9DA2]">Transaction InProgress</div>
-                    <div className="text-[#B88AF8]">#{withdrawTxHash ? withdrawTxHash.substring(0, 8) + "..." : ""}</div>
+                    <div className="text-[#B88AF8]">
+                      #
+                      {withdrawTxHash
+                        ? withdrawTxHash.substring(0, 8) + "..."
+                        : ""}
+                    </div>
                   </div>
                   {/* Progress indicator */}
                   <div className="w-full h-1 bg-[#2D2F3D] rounded-full overflow-hidden">
-                    <div className="h-full bg-[#B88AF8] animate-pulse" style={{ width: "75%" }}></div>
+                    <div
+                      className="h-full bg-[#B88AF8] animate-pulse"
+                      style={{ width: "75%" }}
+                    ></div>
                   </div>
                 </div>
               )}
 
               <div className="mt-auto pt-4">
                 <div className="text-[#9C9DA2] text-[14px]">
-                  <strong>Note:</strong> By withdrawing, your vault shares will be converted into the underlying asset, subject to slippage. 
-                  Ensure the slippage tolerance is set appropriately to avoid transaction failures. Withdrawal amounts are 
-                  calculated based on the latest market rates and may vary slightly due to price fluctuations.
+                  <strong>Note:</strong> By withdrawing, your vault shares will
+                  be converted into the underlying asset, subject to slippage.
+                  Ensure the slippage tolerance is set appropriately to avoid
+                  transaction failures. Withdrawal amounts are calculated based
+                  on the latest market rates and may vary slightly due to price
+                  fluctuations.
                 </div>
               </div>
             </div>
