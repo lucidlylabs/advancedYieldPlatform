@@ -167,7 +167,14 @@ const DepositView: React.FC<DepositViewProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isCheckingApproval, setIsCheckingApproval] = useState(false);
   const [isWaitingForSignature, setIsWaitingForSignature] = useState(false);
-  const [status, setStatus] = useState<'loading' | 'waitingForSignature' | 'processing' | 'approved' | 'depositing' | 'idle'>('idle');
+  const [status, setStatus] = useState<
+    | "loading"
+    | "waitingForSignature"
+    | "processing"
+    | "approved"
+    | "depositing"
+    | "idle"
+  >("idle");
 
   // Get strategy config based on asset type
   const strategyConfigs = {
@@ -335,19 +342,27 @@ const DepositView: React.FC<DepositViewProps> = ({
 
   useEffect(() => {
     if (isLoadingBalance) {
-      setStatus('loading');
+      setStatus("loading");
     } else if (isWaitingForSignature) {
-      setStatus('waitingForSignature');
+      setStatus("waitingForSignature");
     } else if (isApproving && (!isApprovalSuccess || isWaitingForApproval)) {
-      setStatus('processing');
+      setStatus("processing");
     } else if (isApproved && !isDepositing && !isWaitingForDeposit) {
-      setStatus('approved');
+      setStatus("approved");
     } else if (isDepositing && isWaitingForDeposit) {
-      setStatus('depositing');
+      setStatus("depositing");
     } else {
-      setStatus('idle');
+      setStatus("idle");
     }
-  }, [isLoadingBalance, isWaitingForSignature, isApproving, isApprovalSuccess, isApproved, isDepositing, isWaitingForDeposit]);
+  }, [
+    isLoadingBalance,
+    isWaitingForSignature,
+    isApproving,
+    isApprovalSuccess,
+    isApproved,
+    isDepositing,
+    isWaitingForDeposit,
+  ]);
 
   useEffect(() => {
     console.log("Status changed:", status);
@@ -570,7 +585,6 @@ const DepositView: React.FC<DepositViewProps> = ({
       setAmount(value);
     }
   };
-
 
   return (
     <div className="h-[calc(100vh-128px)] relative overflow-hidden">
@@ -838,15 +852,15 @@ const DepositView: React.FC<DepositViewProps> = ({
                   (isDepositing && isWaitingForDeposit);
 
                 const buttonText = connected
-                  ? status === 'loading'
+                  ? status === "loading"
                     ? "Loading..."
-                    : status === 'waitingForSignature'
+                    : status === "waitingForSignature"
                     ? "Waiting for Signature..."
-                    : status === 'processing'
+                    : status === "processing"
                     ? "Processing..."
-                    : status === 'approved'
+                    : status === "approved"
                     ? "Approval Done - Click to Deposit"
-                    : status === 'depositing'
+                    : status === "depositing"
                     ? "Depositing..."
                     : "Deposit"
                   : "Connect Wallet";
@@ -867,12 +881,12 @@ const DepositView: React.FC<DepositViewProps> = ({
               <div
                 className="mt-2 text-red-500 text-center"
                 style={{
-                  borderRadius: '4px',
-                  background: 'rgba(248, 90, 62, 0.10)',
-                  padding: '12px 24px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
+                  borderRadius: "4px",
+                  background: "rgba(248, 90, 62, 0.10)",
+                  padding: "12px 24px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
                 }}
               >
                 {errorMessage}
