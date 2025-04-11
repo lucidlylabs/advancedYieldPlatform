@@ -244,7 +244,7 @@ const DepositView: React.FC<DepositViewProps> = ({
   });
 
   // Check allowance against vault contract
-  const { data: allowance } = useReadContract({
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
     address: tokenContractAddress as Address,
     abi: ERC20_ABI,
     functionName: "allowance",
@@ -262,6 +262,16 @@ const DepositView: React.FC<DepositViewProps> = ({
     tokenContract: tokenContractAddress,
     vaultContract: vaultContractAddress,
   });
+
+  // Watch for approval success and update allowance
+  useEffect(() => {
+    if (isApprovalSuccess && approvalHash) {
+      console.log("Approval successful, updating allowance...");
+      refetchAllowance();
+      setIsApproving(false);
+      setIsApproved(true);
+    }
+  }, [isApprovalSuccess, approvalHash, refetchAllowance]);
 
   // Reset loading states when transactions complete and refresh balance
   useEffect(() => {
@@ -321,6 +331,8 @@ const DepositView: React.FC<DepositViewProps> = ({
       vaultContract: vaultContractAddress,
       strategy,
       duration,
+      currentAllowance: allowance?.toString(),
+      isApproved,
     });
 
     if (!address || !amount || !approve || !deposit) {
@@ -342,13 +354,22 @@ const DepositView: React.FC<DepositViewProps> = ({
       const roundedAmount = Math.round(amountFloat * 1_000_000) / 1_000_000;
       const amountInWei = parseUnits(roundedAmount.toFixed(6), 6);
 
+      // Check current allowance
       const currentAllowance = allowance
         ? BigInt(allowance.toString())
         : BigInt(0);
 
-      if (currentAllowance < amountInWei) {
+      console.log("Current allowance check:", {
+        currentAllowance: currentAllowance.toString(),
+        amountInWei: amountInWei.toString(),
+        isApproved,
+        isApproving,
+      });
+
+      // Only proceed with approval if we don't have enough allowance and not already approved
+      if (currentAllowance < amountInWei && !isApproved && !isApproving) {
         console.log("Approval needed. Sending approve transaction...");
-        setIsApproving(true); // Set this only when user initiates
+        setIsApproving(true);
         const approveTx = await approve({
           address: tokenContractAddress as Address,
           abi: ERC20_ABI,
@@ -360,9 +381,15 @@ const DepositView: React.FC<DepositViewProps> = ({
         if (typeof approveTx === "string" && approveTx.startsWith("0x")) {
           setApprovalHash(approveTx as `0x${string}`);
         }
+        return; // Exit after starting approval
+      }
+
+      // If we're already approving, don't proceed with deposit
+      if (isApproving) {
         return;
       }
 
+      // If we have enough allowance, proceed with deposit
       console.log("Proceeding with deposit");
       setIsDepositing(true);
 
@@ -392,47 +419,14 @@ const DepositView: React.FC<DepositViewProps> = ({
 
       // Check token balance before deposit
       const balance = await client.readContract({
-        address: tokenContractAddress as Address, // USDC contract for balance check
+        address: tokenContractAddress as Address,
         abi: ERC20_ABI,
         functionName: "balanceOf",
         args: [address as Address],
       });
 
-      console.log("Current token balance:", {
-        balance: balance.toString(),
-        required: amountInWei.toString(),
-        balanceHex: `0x${balance.toString(16)}`,
-        requiredHex: `0x${amountInWei.toString(16)}`,
-      });
-
       if (balance < amountInWei) {
         throw new Error("Insufficient token balance for deposit");
-      }
-
-      // Check minimum deposit amount (if we can get it from the contract)
-      try {
-        const minDeposit = await client.readContract({
-          address: vaultContractAddress as Address, // Vault contract for min deposit check
-          abi: [
-            ...VAULT_ABI,
-            {
-              name: "minDeposit",
-              type: "function",
-              stateMutability: "view",
-              inputs: [],
-              outputs: [{ name: "", type: "uint256" }],
-            },
-          ],
-          functionName: "minDeposit",
-        });
-
-        if (minDeposit && amountInWei < minDeposit) {
-          throw new Error(
-            `Minimum deposit amount is ${formatUnits(minDeposit, 6)} USDC`
-          );
-        }
-      } catch (error) {
-        console.log("Could not check minimum deposit amount:", error);
       }
 
       // Proceed with deposit using the vault contract
@@ -451,7 +445,6 @@ const DepositView: React.FC<DepositViewProps> = ({
         account: address as Address,
       });
 
-      // Set the transaction hash to track its status
       if (tx && typeof tx === "string" && tx.startsWith("0x")) {
         setTransactionHash(tx as `0x${string}`);
         setIsDepositing(true);
@@ -460,8 +453,6 @@ const DepositView: React.FC<DepositViewProps> = ({
       console.error("Transaction failed:", error);
       setIsApproving(false);
       setIsDepositing(false);
-
-      // Set a simplified error message
       setErrorMessage("Transaction failed");
     }
   };
@@ -545,12 +536,6 @@ const DepositView: React.FC<DepositViewProps> = ({
     }
   };
 
-  const handleSlippageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    if (/^\d*\.?\d*$/.test(value)) {
-      setSlippage(value);
-    }
-  };
 
   return (
     <div className="h-[calc(100vh-128px)] relative overflow-hidden">
