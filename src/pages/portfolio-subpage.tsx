@@ -463,11 +463,11 @@ const PortfolioSubpage: React.FC = () => {
           </div>
 
           {/* Column Headers */}
-          <div className="grid grid-cols-4 mb-4 px-4">
-            <div className="text-[#9C9DA2] font-inter text-[14px] font-medium">
+          <div className="grid grid-cols-12 mb-4 px-4">
+            <div className="text-[#9C9DA2] font-inter text-[14px] font-medium col-span-4">
               Available Yields
             </div>
-            <div className="text-[#9C9DA2] font-inter text-[14px] font-medium flex items-center">
+            <div className="text-[#9C9DA2] font-inter text-[14px] font-medium flex items-center col-span-3">
               Expiry
               <svg
                 className="ml-1"
@@ -480,7 +480,7 @@ const PortfolioSubpage: React.FC = () => {
                 <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
               </svg>
             </div>
-            <div className="text-[#9C9DA2] font-inter text-[14px] font-medium flex items-center">
+            <div className="text-[#9C9DA2] font-inter text-[14px] font-medium flex items-center col-span-2">
               Base APY
               <svg
                 className="ml-1"
@@ -493,7 +493,7 @@ const PortfolioSubpage: React.FC = () => {
                 <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
               </svg>
             </div>
-            <div className="text-[#9C9DA2] font-inter text-[14px] font-medium flex items-center justify-end">
+            <div className="text-[#9C9DA2] font-inter text-[14px] font-medium flex items-center justify-end col-span-3">
               Current Balance
               <svg
                 className="ml-1"
@@ -514,7 +514,7 @@ const PortfolioSubpage: React.FC = () => {
               strategiesWithBalance.map((strategy) => (
                 <div
                   key={`${strategy.asset}-${strategy.duration}-${strategy.type}`}
-                  className={`grid grid-cols-4 items-center p-4 rounded-lg ${
+                  className={`grid grid-cols-12 items-center p-4 rounded-lg ${
                     strategy.type === "stable" ? "bg-[#0D101C]" : "bg-[#090C17]"
                   } cursor-pointer hover:bg-[#161B2E] transition-colors ${
                     selectedStrategy?.contract === strategy.contract
@@ -524,7 +524,7 @@ const PortfolioSubpage: React.FC = () => {
                   onClick={() => handleStrategySelect(strategy)}
                 >
                   {/* Strategy Name */}
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 col-span-4">
                     <Image
                       src={`/images/icons/${strategy.asset.toLowerCase()}-${
                         strategy.type === "stable" ? "stable" : "incentive"
@@ -553,7 +553,7 @@ const PortfolioSubpage: React.FC = () => {
                   </div>
 
                   {/* Expiry */}
-                  <div className="flex flex-col">
+                  <div className="flex flex-col col-span-3">
                     <div className="text-[#D7E3EF] font-inter">
                       {strategy.duration === "PERPETUAL_DURATION"
                         ? "No Expiry"
@@ -567,12 +567,12 @@ const PortfolioSubpage: React.FC = () => {
                   </div>
 
                   {/* APY */}
-                  <div className="text-[#D7E3EF] font-inter font-semibold text-[16px]">
+                  <div className="text-[#D7E3EF] font-inter font-semibold text-[16px] col-span-2">
                     {strategy.apy}
                   </div>
 
                   {/* Balance */}
-                  <div className="flex flex-col items-end">
+                  <div className="flex flex-col items-end col-span-3">
                     <div className="text-[#D7E3EF] font-inter text-[16px] font-semibold">
                       ${strategy.balance.toFixed(2)}
                     </div>
@@ -690,7 +690,7 @@ const PortfolioSubpage: React.FC = () => {
                 </div>
 
                 <div className="flex justify-between py-4 mb-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] px-6 items-center">
-                  <div className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
+                  <div className="text-[#EDF2F8] font-inter text-[12px] font-normal leading-normal">
                     You Will Receive
                   </div>
                   <div className="text-[#EDF2F8] font-inter text-[16px] font-medium leading-normal">
