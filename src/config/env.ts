@@ -17,7 +17,7 @@ export const USD_STRATEGIES = {
     },
     INCENTIVE: {
       network: "Sonic",
-      contract: "0x2F7397FD2D49E5b636eF44503771B17EDEd67620",
+      contract: "0x2F7397FD7D49E5b636eF44503771B17EDEd67620",
       deposit_token: "USD.e",
       deposit_token_contract: "0x29219dd400f2bf60e5a23d13be72b486d4038894",
       description: "Perpetual incentivized USD strategy on Sonic network",
@@ -30,7 +30,7 @@ export const USD_STRATEGIES = {
   "30_DAYS": {
     STABLE: {
       network: "Sonic",
-      contract: "0x2F7397FD2D49E5b636eF44503771B17EDEd67620",
+      contract: "0x2F7397FD2D49E5b636eF44503771B17EDEd67621",
       deposit_token: "USD.e",
       deposit_token_contract: "0x29219dd400f2bf60e5a23d13be72b486d4038894",
       description: "30-day stable USD strategy on Sonic network",
@@ -41,7 +41,7 @@ export const USD_STRATEGIES = {
     },
     INCENTIVE: {
       network: "Sonic",
-      contract: "0x2F7397FD2D49E5b636eF44503771B17EDEd67620",
+      contract: "0x2F7397FD2D49E5b636eF44503771B17EDEd67621",
       deposit_token: "USD.e",
       deposit_token_contract: "0x29219dd400f2bf60e5a23d13be72b486d4038894",
       description: "30-day incentivized USD strategy on Sonic network",
@@ -54,7 +54,7 @@ export const USD_STRATEGIES = {
   "60_DAYS": {
     STABLE: {
       network: "Sonic",
-      contract: "0x2F7397FD2D49E5b636eF44503771B17EDEd67620",
+      contract: "0x2F7397FD2D49E5b636eF44503771B17EDEd67621",
       deposit_token: "USD.e",
       deposit_token_contract: "0x29219dd400f2bf60e5a23d13be72b486d4038894",
       description: "60-day stable USD strategy on Sonic network",
@@ -65,7 +65,7 @@ export const USD_STRATEGIES = {
     },
     INCENTIVE: {
       network: "Sonic",
-      contract: "0x2F7397FD2D49E5b636eF44503771B17EDEd67620",
+      contract: "0x2F7397FD2D49E5b636eF44503771B17EDEd67120",
       deposit_token: "USD.e",
       deposit_token_contract: "0x29219dd400f2bf60e5a23d13be72b486d4038894",
       description: "60-day incentivized USD strategy on Sonic network",
@@ -78,7 +78,7 @@ export const USD_STRATEGIES = {
   "180_DAYS": {
     STABLE: {
       network: "Sonic",
-      contract: "0x2F7397FD2D49E5b636eF44503771B17EDEd67620",
+      contract: "0x2F7397FD2D49E5b636eF44503711B17EDEd67620",
       deposit_token: "USD.e",
       deposit_token_contract: "0x29219dd400f2bf60e5a23d13be72b486d4038894",
       description: "180-day stable USD strategy on Sonic network",
@@ -89,7 +89,7 @@ export const USD_STRATEGIES = {
     },
     INCENTIVE: {
       network: "Sonic",
-      contract: "0x2F7397FD2D49E5b636eF44503771B17EDEd67620",
+      contract: "0x2F7397FD2D49E5b636eF14503771B17EDEd67620",
       deposit_token: "USD.e",
       deposit_token_contract: "0x29219dd400f2bf60e5a23d13be72b486d4038894",
       description: "180-day incentivized USD strategy on Sonic network",
@@ -105,7 +105,7 @@ export const BTC_STRATEGIES = {
   PERPETUAL_DURATION: {
     STABLE: {
       network: "Sonic",
-      contract: "0x2F7397FD2D49E5b636eF44503771B17EDEd67620",
+      contract: "0x2F7397FD2D49E5b626eF44503771B17EDEd67620",
       deposit_token: "BTC.e",
       deposit_token_contract: "0x29219dd400f2bf60e5a23d13be72b486d4038894",
       description: "Perpetual stable BTC strategy on Sonic network",

@@ -1,6 +1,25 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { useAccount, useTransaction } from "wagmi";
+import { useAccount, useTransaction, useReadContract } from "wagmi";
+import { USD_STRATEGIES, BTC_STRATEGIES, ETH_STRATEGIES } from "../config/env";
+import { type Address, createPublicClient, http, formatUnits } from "viem";
+
+const ERC20_ABI = [
+  {
+    name: "balanceOf",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "owner", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    name: "decimals",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint8" }],
+  },
+] as const;
 
 const PortfolioSubpage: React.FC = () => {
   const { address, isConnected } = useAccount();
@@ -10,6 +29,7 @@ const PortfolioSubpage: React.FC = () => {
   const [isApproved, setIsApproved] = useState(false);
   const [approvalHash, setApprovalHash] = useState<`0x${string}` | null>(null);
   const [isApproving, setIsApproving] = useState(false);
+  const [strategiesWithBalance, setStrategiesWithBalance] = useState<any[]>([]);
 
   // Watch deposit transaction
   const { isLoading: isWaitingForDeposit, isSuccess: isDepositSuccess } = useTransaction({
@@ -37,23 +57,100 @@ const PortfolioSubpage: React.FC = () => {
       if (isApprovalSuccess) {
         setIsApproved(true);
         setIsApproving(false);
-        // Automatically trigger deposit after approval
-        // handleDeposit(); // This line is commented out as it's causing an error due to undefined function
       } else {
         setIsApproving(false);
       }
     }
   }, [isWaitingForApproval, isApproving, isApprovalSuccess]);
 
-  const approveTx = async () => {
-    // Implement the approve function
-    // This is a placeholder and should be replaced with the actual implementation
-    // For now, we'll just set a temporary approval hash
-    const approveTx = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
-    if (typeof approveTx === 'string' && approveTx.startsWith('0x')) {
-      setApprovalHash(approveTx as `0x${string}`);
+  // Function to check balance for a strategy
+  const checkStrategyBalance = async (strategy: any) => {
+    if (!address) return 0;
+
+    try {
+      const client = createPublicClient({
+        transport: http(strategy.rpc),
+        chain: {
+          id: 146,
+          name: "Sonic",
+          network: "sonic",
+          nativeCurrency: {
+            decimals: 18,
+            name: "Sonic",
+            symbol: "S",
+          },
+          rpcUrls: {
+            default: { http: [strategy.rpc] },
+            public: { http: [strategy.rpc] },
+          },
+        },
+      });
+
+      const [balance, decimals] = await Promise.all([
+        client.readContract({
+          address: strategy.contract as Address,
+          abi: ERC20_ABI,
+          functionName: "balanceOf",
+          args: [address as Address],
+        }),
+        client.readContract({
+          address: strategy.contract as Address,
+          abi: ERC20_ABI,
+          functionName: "decimals",
+        }),
+      ]);
+
+      return parseFloat(formatUnits(balance as bigint, decimals as number));
+    } catch (error) {
+      console.error("Error checking balance:", error);
+      return 0;
     }
   };
+
+  // Check balances for all strategies
+  useEffect(() => {
+    const checkAllBalances = async () => {
+      if (!address) return;
+
+      const allStrategies = [
+        ...Object.entries(USD_STRATEGIES).flatMap(([duration, strategies]) =>
+          Object.entries(strategies).map(([type, strategy]) => ({
+            ...strategy,
+            duration,
+            type: type.toLowerCase(),
+            asset: "USD",
+          }))
+        ),
+        ...Object.entries(BTC_STRATEGIES).flatMap(([duration, strategies]) =>
+          Object.entries(strategies).map(([type, strategy]) => ({
+            ...strategy,
+            duration,
+            type: type.toLowerCase(),
+            asset: "BTC",
+          }))
+        ),
+        ...Object.entries(ETH_STRATEGIES).flatMap(([duration, strategies]) =>
+          Object.entries(strategies).map(([type, strategy]) => ({
+            ...strategy,
+            duration,
+            type: type.toLowerCase(),
+            asset: "ETH",
+          }))
+        ),
+      ];
+
+      const strategiesWithBalances = await Promise.all(
+        allStrategies.map(async (strategy) => {
+          const balance = await checkStrategyBalance(strategy);
+          return { ...strategy, balance };
+        })
+      );
+
+      setStrategiesWithBalance(strategiesWithBalances.filter((s) => s.balance > 0));
+    };
+
+    checkAllBalances();
+  }, [address]);
 
   return (
     <div className="flex flex-col min-h-screen text-white">
@@ -66,7 +163,7 @@ const PortfolioSubpage: React.FC = () => {
                 Portfolio
               </div>
               <div className="text-[#D7E3EF] font-inter text-[24px] font-semibold leading-normal mt-1">
-                $12,456.89
+                ${strategiesWithBalance.reduce((sum, s) => sum + s.balance, 0).toFixed(2)}
               </div>
             </div>
             <div className="flex flex-col">
@@ -74,7 +171,7 @@ const PortfolioSubpage: React.FC = () => {
                 PNL
               </div>
               <div className="text-[#00D1A0] font-inter text-[16px] font-normal leading-normal mt-1">
-                1653(15%)
+                {strategiesWithBalance.reduce((sum, s) => sum + (s.balance * 0.1), 0).toFixed(2)}(10%)
               </div>
             </div>
           </div>
@@ -101,71 +198,39 @@ const PortfolioSubpage: React.FC = () => {
 
           {/* Asset List */}
           <div className="space-y-4">
-            {/* Base Yield ETH */}
-            <div className="bg-[#0D101C] rounded-lg p-4">
-              <div className="flex items-center gap-4 mb-3">
-                <Image
-                  src="/images/icons/eth-stable.svg"
-                  alt="ETH"
-                  width={32}
-                  height={32}
-                />
-                <div>
-                  <div className="text-[#D7E3EF] font-semibold">
-                    Base Yield ETH
-                  </div>
-                  <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-[16px]">
-                    +0.00 in 1 year
+            {strategiesWithBalance.map((strategy) => (
+              <div key={`${strategy.asset}-${strategy.duration}-${strategy.type}`} className="bg-[#0D101C] rounded-lg p-4">
+                <div className="flex items-center gap-4 mb-3">
+                  <Image
+                    src={`/images/icons/${strategy.asset.toLowerCase()}-${strategy.type === 'stable' ? 'stable' : 'incentive'}.svg`}
+                    alt={strategy.asset}
+                    width={32}
+                    height={32}
+                  />
+                  <div>
+                    <div className="text-[#D7E3EF] font-semibold">
+                      {strategy.asset} {strategy.type === 'stable' ? 'Stable' : 'Incentive'} {strategy.duration.replace('_', ' ')}
+                    </div>
+                    <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-[16px]">
+                      +{strategy.balance * 0.1} in 1 year
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <div className="text-[#D7E3EF] font-inter text-[24px] font-semibold leading-normal">
-                  $115,447.00
-                </div>
-                <div className="flex items-baseline">
-                  <span className="text-[#22C55E] font-inter text-[24px] font-semibold leading-normal">
-                    $100.00
-                  </span>
-                  <span className="text-[#00D1A0] font-inter text-[16px] font-normal leading-normal ml-1">
-                    (10%)
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Incentive Maxi ETH */}
-            <div className="bg-[#0D101C] rounded-lg p-4">
-              <div className="flex items-center gap-4 mb-3">
-                <Image
-                  src="/images/icons/eth-incentive.svg"
-                  alt="ETH"
-                  width={32}
-                  height={32}
-                />
-                <div>
-                  <div className="text-[#D7E3EF] font-semibold">
-                    Incentive Maxi ETH
+                <div className="flex justify-between items-center">
+                  <div className="text-[#D7E3EF] font-inter text-[24px] font-semibold leading-normal">
+                    ${strategy.balance.toFixed(2)}
                   </div>
-                  <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-[16px]">
-                    +0.00 in 1 year
+                  <div className="flex items-baseline">
+                    <span className={`text-[${strategy.balance * 0.1 >= 0 ? '#22C55E' : '#EF4444'}] font-inter text-[24px] font-semibold leading-normal`}>
+                      ${(strategy.balance * 0.1).toFixed(2)}
+                    </span>
+                    <span className="text-[#00D1A0] font-inter text-[16px] font-normal leading-normal ml-1">
+                      (10%)
+                    </span>
                   </div>
                 </div>
               </div>
-              <div className="flex justify-between items-center">
-                <div className="text-[#D7E3EF] font-inter text-[24px] font-semibold leading-normal">
-                  $343,504,807.10
-                </div>
-                <div className="flex items-baseline">
-                  <span className="text-[#EF4444] font-inter text-[24px] font-semibold leading-normal">
-                    -$100.00
-                  </span>
-                  <span className="text-[#00D1A0] font-inter text-[16px] font-normal leading-normal ml-1">
-                    (10%)
-                  </span>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 
