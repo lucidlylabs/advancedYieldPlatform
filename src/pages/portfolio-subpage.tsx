@@ -171,7 +171,7 @@ const PortfolioSubpage: React.FC = () => {
                 PNL
               </div>
               <div className="text-[#00D1A0] font-inter text-[16px] font-normal leading-normal mt-1">
-                {strategiesWithBalance.reduce((sum, s) => sum + (s.balance * 0.1), 0).toFixed(2)}(10%)
+                {strategiesWithBalance.reduce((sum, s) => sum + (s.balance * parseFloat(s.apy?.replace('%', '') || '0') / 100), 0).toFixed(2)}({strategiesWithBalance.length > 0 ? 'Avg ' + (strategiesWithBalance.reduce((sum, s) => sum + parseFloat(s.apy?.replace('%', '') || '0'), 0) / strategiesWithBalance.length).toFixed(1) + '%' : '0%'})
               </div>
             </div>
           </div>
@@ -188,7 +188,7 @@ const PortfolioSubpage: React.FC = () => {
 
       {/* Main Content - Split View */}
       <div className="flex flex-1">
-        {/* Left Side - Assets */}
+        {/* Left Side - Assets Table */}
         <div className="w-1/2 border-r border-[rgba(255,255,255,0.1)] p-8">
           <div className="mb-6">
             <h2 className="text-[#D7E3EF] text-xl font-semibold mb-2">
@@ -196,41 +196,119 @@ const PortfolioSubpage: React.FC = () => {
             </h2>
           </div>
 
-          {/* Asset List */}
-          <div className="space-y-4">
-            {strategiesWithBalance.map((strategy) => (
-              <div key={`${strategy.asset}-${strategy.duration}-${strategy.type}`} className="bg-[#0D101C] rounded-lg p-4">
-                <div className="flex items-center gap-4 mb-3">
-                  <Image
-                    src={`/images/icons/${strategy.asset.toLowerCase()}-${strategy.type === 'stable' ? 'stable' : 'incentive'}.svg`}
-                    alt={strategy.asset}
-                    width={32}
-                    height={32}
-                  />
-                  <div>
-                    <div className="text-[#D7E3EF] font-semibold">
-                      {strategy.asset} {strategy.type === 'stable' ? 'Stable' : 'Incentive'} {strategy.duration.replace('_', ' ')}
+          {/* Column Headers */}
+          <div className="grid grid-cols-4 mb-4 px-4">
+            <div className="text-[#9C9DA2] font-inter text-[14px] font-medium">
+              Available Yields
+            </div>
+            <div className="text-[#9C9DA2] font-inter text-[14px] font-medium flex items-center">
+              Expiry
+              <svg
+                className="ml-1"
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M8 10.667L4 6.66699H12L8 10.667Z"
+                  fill="#9C9DA2"
+                />
+              </svg>
+            </div>
+            <div className="text-[#9C9DA2] font-inter text-[14px] font-medium flex items-center">
+              Base APY
+              <svg
+                className="ml-1"
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M8 10.667L4 6.66699H12L8 10.667Z"
+                  fill="#9C9DA2"
+                />
+              </svg>
+            </div>
+            <div className="text-[#9C9DA2] font-inter text-[14px] font-medium flex items-center justify-end">
+              Current Balance
+              <svg
+                className="ml-1"
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M8 10.667L4 6.66699H12L8 10.667Z"
+                  fill="#9C9DA2"
+                />
+              </svg>
+            </div>
+          </div>
+
+          {/* Strategy Rows */}
+          <div className="flex flex-col space-y-1 max-h-[calc(100vh-280px)] overflow-y-auto">
+            {strategiesWithBalance.length > 0 ? (
+              strategiesWithBalance.map((strategy) => (
+                <div 
+                  key={`${strategy.asset}-${strategy.duration}-${strategy.type}`} 
+                  className={`grid grid-cols-4 items-center p-4 rounded-lg ${strategy.type === 'stable' ? 'bg-[#0D101C]' : 'bg-[#090C17]'} cursor-pointer hover:bg-[#161B2E] transition-colors`}
+                  onClick={() => {/* Handle selection */}}
+                >
+                  {/* Strategy Name */}
+                  <div className="flex items-center gap-4">
+                    <Image
+                      src={`/images/icons/${strategy.asset.toLowerCase()}-${strategy.type === 'stable' ? 'stable' : 'incentive'}.svg`}
+                      alt={strategy.asset}
+                      width={32}
+                      height={32}
+                    />
+                    <div>
+                      <div className="text-[#D7E3EF] font-semibold">
+                        {strategy.type === 'stable' ? 'Base Yield' : 'Incentive Maxi'} {strategy.asset}
+                      </div>
+                      <div className="text-[#00D1A0] font-inter text-[14px] font-normal">
+                        +{(strategy.balance * parseFloat(strategy.apy?.replace('%', '') || '0') / 100).toFixed(2)} in 1 year
+                      </div>
                     </div>
-                    <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-[16px]">
-                      +{strategy.balance * 0.1} in 1 year
+                  </div>
+
+                  {/* Expiry */}
+                  <div className="flex flex-col">
+                    <div className="text-[#D7E3EF] font-inter">
+                      {strategy.duration === 'PERPETUAL_DURATION' ? 'No Expiry' : '29th March 2025'}
+                    </div>
+                    <div className="text-[#9C9DA2] font-inter text-[14px]">
+                      {strategy.duration === 'PERPETUAL_DURATION' ? 'Perpetual' : '20 days to Expire'}
+                    </div>
+                  </div>
+
+                  {/* APY */}
+                  <div className="text-[#D7E3EF] font-inter font-semibold text-[16px]">
+                    {strategy.apy}
+                  </div>
+
+                  {/* Balance */}
+                  <div className="flex flex-col items-end">
+                    <div className="text-[#D7E3EF] font-inter text-[16px] font-semibold">
+                      ${strategy.balance.toFixed(2)}
+                    </div>
+                    <div className={`${parseFloat(strategy.apy?.replace('%', '') || '0') >= 0 ? 'text-[#00D1A0]' : 'text-[#EF4444]'} font-inter text-[14px]`}>
+                      ${(strategy.balance * parseFloat(strategy.apy?.replace('%', '') || '0') / 100).toFixed(2)} ({strategy.apy})
                     </div>
                   </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <div className="text-[#D7E3EF] font-inter text-[24px] font-semibold leading-normal">
-                    ${strategy.balance.toFixed(2)}
-                  </div>
-                  <div className="flex items-baseline">
-                    <span className={`text-[${strategy.balance * 0.1 >= 0 ? '#22C55E' : '#EF4444'}] font-inter text-[24px] font-semibold leading-normal`}>
-                      ${(strategy.balance * 0.1).toFixed(2)}
-                    </span>
-                    <span className="text-[#00D1A0] font-inter text-[16px] font-normal leading-normal ml-1">
-                      (10%)
-                    </span>
-                  </div>
-                </div>
+              ))
+            ) : (
+              <div className="text-center py-12 text-[#9C9DA2]">
+                No assets found in your portfolio. Deposit assets to get started.
               </div>
-            ))}
+            )}
           </div>
         </div>
 
