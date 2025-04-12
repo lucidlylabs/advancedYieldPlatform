@@ -79,6 +79,7 @@ const PortfolioSubpage: React.FC = () => {
     null
   );
   const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Watch deposit transaction
   const { isLoading: isWaitingForDeposit, isSuccess: isDepositSuccess } =
@@ -269,6 +270,7 @@ const PortfolioSubpage: React.FC = () => {
 
     try {
       setIsWithdrawing(true);
+      setErrorMessage(null);
 
       // Get the contract address from the selected strategy
       const contractAddress = selectedStrategy.contract as Address;
@@ -332,13 +334,12 @@ const PortfolioSubpage: React.FC = () => {
       } catch (error) {
         console.error("Contract call failed:", error);
         setIsWithdrawing(false);
-        // Show error to user
-        alert("Withdrawal failed. Please try again.");
+        setErrorMessage("Transaction failed. Please try again.");
       }
     } catch (error) {
       console.error("Error withdrawing:", error);
       setIsWithdrawing(false);
-      alert("Error preparing withdrawal. Please try again.");
+      setErrorMessage("Error preparing withdrawal. Please try again.");
     }
   };
 
@@ -520,7 +521,11 @@ const PortfolioSubpage: React.FC = () => {
                 <div
                   key={`${strategy.asset}-${strategy.duration}-${strategy.type}`}
                   className={`grid grid-cols-12 items-center py-4 pl-4 pr-6 relative ${
-                    index % 2 === 0 ? "bg-transparent" : strategy.type === "stable" ? "bg-[#0D101C]" : "bg-[#090C17]"
+                    index % 2 === 0
+                      ? "bg-transparent"
+                      : strategy.type === "stable"
+                      ? "bg-[#0D101C]"
+                      : "bg-[#090C17]"
                   } cursor-pointer transition-colors group`}
                   onClick={() => handleStrategySelect(strategy)}
                 >
@@ -721,30 +726,63 @@ const PortfolioSubpage: React.FC = () => {
                     parseFloat(withdrawAmount) > selectedStrategy.balance
                   }
                 >
-                  {isWithdrawing ? "Withdrawing..." : "Withdraw"}
+                  {isWithdrawing ? (
+                    <>
+                      <svg
+                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#9C9DA2]"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Transaction in Progress
+                    </>
+                  ) : (
+                    "Withdraw"
+                  )}
                 </button>
-              </div>
-
-              {isWithdrawing && (
-                <div className="mt-4 bg-[#13161F] rounded-lg p-4">
-                  <div className="flex justify-between mb-2">
-                    <div className="text-[#9C9DA2]">Transaction InProgress</div>
-                    <div className="text-[#B88AF8]">
+                {errorMessage && (
+                  <div className="flex justify-between items-center mt-4 bg-[rgba(239,68,68,0.1)] rounded-[4px] p-4">
+                    <div className="text-[#EF4444] font-inter text-[14px]">
+                      Transaction Failed
+                    </div>
+                    <div className="text-[#EF4444] font-inter text-[14px] underline">
                       #
                       {withdrawTxHash
                         ? withdrawTxHash.substring(0, 8) + "..."
                         : ""}
                     </div>
                   </div>
-                  {/* Progress indicator */}
-                  <div className="w-full h-1 bg-[#2D2F3D] rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-[#B88AF8] animate-pulse"
-                      style={{ width: "75%" }}
-                    ></div>
+                )}
+                {!errorMessage && withdrawTxHash && isWithdrawSuccess && (
+                  <div className="flex justify-between items-center mt-4 bg-[rgba(0,209,160,0.1)] rounded-[4px] p-4">
+                    <div className="text-[#00D1A0] font-inter text-[14px]">
+                      Transaction Successful
+                    </div>
+                    <a
+                      href={`https://sonicscan.org/tx/${withdrawTxHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#00D1A0] font-inter text-[14px] underline hover:text-[#00D1A0]/80"
+                    >
+                      #{withdrawTxHash.substring(0, 8)}...
+                    </a>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
               <div className="mt-2">
                 <div className="text-[#9C9DA2] text-[14px] rounded-[4px] bg-[rgba(255,255,255,0.02)] p-[24px]">
