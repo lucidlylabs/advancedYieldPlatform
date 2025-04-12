@@ -79,6 +79,7 @@ const PortfolioSubpage: React.FC = () => {
     null
   );
   const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Watch deposit transaction
   const { isLoading: isWaitingForDeposit, isSuccess: isDepositSuccess } =
@@ -147,7 +148,10 @@ const PortfolioSubpage: React.FC = () => {
 
     try {
       // Validate contract address
-      if (!strategy.contract || strategy.contract === "0x0000000000000000000000000000000000000000") {
+      if (
+        !strategy.contract ||
+        strategy.contract === "0x0000000000000000000000000000000000000000"
+      ) {
         console.warn("Invalid contract address for strategy:", strategy);
         return 0;
       }
@@ -224,13 +228,15 @@ const PortfolioSubpage: React.FC = () => {
 
       // Filter out strategies with invalid contract addresses
       const validStrategies = allStrategies.filter(
-        (strategy) => 
-          strategy.contract && 
+        (strategy) =>
+          strategy.contract &&
           strategy.contract !== "0x0000000000000000000000000000000000000000"
       );
 
       if (validStrategies.length === 0) {
-        console.warn("No valid strategies found with proper contract addresses");
+        console.warn(
+          "No valid strategies found with proper contract addresses"
+        );
         setStrategiesWithBalance([]);
         return;
       }
@@ -264,6 +270,7 @@ const PortfolioSubpage: React.FC = () => {
 
     try {
       setIsWithdrawing(true);
+      setErrorMessage(null);
 
       // Get the contract address from the selected strategy
       const contractAddress = selectedStrategy.contract as Address;
@@ -327,13 +334,12 @@ const PortfolioSubpage: React.FC = () => {
       } catch (error) {
         console.error("Contract call failed:", error);
         setIsWithdrawing(false);
-        // Show error to user
-        alert("Withdrawal failed. Please try again.");
+        setErrorMessage("Transaction failed. Please try again.");
       }
     } catch (error) {
       console.error("Error withdrawing:", error);
       setIsWithdrawing(false);
-      alert("Error preparing withdrawal. Please try again.");
+      setErrorMessage("Error preparing withdrawal. Please try again.");
     }
   };
 
@@ -455,7 +461,7 @@ const PortfolioSubpage: React.FC = () => {
       {/* Main Content - Split View */}
       <div className="flex flex-1">
         {/* Left Side - Assets Table */}
-        <div className="w-1/2 border-r border-[rgba(255,255,255,0.1)] p-8">
+        <div className="w-1/2 border-r border-[rgba(255,255,255,0.1)] pt-8 pl-8">
           <div className="mb-6">
             <div className="text-[rgba(255,255,255,0.70)] font-inter text-[16px] font-bold uppercase">
               Total Portfolio Value
@@ -463,7 +469,7 @@ const PortfolioSubpage: React.FC = () => {
           </div>
 
           {/* Column Headers */}
-          <div className="grid grid-cols-12 mb-4 px-4">
+          <div className="grid grid-cols-12 pl-4 pr-6 py-2 border-b border-[rgba(255,255,255,0.15)]">
             <div className="text-[#9C9DA2] font-inter text-[14px] font-medium col-span-4">
               Available Yields
             </div>
@@ -509,20 +515,27 @@ const PortfolioSubpage: React.FC = () => {
           </div>
 
           {/* Strategy Rows */}
-          <div className="flex flex-col space-y-1 max-h-[calc(100vh-280px)] overflow-y-auto">
+          <div className="flex flex-col max-h-[calc(100vh-280px)] overflow-y-auto">
             {strategiesWithBalance.length > 0 ? (
-              strategiesWithBalance.map((strategy) => (
+              strategiesWithBalance.map((strategy, index) => (
                 <div
                   key={`${strategy.asset}-${strategy.duration}-${strategy.type}`}
-                  className={`grid grid-cols-12 items-center p-4 rounded-lg ${
-                    strategy.type === "stable" ? "bg-[#0D101C]" : "bg-[#090C17]"
-                  } cursor-pointer hover:bg-[#161B2E] transition-colors ${
-                    selectedStrategy?.contract === strategy.contract
-                      ? "border border-[#B88AF8]"
-                      : ""
-                  }`}
+                  className={`grid grid-cols-12 items-center py-4 pl-4 pr-6 relative ${
+                    index % 2 === 0
+                      ? "bg-transparent"
+                      : strategy.type === "stable"
+                      ? "bg-[#0D101C]"
+                      : "bg-[#090C17]"
+                  } cursor-pointer transition-colors group`}
                   onClick={() => handleStrategySelect(strategy)}
                 >
+                  <div
+                    className={`absolute left-0 top-0 h-full w-1/4 bg-gradient-to-r from-[rgba(0,209,160,0.15)] to-[rgba(153,153,153,0)] opacity-0 group-hover:opacity-100 ${
+                      selectedStrategy?.contract === strategy.contract
+                        ? "opacity-100"
+                        : ""
+                    }`}
+                  ></div>
                   {/* Strategy Name */}
                   <div className="flex items-center gap-4 col-span-4">
                     <Image
@@ -534,13 +547,13 @@ const PortfolioSubpage: React.FC = () => {
                       height={32}
                     />
                     <div>
-                      <div className="text-[#D7E3EF] font-semibold">
+                      <div className="text-[#EDF2F8] font-inter text-[12px] font-normal leading-normal">
                         {strategy.type === "stable"
                           ? "Base Yield"
                           : "Incentive Maxi"}{" "}
                         {strategy.asset}
                       </div>
-                      <div className="text-[#00D1A0] font-inter text-[14px] font-normal">
+                      <div className="text-[#00D1A0] font-inter text-[12px] font-normal">
                         +
                         {(
                           (strategy.balance *
@@ -554,12 +567,12 @@ const PortfolioSubpage: React.FC = () => {
 
                   {/* Expiry */}
                   <div className="flex flex-col col-span-3">
-                    <div className="text-[#D7E3EF] font-inter">
+                    <div className="text-[#EDF2F8] font-inter text-[12px] font-normal leading-normal">
                       {strategy.duration === "PERPETUAL_DURATION"
                         ? "No Expiry"
                         : "29th March 2025"}
                     </div>
-                    <div className="text-[#9C9DA2] font-inter text-[14px]">
+                    <div className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
                       {strategy.duration === "PERPETUAL_DURATION"
                         ? "Perpetual"
                         : "20 days to Expire"}
@@ -567,13 +580,13 @@ const PortfolioSubpage: React.FC = () => {
                   </div>
 
                   {/* APY */}
-                  <div className="text-[#D7E3EF] font-inter font-semibold text-[16px] col-span-2">
+                  <div className="text-[#EDF2F8] font-inter text-[12px] font-normal leading-normal col-span-2 flex items-center justify-center">
                     {strategy.apy}
                   </div>
 
                   {/* Balance */}
                   <div className="flex flex-col items-end col-span-3">
-                    <div className="text-[#D7E3EF] font-inter text-[16px] font-semibold">
+                    <div className="text-[#EDF2F8] font-inter text-[12px] font-normal leading-normal">
                       ${strategy.balance.toFixed(2)}
                     </div>
                     <div
@@ -581,7 +594,7 @@ const PortfolioSubpage: React.FC = () => {
                         parseFloat(strategy.apy?.replace("%", "") || "0") >= 0
                           ? "text-[#00D1A0]"
                           : "text-[#EF4444]"
-                      } font-inter text-[14px]`}
+                      } font-inter text-[12px] font-normal leading-normal`}
                     >
                       $
                       {(
@@ -713,37 +726,70 @@ const PortfolioSubpage: React.FC = () => {
                     parseFloat(withdrawAmount) > selectedStrategy.balance
                   }
                 >
-                  {isWithdrawing ? "Withdrawing..." : "Withdraw"}
+                  {isWithdrawing ? (
+                    <>
+                      <svg
+                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#9C9DA2]"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Transaction in Progress
+                    </>
+                  ) : (
+                    "Withdraw"
+                  )}
                 </button>
-              </div>
-
-              {isWithdrawing && (
-                <div className="mt-4 bg-[#13161F] rounded-lg p-4">
-                  <div className="flex justify-between mb-2">
-                    <div className="text-[#9C9DA2]">Transaction InProgress</div>
-                    <div className="text-[#B88AF8]">
+                {errorMessage && (
+                  <div className="flex justify-between items-center mt-4 bg-[rgba(239,68,68,0.1)] rounded-[4px] p-4">
+                    <div className="text-[#EF4444] font-inter text-[14px]">
+                      Transaction Failed
+                    </div>
+                    <div className="text-[#EF4444] font-inter text-[14px] underline">
                       #
                       {withdrawTxHash
                         ? withdrawTxHash.substring(0, 8) + "..."
                         : ""}
                     </div>
                   </div>
-                  {/* Progress indicator */}
-                  <div className="w-full h-1 bg-[#2D2F3D] rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-[#B88AF8] animate-pulse"
-                      style={{ width: "75%" }}
-                    ></div>
+                )}
+                {!errorMessage && withdrawTxHash && isWithdrawSuccess && (
+                  <div className="flex justify-between items-center mt-4 bg-[rgba(0,209,160,0.1)] rounded-[4px] p-4">
+                    <div className="text-[#00D1A0] font-inter text-[14px]">
+                      Transaction Successful
+                    </div>
+                    <a
+                      href={`https://sonicscan.org/tx/${withdrawTxHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#00D1A0] font-inter text-[14px] underline hover:text-[#00D1A0]/80"
+                    >
+                      #{withdrawTxHash.substring(0, 8)}...
+                    </a>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
               <div className="mt-2">
                 <div className="text-[#9C9DA2] text-[14px] rounded-[4px] bg-[rgba(255,255,255,0.02)] p-[24px]">
                   <strong>Note:</strong> By withdrawing, your vault shares will
                   be converted into the underlying asset, subject to the current
-                  market rates. s. Withdrawal amounts are calculated based on
-                  the latest market rates and may vary slightly due to price
+                  market rates. Withdrawal amounts are calculated based on the
+                  latest market rates and may vary slightly due to price
                   fluctuations.
                 </div>
               </div>
