@@ -199,6 +199,7 @@ const PortfolioSubpage: React.FC = () => {
     if (!address) return;
 
     try {
+      setIsRefreshingBalance(true);
       const allStrategies = [
         ...Object.entries(USD_STRATEGIES).flatMap(([duration, strategies]) =>
           Object.entries(strategies).map(([type, strategy]) => ({
@@ -254,6 +255,8 @@ const PortfolioSubpage: React.FC = () => {
     } catch (error) {
       console.error("Error checking all balances:", error);
       throw error;
+    } finally {
+      setIsRefreshingBalance(false);
     }
   };
 
@@ -365,13 +368,6 @@ const PortfolioSubpage: React.FC = () => {
   const handleMaxClick = () => {
     if (selectedStrategy) {
       setWithdrawAmount(selectedStrategy.balance.toString());
-    }
-  };
-
-  const handleSlippageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    if (/^\d*\.?\d*$/.test(value)) {
-      setSlippage(value);
     }
   };
 
@@ -516,7 +512,19 @@ const PortfolioSubpage: React.FC = () => {
 
           {/* Strategy Rows */}
           <div className="flex flex-col max-h-[calc(100vh-280px)] overflow-y-auto">
-            {strategiesWithBalance.length > 0 ? (
+            {isRefreshingBalance ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <Image
+                  src="/images/background/loader.gif"
+                  alt="Loading..."
+                  width={200}
+                  height={200}
+                />
+                <div className="text-[#9C9DA2] mt-4">
+                  Loading your portfolio...
+                </div>
+              </div>
+            ) : strategiesWithBalance.length > 0 ? (
               strategiesWithBalance.map((strategy, index) => (
                 <div
                   key={`${strategy.asset}-${strategy.duration}-${strategy.type}`}
