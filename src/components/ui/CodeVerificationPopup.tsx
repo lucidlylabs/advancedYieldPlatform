@@ -4,20 +4,23 @@ interface CodeVerificationPopupProps {
   isOpen: boolean;
   onClose: () => void;
   onVerify: (code: string) => void;
+  error?: string;
 }
 
 const CodeVerificationPopup: React.FC<CodeVerificationPopupProps> = ({
   isOpen,
   onClose,
   onVerify,
+  error: externalError,
 }) => {
   const [code, setCode] = useState('');
-  const [error, setError] = useState('');
+  const [internalError, setInternalError] = useState('');
+  const error = externalError || internalError;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (code.length === 0) {
-      setError('Please enter a code');
+      setInternalError('Please enter a code');
       return;
     }
     onVerify(code);
@@ -44,13 +47,15 @@ const CodeVerificationPopup: React.FC<CodeVerificationPopupProps> = ({
               value={code}
               onChange={(e) => {
                 setCode(e.target.value);
-                setError('');
+                setInternalError('');
               }}
               placeholder="Enter your code"
-              className="w-full px-4 py-3 rounded-lg bg-[#2A2A2A] text-white border border-[#3A3A3A] focus:border-[#B88AF8] focus:outline-none"
+              className={`w-full px-4 py-3 rounded-lg bg-[#2A2A2A] text-white border ${
+                error ? 'border-red-500' : 'border-[#3A3A3A]'
+              } focus:border-[#B88AF8] focus:outline-none`}
             />
             {error && (
-              <p className="text-red-500 text-sm mt-1">{error}</p>
+              <p className="text-red-500 text-sm mt-2">{error}</p>
             )}
           </div>
           

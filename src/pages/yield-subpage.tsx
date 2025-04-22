@@ -134,6 +134,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
   const [selectedStrategy, setSelectedStrategy] = useState<SelectedStrategy | null>(null);
   const [isCodePopupOpen, setIsCodePopupOpen] = useState(true);
   const [isVerified, setIsVerified] = useState(false);
+  const [error, setError] = useState('');
 
   // Add effect to handle URL parameters or parent navigation
   useEffect(() => {
@@ -195,8 +196,9 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
     if (code === "1234") { // Example code
       setIsVerified(true);
       setIsCodePopupOpen(false);
+      setError('');
     } else {
-      alert("Invalid code. Please try again.");
+      setError('Incorrect code. Please try again.');
     }
   };
 
@@ -204,8 +206,12 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
     return (
       <CodeVerificationPopup
         isOpen={isCodePopupOpen}
-        onClose={() => setIsCodePopupOpen(false)}
+        onClose={() => {
+          setIsCodePopupOpen(false);
+          setError('');
+        }}
         onVerify={handleVerifyCode}
+        error={error}
       />
     );
   }
