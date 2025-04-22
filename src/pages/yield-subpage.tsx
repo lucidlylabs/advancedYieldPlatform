@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { CustomCard } from "@/components/ui/card";
 import DepositView from "@/components/deposit-view";
 import { USD_STRATEGIES, BTC_STRATEGIES, ETH_STRATEGIES } from "../config/env";
-import CodeVerificationPopup from "@/components/ui/CodeVerificationPopup";
 
 type DurationType = "30_DAYS" | "60_DAYS" | "180_DAYS" | "PERPETUAL_DURATION";
 type StrategyType = "STABLE" | "INCENTIVE";
@@ -132,21 +131,15 @@ const getStrategyInfo = (duration: DurationType): StrategyData => {
 const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
   const [selectedAsset, setSelectedAsset] = useState<SelectedAsset | null>(null);
   const [selectedStrategy, setSelectedStrategy] = useState<SelectedStrategy | null>(null);
-  const [isCodePopupOpen, setIsCodePopupOpen] = useState(true);
-  const [isVerified, setIsVerified] = useState(false);
-  const [error, setError] = useState('');
 
   // Add effect to handle URL parameters or parent navigation
   useEffect(() => {
-    // Check if we have depositParams from parent
     if (depositParams?.asset && depositParams?.duration) {
-      // Set the selected asset first
       setSelectedAsset({
         asset: depositParams.asset,
         duration: depositParams.duration as DurationType,
       });
 
-      // If we also have a strategy, set that too
       if (depositParams.strategy) {
         const strategyInfo = getStrategyInfo(
           depositParams.duration as DurationType
@@ -164,7 +157,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
         });
       }
     }
-  }, [depositParams]); // Run when depositParams changes
+  }, [depositParams]);
 
   const handleDurationSelect = (asset: string, duration: DurationType) => {
     setSelectedAsset({ asset, duration });
@@ -191,31 +184,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
     setSelectedStrategy(null);
   };
 
-  const handleVerifyCode = (code: string) => {
-    // Compare with environment variable
-    if (code === process.env.NEXT_PUBLIC_BETA_ACCESS_CODE) { 
-      setIsVerified(true);
-      setIsCodePopupOpen(false);
-      setError('');
-    } else {
-      setError('Incorrect code. Please try again.');
-    }
-  };
-
-  if (!isVerified) {
-    return (
-      <CodeVerificationPopup
-        isOpen={isCodePopupOpen}
-        onClose={() => {
-          setIsCodePopupOpen(false);
-          setError('');
-        }}
-        onVerify={handleVerifyCode}
-        error={error}
-      />
-    );
-  }
-
+  // Always render the main content, assuming verification is handled by parent
   return (
     <div
       className="min-h-[calc(100vh-98px)] relative"
