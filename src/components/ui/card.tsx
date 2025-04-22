@@ -79,6 +79,7 @@ const CustomCard: React.FC<CustomCardProps> = ({
   return (
     <div
       className={cn(
+        "opacity-80",
         "relative overflow-hidden rounded-[4px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.02)] text-card-foreground shadow-sm flex flex-col group transition-all duration-300 ease-out cursor-pointer",
         isStrategyCard
           ? "w-[247px] h-[263px] justify-center items-center gap-[10px]"
