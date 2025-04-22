@@ -417,7 +417,7 @@ const PortfolioSubpage: React.FC = () => {
               <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-[16px]">
                 PNL
               </div>
-              <div className="text-[#00D1A0] font-inter text-[16px] font-normal leading-normal mt-1">
+              <div className="text-[#00D1A0] font-inter text-[16px] font-normal leading-normal mt-3">
                 {strategiesWithBalance
                   .reduce(
                     (sum, s) =>
