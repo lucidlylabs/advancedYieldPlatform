@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { CustomCard } from "@/components/ui/card";
 import DepositView from "@/components/deposit-view";
 import { USD_STRATEGIES, BTC_STRATEGIES, ETH_STRATEGIES } from "../config/env";
+import CodeVerificationPopup from "@/components/ui/CodeVerificationPopup";
 
 type DurationType = "30_DAYS" | "60_DAYS" | "180_DAYS" | "PERPETUAL_DURATION";
 type StrategyType = "STABLE" | "INCENTIVE";
@@ -129,11 +130,11 @@ const getStrategyInfo = (duration: DurationType): StrategyData => {
 };
 
 const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
-  const [selectedAsset, setSelectedAsset] = useState<SelectedAsset | null>(
-    null
-  );
-  const [selectedStrategy, setSelectedStrategy] =
-    useState<SelectedStrategy | null>(null);
+  const [selectedAsset, setSelectedAsset] = useState<SelectedAsset | null>(null);
+  const [selectedStrategy, setSelectedStrategy] = useState<SelectedStrategy | null>(null);
+  const [isCodePopupOpen, setIsCodePopupOpen] = useState(true);
+  const [isVerified, setIsVerified] = useState(false);
+  const [error, setError] = useState('');
 
   // Add effect to handle URL parameters or parent navigation
   useEffect(() => {
@@ -189,6 +190,31 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
     setSelectedAsset(null);
     setSelectedStrategy(null);
   };
+
+  const handleVerifyCode = (code: string) => {
+    // Compare with environment variable
+    if (code === process.env.NEXT_PUBLIC_BETA_ACCESS_CODE) { 
+      setIsVerified(true);
+      setIsCodePopupOpen(false);
+      setError('');
+    } else {
+      setError('Incorrect code. Please try again.');
+    }
+  };
+
+  if (!isVerified) {
+    return (
+      <CodeVerificationPopup
+        isOpen={isCodePopupOpen}
+        onClose={() => {
+          setIsCodePopupOpen(false);
+          setError('');
+        }}
+        onVerify={handleVerifyCode}
+        error={error}
+      />
+    );
+  }
 
   return (
     <div

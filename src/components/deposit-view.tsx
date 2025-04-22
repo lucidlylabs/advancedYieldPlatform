@@ -183,9 +183,11 @@ const DepositView: React.FC<DepositViewProps> = ({
     ETH: ETH_STRATEGIES,
   };
 
-  const strategyConfig = strategyConfigs[
-    selectedAsset as keyof typeof strategyConfigs
-  ][duration as keyof typeof USD_STRATEGIES][
+  // Explicitly access the strategies for the selected asset first
+  const assetStrategies = strategyConfigs[selectedAsset as keyof typeof strategyConfigs];
+
+  // Now access the specific duration and strategy type
+  const strategyConfig = (assetStrategies as any)[duration][ // Cast assetStrategies to any for indexing
     strategy === "stable" ? "STABLE" : "INCENTIVE"
   ] as StrategyConfig;
 
