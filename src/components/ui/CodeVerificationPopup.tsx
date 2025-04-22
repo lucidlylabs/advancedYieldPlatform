@@ -36,16 +36,16 @@ const CodeVerificationPopup: React.FC<CodeVerificationPopupProps> = ({
       <div className="absolute inset-0 bg-[#080B17]/60 backdrop-blur-sm" />
 
       {/* Combined Popup container */}
-      <div className="relative flex bg-[#080B17] rounded-lg overflow-hidden max-w-[850px] w-full text-white border border-[rgba(255,255,255,0.1)] shadow-[0px_0px_25px_0px_rgba(255,255,255,0.05)]">
+      <div className="relative flex bg-[#080B17] rounded-lg overflow-hidden max-w-[800px] w-full text-white border border-[rgba(255,255,255,0.1)] shadow-[0px_0px_25px_0px_rgba(255,255,255,0.05)] h-[406px]">
         {/* Left Side: Form Content */}
-        <div className="p-8 w-[450px] flex-shrink-0 flex flex-col">
+        <div className="py-8 px-10 w-[450px] flex-shrink-0 flex flex-col justify-between">
           {/* Top section: Title, Description, Form */}
           <div>
             <h2
               className="text-[#B88AF8] font-bold mb-3 text-[32px] leading-normal tracking-[-0.877px]"
               style={{ textShadow: "4px 4px 0px #35165F" }}
             >
-              Access to Lucidity's Private Beta
+              Access to Lucidly Private Beta
             </h2>
             <p className="text-[#9C9DA2] text-sm font-normal leading-[22px] mb-6">
               No code? Follow us on X, Telegram, or Discord — invites are shared
@@ -62,8 +62,8 @@ const CodeVerificationPopup: React.FC<CodeVerificationPopupProps> = ({
                     setInternalError("");
                   }}
                   placeholder="Enter your access code"
-                  className={`w-full px-4 py-3 rounded bg-white/8 text-white border ${
-                    error ? "border-[#EB563C]/15" : "border-[#3A3A3A]"
+                  className={`w-full px-4 py-3 rounded bg-[#0F111D] text-white ${
+                    error ? "border border-[#EB563C]/15" : "border-transparent"
                   } focus:border-[#B88AF8] focus:outline-none placeholder-gray-500`}
                 />
                 {error && (
@@ -74,44 +74,45 @@ const CodeVerificationPopup: React.FC<CodeVerificationPopupProps> = ({
                   </div>
                 )}
               </div>
-
-              {/* Container for Button and Icons */}
-              <div className="flex items-center justify-between">
-                <button
-                  type="submit"
-                  className="px-6 py-3 rounded-lg bg-[#B88AF8] text-white text-sm font-semibold leading-[16px] hover:bg-[#A87AE8] transition-colors w-[210px]"
-                >
-                  Submit
-                </button>
-                {/* Social Icons group */}
-                <div className="flex items-center gap-4">
-                  <a
-                    href="#"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-400 hover:text-white"
-                  >
-                    <FaDiscord size={16} />
-                  </a>
-                  <a
-                    href="#"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-400 hover:text-white"
-                  >
-                    <FaXTwitter size={16} />
-                  </a>
-                  <a
-                    href="#"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-400 hover:text-white"
-                  >
-                    <FaTelegramPlane size={16} />
-                  </a>
-                </div>
-              </div>
             </form>
+          </div>
+
+          {/* Bottom section: Button and Icons */}
+          <div className="flex items-center justify-between">
+            <button
+              type="submit"
+              onClick={handleSubmit}
+              className="px-6 py-3 rounded-lg bg-[#B88AF8] text-white text-sm font-semibold leading-[16px] hover:bg-[#A87AE8] transition-colors w-[210px]"
+            >
+              Submit
+            </button>
+            {/* Social Icons group */}
+            <div className="flex items-center gap-7">
+              <a
+                href="https://discord.gg/6TZX89RPWW"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-white"
+              >
+                <FaDiscord size={24} />
+              </a>
+              <a
+                href="https://x.com/LucidlyFinance"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-white"
+              >
+                <FaXTwitter size={24} />
+              </a>
+              <a
+                href="https://t.me/lucidlyfi"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-white"
+              >
+                <FaTelegramPlane size={24} />
+              </a>
+            </div>
           </div>
         </div>
 

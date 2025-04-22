@@ -192,8 +192,8 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
   };
 
   const handleVerifyCode = (code: string) => {
-    // TODO: Replace with actual verification logic
-    if (code === "1234") { // Example code
+    // Compare with environment variable
+    if (code === process.env.NEXT_PUBLIC_BETA_ACCESS_CODE) { 
       setIsVerified(true);
       setIsCodePopupOpen(false);
       setError('');
