@@ -29,55 +29,64 @@ const CodeVerificationPopup: React.FC<CodeVerificationPopupProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Blur background */}
       <div 
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-[#080B17]/60 backdrop-blur-sm"
         onClick={onClose}
       />
       
-      {/* Popup content */}
-      <div className="relative bg-[#1A1A1A] rounded-lg p-8 w-[400px] max-w-[90vw]">
-        <h2 className="text-2xl font-bold mb-6 text-white">Enter Access Code</h2>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <input
-              type="text"
-              value={code}
-              onChange={(e) => {
-                setCode(e.target.value);
-                setInternalError('');
-              }}
-              placeholder="Enter your code"
-              className={`w-full px-4 py-3 rounded-lg bg-[#2A2A2A] text-white border ${
-                error ? 'border-red-500' : 'border-[#3A3A3A]'
-              } focus:border-[#B88AF8] focus:outline-none`}
-            />
-            {error && (
-              <p className="text-red-500 text-sm mt-2">{error}</p>
-            )}
-          </div>
+      {/* Combined Popup container */}
+      <div className="relative flex bg-[#121526] rounded-lg overflow-hidden max-w-[850px] w-full text-white border border-[rgba(255,255,255,0.1)]">
+        {/* Left Side: Form Content */}
+        <div className="p-8 w-[450px] flex-shrink-0">
+          <h2 className="text-3xl font-bold mb-3 text-center">Access to Lucidity's Private Beta</h2>
+          <p className="text-sm text-gray-400 mb-6 text-center">
+            No code? Follow us on X, Telegram, or Discord — invites are shared with our community.
+          </p>
           
-          <div className="flex gap-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-3 rounded-lg bg-[#2A2A2A] text-white hover:bg-[#3A3A3A] transition-colors"
-            >
-              Cancel
-            </button>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <input
+                type="text"
+                value={code}
+                onChange={(e) => {
+                  setCode(e.target.value);
+                  setInternalError('');
+                }}
+                placeholder="Enter your access code"
+                className={`w-full px-4 py-3 rounded-lg bg-[#0F111D] text-white border ${ 
+                  error ? 'border-red-500' : 'border-[#3A3A3A]'
+                } focus:border-[#B88AF8] focus:outline-none placeholder-gray-500`}
+              />
+              {error && (
+                <div className="mt-2 px-4 py-2 bg-[#4B1A1A] border border-red-600 rounded-md">
+                  <p className="text-red-400 text-sm font-medium">{error}</p>
+                </div>
+              )}
+            </div>
+            
             <button
               type="submit"
-              className="flex-1 px-4 py-3 rounded-lg bg-[#B88AF8] text-white hover:bg-[#A87AE8] transition-colors"
+              className="w-full px-4 py-3 rounded-lg bg-[#B88AF8] text-white font-semibold hover:bg-[#A87AE8] transition-colors"
             >
-              Verify
+              Submit
             </button>
-          </div>
-        </form>
+          </form>
+        </div>
+
+        {/* Right Side: Image */}
+        <div className="flex-grow flex items-center justify-center bg-[#080B17] p-4 hidden md:flex"> {/* Hide on small screens */}
+          <img 
+            src="/images/background/beta-image.svg" 
+            alt="Beta Illustration" 
+            className="max-w-full h-auto object-contain"
+            style={{ maxHeight: '400px' }} // Optional: constrain image height if needed
+          />
+        </div>
       </div>
     </div>
   );
 };
 
-export default CodeVerificationPopup; 
+export default CodeVerificationPopup;
