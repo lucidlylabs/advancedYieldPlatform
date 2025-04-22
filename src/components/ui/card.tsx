@@ -314,27 +314,40 @@ const CustomCard: React.FC<CustomCardProps> = ({
           )}
 
           {isComingSoon && (
-            <div className="p-6 pt-0 flex-1 relative z-10 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]">
-              <p className="text-[#B88AF8] flex items-center justify-center gap-2 mb-4 mt-5 w-full text-[24px] font-inter font-bold italic text-center [text-shadow:4px_4px_0px_#35165F]">
-                Coming Soon
-              </p>
-            </div>
+            <>
+              <div className="p-6 pt-0 flex-1 relative z-10 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex items-center justify-center">
+                <p className="text-[#B88AF8] flex items-center justify-center w-full text-[24px] font-inter font-bold italic text-center [text-shadow:4px_4px_0px_#35165F]">
+                  Coming Soon
+                </p>
+              </div>
+              <div className="w-full flex justify-center mt-auto">
+                <div className="relative w-[200px] h-[100px]">
+                  <img
+                    src={imageSrc}
+                    alt={imageAlt}
+                    className="absolute w-full h-[200px] object-contain transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] group-hover:translate-y-[-20px] group-hover:opacity-0"
+                  />
+                </div>
+              </div>
+            </>
           )}
 
-          <div className="w-full flex justify-center mt-auto">
-            <div className="relative w-[200px] h-[100px]">
-              <img
-                src={imageSrc}
-                alt={imageAlt}
-                className={cn(
-                  "absolute w-full h-[200px] object-contain transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-                  selectedDuration
-                    ? "bottom-[-30%] translate-y-[30%]"
-                    : "bottom-0 group-hover:translate-y-[-20px] group-hover:opacity-0"
-                )}
-              />
+          {!isComingSoon && (
+            <div className="w-full flex justify-center mt-auto">
+              <div className="relative w-[200px] h-[100px]">
+                <img
+                  src={imageSrc}
+                  alt={imageAlt}
+                  className={cn(
+                    "absolute w-full h-[200px] object-contain transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                    selectedDuration
+                      ? "bottom-[-30%] translate-y-[30%]"
+                      : "bottom-0 group-hover:translate-y-[-20px] group-hover:opacity-0"
+                  )}
+                />
+              </div>
             </div>
-          </div>
+          )}
         </>
       )}
     </div>
