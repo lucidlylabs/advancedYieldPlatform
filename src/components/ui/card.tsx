@@ -197,9 +197,14 @@ const CustomCard: React.FC<CustomCardProps> = ({
                           e.stopPropagation();
                           onReset();
                         }}
-                        className="text-white opacity-60 hover:opacity-100 transition-all duration-200 text-sm"
+                        className="text-[#B88AF8] hover:opacity-100 transition-all duration-200 flex items-center gap-2 font-inter font-normal text-xs leading-none"
                       >
                         Change Asset
+                        <img
+                          src="/images/icons/arrow.svg"
+                          alt="arrow"
+                          className="w-[11px] h-[8px] -ml-1"
+                        />
                       </button>
                     </div>
                   )}
