@@ -212,7 +212,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
         />
       ) : selectedAsset ? (
         <div className="flex flex-col gap-6 items-center pt-[8vh]">
-          <h1 className="text-[32px] font-normal">Select a yield source</h1>
+          <h1 className="text-[40px] font-bold">Select a Yield Source</h1>
           <div className="flex gap-6 justify-center items-center">
             <CustomCard
               heading={selectedAsset.asset as AssetType}
@@ -293,7 +293,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
         </div>
       ) : (
         <div className="flex flex-col gap-6 items-center pt-[8vh]">
-          <h1 className="text-[32px] font-normal">
+          <h1 className="text-[40px] font-bold">
             Select a asset you want yield on
           </h1>
           <div className="flex gap-6 justify-center items-center">
