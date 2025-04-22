@@ -538,7 +538,14 @@ const PortfolioSubpage: React.FC = () => {
                   onClick={() => handleStrategySelect(strategy)}
                 >
                   <div
-                    className={`absolute left-0 top-0 h-full w-1/4 bg-gradient-to-r from-[rgba(0,209,160,0.15)] to-[rgba(153,153,153,0)] opacity-0 group-hover:opacity-100 ${
+                    className={`absolute left-0 top-0 h-full w-[15%] bg-gradient-to-r from-[rgba(0,209,160,0.15)] to-[rgba(153,153,153,0)] opacity-0 group-hover:opacity-100 ${
+                      selectedStrategy?.contract === strategy.contract
+                        ? "opacity-100"
+                        : ""
+                    }`}
+                  ></div>
+                  <div
+                    className={`absolute right-0 top-0 h-full w-[15%] bg-gradient-to-l from-[rgba(0,209,160,0.15)] to-[rgba(153,153,153,0)] opacity-0 group-hover:opacity-100 ${
                       selectedStrategy?.contract === strategy.contract
                         ? "opacity-100"
                         : ""
