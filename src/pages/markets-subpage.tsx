@@ -35,19 +35,19 @@ const AssetButton: React.FC<{
     switch (asset) {
       case "ALL":
         return {
-          icon: "/images/icons/selector-all.svg"
+          icon: "/images/icons/selector-all.svg",
         };
       case "USD":
         return {
-          icon: "/images/icons/selector-usd.svg"
+          icon: "/images/icons/selector-usd.svg",
         };
       case "ETH":
         return {
-          icon: "/images/icons/selector-eth.svg"
+          icon: "/images/icons/selector-eth.svg",
         };
       case "BTC":
         return {
-          icon: "/images/icons/selector-btc.svg"
+          icon: "/images/icons/selector-btc.svg",
         };
     }
   };
@@ -72,7 +72,9 @@ const AssetButton: React.FC<{
           className="object-contain rounded-full"
         />
       </div>
-      <span className="text-white font-inter text-[12px] font-normal leading-[16px]">{asset}</span>
+      <span className="text-white font-inter text-[12px] font-normal leading-[16px]">
+        {asset}
+      </span>
       {activeAsset === asset && (
         <div className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-white" />
       )}
@@ -242,16 +244,17 @@ const MarketsSubpage: React.FC = () => {
       {/* Left side - 50% */}
       <div className="w-[757px] flex flex-col relative">
         <div className="w-[757px] h-[124px] flex flex-col justify-center items-start relative pl-[32px]">
-          <div 
+          <div
             className="absolute inset-0 bg-[url('/images/background/earn-page-heading-bg.svg')] bg-no-repeat bg-cover"
-            style={{ height: '100%' }}
+            style={{ height: "100%" }}
           />
           <div className="relative z-10 flex flex-col items-start gap-[10px]">
             <div className="text-[#D7E3EF] font-inter text-[16px] font-semibold leading-[20px]">
               Explore Yields
             </div>
             <p className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-[20px]">
-              Maximize your investment returns and diversify your portfolio. <br />
+              Maximize your investment returns and diversify your portfolio.{" "}
+              <br />
               Unlock higher earnings with smart yield strategies.
             </p>
           </div>
@@ -296,16 +299,23 @@ const MarketsSubpage: React.FC = () => {
         </div>
         {/* Overlay to hide divider for selected row */}
         {selectedItem && (
-          <div 
+          <div
             className="absolute right-0 w-[1px] h-[60px] bg-[#0E1117]"
             style={{
-              top: `${124 + 48 + (getSortedData().findIndex(item => item.id === selectedItem.id) * 60) + 60}px`
+              top: `${
+                124 +
+                48 +
+                getSortedData().findIndex(
+                  (item) => item.id === selectedItem.id
+                ) *
+                  60 +
+                60
+              }px`,
             }}
           />
         )}
       </div>
 
-      {/* Divider */}
       <div className="w-[1px] bg-[rgba(255,255,255,0.1)]" />
 
       {/* Right side - 50% */}
