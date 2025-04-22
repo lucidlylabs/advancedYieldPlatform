@@ -15,6 +15,29 @@ import {
   parseUnits,
 } from "viem";
 
+interface StrategyConfig {
+  network: string;
+  contract: string;
+  deposit_token: string;
+  deposit_token_contract: string;
+  description: string;
+  apy: string;
+  incentives: string;
+  tvl: string;
+  rpc: string;
+}
+
+type DurationType = "30_DAYS" | "60_DAYS" | "180_DAYS" | "PERPETUAL_DURATION";
+type StrategyType = "STABLE" | "INCENTIVE";
+
+type StrategyDuration = {
+  [K in StrategyType]: StrategyConfig;
+}
+
+type StrategyAsset = {
+  [K in DurationType]?: StrategyDuration;
+}
+
 const ERC20_ABI = [
   {
     name: "balanceOf",
@@ -201,24 +224,24 @@ const PortfolioSubpage: React.FC = () => {
     try {
       setIsRefreshingBalance(true);
       const allStrategies = [
-        ...Object.entries(USD_STRATEGIES).flatMap(([duration, strategies]) =>
-          Object.entries(strategies).map(([type, strategy]) => ({
+        ...Object.entries(USD_STRATEGIES as StrategyAsset).flatMap(([duration, strategies]) =>
+          Object.entries(strategies as StrategyDuration).map(([type, strategy]) => ({
             ...strategy,
             duration,
             type: type.toLowerCase(),
             asset: "USD",
           }))
         ),
-        ...Object.entries(BTC_STRATEGIES).flatMap(([duration, strategies]) =>
-          Object.entries(strategies).map(([type, strategy]) => ({
+        ...Object.entries(BTC_STRATEGIES as StrategyAsset).flatMap(([duration, strategies]) =>
+          Object.entries(strategies as StrategyDuration).map(([type, strategy]) => ({
             ...strategy,
             duration,
             type: type.toLowerCase(),
             asset: "BTC",
           }))
         ),
-        ...Object.entries(ETH_STRATEGIES).flatMap(([duration, strategies]) =>
-          Object.entries(strategies).map(([type, strategy]) => ({
+        ...Object.entries(ETH_STRATEGIES as StrategyAsset).flatMap(([duration, strategies]) =>
+          Object.entries(strategies as StrategyDuration).map(([type, strategy]) => ({
             ...strategy,
             duration,
             type: type.toLowerCase(),
