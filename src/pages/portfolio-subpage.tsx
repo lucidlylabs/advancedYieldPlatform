@@ -448,7 +448,7 @@ const PortfolioSubpage: React.FC = () => {
           <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-[16px]">
             Wallet Address
           </div>
-          <div className="text-[#D7E3EF] font-mono opacity-20">
+          <div className="text-[#D7E3EF] font-mono opacity-80">
             {isConnected ? address : "Not connected"}
           </div>
         </div>
@@ -793,7 +793,7 @@ const PortfolioSubpage: React.FC = () => {
               </div>
 
               <div className="mt-2">
-                <div className="text-[#9C9DA2] text-[14px] rounded-[4px] bg-[rgba(255,255,255,0.02)] p-[24px]">
+                <div className="text-[#D7E3EF] text-[14px] rounded-[4px] bg-[rgba(255,255,255,0.02)] p-[24px]">
                   <strong>Note:</strong> By withdrawing, your vault shares will
                   be converted into the underlying asset, subject to the current
                   market rates. Withdrawal amounts are calculated based on the
