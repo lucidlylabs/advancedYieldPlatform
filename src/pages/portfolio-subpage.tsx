@@ -417,7 +417,7 @@ const PortfolioSubpage: React.FC = () => {
               <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-[16px]">
                 PNL
               </div>
-              <div className="text-[#00D1A0] font-inter text-[16px] font-normal leading-normal mt-1">
+              <div className="text-[#00D1A0] font-inter text-[16px] font-normal leading-normal mt-3">
                 {strategiesWithBalance
                   .reduce(
                     (sum, s) =>
@@ -448,7 +448,7 @@ const PortfolioSubpage: React.FC = () => {
           <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-[16px]">
             Wallet Address
           </div>
-          <div className="text-[#D7E3EF] font-mono opacity-20">
+          <div className="text-[#D7E3EF] font-mono opacity-80">
             {isConnected ? address : "Not connected"}
           </div>
         </div>
@@ -538,7 +538,14 @@ const PortfolioSubpage: React.FC = () => {
                   onClick={() => handleStrategySelect(strategy)}
                 >
                   <div
-                    className={`absolute left-0 top-0 h-full w-1/4 bg-gradient-to-r from-[rgba(0,209,160,0.15)] to-[rgba(153,153,153,0)] opacity-0 group-hover:opacity-100 ${
+                    className={`absolute left-0 top-0 h-full w-[15%] bg-gradient-to-r from-[rgba(0,209,160,0.15)] to-[rgba(153,153,153,0)] opacity-0 group-hover:opacity-100 ${
+                      selectedStrategy?.contract === strategy.contract
+                        ? "opacity-100"
+                        : ""
+                    }`}
+                  ></div>
+                  <div
+                    className={`absolute right-0 top-0 h-full w-[15%] bg-gradient-to-l from-[rgba(0,209,160,0.15)] to-[rgba(153,153,153,0)] opacity-0 group-hover:opacity-100 ${
                       selectedStrategy?.contract === strategy.contract
                         ? "opacity-100"
                         : ""
@@ -793,7 +800,7 @@ const PortfolioSubpage: React.FC = () => {
               </div>
 
               <div className="mt-2">
-                <div className="text-[#9C9DA2] text-[14px] rounded-[4px] bg-[rgba(255,255,255,0.02)] p-[24px]">
+                <div className="text-[#D7E3EF] text-[14px] rounded-[4px] bg-[rgba(255,255,255,0.02)] p-[24px]">
                   <strong>Note:</strong> By withdrawing, your vault shares will
                   be converted into the underlying asset, subject to the current
                   market rates. Withdrawal amounts are calculated based on the

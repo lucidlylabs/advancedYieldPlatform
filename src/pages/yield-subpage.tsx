@@ -75,7 +75,9 @@ const getStrategyInfo = (duration: DurationType): StrategyData => {
     const strategy = strategies[durationKey];
 
     if (!strategy) {
-      console.error(`No strategy found for ${asset} with duration ${durationKey}`);
+      console.error(
+        `No strategy found for ${asset} with duration ${durationKey}`
+      );
       return {
         stable: {
           description: "Strategy not available",
@@ -127,29 +129,37 @@ const getStrategyInfo = (duration: DurationType): StrategyData => {
 };
 
 const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
-  const [selectedAsset, setSelectedAsset] = useState<SelectedAsset | null>(null);
-  const [selectedStrategy, setSelectedStrategy] = useState<SelectedStrategy | null>(null);
+  const [selectedAsset, setSelectedAsset] = useState<SelectedAsset | null>(
+    null
+  );
+  const [selectedStrategy, setSelectedStrategy] =
+    useState<SelectedStrategy | null>(null);
 
   // Add effect to handle URL parameters or parent navigation
   useEffect(() => {
     // Check if we have depositParams from parent
     if (depositParams?.asset && depositParams?.duration) {
       // Set the selected asset first
-      setSelectedAsset({ 
-        asset: depositParams.asset, 
-        duration: depositParams.duration as DurationType 
+      setSelectedAsset({
+        asset: depositParams.asset,
+        duration: depositParams.duration as DurationType,
       });
 
       // If we also have a strategy, set that too
       if (depositParams.strategy) {
-        const strategyInfo = getStrategyInfo(depositParams.duration as DurationType);
-        const apy = strategyInfo[depositParams.strategy === 'stable' ? 'stable' : 'incentives'][depositParams.asset as AssetType].apy.value;
-        
+        const strategyInfo = getStrategyInfo(
+          depositParams.duration as DurationType
+        );
+        const apy =
+          strategyInfo[
+            depositParams.strategy === "stable" ? "stable" : "incentives"
+          ][depositParams.asset as AssetType].apy.value;
+
         setSelectedStrategy({
-          type: depositParams.strategy as 'stable' | 'incentive',
+          type: depositParams.strategy as "stable" | "incentive",
           asset: depositParams.asset,
           duration: depositParams.duration as DurationType,
-          apy
+          apy,
         });
       }
     }
@@ -182,12 +192,13 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
 
   return (
     <div
-      className="h-[calc(100vh-128px)] relative overflow-hidden"
+      className="min-h-[calc(100vh-98px)] relative"
       style={{
         backgroundImage: "url('/images/background/earn-page-bg.svg')",
         backgroundPosition: "bottom",
         backgroundRepeat: "no-repeat",
         backgroundSize: "100% auto",
+        backgroundAttachment: "fixed",
       }}
     >
       {selectedStrategy ? (
@@ -201,7 +212,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
         />
       ) : selectedAsset ? (
         <div className="flex flex-col gap-6 items-center pt-[8vh]">
-          <h1 className="text-[32px] font-normal">Select a yield source</h1>
+          <h1 className="text-[40px] font-bold">Select a Yield Source</h1>
           <div className="flex gap-6 justify-center items-center">
             <CustomCard
               heading={selectedAsset.asset as AssetType}
@@ -282,7 +293,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
         </div>
       ) : (
         <div className="flex flex-col gap-6 items-center pt-[8vh]">
-          <h1 className="text-[32px] font-normal">
+          <h1 className="text-[40px] font-bold">
             Select a asset you want yield on
           </h1>
           <div className="flex gap-6 justify-center items-center">
@@ -297,18 +308,24 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
             <CustomCard
               heading="Ethereum"
               imageSrc="/images/icons/card-eth.svg"
+              imageAlt="Ethereum semi-circle"
               hoverColor="#627EEA"
               onDurationSelect={(duration: DurationType) =>
                 handleDurationSelect("ETH", duration)
               }
+              className="overflow-hidden"
+              isComingSoon={true}
             />
             <CustomCard
               heading="Bitcoin"
               imageSrc="/images/icons/card-btc.svg"
+              imageAlt="Bitcoin semi-circle"
               hoverColor="#F7931A"
               onDurationSelect={(duration: DurationType) =>
                 handleDurationSelect("BTC", duration)
               }
+              isComingSoon={true}
+              className="overflow-hidden"
             />
           </div>
         </div>
