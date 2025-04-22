@@ -75,7 +75,9 @@ const getStrategyInfo = (duration: DurationType): StrategyData => {
     const strategy = strategies[durationKey];
 
     if (!strategy) {
-      console.error(`No strategy found for ${asset} with duration ${durationKey}`);
+      console.error(
+        `No strategy found for ${asset} with duration ${durationKey}`
+      );
       return {
         stable: {
           description: "Strategy not available",
@@ -127,29 +129,37 @@ const getStrategyInfo = (duration: DurationType): StrategyData => {
 };
 
 const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
-  const [selectedAsset, setSelectedAsset] = useState<SelectedAsset | null>(null);
-  const [selectedStrategy, setSelectedStrategy] = useState<SelectedStrategy | null>(null);
+  const [selectedAsset, setSelectedAsset] = useState<SelectedAsset | null>(
+    null
+  );
+  const [selectedStrategy, setSelectedStrategy] =
+    useState<SelectedStrategy | null>(null);
 
   // Add effect to handle URL parameters or parent navigation
   useEffect(() => {
     // Check if we have depositParams from parent
     if (depositParams?.asset && depositParams?.duration) {
       // Set the selected asset first
-      setSelectedAsset({ 
-        asset: depositParams.asset, 
-        duration: depositParams.duration as DurationType 
+      setSelectedAsset({
+        asset: depositParams.asset,
+        duration: depositParams.duration as DurationType,
       });
 
       // If we also have a strategy, set that too
       if (depositParams.strategy) {
-        const strategyInfo = getStrategyInfo(depositParams.duration as DurationType);
-        const apy = strategyInfo[depositParams.strategy === 'stable' ? 'stable' : 'incentives'][depositParams.asset as AssetType].apy.value;
-        
+        const strategyInfo = getStrategyInfo(
+          depositParams.duration as DurationType
+        );
+        const apy =
+          strategyInfo[
+            depositParams.strategy === "stable" ? "stable" : "incentives"
+          ][depositParams.asset as AssetType].apy.value;
+
         setSelectedStrategy({
-          type: depositParams.strategy as 'stable' | 'incentive',
+          type: depositParams.strategy as "stable" | "incentive",
           asset: depositParams.asset,
           duration: depositParams.duration as DurationType,
-          apy
+          apy,
         });
       }
     }
@@ -182,12 +192,13 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
 
   return (
     <div
-      className="h-[calc(100vh-128px)] relative overflow-hidden"
+      className="min-h-[calc(100vh-98px)] relative"
       style={{
         backgroundImage: "url('/images/background/earn-page-bg.svg')",
         backgroundPosition: "bottom",
         backgroundRepeat: "no-repeat",
         backgroundSize: "100% auto",
+        backgroundAttachment: "fixed",
       }}
     >
       {selectedStrategy ? (
