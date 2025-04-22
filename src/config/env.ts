@@ -3,7 +3,7 @@ export const USD_STRATEGIES = {
     STABLE: {
       network: "Sonic",
       contract: "0x2F7397FD2D49E5b636eF44503771B17EDEd67620",
-      deposit_token: "USD.e",
+      deposit_token: "USDC.e",
       deposit_token_contract: "0x29219dd400f2bf60e5a23d13be72b486d4038894",
       deposit_token_image: "/images/icons/usdc.svg",
       description: "Perpetual stable USD strategy on Sonic network",
@@ -18,7 +18,7 @@ export const USD_STRATEGIES = {
     INCENTIVE: {
       network: "Sonic",
       contract: "0x2F7397FD7D49E5b636eF44503771B17EDEd67620",
-      deposit_token: "USD.e",
+      deposit_token: "USDC.e",
       deposit_token_contract: "0x29219dd400f2bf60e5a23d13be72b486d4038894",
       description: "Perpetual incentivized USD strategy on Sonic network",
       apy: "7.5%",
