@@ -308,18 +308,24 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
             <CustomCard
               heading="Ethereum"
               imageSrc="/images/icons/card-eth.svg"
+              imageAlt="Ethereum semi-circle"
               hoverColor="#627EEA"
               onDurationSelect={(duration: DurationType) =>
                 handleDurationSelect("ETH", duration)
               }
+              className="overflow-hidden"
+              isComingSoon={true}
             />
             <CustomCard
               heading="Bitcoin"
               imageSrc="/images/icons/card-btc.svg"
+              imageAlt="Bitcoin semi-circle"
               hoverColor="#F7931A"
               onDurationSelect={(duration: DurationType) =>
                 handleDurationSelect("BTC", duration)
               }
+              isComingSoon={true}
+              className="overflow-hidden"
             />
           </div>
         </div>

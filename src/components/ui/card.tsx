@@ -25,6 +25,7 @@ interface CustomCardProps {
   isStrategyCard?: boolean;
   disableHover?: boolean;
   onReset?: () => void;
+  isComingSoon?: boolean;
 }
 
 const InfoIcon = () => (
@@ -64,6 +65,7 @@ const CustomCard: React.FC<CustomCardProps> = ({
   isStrategyCard,
   disableHover,
   onReset,
+  isComingSoon,
   ...props
 }) => {
   const handleDurationClick = (duration: DurationType) => {
@@ -218,7 +220,7 @@ const CustomCard: React.FC<CustomCardProps> = ({
             </div>
           </div>
 
-          {!selectedDuration && onDurationSelect && (
+          {!selectedDuration && onDurationSelect && !isComingSoon && (
             <div className="p-6 pt-0 flex-1 relative z-10 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]">
               <p className="text-white flex items-center justify-center gap-2 mb-4 mt-5 w-full">
                 <svg
@@ -308,6 +310,14 @@ const CustomCard: React.FC<CustomCardProps> = ({
                   {formatDuration("PERPETUAL_DURATION")}
                 </button>
               </div>
+            </div>
+          )}
+
+          {isComingSoon && (
+            <div className="p-6 pt-0 flex-1 relative z-10 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]">
+              <p className="text-white flex items-center justify-center gap-2 mb-4 mt-5 w-full text-lg font-semibold">
+                Coming Soon
+              </p>
             </div>
           )}
 
