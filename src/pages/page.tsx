@@ -4,7 +4,7 @@ import Link from "next/link";
 import { CustomConnectButton } from "../components/ui/ConnectButton/CustomConnectButton";
 import { Header } from "../components/ui/header";
 import PortfolioSubpage from "./portfolio-subpage";
-import YieldSubpage from "./yield-subpage";
+import YieldSubpage from "./earn-subpage";
 import MarketsSubpage from "./markets-subpage";
 import CodeVerificationPopup from "@/components/ui/CodeVerificationPopup";
 
