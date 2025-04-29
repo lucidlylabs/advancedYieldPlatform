@@ -121,9 +121,9 @@ const CodeVerificationPopup: React.FC<CodeVerificationPopupProps> = ({
           {" "}
           {/* Removed items-center justify-center */}
           <img
-            src="/images/background/beta-image.svg"
+            src="https://lucidlyfinance.s3.eu-north-1.amazonaws.com/beta-image.svg"
             alt="Beta Illustration"
-            className="w-full h-full object-cover" // Fill container and cover area
+            className="w-full h-full object-cover"
           />
         </div>
       </div>
