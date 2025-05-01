@@ -27,30 +27,6 @@ export const USD_STRATEGIES = {
       rpc: "https://rpc.soniclabs.com",
     },
   },
-  "30_DAYS": {
-    STABLE: {
-      network: "Sonic",
-      contract: "0x2F7397FD2D49E5b636eF44503771B17EDEd67621",
-      deposit_token: "USD.e",
-      deposit_token_contract: "0x29219dd400f2bf60e5a23d13be72b486d4038894",
-      description: "30-day stable USD strategy on Sonic network",
-      apy: "3.8%",
-      incentives: "-",
-      tvl: "3000000",
-      rpc: "https://rpc.soniclabs.com",
-    },
-    INCENTIVE: {
-      network: "Sonic",
-      contract: "0x2F7397FD2D49E5b636eF44503771B17EDEd67621",
-      deposit_token: "USD.e",
-      deposit_token_contract: "0x29219dd400f2bf60e5a23d13be72b486d4038894",
-      description: "30-day incentivized USD strategy on Sonic network",
-      apy: "6.2%",
-      incentives: "1.5% in SONIC tokens",
-      tvl: "4000000",
-      rpc: "https://rpc.soniclabs.com",
-    },
-  },
   "60_DAYS": {
     STABLE: {
       network: "Sonic",
