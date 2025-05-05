@@ -1,5 +1,5 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
-import { base, mainnet, sepolia, Chain } from "wagmi/chains";
+import { base, mainnet, sepolia, Chain, arbitrum } from "wagmi/chains";
 
 const sonic: Chain = {
   id: 146, // Sonic mainnet chain ID (0x92)
