@@ -29,7 +29,7 @@ export default function Page() {
   const [verificationError, setVerificationError] = useState("");
 
   const handleVerifyCode = (code: string) => {
-    if (code === process.env.NEXT_PUBLIC_BETA_ACCESS_CODE) {
+    if (code === process.env.NEXT_PUBLIC_BETA_ACCESS_PUBLIC_CODE) {
       setIsVerified(true);
       setIsCodePopupOpen(false);
       setVerificationError("");
@@ -72,13 +72,11 @@ export default function Page() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header 
-        onNavigateToDeposit={handleNavigateToDeposit}
-      >
+      <Header onNavigateToDeposit={handleNavigateToDeposit}>
         <div className="flex items-stretch h-full">
           <div className="flex items-center pl-3">
-            <div 
-              className="cursor-pointer" 
+            <div
+              className="cursor-pointer"
               onClick={() => {
                 setSelectedSubPage(SubPage.Yield);
                 setDepositParams(null);
@@ -97,14 +95,20 @@ export default function Page() {
           <nav className="hidden md:flex">
             <div className="relative flex">
               <button
-                className={`px-6 py-4 text-sm transition-colors relative ${selectedSubPage === SubPage.Yield ? "text-[#B88AF8]" : "text-white hover:text-gray-300"}`}
+                className={`px-6 py-4 text-sm transition-colors relative ${
+                  selectedSubPage === SubPage.Yield
+                    ? "text-[#B88AF8]"
+                    : "text-white hover:text-gray-300"
+                }`}
                 onClick={() => {
                   setSelectedSubPage(SubPage.Yield);
                   setDepositParams(null);
                 }}
               >
                 Earn
-                {selectedSubPage === SubPage.Yield && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#B88AF8]"></div>}
+                {selectedSubPage === SubPage.Yield && (
+                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#B88AF8]"></div>
+                )}
               </button>
 
               <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
@@ -144,9 +148,7 @@ export default function Page() {
         <CustomConnectButton />
       </Header>
 
-      <main className="flex-1">
-        {renderSubPage()}
-      </main>
+      <main className="flex-1">{renderSubPage()}</main>
     </div>
   );
 }
