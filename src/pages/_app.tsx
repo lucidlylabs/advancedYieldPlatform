@@ -3,7 +3,7 @@ import '@rainbow-me/rainbowkit/styles.css';
 import type { AppProps } from 'next/app';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider } from 'wagmi';
-import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
+import { RainbowKitProvider, getDefaultWallets } from '@rainbow-me/rainbowkit';
 import { config } from '../wagmi';
 import { ErrorBoundary } from 'react-error-boundary';
 
@@ -23,7 +23,10 @@ function MyApp({ Component, pageProps }: AppProps) {
     <ErrorBoundary FallbackComponent={ErrorFallback}>
       <WagmiProvider config={config}>
         <QueryClientProvider client={client}>
-          <RainbowKitProvider>
+          <RainbowKitProvider
+            chains={config.chains}
+            initialChain={config.chains[0]}
+          >
             <Component {...pageProps} />
           </RainbowKitProvider>
         </QueryClientProvider>

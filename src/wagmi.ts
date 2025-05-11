@@ -22,14 +22,11 @@ const sonic: Chain = {
   testnet: false,
 };
 
+const chains = [mainnet, base, arbitrum, sonic];
+
 export const config = getDefaultConfig({
   appName: "Advanced Yield Platform",
   projectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID || "YOUR_PROJECT_ID",
-  chains: [
-    mainnet,
-    base,
-    sonic,
-    ...(process.env.NEXT_PUBLIC_ENABLE_TESTNETS === "true" ? [sepolia] : []),
-  ],
+  chains,
   ssr: true,
 });
