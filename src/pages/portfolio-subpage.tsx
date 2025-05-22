@@ -396,7 +396,6 @@ const PortfolioSubpage: React.FC = () => {
 
     return (
         <div className="flex flex-col min-h-screen text-white">
-            {/* Top Section - Portfolio Value, PNL, and Wallet */}
             <div className="w-full h-[124px] flex items-center justify-between px-8 bg-[#0D101C] border-b border-[rgba(255,255,255,0.1)]">
                 <div>
                     <div className="flex gap-32">
@@ -505,7 +504,7 @@ const PortfolioSubpage: React.FC = () => {
                                 <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
                             </svg>
                         </div>
-                        <div className="text-[#9C9DA2]  text-[14px] font-medium flex items-center col-span-2">
+                        <div className="text-[#9C9DA2] text-[14px] font-medium flex items-center col-span-2">
                             Base APY
                             <svg
                                 className="ml-1"

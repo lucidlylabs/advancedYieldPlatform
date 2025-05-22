@@ -258,9 +258,8 @@ const MarketsSubpage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Asset Selection */}
                 <div className="pl-[32px] mt-[16px]">
-                    <div className="flex border-b-[0.5px] border-[rgba(255,255,255,0.15)] pr-6">
+                    <div className="flex border-b-[0.5px] text-[14px] border-[rgba(255,255,255,0.15)] pr-6">
                         <AssetButton
                             asset="ALL"
                             activeAsset={selectedAsset}
@@ -284,7 +283,6 @@ const MarketsSubpage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Market Table */}
                 <div>
                     <MarketsTable
                         data={getSortedData()}
@@ -295,7 +293,6 @@ const MarketsSubpage: React.FC = () => {
                         selectedItemId={selectedItem?.id}
                     />
                 </div>
-                {/* Overlay to hide divider for selected row */}
                 {selectedItem && (
                     <div
                         className="absolute right-0 w-[1px] h-[60px] bg-[#0E1117]"
@@ -315,7 +312,6 @@ const MarketsSubpage: React.FC = () => {
 
             <div className="w-[1px] bg-[rgba(255,255,255,0.1)]" />
 
-            {/* Right side - 50% */}
             <div className="w-1/2 ml-[30px]">
                 {selectedItem ? (
                     <YieldDetailsView

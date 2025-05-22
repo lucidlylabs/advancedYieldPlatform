@@ -209,10 +209,8 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
                         <div
                             className={cn(
                                 "transition duration-200",
-                                index % 2 === 1 && "bg-[rgba(255,255,255,0.02)]",
-                                "hover:bg-[linear-gradient(90deg,rgba(0,209,160,0.15)_0%,rgba(0,209,160,0)_15%,rgba(0,209,160,0)_85%,rgba(0,209,160,0.15)_100%)]",
-                                selectedItemId === item.id &&
-                                "bg-[linear-gradient(90deg,rgba(0,209,160,0.15)_0%,rgba(0,209,160,0)_15%,rgba(0,209,160,0)_85%,rgba(0,209,160,0.15)_100%)]"
+                                "hover:bg-[rgba(255,255,255,0.02)]",
+                                selectedItemId === item.id && "bg-[rgba(255,255,255,0.02)]"
                             )}
                         >
                             <div className="grid grid-cols-12 pr-6 py-4 pl-4">
