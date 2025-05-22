@@ -38,9 +38,8 @@ const CodeVerificationPopup: React.FC<CodeVerificationPopupProps> = ({
                     <div>
                         <h2
                             className="text-[#B88AF8] font-bold mb-3 text-[32px] leading-normal tracking-[-0.877px]"
-                            /* style={{ textShadow: "4px 4px 0px #35165F" }} */
                         >
-                            Access to Lucidly Private Beta
+                            Access Lucidly Private Beta
                         </h2>
                         <p className="text-[#9C9DA2] text-sm font-normal leading-[22px] mb-6">
                             No code? Follow us on X, Telegram, or Discord — invites are shared
