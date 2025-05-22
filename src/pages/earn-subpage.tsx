@@ -289,7 +289,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
       ) : (
         <div className="flex flex-col gap-6 items-center pt-[8vh]">
           <h1 className="text-[40px] font-bold">
-            Select a asset you want yield on
+            Select the asset you want yield on
           </h1>
           <div className="flex gap-6 justify-center items-center">
             <CustomCard
@@ -301,7 +301,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
               }
             />
             <CustomCard
-              heading="Ethereum"
+              heading="ETH"
               imageSrc="/images/icons/card-eth.svg"
               imageAlt="Ethereum semi-circle"
               hoverColor="#627EEA"
@@ -312,7 +312,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
               isComingSoon={true}
             />
             <CustomCard
-              heading="Bitcoin"
+              heading="BTC"
               imageSrc="/images/icons/card-btc.svg"
               imageAlt="Bitcoin semi-circle"
               hoverColor="#F7931A"

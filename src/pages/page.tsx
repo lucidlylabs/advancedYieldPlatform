@@ -29,6 +29,7 @@ export default function Page() {
   const [verificationError, setVerificationError] = useState("");
 
   const handleVerifyCode = (code: string) => {
+      console.log("correct code -", process.env.NEXT_PUBLIC_BETA_ACCESS_CODE);
     if (code === process.env.NEXT_PUBLIC_BETA_ACCESS_CODE) {
       setIsVerified(true);
       setIsCodePopupOpen(false);

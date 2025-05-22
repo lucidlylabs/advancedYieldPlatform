@@ -401,10 +401,10 @@ const PortfolioSubpage: React.FC = () => {
         <div>
           <div className="flex gap-32">
             <div className="flex flex-col">
-              <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-[16px]">
+              <div className="text-[#9C9DA2]  text-[14px] font-normal leading-[16px]">
                 Portfolio
               </div>
-              <div className="text-[#D7E3EF] font-inter text-[24px] font-semibold leading-normal mt-1">
+              <div className="text-[#D7E3EF]  text-[24px] font-semibold leading-normal mt-1">
                 {isRefreshingBalance ? (
                   <span className="inline-flex items-center gap-1">
                     <svg
@@ -437,10 +437,10 @@ const PortfolioSubpage: React.FC = () => {
               </div>
             </div>
             <div className="flex flex-col">
-              <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-[16px]">
+              <div className="text-[#9C9DA2]  text-[14px] font-normal leading-[16px]">
                 PNL
               </div>
-              <div className="text-[#00D1A0] font-inter text-[16px] font-normal leading-normal mt-3">
+              <div className="text-[#00D1A0]  text-[16px] font-normal leading-normal mt-3">
                 {strategiesWithBalance
                   .reduce(
                     (sum, s) =>
@@ -468,7 +468,7 @@ const PortfolioSubpage: React.FC = () => {
           </div>
         </div>
         <div className="flex flex-col justify-center items-end gap-2 py-[10px] px-4 rounded-[4px] border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)]">
-          <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-[16px]">
+          <div className="text-[#9C9DA2]  text-[14px] font-normal leading-[16px]">
             Wallet Address
           </div>
           <div className="text-[#D7E3EF] font-mono opacity-80">
@@ -482,17 +482,17 @@ const PortfolioSubpage: React.FC = () => {
         {/* Left Side - Assets Table */}
         <div className="w-1/2 border-r border-[rgba(255,255,255,0.1)] pt-8 pl-8">
           <div className="mb-6">
-            <div className="text-[rgba(255,255,255,0.70)] font-inter text-[16px] font-bold uppercase">
+            <div className="text-[rgba(255,255,255,0.70)]  text-[16px] font-bold uppercase">
               Total Portfolio Value
             </div>
           </div>
 
           {/* Column Headers */}
           <div className="grid grid-cols-12 pl-4 pr-6 py-2 border-b border-[rgba(255,255,255,0.15)]">
-            <div className="text-[#9C9DA2] font-inter text-[14px] font-medium col-span-4">
+            <div className="text-[#9C9DA2]  text-[14px] font-medium col-span-4">
               Available Yields
             </div>
-            <div className="text-[#9C9DA2] font-inter text-[14px] font-medium flex items-center col-span-3">
+            <div className="text-[#9C9DA2]  text-[14px] font-medium flex items-center col-span-3">
               Expiry
               <svg
                 className="ml-1"
@@ -505,7 +505,7 @@ const PortfolioSubpage: React.FC = () => {
                 <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
               </svg>
             </div>
-            <div className="text-[#9C9DA2] font-inter text-[14px] font-medium flex items-center col-span-2">
+            <div className="text-[#9C9DA2]  text-[14px] font-medium flex items-center col-span-2">
               Base APY
               <svg
                 className="ml-1"
@@ -518,7 +518,7 @@ const PortfolioSubpage: React.FC = () => {
                 <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
               </svg>
             </div>
-            <div className="text-[#9C9DA2] font-inter text-[14px] font-medium flex items-center justify-end col-span-3">
+            <div className="text-[#9C9DA2]  text-[14px] font-medium flex items-center justify-end col-span-3">
               Current Balance
               <svg
                 className="ml-1"
@@ -585,13 +585,13 @@ const PortfolioSubpage: React.FC = () => {
                       height={32}
                     />
                     <div>
-                      <div className="text-[#EDF2F8] font-inter text-[12px] font-normal leading-normal">
+                      <div className="text-[#EDF2F8]  text-[12px] font-normal leading-normal">
                         {strategy.type === "stable"
                           ? "Base Yield"
                           : "Incentive Maxi"}{" "}
                         {strategy.asset}
                       </div>
-                      <div className="text-[#00D1A0] font-inter text-[12px] font-normal">
+                      <div className="text-[#00D1A0]  text-[12px] font-normal">
                         +
                         {(
                           (strategy.balance *
@@ -605,12 +605,12 @@ const PortfolioSubpage: React.FC = () => {
 
                   {/* Expiry */}
                   <div className="flex flex-col col-span-3">
-                    <div className="text-[#EDF2F8] font-inter text-[12px] font-normal leading-normal">
+                    <div className="text-[#EDF2F8]  text-[12px] font-normal leading-normal">
                       {strategy.duration === "PERPETUAL_DURATION"
                         ? "No Expiry"
                         : "29th March 2025"}
                     </div>
-                    <div className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
+                    <div className="text-[#9C9DA2]  text-[12px] font-normal leading-normal">
                       {strategy.duration === "PERPETUAL_DURATION"
                         ? "Perpetual"
                         : "20 days to Expire"}
@@ -618,13 +618,13 @@ const PortfolioSubpage: React.FC = () => {
                   </div>
 
                   {/* APY */}
-                  <div className="text-[#EDF2F8] font-inter text-[12px] font-normal leading-normal col-span-2 flex items-center justify-center">
+                  <div className="text-[#EDF2F8]  text-[12px] font-normal leading-normal col-span-2 flex items-center justify-center">
                     {strategy.apy}
                   </div>
 
                   {/* Balance */}
                   <div className="flex flex-col items-end col-span-3">
-                    <div className="text-[#EDF2F8] font-inter text-[12px] font-normal leading-normal">
+                    <div className="text-[#EDF2F8]  text-[12px] font-normal leading-normal">
                       ${strategy.balance.toFixed(2)}
                     </div>
                     <div
@@ -632,7 +632,7 @@ const PortfolioSubpage: React.FC = () => {
                         parseFloat(strategy.apy?.replace("%", "") || "0") >= 0
                           ? "text-[#00D1A0]"
                           : "text-[#EF4444]"
-                      } font-inter text-[12px] font-normal leading-normal`}
+                      }  text-[12px] font-normal leading-normal`}
                     >
                       $
                       {(
@@ -658,7 +658,7 @@ const PortfolioSubpage: React.FC = () => {
         <div className="w-1/2 p-8">
           {selectedStrategy ? (
             <div className="flex flex-col h-full rounded-lg p-6">
-              <h1 className="text-[#D7E3EF] font-inter text-[20px] font-semibold leading-normal mb-4">
+              <h1 className="text-[#D7E3EF]  text-[20px] font-semibold leading-normal mb-4">
                 Withdraw
               </h1>
 
@@ -688,9 +688,9 @@ const PortfolioSubpage: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="text-[#9C9DA2] text-right font-inter text-[12px] font-normal leading-normal">
+                  <div className="text-[#9C9DA2] text-right  text-[12px] font-normal leading-normal">
                     Balance:{" "}
-                    <span className="text-[#D7E3EF] font-inter text-[12px] font-semibold leading-normal">
+                    <span className="text-[#D7E3EF]  text-[12px] font-semibold leading-normal">
                       {selectedStrategy.balance.toFixed(4)}
                     </span>
                   </div>
@@ -714,25 +714,25 @@ const PortfolioSubpage: React.FC = () => {
                   {/* Percentage buttons on the right */}
                   <div className="flex gap-2">
                     <button
-                      className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2] font-inter text-[12px] font-normal"
+                      className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2]  text-[12px] font-normal"
                       onClick={() => handlePercentageClick(0.25)}
                     >
                       25%
                     </button>
                     <button
-                      className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2] font-inter text-[12px] font-normal"
+                      className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2]  text-[12px] font-normal"
                       onClick={() => handlePercentageClick(0.5)}
                     >
                       50%
                     </button>
                     <button
-                      className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2] font-inter text-[12px] font-normal"
+                      className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2]  text-[12px] font-normal"
                       onClick={() => handlePercentageClick(0.75)}
                     >
                       75%
                     </button>
                     <button
-                      className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2] font-inter text-[12px] font-normal"
+                      className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2]  text-[12px] font-normal"
                       onClick={handleMaxClick}
                     >
                       MAX
@@ -741,10 +741,10 @@ const PortfolioSubpage: React.FC = () => {
                 </div>
 
                 <div className="flex justify-between py-4 mb-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] px-6 items-center">
-                  <div className="text-[#EDF2F8] font-inter text-[12px] font-normal leading-normal">
+                  <div className="text-[#EDF2F8]  text-[12px] font-normal leading-normal">
                     You Will Receive
                   </div>
-                  <div className="text-[#EDF2F8] font-inter text-[16px] font-medium leading-normal">
+                  <div className="text-[#EDF2F8]  text-[16px] font-medium leading-normal">
                     {parseFloat(withdrawAmount || "0").toFixed(2)}{" "}
                     {selectedStrategy.asset}
                   </div>
@@ -794,10 +794,10 @@ const PortfolioSubpage: React.FC = () => {
                 </button>
                 {errorMessage && (
                   <div className="flex justify-between items-center mt-4 bg-[rgba(239,68,68,0.1)] rounded-[4px] p-4">
-                    <div className="text-[#EF4444] font-inter text-[14px]">
+                    <div className="text-[#EF4444]  text-[14px]">
                       Transaction Failed
                     </div>
-                    <div className="text-[#EF4444] font-inter text-[14px] underline">
+                    <div className="text-[#EF4444]  text-[14px] underline">
                       #
                       {withdrawTxHash
                         ? withdrawTxHash.substring(0, 8) + "..."
@@ -807,14 +807,14 @@ const PortfolioSubpage: React.FC = () => {
                 )}
                 {!errorMessage && withdrawTxHash && isWithdrawSuccess && (
                   <div className="flex justify-between items-center mt-4 bg-[rgba(0,209,160,0.1)] rounded-[4px] p-4">
-                    <div className="text-[#00D1A0] font-inter text-[14px]">
+                    <div className="text-[#00D1A0]  text-[14px]">
                       Transaction Successful
                     </div>
                     <a
                       href={`https://sonicscan.org/tx/${withdrawTxHash}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[#00D1A0] font-inter text-[14px] underline hover:text-[#00D1A0]/80"
+                      className="text-[#00D1A0]  text-[14px] underline hover:text-[#00D1A0]/80"
                     >
                       #{withdrawTxHash.substring(0, 8)}...
                     </a>
@@ -846,7 +846,7 @@ const PortfolioSubpage: React.FC = () => {
                 <h2 className="text-[#D7E3EF] text-xl font-semibold mb-2">
                   Select a Yield Option to withdraw
                 </h2>
-                <p className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-[16px]">
+                <p className="text-[#9C9DA2]  text-[14px] font-normal leading-[16px]">
                   Review your available balances, current rates, and withdrawal
                   <br />
                   options for each yield source.
