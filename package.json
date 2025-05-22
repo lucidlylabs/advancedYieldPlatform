@@ -1,40 +1,40 @@
 {
-  "name": "advancedyield",
-  "private": true,
-  "version": "0.1.0",
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "test": "echo \"No tests specified\" && exit 0"
-  },
-  "dependencies": {
-    "@radix-ui/react-slot": "^1.1.2",
-    "@radix-ui/react-tooltip": "^1.1.8",
-    "@rainbow-me/rainbowkit": "^2.2.4",
-    "@tanstack/react-query": "^5.55.3",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "ethers": "^6.13.5",
-    "lucide-react": "^0.484.0",
-    "next": "^15.1.4",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "react-error-boundary": "^5.0.0",
-    "react-icons": "^5.5.0",
-    "tailwind-merge": "^3.0.2",
-    "tailwindcss-animate": "^1.0.7",
-    "viem": "2.23.3",
-    "wagmi": "^2.14.11"
-  },
-  "devDependencies": {
-    "@shadcn/ui": "^0.0.4",
-    "@types/node": "^20.14.8",
-    "@types/react": "^19.0.6",
-    "autoprefixer": "^10.4.21",
-    "eslint-config-next": "^15.1.7",
-    "postcss": "^8.4.35",
-    "tailwindcss": "^3.4.1",
-    "typescript": "5.5.4"
-  }
+    "name": "advancedyield",
+    "private": true,
+    "version": "0.1.0",
+    "scripts": {
+        "dev": "next dev",
+        "build": "next build",
+        "start": "next start",
+        "test": "echo \"No tests specified\" && exit 0"
+    },
+    "dependencies": {
+        "@radix-ui/react-slot": "^1.1.2",
+        "@radix-ui/react-tooltip": "^1.1.8",
+        "@rainbow-me/rainbowkit": "^2.2.4",
+        "@tanstack/react-query": "^5.55.3",
+        "class-variance-authority": "^0.7.1",
+        "clsx": "^2.1.1",
+        "ethers": "^6.13.5",
+        "lucide-react": "^0.484.0",
+        "next": "^15.2.4",
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0",
+        "react-error-boundary": "^5.0.0",
+        "react-icons": "^5.5.0",
+        "tailwind-merge": "^3.0.2",
+        "tailwindcss-animate": "^1.0.7",
+        "viem": "2.23.3",
+        "wagmi": "^2.14.11"
+    },
+    "devDependencies": {
+        "@shadcn/ui": "^0.0.4",
+        "@types/node": "^20.14.8",
+        "@types/react": "^19.0.6",
+        "autoprefixer": "^10.4.21",
+        "eslint-config-next": "^15.1.7",
+        "postcss": "^8.4.35",
+        "tailwindcss": "^3.4.1",
+        "typescript": "5.5.4"
+    }
 }
