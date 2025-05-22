@@ -33,7 +33,7 @@ const CodeVerificationPopup: React.FC<CodeVerificationPopupProps> = ({
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-[#080B17]/60 backdrop-blur-sm" />
-            <div className="relative flex bg-[#080B17] rounded-lg overflow-hidden max-w-[800px] w-full text-white border border-[rgba(255,255,255,0.1)] shadow-[0px_0px_25px_0px_rgba(255,255,255,0.05)] h-[406px]">
+            <div className="relative flex bg-[#080B17] rounded-lg overflow-hidden max-w-[800px] w-full text-white border border-[rgba(255,255,255,0.1)] h-[406px]">
                 <div className="py-8 px-10 w-[450px] flex-shrink-0 flex flex-col justify-between">
                     <div>
                         <h2

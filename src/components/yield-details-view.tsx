@@ -52,7 +52,6 @@ const ExternalLinkIcon = () => (
   </svg>
 );
 
-// Tab component for switching between views
 interface TabProps {
   label: string;
   icon: React.ReactNode;
@@ -71,11 +70,10 @@ const Tab: React.FC<TabProps> = ({ label, icon, active, onClick }) => (
     onClick={onClick}
   >
     {icon}
-    <span className="text-white text-right font-inter text-[12px] font-normal leading-[16px]">{label}</span>
+    <span className="text-white text-right  text-[12px] font-normal leading-[16px]">{label}</span>
   </button>
 );
 
-// Main component
 const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   name,
   tvl,
@@ -107,16 +105,16 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   const renderDepositsTab = () => (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-[rgba(255,255,255,0.70)] font-inter text-[16px] font-bold">
+        <h2 className="text-[rgba(255,255,255,0.70)]  text-[16px] font-bold">
           TOTAL DEPOSITS IN {name.toUpperCase()}
         </h2>
 
         {/* Toggle buttons */}
         <div className="inline-flex overflow-hidden border border-gray-700 rounded-md">
-          <button className="text-[#D7E3EF] font-inter text-[12px] font-normal leading-[16px] px-4 py-2 rounded-[6px_0px_0px_6px] border border-[rgba(184,138,248,0.50)] bg-[rgba(184,138,248,0.15)]">
+          <button className="text-[#D7E3EF]  text-[12px] font-normal leading-[16px] px-4 py-2 rounded-[6px_0px_0px_6px] border border-[rgba(184,138,248,0.50)] bg-[rgba(184,138,248,0.15)]">
             Total Deposits
           </button>
-          <button className="text-[#D7E3EF] font-inter text-[12px] font-normal leading-[16px] px-4 py-2 hover:text-white transition-colors">
+          <button className="text-[#D7E3EF]  text-[12px] font-normal leading-[16px] px-4 py-2 hover:text-white transition-colors">
             Allocation
           </button>
         </div>
@@ -168,7 +166,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
   const renderBaseApyTab = () => (
     <div>
-      <h2 className="text-[rgba(255,255,255,0.70)] font-inter text-[16px] font-bold my-6">
+      <h2 className="text-[rgba(255,255,255,0.70)]  text-[16px] font-bold my-6">
         BASE APY HISTORY
       </h2>
 
@@ -189,7 +187,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
   const renderIncentivesTab = () => (
     <div>
-      <h2 className="text-[rgba(255,255,255,0.70)] font-inter text-[16px] font-bold my-6">
+      <h2 className="text-[rgba(255,255,255,0.70)]  text-[16px] font-bold my-6">
         INCENTIVE REWARDS
       </h2>
 
@@ -254,13 +252,13 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
       <div className="flex justify-between items-center mb-2">
         <div className="flex items-center pl-0">
           <div className="inline-flex items-center gap-[6px] pl-0">
-            <h1 className="text-[20px] font-semibold text-[#D7E3EF] font-inter leading-normal inline-flex items-center pl-0">
+            <h1 className="text-[20px] font-semibold text-[#D7E3EF]  leading-normal inline-flex items-center pl-0">
               {name}
             </h1>
           </div>
         </div>
         <div className="flex items-center gap-3 mr-8">
-          <button className="bg-[#B88AF8] hover:bg-[#9F6EE9] text-[#080B17] flex items-center gap-[8px] px-[16px] py-[6px] rounded-[4px] transition-colors font-inter text-[14px] font-normal leading-normal">
+          <button className="bg-[#B88AF8] hover:bg-[#9F6EE9] text-[#080B17] flex items-center gap-[8px] px-[16px] py-[6px] rounded-[4px] transition-colors  text-[14px] font-normal leading-normal">
             Deposit
           </button>
         </div>
@@ -269,16 +267,16 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
       {/* Stats */}
       <div className="flex items-center border-b border-gray-700 pb-2">
         <div className="w-[100px] flex flex-col pl-0 pr-6 relative after:content-[''] after:absolute after:right-0 after:top-[4px] after:w-[1px] after:h-[calc(100%-4px)] after:bg-[#2D2F3D]">
-          <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-normal">TVL</div>
-          <div className="text-white font-inter text-[14px] font-semibold leading-normal mt-[8px] text-left">{tvl}</div>
+          <div className="text-[#9C9DA2]  text-[14px] font-normal leading-normal">TVL</div>
+          <div className="text-white  text-[14px] font-semibold leading-normal mt-[8px] text-left">{tvl}</div>
         </div>
         <div className="flex flex-col px-6 relative after:content-[''] after:absolute after:right-0 after:top-[4px] after:w-[1px] after:h-[calc(100%-4px)] after:bg-[#2D2F3D]">
-          <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-normal flex items-center gap-1">Base APY</div>
-          <div className="text-white font-inter text-[14px] font-semibold leading-normal mt-[8px]">{baseApy}</div>
+          <div className="text-[#9C9DA2]  text-[14px] font-normal leading-normal flex items-center gap-1">Base APY</div>
+          <div className="text-white  text-[14px] font-semibold leading-normal mt-[8px]">{baseApy}</div>
         </div>
         <div className="flex flex-col px-6 relative after:content-[''] after:absolute after:right-0 after:top-[4px] after:w-[1px] after:h-[calc(100%-4px)] after:bg-[#2D2F3D]">
-          <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-normal">Contract Address</div>
-          <div className="text-white font-inter text-[14px] font-semibold leading-normal flex items-center gap-1 mt-[8px]">
+          <div className="text-[#9C9DA2]  text-[14px] font-normal leading-normal">Contract Address</div>
+          <div className="text-white text-[14px] font-semibold leading-normal flex items-center gap-1 mt-[8px]">
             {contractAddress}
             <button className="text-[#9C9DA2] hover:text-white transition-colors">
               <ExternalLinkIcon />
@@ -286,12 +284,11 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
           </div>
         </div>
         <div className="flex flex-col px-6">
-          <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-normal">Network</div>
-          <div className="text-white font-inter text-[14px] font-semibold leading-normal mt-[8px]">{network}</div>
+          <div className="text-[#9C9DA2]  text-[14px] font-normal leading-normal">Network</div>
+          <div className="text-white text-[14px] font-semibold leading-normal mt-[8px]">{network}</div>
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="flex border-b border-gray-700 pl-0">
         <Tab
           label="Deposits"

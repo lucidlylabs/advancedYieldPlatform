@@ -18,7 +18,7 @@ export function Header({
     onNavigateToDeposit,
     ...props
 }: HeaderProps) {
-    const [shouldShowBanner, setShouldShowBanner] = useState(true);
+    const [shouldShowBanner, setShouldShowBanner] = useState(false);
 
     const handleDepositClick = () => {
         if (onNavigateToDeposit) {
