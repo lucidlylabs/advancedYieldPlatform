@@ -24,7 +24,7 @@ a {
 
 h1 {
   color: #d7e3ef;
-  font-family: Inter;
+  /* font-family: Inter; */
   font-size: 40px;
   font-style: normal;
   font-weight: 600;
@@ -34,7 +34,7 @@ h1 {
 
 h2 {
   color: #d7e3ef;
-  font-family: Inter;
+  /* font-family: Inter; */
   font-size: 32px;
   font-style: normal;
   font-weight: 500;
