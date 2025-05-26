@@ -787,7 +787,7 @@ const DepositView: React.FC<DepositViewProps> = ({
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[#9C9DA2]">Transaction Hash</span>
                 <a
-                  href={`https://sonicscan.org/tx/${transactionHash}`}
+                  href={`https://basescan.org/tx/${transactionHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[#B88AF8] hover:underline flex items-center gap-1"
