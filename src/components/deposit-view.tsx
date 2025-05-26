@@ -35,6 +35,7 @@ interface StrategyConfig {
   deposit_contract: string;
   deposit_token_contract?: string; // Optional field for backward compatibility
   deposit_token_image?: string; // Optional field for deposit token image
+  deposit_token_decimal?: number; // Optional field for deposit token decimal
   description: string;
   apy: string;
   incentives: string;
@@ -43,6 +44,7 @@ interface StrategyConfig {
   show_cap: boolean;
   filled_cap: string;
   cap_limit: string;
+  boringVaultAddress?: string; // Optional field for boring vault address
 }
 
 // ERC20 ABI for token operations
@@ -81,6 +83,48 @@ const ERC20_ABI = [
     inputs: [],
     outputs: [{ name: "", type: "uint8" }],
   },
+  {
+    name: "name",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "string" }],
+  },
+  {
+    name: "symbol",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "string" }],
+  },
+  {
+    name: "totalSupply",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    name: "transfer",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    name: "transferFrom",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "from", type: "address" },
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
 ] as const;
 
 // Vault ABI for deposit
@@ -90,10 +134,11 @@ const VAULT_ABI = [
     type: "function",
     stateMutability: "nonpayable",
     inputs: [
-      { name: "assets", type: "uint256" },
-      { name: "receiver", type: "address" },
+      { name: "depositAsset", type: "address" },
+      { name: "depositAmount", type: "uint256" },
+      { name: "minimumMint", type: "uint256" }
     ],
-    outputs: [{ name: "", type: "uint256" }],
+    outputs: [{ name: "shares", type: "uint256" }],
   },
   {
     name: "totalAssets",
@@ -217,9 +262,10 @@ const DepositView: React.FC<DepositViewProps> = ({
 
   const { address } = useAccount();
 
-  // Get deposit token name and image path (only if defined in config)
+  // Get deposit token name, image, and decimals (only if defined in config)
   const depositToken = strategyConfig.deposit_token;
   const depositTokenImage = strategyConfig.deposit_token_image;
+  const depositTokenDecimals = strategyConfig.deposit_token_decimal || 6;
 
   // USDC token contract for approvals
   const tokenContractAddress =
@@ -235,6 +281,26 @@ const DepositView: React.FC<DepositViewProps> = ({
 
   // Approve token for vault
   const { writeContractAsync: approve, data: approveData } = useWriteContract();
+
+  // Check allowance against vault contract
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+    address: tokenContractAddress as Address,
+    abi: ERC20_ABI,
+    functionName: "allowance",
+    args: [address as Address, strategyConfig.boringVaultAddress as Address],
+  });
+
+  console.log("Allowance check details:", {
+    tokenContract: tokenContractAddress,
+    userAddress: address,
+    boringVault: strategyConfig.boringVaultAddress,
+    allowance: allowance?.toString(),
+    hasAllowance: !!allowance,
+    amount: amount ? parseUnits(amount, depositTokenDecimals).toString() : "0",
+    needsApproval: amount ? (BigInt(allowance?.toString() || "0") < parseUnits(amount, depositTokenDecimals)) : false,
+    currentAllowanceFormatted: allowance ? formatUnits(BigInt(allowance.toString()), depositTokenDecimals) : "0",
+    requestedAmountFormatted: amount || "0"
+  });
 
   // Watch approve transaction
   const { isLoading: isWaitingForApproval, isSuccess: isApprovalSuccess } =
@@ -254,25 +320,62 @@ const DepositView: React.FC<DepositViewProps> = ({
     hash: transactionHash || undefined,
   });
 
-  // Check allowance against vault contract
-  const { data: allowance, refetch: refetchAllowance } = useReadContract({
-    address: tokenContractAddress as Address,
-    abi: ERC20_ABI,
-    functionName: "allowance",
-    args: [address as Address, vaultContractAddress as Address],
-  });
+  // Add a debug check for the token contract
+  useEffect(() => {
+    const checkTokenContract = async () => {
+      if (!tokenContractAddress || !address) return;
+      
+      try {
+        const client = createPublicClient({
+          transport: http(strategyConfig.rpc || "https://base.llamarpc.com"),
+          chain: {
+            id: 8453,
+            name: "Base",
+            network: "base",
+            nativeCurrency: {
+              decimals: 18,
+              name: "Ethereum",
+              symbol: "ETH",
+            },
+            rpcUrls: {
+              default: { http: [strategyConfig.rpc || "https://base.llamarpc.com"] },
+              public: { http: [strategyConfig.rpc || "https://base.llamarpc.com"] },
+            },
+          },
+        });
 
-  console.log("Contract States:", {
-    allowance: allowance?.toString(),
-    approveData,
-    depositData,
-    isApproving,
-    isWaitingForApproval,
-    isDepositing,
-    isWaitingForDeposit,
-    tokenContract: tokenContractAddress,
-    vaultContract: vaultContractAddress,
-  });
+        // Try to read basic token info
+        const [name, symbol, decimals] = await Promise.all([
+          client.readContract({
+            address: tokenContractAddress as Address,
+            abi: ERC20_ABI,
+            functionName: "name",
+          }).catch(() => "Error reading name"),
+          client.readContract({
+            address: tokenContractAddress as Address,
+            abi: ERC20_ABI,
+            functionName: "symbol",
+          }).catch(() => "Error reading symbol"),
+          client.readContract({
+            address: tokenContractAddress as Address,
+            abi: ERC20_ABI,
+            functionName: "decimals",
+          }).catch(() => "Error reading decimals"),
+        ]);
+
+        console.log("Token contract debug info:", {
+          address: tokenContractAddress,
+          name,
+          symbol,
+          decimals,
+        });
+      } catch (error) {
+        console.error("Error checking token contract:", error);
+      }
+    };
+
+    checkTokenContract();
+  }, [tokenContractAddress, address, strategyConfig.rpc]);
 
   // Watch for approval success and update allowance
   useEffect(() => {
@@ -281,6 +384,8 @@ const DepositView: React.FC<DepositViewProps> = ({
       refetchAllowance();
       setIsApproving(false);
       setIsApproved(true);
+      // Automatically trigger deposit after approval
+      handleDeposit();
     }
   }, [isApprovalSuccess, approvalHash, refetchAllowance]);
 
@@ -399,38 +504,79 @@ const DepositView: React.FC<DepositViewProps> = ({
         throw new Error("Invalid amount");
       }
 
-      const roundedAmount = Math.round(amountFloat * 1_000_000) / 1_000_000;
-      const amountInWei = parseUnits(roundedAmount.toFixed(6), 6);
+      const roundedAmount = Math.round(amountFloat * Math.pow(10, depositTokenDecimals)) / Math.pow(10, depositTokenDecimals);
+      const amountInWei = parseUnits(roundedAmount.toFixed(depositTokenDecimals), depositTokenDecimals);
 
-      // Check current allowance
-      const currentAllowance = allowance
-        ? BigInt(allowance.toString())
-        : BigInt(0);
+      // First approve USDS for the boring vault
+      const boringVaultAddress = strategyConfig.boringVaultAddress;
+      if (!boringVaultAddress) {
+        throw new Error("Boring vault address not configured");
+      }
 
-      console.log("Current allowance check:", {
+      // Check if we need approval
+      const currentAllowance = allowance ? BigInt(allowance.toString()) : BigInt(0);
+      const needsApproval = currentAllowance < amountInWei;
+
+      console.log("Approval check:", {
         currentAllowance: currentAllowance.toString(),
         amountInWei: amountInWei.toString(),
+        needsApproval,
         isApproved,
-        isApproving,
+        isApproving
       });
 
-      // Only proceed with approval if we don't have enough allowance and not already approved
-      if (currentAllowance < amountInWei && !isApproved && !isApproving) {
-        console.log("Approval needed. Sending approve transaction...");
-        setIsApproving(true);
-        const approveTx = await approve({
-          address: tokenContractAddress as Address,
-          abi: ERC20_ABI,
-          functionName: "approve",
-          args: [vaultContractAddress as Address, amountInWei],
-          chainId: 146,
-        });
+      if (allowance === undefined) {
+        setErrorMessage('Unable to fetch allowance. Please check your network and try again.');
+        setIsWaitingForSignature(false);
+        return;
+      }
 
-        if (typeof approveTx === "string" && approveTx.startsWith("0x")) {
-          setApprovalHash(approveTx as `0x${string}`);
+      // Step 1: Approve USDS for boring vault if needed
+      if (needsApproval && !isApproved && !isApproving) {
+        console.log('Calling approve function...');
+        console.log("Sending approve transaction for boring vault...", {
+          tokenContract: tokenContractAddress,
+          spender: boringVaultAddress,
+          amount: amountInWei.toString(),
+          functionName: "approve",
+          abi: ERC20_ABI,
+          chainId: 8453,
+          account: address
+        });
+        
+        setIsApproving(true);
+        try {
+          const approveTx = await approve({
+            address: tokenContractAddress as Address,
+            abi: ERC20_ABI,
+            functionName: "approve",
+            args: [boringVaultAddress as Address, amountInWei],
+            chainId: 8453,
+            account: address as Address,
+          });
+
+          console.log("Approval transaction sent:", {
+            hash: approveTx,
+            tokenContract: tokenContractAddress,
+            spender: boringVaultAddress,
+            amount: amountInWei.toString()
+          });
+
+          if (typeof approveTx === "string" && approveTx.startsWith("0x")) {
+            setApprovalHash(approveTx as `0x${string}`);
+          }
+        } catch (error: any) {
+          console.error("Approval transaction failed:", {
+            error: error.message,
+            tokenContract: tokenContractAddress,
+            spender: boringVaultAddress,
+            amount: amountInWei.toString()
+          });
+          setIsApproving(false);
+          setErrorMessage(error.message || "Approval failed");
         }
         setIsWaitingForSignature(false);
-        return; // Exit after starting approval
+        return;
       }
 
       // If we're already approving, don't proceed with deposit
@@ -439,71 +585,46 @@ const DepositView: React.FC<DepositViewProps> = ({
         return;
       }
 
-      // If we have enough allowance, proceed with deposit
-      console.log("Proceeding with deposit");
-      setIsDepositing(true);
-
-      // Create a public client to check balance before deposit
-      const strategyConfig = USD_STRATEGIES[
-        duration as keyof typeof USD_STRATEGIES
-      ][strategy === "stable" ? "STABLE" : "INCENTIVE"] as StrategyConfig;
-      const rpcUrl = strategyConfig.rpc || "https://rpc.soniclabs.com";
-
-      const client = createPublicClient({
-        transport: http(rpcUrl),
-        chain: {
-          id: 146,
-          name: "Sonic",
-          network: "sonic",
-          nativeCurrency: {
-            decimals: 18,
-            name: "Sonic",
-            symbol: "S",
-          },
-          rpcUrls: {
-            default: { http: [rpcUrl] },
-            public: { http: [rpcUrl] },
-          },
-        },
-      });
-
-      // Check token balance before deposit
-      const balance = await client.readContract({
-        address: tokenContractAddress as Address,
-        abi: ERC20_ABI,
-        functionName: "balanceOf",
-        args: [address as Address],
-      });
-
-      if (balance < amountInWei) {
-        throw new Error("Insufficient token balance for deposit");
-      }
-
-      // Proceed with deposit using the vault contract
-      console.log("Sending deposit transaction to vault contract:", {
-        contract: vaultContractAddress,
-        amount: amountInWei.toString(),
-        receiver: address,
-      });
-
-      const tx = await deposit({
-        address: vaultContractAddress as Address,
-        abi: VAULT_ABI,
-        functionName: "deposit",
-        args: [amountInWei, address as Address],
-        chainId: 146,
-        account: address as Address,
-      });
-
-      if (tx && typeof tx === "string" && tx.startsWith("0x")) {
-        setTransactionHash(tx as `0x${string}`);
+      // Only proceed with deposit if we have sufficient allowance
+      if (!needsApproval || isApproved) {
+        // Step 2: Proceed with deposit to LayerZeroTeller
+        console.log("Proceeding with deposit to LayerZeroTeller");
         setIsDepositing(true);
+
+        // Calculate minimum mint amount based on slippage
+        const slippageAmount = amountInWei * BigInt(Math.floor(parseFloat(slippage) * 10000)) / BigInt(10000);
+        const minimumMint = amountInWei - slippageAmount;
+
+        // Proceed with deposit using the LayerZeroTeller contract
+        console.log("Sending deposit transaction to LayerZeroTeller:", {
+          contract: vaultContractAddress,
+          token: tokenContractAddress,
+          amount: amountInWei.toString(),
+          minimumMint: minimumMint.toString(),
+        });
+
+        const tx = await deposit({
+          address: vaultContractAddress as Address,
+          abi: VAULT_ABI,
+          functionName: "deposit",
+          args: [tokenContractAddress as Address, amountInWei, minimumMint],
+          chainId: 8453,
+          account: address as Address,
+        });
+
+        if (tx && typeof tx === "string" && tx.startsWith("0x")) {
+          setTransactionHash(tx as `0x${string}`);
+          setIsDepositing(true);
+        }
+      } else {
+        console.log("Insufficient allowance, approval needed first");
+        setErrorMessage("Please approve the token spending first");
       }
     } catch (error: any) {
       console.error("Transaction failed:", error);
       setIsApproving(false);
       setIsDepositing(false);
-      setErrorMessage("Transaction failed");
+      setErrorMessage(error.message || "Transaction failed");
     } finally {
       setIsWaitingForSignature(false);
     }
@@ -514,52 +635,96 @@ const DepositView: React.FC<DepositViewProps> = ({
 
     setIsLoadingBalance(true);
     try {
-      const strategyConfig = USD_STRATEGIES[
-        duration as keyof typeof USD_STRATEGIES
-      ][strategy === "stable" ? "STABLE" : "INCENTIVE"] as StrategyConfig;
+      // Use correct USDS token contract address on Base
+      const tokenContractAddress = "0x820C137fa70C8691f0e44Dc420a5e53c168921Dc" as Address;
+      const rpcUrl = "https://base.llamarpc.com";
 
-      // Use deposit_token_contract instead of deposit_contract
-      const tokenContractAddress =
-        strategyConfig.deposit_token_contract ||
-        strategyConfig.deposit_contract;
-      // Validate contract address
-      if (
-        !tokenContractAddress ||
-        tokenContractAddress === "0x0000000000000000000000000000000000000000"
-      ) {
-        console.warn("Invalid token contract address for", duration, strategy);
-        setBalance("0.00");
-        return;
-      }
-
-      // Use the RPC from the strategy config or fallback to a default
-      const rpcUrl = strategyConfig.rpc || "https://rpc.soniclabs.com";
-      console.log("Using RPC:", rpcUrl);
-      console.log("Token contract:", tokenContractAddress);
+      console.log("Fetching balance for:", {
+        tokenContract: tokenContractAddress,
+        userAddress: address,
+        network: "base",
+        rpc: rpcUrl
+      });
 
       const client = createPublicClient({
         transport: http(rpcUrl),
+        chain: {
+          id: 8453,
+          name: "Base",
+          network: "base",
+          nativeCurrency: {
+            decimals: 18,
+            name: "Ethereum",
+            symbol: "ETH",
+          },
+          rpcUrls: {
+            default: { http: [rpcUrl] },
+            public: { http: [rpcUrl] },
+          },
+        },
       });
 
+      // First try to get token info to verify contract
+      try {
+        const [name, symbol, decimals] = await Promise.all([
+          client.readContract({
+            address: tokenContractAddress,
+            abi: ERC20_ABI,
+            functionName: "name",
+          }).catch(() => "Error reading name"),
+          client.readContract({
+            address: tokenContractAddress,
+            abi: ERC20_ABI,
+            functionName: "symbol",
+          }).catch(() => "Error reading symbol"),
+          client.readContract({
+            address: tokenContractAddress,
+            abi: ERC20_ABI,
+            functionName: "decimals",
+          }).catch(() => "Error reading decimals"),
+        ]);
+
+        console.log("Token contract info:", {
+          address: tokenContractAddress,
+          name,
+          symbol,
+          decimals,
+        });
+      } catch (error) {
+        console.error("Error reading token info:", error);
+      }
+
+      // Then try to get balance
       const [balanceResult, decimalsResult] = await Promise.all([
         client.readContract({
-          address: tokenContractAddress as Address,
+          address: tokenContractAddress,
           abi: ERC20_ABI,
           functionName: "balanceOf",
           args: [address as Address],
+        }).catch(error => {
+          console.error("Error reading balance:", error);
+          return BigInt(0);
         }),
         client.readContract({
-          address: tokenContractAddress as Address,
+          address: tokenContractAddress,
           abi: ERC20_ABI,
           functionName: "decimals",
+        }).catch(error => {
+          console.error("Error reading decimals:", error);
+          return 6; // Default to 6 decimals for USDS
         }),
       ]);
+
+      console.log("Balance results:", {
+        rawBalance: balanceResult?.toString(),
+        decimals: decimalsResult,
+      });
 
       const formattedBalance = formatUnits(
         balanceResult as bigint,
         decimalsResult as number
       );
-      console.log("Balance fetched:", formattedBalance);
+      console.log("Formatted balance:", formattedBalance);
       setBalance(formattedBalance);
     } catch (error) {
       console.error("Error fetching balance:", error);
