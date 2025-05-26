@@ -170,25 +170,29 @@ const PortfolioSubpage: React.FC = () => {
     if (!address) return 0;
 
     try {
-      // Validate contract address
+      // Validate boring vault address
       if (
-        !strategy.contract ||
-        strategy.contract === "0x0000000000000000000000000000000000000000"
+        !strategy.boringVaultAddress ||
+        strategy.boringVaultAddress === "0x0000000000000000000000000000000000000000"
       ) {
-        console.warn("Invalid contract address for strategy:", strategy);
+        console.warn("Invalid boring vault address for strategy:", strategy);
         return 0;
       }
+
+      console.log("Checking balance for boring vault:", strategy.boringVaultAddress);
+      console.log("Using address:", address);
+      console.log("Using RPC:", strategy.rpc);
 
       const client = createPublicClient({
         transport: http(strategy.rpc),
         chain: {
-          id: 146,
-          name: "Sonic",
-          network: "sonic",
+          id: 8453,
+          name: "Base",
+          network: "base",
           nativeCurrency: {
             decimals: 18,
-            name: "Sonic",
-            symbol: "S",
+            name: "Ether",
+            symbol: "ETH",
           },
           rpcUrls: {
             default: { http: [strategy.rpc] },
@@ -197,21 +201,32 @@ const PortfolioSubpage: React.FC = () => {
         },
       });
 
-      const [balance, decimals] = await Promise.all([
-        client.readContract({
-          address: strategy.contract as Address,
-          abi: ERC20_ABI,
-          functionName: "balanceOf",
-          args: [address as Address],
-        }),
-        client.readContract({
-          address: strategy.contract as Address,
-          abi: ERC20_ABI,
-          functionName: "decimals",
-        }),
-      ]);
+      try {
+        const [balance, decimals] = await Promise.all([
+          client.readContract({
+            address: strategy.boringVaultAddress as Address,
+            abi: VAULT_ABI,
+            functionName: "balanceOf",
+            args: [address as Address],
+          }),
+          client.readContract({
+            address: strategy.boringVaultAddress as Address,
+            abi: VAULT_ABI,
+            functionName: "decimals",
+          }),
+        ]);
 
-      return parseFloat(formatUnits(balance as bigint, decimals as number));
+        console.log("Raw balance:", balance);
+        console.log("Decimals:", decimals);
+        
+        const formattedBalance = parseFloat(formatUnits(balance as bigint, decimals as number));
+        console.log("Formatted balance:", formattedBalance);
+        
+        return formattedBalance;
+      } catch (error) {
+        console.error("Error reading boring vault:", error);
+        return 0;
+      }
     } catch (error) {
       console.error("Error checking balance for strategy:", strategy, error);
       return 0;
@@ -229,7 +244,7 @@ const PortfolioSubpage: React.FC = () => {
             ...strategy,
             duration,
             type: type.toLowerCase(),
-            asset: "USD",
+            asset: "USD"
           }))
         ),
         ...Object.entries(BTC_STRATEGIES as StrategyAsset).flatMap(([duration, strategies]) =>
@@ -237,7 +252,7 @@ const PortfolioSubpage: React.FC = () => {
             ...strategy,
             duration,
             type: type.toLowerCase(),
-            asset: "BTC",
+            asset: "BTC"
           }))
         ),
         ...Object.entries(ETH_STRATEGIES as StrategyAsset).flatMap(([duration, strategies]) =>
@@ -245,7 +260,7 @@ const PortfolioSubpage: React.FC = () => {
             ...strategy,
             duration,
             type: type.toLowerCase(),
-            asset: "ETH",
+            asset: "ETH"
           }))
         ),
       ];
@@ -256,6 +271,8 @@ const PortfolioSubpage: React.FC = () => {
           strategy.contract &&
           strategy.contract !== "0x0000000000000000000000000000000000000000"
       );
+
+      console.log("Valid strategies to check:", validStrategies);
 
       if (validStrategies.length === 0) {
         console.warn(
@@ -268,9 +285,12 @@ const PortfolioSubpage: React.FC = () => {
       const strategiesWithBalances = await Promise.all(
         validStrategies.map(async (strategy) => {
           const balance = await checkStrategyBalance(strategy);
+          console.log(`Balance for ${strategy.contract}:`, balance);
           return { ...strategy, balance };
         })
       );
+
+      console.log("Strategies with balances:", strategiesWithBalances);
 
       setStrategiesWithBalance(
         strategiesWithBalances.filter((s) => s.balance > 0)
@@ -305,17 +325,17 @@ const PortfolioSubpage: React.FC = () => {
       const client = createPublicClient({
         transport: http(selectedStrategy.rpc),
         chain: {
-          id: 146,
-          name: "Sonic",
-          network: "sonic",
+          id: 8453,
+          name: "Base",
+          network: "base",
           nativeCurrency: {
             decimals: 18,
-            name: "Sonic",
-            symbol: "S",
+            name: "Ether",
+            symbol: "ETH",
           },
           rpcUrls: {
-            default: { http: [selectedStrategy.rpc] },
-            public: { http: [selectedStrategy.rpc] },
+            default: { http: ["https://mainnet.base.org"] },
+            public: { http: ["https://mainnet.base.org"] },
           },
         },
       });
@@ -347,7 +367,7 @@ const PortfolioSubpage: React.FC = () => {
           abi: VAULT_ABI,
           functionName: "redeem",
           args: [sharesAmount, address, address],
-          chainId: 146, // Sonic chain ID
+          chainId: 8453, // Base chain ID
           account: address,
         });
 
