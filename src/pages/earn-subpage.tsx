@@ -9,8 +9,10 @@ type StrategyType = "STABLE" | "INCENTIVE";
 interface StrategyConfig {
     network: string;
     contract: string;
-    deposit_token: string;
-    deposit_token_contract: string;
+    boringVaultAddress: string;
+    tellerAddress: string;
+    deposit_tokens: string[];
+    deposit_token_contracts: string[];
     description: string;
     apy: string;
     incentives: string;
