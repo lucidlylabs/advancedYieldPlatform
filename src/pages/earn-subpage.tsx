@@ -299,6 +299,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
               onDurationSelect={(duration: DurationType) =>
                 handleDurationSelect("USD", duration)
               }
+              availableDurations={Object.keys(USD_STRATEGIES) as DurationType[]}
             />
             <CustomCard
               heading="Ethereum"
