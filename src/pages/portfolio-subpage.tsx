@@ -7,6 +7,8 @@ import {
   useWriteContract,
 } from "wagmi";
 import { USD_STRATEGIES, BTC_STRATEGIES, ETH_STRATEGIES } from "../config/env";
+import { ERC20_ABI } from "../config/abi/erc20";
+import { SOLVER_ABI } from "../config/abi/solver";
 import {
   type Address,
   createPublicClient,
@@ -38,51 +40,6 @@ type StrategyAsset = {
   [K in DurationType]?: StrategyDuration;
 }
 
-const ERC20_ABI = [
-  {
-    name: "balanceOf",
-    type: "function",
-    stateMutability: "view",
-    inputs: [{ name: "owner", type: "address" }],
-    outputs: [{ name: "", type: "uint256" }],
-  },
-  {
-    name: "decimals",
-    type: "function",
-    stateMutability: "view",
-    inputs: [],
-    outputs: [{ name: "", type: "uint8" }],
-  },
-] as const;
-
-const VAULT_ABI = [
-  {
-    stateMutability: "nonpayable",
-    type: "function",
-    name: "redeem",
-    inputs: [
-      { name: "shares", type: "uint256" },
-      { name: "receiver", type: "address" },
-      { name: "owner", type: "address" },
-    ],
-    outputs: [{ name: "", type: "uint256" }],
-  },
-  {
-    name: "balanceOf",
-    type: "function",
-    stateMutability: "view",
-    inputs: [{ name: "addr", type: "address" }],
-    outputs: [{ name: "", type: "uint256" }],
-  },
-  {
-    name: "decimals",
-    type: "function",
-    stateMutability: "view",
-    inputs: [],
-    outputs: [{ name: "", type: "uint8" }],
-  },
-] as const;
-
 const PortfolioSubpage: React.FC = () => {
   const { address, isConnected } = useAccount();
   const [depositSuccess, setDepositSuccess] = useState(false);
@@ -91,8 +48,8 @@ const PortfolioSubpage: React.FC = () => {
   );
   const [isDepositing, setIsDepositing] = useState(false);
   const [isApproved, setIsApproved] = useState(false);
-  const [approvalHash, setApprovalHash] = useState<`0x${string}` | null>(null);
   const [isApproving, setIsApproving] = useState(false);
+  const [approvalHash, setApprovalHash] = useState<`0x${string}` | null>(null);
   const [strategiesWithBalance, setStrategiesWithBalance] = useState<any[]>([]);
   const [selectedStrategy, setSelectedStrategy] = useState<any | null>(null);
   const [withdrawAmount, setWithdrawAmount] = useState<string>("");
@@ -205,13 +162,13 @@ const PortfolioSubpage: React.FC = () => {
         const [balance, decimals] = await Promise.all([
           client.readContract({
             address: strategy.boringVaultAddress as Address,
-            abi: VAULT_ABI,
+            abi: ERC20_ABI,
             functionName: "balanceOf",
             args: [address as Address],
           }),
           client.readContract({
             address: strategy.boringVaultAddress as Address,
-            abi: VAULT_ABI,
+            abi: ERC20_ABI,
             functionName: "decimals",
           }),
         ]);
@@ -311,17 +268,22 @@ const PortfolioSubpage: React.FC = () => {
   // Use wagmi's useWriteContract hook
   const { writeContractAsync: writeContract } = useWriteContract();
 
-  const handleWithdraw = async () => {
+  const handleApprove = async () => {
     if (!selectedStrategy || !withdrawAmount || !address) return;
 
     try {
-      setIsWithdrawing(true);
+      setIsApproving(true);
       setErrorMessage(null);
 
-      // Get the contract address from the selected strategy
-      const contractAddress = selectedStrategy.contract as Address;
+      const solverAddress = selectedStrategy.solverAddress as Address;
+      const vaultAddress = selectedStrategy.boringVaultAddress as Address;
 
-      // Create a client to interact with the contract
+      console.log("Approval details:", {
+        solverAddress,
+        vaultAddress,
+        address
+      });
+
       const client = createPublicClient({
         transport: http(selectedStrategy.rpc),
         chain: {
@@ -340,52 +302,137 @@ const PortfolioSubpage: React.FC = () => {
         },
       });
 
-      // Get the decimals from the contract
+      // Get decimals from vault
       const decimals = (await client.readContract({
-        address: contractAddress,
-        abi: VAULT_ABI,
+        address: vaultAddress,
+        abi: ERC20_ABI,
         functionName: "decimals",
       })) as number;
 
-      console.log(`Contract decimals: ${decimals}`);
-
-      // Parse the withdraw amount with proper decimals
       const sharesAmount = parseUnits(withdrawAmount, decimals);
 
-      console.log("Withdrawing from contract:", {
-        contract: contractAddress,
-        shares: sharesAmount.toString(),
-        receiver: address,
-        owner: address,
-        decimals,
+      console.log("Requesting approval for amount:", sharesAmount.toString());
+
+      // Approve the solver to spend the vault tokens
+      const approveTx = await writeContract({
+        address: vaultAddress,
+        abi: ERC20_ABI,
+        functionName: "approve",
+        args: [solverAddress, sharesAmount],
+        chainId: 8453,
+        account: address,
       });
 
-      try {
-        // Call the redeem function on the contract
-        const tx = await writeContract({
-          address: contractAddress,
-          abi: VAULT_ABI,
-          functionName: "redeem",
-          args: [sharesAmount, address, address],
-          chainId: 8453, // Base chain ID
-          account: address,
+      if (approveTx && typeof approveTx === "string" && approveTx.startsWith("0x")) {
+        console.log("Approval transaction submitted:", approveTx);
+        setApprovalHash(approveTx as `0x${string}`);
+        
+        // Wait for approval transaction to complete
+        const { isSuccess: isApprovalSuccess } = await useTransaction({
+          hash: approveTx as `0x${string}`,
         });
 
-        if (tx && typeof tx === "string" && tx.startsWith("0x")) {
-          console.log("Withdrawal transaction submitted:", tx);
-          setWithdrawTxHash(tx as `0x${string}`);
+        if (isApprovalSuccess) {
+          setIsApproved(true);
+          console.log("Approval successful");
         } else {
-          throw new Error("Failed to get transaction hash");
+          throw new Error("Approval failed");
         }
-      } catch (error) {
-        console.error("Contract call failed:", error);
-        setIsWithdrawing(false);
-        setErrorMessage("Transaction failed. Please try again.");
+      } else {
+        throw new Error("Failed to get approval transaction hash");
       }
     } catch (error) {
-      console.error("Error withdrawing:", error);
+      console.error("Approval failed:", error);
+      setErrorMessage("Approval failed. Please try again.");
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
+  const handleWithdraw = async () => {
+    if (!selectedStrategy || !withdrawAmount || !address || !isApproved) return;
+
+    try {
+      setIsWithdrawing(true);
+      setErrorMessage(null);
+
+      const solverAddress = selectedStrategy.solverAddress as Address;
+      const vaultAddress = selectedStrategy.boringVaultAddress as Address;
+      const assetOutAddress = "0x820C137fa70C8691f0e44Dc420a5e53c168921Dc" as Address;
+
+      const client = createPublicClient({
+        transport: http(selectedStrategy.rpc),
+        chain: {
+          id: 8453,
+          name: "Base",
+          network: "base",
+          nativeCurrency: {
+            decimals: 18,
+            name: "Ether",
+            symbol: "ETH",
+          },
+          rpcUrls: {
+            default: { http: ["https://mainnet.base.org"] },
+            public: { http: ["https://mainnet.base.org"] },
+          },
+        },
+      });
+
+      // Get decimals from vault contract
+      const decimals = (await client.readContract({
+        address: vaultAddress,
+        abi: ERC20_ABI,
+        functionName: "decimals",
+      })) as number;
+
+      const sharesAmount = parseUnits(withdrawAmount, decimals);
+      // Convert to uint128
+      const amountOfShares = BigInt(sharesAmount.toString());
+      const discount = 100; // uint16 - hardcoded
+      const secondsToDeadline = 3600; // uint24 - hardcoded (1 hour)
+
+      console.log("Debug - Contract call parameters:", {
+        functionName: "requestOnChainWithdraw",
+        contractAddress: solverAddress,
+        args: {
+          assetOut: assetOutAddress,
+          amountOfShares: amountOfShares.toString(),
+          discount: discount.toString(),
+          secondsToDeadline: secondsToDeadline.toString()
+        },
+        types: {
+          assetOut: typeof assetOutAddress,
+          amountOfShares: typeof amountOfShares,
+          discount: typeof discount,
+          secondsToDeadline: typeof secondsToDeadline
+        }
+      });
+
+      const tx = await writeContract({
+        address: solverAddress,
+        abi: SOLVER_ABI,
+        functionName: "requestOnChainWithdraw",
+        args: [
+          assetOutAddress,
+          amountOfShares,
+          discount,
+          secondsToDeadline
+        ],
+        chainId: 8453,
+        account: address,
+      });
+
+      if (tx && typeof tx === "string" && tx.startsWith("0x")) {
+        console.log("Withdrawal transaction submitted:", tx);
+        setWithdrawTxHash(tx as `0x${string}`);
+      } else {
+        throw new Error("Failed to get transaction hash");
+      }
+    } catch (error) {
+      console.error("Contract call failed:", error);
+      setErrorMessage("Transaction failed. Please try again.");
+    } finally {
       setIsWithdrawing(false);
-      setErrorMessage("Error preparing withdrawal. Please try again.");
     }
   };
 
@@ -772,19 +819,44 @@ const PortfolioSubpage: React.FC = () => {
 
                 <button
                   className={`w-full py-4 rounded-[4px] border border-[rgba(255,255,255,0.30)] flex justify-center items-center gap-[10px] text-center text-[16px] font-semibold ${
-                    isWithdrawing
+                    isWithdrawing || isApproving
                       ? "bg-[#2D2F3D] text-[#9C9DA2] cursor-not-allowed"
                       : "bg-[#B88AF8] text-[#080B17] hover:bg-[#9F6EE9] transition-colors"
                   }`}
-                  onClick={handleWithdraw}
+                  onClick={isApproved ? handleWithdraw : handleApprove}
                   disabled={
                     isWithdrawing ||
+                    isApproving ||
                     !withdrawAmount ||
                     parseFloat(withdrawAmount) <= 0 ||
                     parseFloat(withdrawAmount) > selectedStrategy.balance
                   }
                 >
-                  {isWithdrawing ? (
+                  {isApproving ? (
+                    <>
+                      <svg
+                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#9C9DA2]"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Approving...
+                    </>
+                  ) : isWithdrawing ? (
                     <>
                       <svg
                         className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#9C9DA2]"
@@ -808,8 +880,10 @@ const PortfolioSubpage: React.FC = () => {
                       </svg>
                       Transaction in Progress
                     </>
-                  ) : (
+                  ) : isApproved ? (
                     "Withdraw"
+                  ) : (
+                    "Approve"
                   )}
                 </button>
                 {errorMessage && (

@@ -4,6 +4,8 @@ export const USD_STRATEGIES = {
       network: "base",
       contract: "0xeee7db89be35ee3da3b68928a1e3720ff434fb48",
       boringVaultAddress: "0xB964ca354A074fBf05765DaC640e01799c9E7f9E",
+      solverAddress:"0x580cBbC61D0dD1235E6Bb71fEB5aba3b70bCf750",
+      shareAddress:"0xB964ca354A074fBf05765DaC640e01799c9E7f9E",
       deposit_token: "USDS",
       deposit_token_contract: "0x820C137fa70C8691f0e44Dc420a5e53c168921Dc",
       deposit_token_decimal: 18,

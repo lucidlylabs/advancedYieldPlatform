@@ -1,4 +1,4 @@
-[
+export const ERC20_ABI = [
   {
     inputs: [
       {
@@ -159,4 +159,4 @@
     ],
     outputs: [{ name: "", type: "bool" }],
   },
-];
+] as const;
