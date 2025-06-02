@@ -85,7 +85,13 @@ const CustomCard: React.FC<CustomCardProps> = ({
       {...props}
     >
       {isStrategyCard ? (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full relative">
+          {/* Coming Soon Overlay */}
+          {isComingSoon && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-black bg-opacity-70 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <span className="text-[#B88AF8] text-2xl font-bold italic text-center">Coming Soon</span>
+            </div>
+          )}
           {/* Image */}
           <div className="flex justify-center items-center pt-8">
             <img

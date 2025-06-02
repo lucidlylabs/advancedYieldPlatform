@@ -47,6 +47,7 @@ interface StrategyInfo {
     value: string;
     info: string;
   };
+  comingSoon?: boolean;
 }
 
 interface StrategyData {
@@ -92,6 +93,7 @@ const getStrategyInfo = (duration: DurationType): StrategyData => {
             value: "0%",
             info: "-",
           },
+          comingSoon: true,
         },
       };
     }
@@ -110,6 +112,7 @@ const getStrategyInfo = (duration: DurationType): StrategyData => {
           value: strategy.INCENTIVE.apy,
           info: strategy.INCENTIVE.incentives,
         },
+        comingSoon: (strategy.INCENTIVE as any).comingSoon === true,
       },
     };
   };
@@ -256,13 +259,25 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                 />
               </div>
               <div
-                onClick={() =>
-                  handleStrategySelect(
-                    "incentive",
+                {...(getStrategyInfo(selectedAsset.duration).incentives[
+                  selectedAsset.asset as AssetType
+                ].comingSoon
+                  ? {}
+                  : {
+                      onClick: () =>
+                        handleStrategySelect(
+                          "incentive",
+                          selectedAsset.asset as AssetType
+                        ),
+                    })}
+                className={
+                  "group " +
+                  (getStrategyInfo(selectedAsset.duration).incentives[
                     selectedAsset.asset as AssetType
-                  )
+                  ].comingSoon
+                    ? "pointer-events-none opacity-60"
+                    : "cursor-pointer")
                 }
-                className="cursor-pointer"
               >
                 <CustomCard
                   heading={`Incentives ${selectedAsset.asset}`}
@@ -281,6 +296,11 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                   }
                   isStrategyCard={true}
                   disableHover={true}
+                  isComingSoon={
+                    getStrategyInfo(selectedAsset.duration).incentives[
+                      selectedAsset.asset as AssetType
+                    ].comingSoon === true
+                  }
                 />
               </div>
             </div>
