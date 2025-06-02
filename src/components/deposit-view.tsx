@@ -289,24 +289,23 @@ const DepositView: React.FC<DepositViewProps> = ({
     strategy === "stable" ? "STABLE" : "INCENTIVE"
   ] as StrategyConfig;
 
-  // Get the appropriate network tokens based on the current network
+  // Get the appropriate network tokens based on the selected target chain
   const getNetworkTokens = () => {
-    switch (strategyConfig.network) {
-      case "base":
-        return strategyConfig.base.tokens;
-      case "ethereum":
-        return strategyConfig.ethereum.tokens;
+    switch (targetChain) {
       case "arbitrum":
         return strategyConfig.arbitrum.tokens;
+      case "ethereum":
+        return strategyConfig.ethereum.tokens;
+      case "base":
       default:
         return strategyConfig.base.tokens;
     }
   };
 
-  // Parse all available deposit assets from strategyConfig
+  // Parse all available deposit assets from strategyConfig, filtered by targetChain
   const assetOptions = useMemo(() => {
     return getNetworkTokens();
-  }, [strategyConfig]);
+  }, [strategyConfig, targetChain]);
 
   const [selectedAssetIdx, setSelectedAssetIdx] = useState(0);
   const selectedAssetOption = assetOptions[selectedAssetIdx] || assetOptions[0];
