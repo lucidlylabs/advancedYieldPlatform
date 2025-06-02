@@ -716,15 +716,22 @@ const DepositView: React.FC<DepositViewProps> = ({
         args: [selectedAssetOption.contract as Address],
       });
 
-      console.log("Rate calculation:", {
-        rateProvider: rateProviderAddress,
-        depositToken: selectedAssetOption.contract,
-        rate: rate.toString(),
-        amountInWei: amountInWei.toString(),
-      });
+      console.log("Raw rate from contract:", rate.toString());
 
-      // Calculate minimum mint amount based on rate - no slippage
+      // Calculate minimum mint amount in 6 decimals
+      // First multiply by rate, then divide by 1e18 to get 6 decimals
       const minimumMint = (amountInWei * BigInt(rate)) / BigInt(1e18);
+
+      // Convert to exactly 6 decimals by multiplying by 1e6 and dividing by 1e18
+      const minimumMintIn6Decimals = (minimumMint * BigInt(1e6)) / BigInt(1e18);
+
+      console.log("Minimum mint calculation details:", {
+        amountInWei: amountInWei.toString(),
+        rate: rate.toString(),
+        minimumMint: minimumMint.toString(),
+        minimumMintIn6Decimals: minimumMintIn6Decimals.toString(),
+        minimumMintLength: minimumMintIn6Decimals.toString().length,
+      });
 
       // First approve USDS for the boring vault
       const boringVaultAddress = strategyConfig.boringVaultAddress;
@@ -839,7 +846,7 @@ const DepositView: React.FC<DepositViewProps> = ({
             contract: vaultContractAddress,
             token: tokenContractAddress,
             amount: amountInWei.toString(),
-            minimumMint: minimumMint.toString(),
+            minimumMint: minimumMintIn6Decimals.toString(),
           });
 
           try {
@@ -847,7 +854,7 @@ const DepositView: React.FC<DepositViewProps> = ({
               address: vaultContractAddress as Address,
               abi: VAULT_ABI,
               functionName: "deposit",
-              args: [tokenContractAddress as Address, amountInWei, minimumMint],
+              args: [tokenContractAddress as Address, amountInWei, minimumMintIn6Decimals],
               chainId: 8453,
               account: address as Address,
             });
