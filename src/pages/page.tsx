@@ -28,13 +28,56 @@ export default function Page() {
   const [isCodePopupOpen, setIsCodePopupOpen] = useState(true);
   const [verificationError, setVerificationError] = useState("");
 
-  const handleVerifyCode = (code: string) => {
-    if (code === process.env.NEXT_PUBLIC_BETA_ACCESS_PUBLIC_CODE) {
-      setIsVerified(true);
-      setIsCodePopupOpen(false);
-      setVerificationError("");
-    } else {
-      setVerificationError("Incorrect code. Please try again.");
+  // Function to check for an existing session (will need a backend API to read the cookie)
+  const checkSession = async () => {
+    try {
+      const response = await fetch('/api/check-session'); // We will need to create this API route
+      if (response.ok) {
+        const data = await response.json();
+        if (data.isValid) {
+          setIsVerified(true);
+          setIsCodePopupOpen(false);
+          return true;
+        }
+      }
+    } catch (error) {
+      console.error("Error checking session:", error);
+    }
+    setIsVerified(false);
+    setIsCodePopupOpen(true);
+    return false;
+  };
+
+  // useEffect to check session on component mount
+  useEffect(() => {
+    checkSession();
+  }, []); // Run only once on mount
+
+  const handleVerifyCode = async (code: string) => {
+    try {
+      const response = await fetch('/api/verify-code', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ accessCode: code }),
+      });
+
+      if (response.ok) {
+        setIsVerified(true);
+        setIsCodePopupOpen(false);
+        setVerificationError(""); // Clear any previous errors
+      } else {
+        const data = await response.json();
+        setVerificationError(data.message || "Incorrect code. Please try again.");
+        setIsVerified(false);
+        setIsCodePopupOpen(true);
+      }
+    } catch (error) {
+      console.error("Error verifying code:", error);
+      setVerificationError("An error occurred during verification.");
+      setIsVerified(false);
+      setIsCodePopupOpen(true);
     }
   };
 
