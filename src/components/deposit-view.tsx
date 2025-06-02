@@ -15,6 +15,7 @@ import {
   useTransaction,
   useReadContracts,
   useSwitchChain,
+  useChainId
 } from "wagmi";
 import { USD_STRATEGIES, BTC_STRATEGIES, ETH_STRATEGIES } from "../config/env";
 import {
@@ -272,6 +273,7 @@ const DepositView: React.FC<DepositViewProps> = ({
   const [isLoadingFee, setIsLoadingFee] = useState<boolean>(false);
   const [targetChain, setTargetChain] = useState<string>("arbitrum"); // Default target chain
   const { switchChain } = useSwitchChain();
+  const { chain } = useAccount(); // Get connected chain info
 
   // Get strategy config based on asset type
   const strategyConfigs = {
@@ -809,10 +811,10 @@ const DepositView: React.FC<DepositViewProps> = ({
         setErrorMessage("Please approve the token spending first");
       }
     } catch (error: any) {
-      console.error("Transaction failed:", error);
+      console.error("TRX failed:", transactionHash);
       setIsApproving(false);
       setIsDepositing(false);
-      setErrorMessage(error.message || "Transaction failed");
+      setErrorMessage(`TRX failed${transactionHash ? ': ' + transactionHash : ''}`);
     } finally {
       setIsWaitingForSignature(false);
     }
@@ -952,6 +954,13 @@ const DepositView: React.FC<DepositViewProps> = ({
     strategy,
     targetChain,
   ]);
+
+  // Update targetChain when connected chain changes
+  useEffect(() => {
+    if (chain) {
+      setTargetChain(chain.name.toLowerCase());
+    }
+  }, [chain]);
 
   const handleMaxClick = () => {
     setAmount(balance);
