@@ -826,6 +826,55 @@ const DepositView: React.FC<DepositViewProps> = ({
     }
   }, [amount, isMultiChain, targetChain]);
 
+  // Helper to get correct RPC and chain config for each chain
+  const getChainConfig = (chain: string) => {
+    switch (chain) {
+      case "arbitrum":
+        return {
+          rpcUrl: "https://arbitrum.drpc.org",
+          chain: {
+            id: 42161,
+            name: "Arbitrum",
+            network: "arbitrum",
+            nativeCurrency: { decimals: 18, name: "Ether", symbol: "ETH" },
+            rpcUrls: {
+              default: { http: ["https://arbitrum.drpc.org"] },
+              public: { http: ["https://arbitrum.drpc.org"] },
+            },
+          },
+        };
+      case "ethereum":
+        return {
+          rpcUrl: "https://eth.llamarpc.com",
+          chain: {
+            id: 1,
+            name: "Ethereum",
+            network: "ethereum",
+            nativeCurrency: { decimals: 18, name: "Ether", symbol: "ETH" },
+            rpcUrls: {
+              default: { http: ["https://eth.llamarpc.com"] },
+              public: { http: ["https://eth.llamarpc.com"] },
+            },
+          },
+        };
+      case "base":
+      default:
+        return {
+          rpcUrl: "https://base.llamarpc.com",
+          chain: {
+            id: 8453,
+            name: "Base",
+            network: "base",
+            nativeCurrency: { decimals: 18, name: "Ethereum", symbol: "ETH" },
+            rpcUrls: {
+              default: { http: ["https://base.llamarpc.com"] },
+              public: { http: ["https://base.llamarpc.com"] },
+            },
+          },
+        };
+    }
+  };
+
   const fetchBalance = async () => {
     if (!address) return;
 
@@ -833,24 +882,11 @@ const DepositView: React.FC<DepositViewProps> = ({
     try {
       const tokenContractAddress = selectedAssetOption.contract as Address;
       const decimals = Number(selectedAssetOption.decimal);
-      const rpcUrl = "https://base.llamarpc.com";
+      const { rpcUrl, chain } = getChainConfig(targetChain);
 
       const client = createPublicClient({
         transport: http(rpcUrl),
-        chain: {
-          id: 8453,
-          name: "Base",
-          network: "base",
-          nativeCurrency: {
-            decimals: 18,
-            name: "Ethereum",
-            symbol: "ETH",
-          },
-          rpcUrls: {
-            default: { http: [rpcUrl] },
-            public: { http: [rpcUrl] },
-          },
-        },
+        chain,
       });
 
       const balanceResult = await client.readContract({
@@ -860,7 +896,12 @@ const DepositView: React.FC<DepositViewProps> = ({
         args: [address as Address],
       });
 
-      const formattedBalance = Number(formatUnits(balanceResult as bigint, decimals)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const formattedBalance = Number(
+        formatUnits(balanceResult as bigint, decimals)
+      ).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
       setBalance(formattedBalance);
     } catch (error) {
       console.error("Error fetching balance:", error);
@@ -903,7 +944,14 @@ const DepositView: React.FC<DepositViewProps> = ({
     if (address) {
       fetchBalance();
     }
-  }, [address, selectedAssetIdx, selectedAsset, duration, strategy]);
+  }, [
+    address,
+    selectedAssetIdx,
+    selectedAsset,
+    duration,
+    strategy,
+    targetChain,
+  ]);
 
   const handleMaxClick = () => {
     setAmount(balance);
