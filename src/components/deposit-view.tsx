@@ -14,6 +14,7 @@ import {
   useWatchContractEvent,
   useTransaction,
   useReadContracts,
+  useSwitchChain,
 } from "wagmi";
 import { USD_STRATEGIES, BTC_STRATEGIES, ETH_STRATEGIES } from "../config/env";
 import {
@@ -145,7 +146,7 @@ const VAULT_ABI = [
     inputs: [
       { name: "depositAsset", type: "address" },
       { name: "depositAmount", type: "uint256" },
-      { name: "minimumMint", type: "uint256" }
+      { name: "minimumMint", type: "uint256" },
     ],
     outputs: [{ name: "shares", type: "uint256" }],
   },
@@ -160,7 +161,7 @@ const VAULT_ABI = [
       { name: "to", type: "address" },
       { name: "bridgeWildCard", type: "bytes" },
       { name: "feeToken", type: "address" },
-      { name: "maxFee", type: "uint256" }
+      { name: "maxFee", type: "uint256" },
     ],
     outputs: [{ name: "shares", type: "uint256" }],
   },
@@ -172,7 +173,7 @@ const VAULT_ABI = [
       { name: "shareAmount", type: "uint96" },
       { name: "to", type: "address" },
       { name: "bridgeWildCard", type: "bytes" },
-      { name: "feeToken", type: "address" }
+      { name: "feeToken", type: "address" },
     ],
     outputs: [{ name: "fee", type: "uint256" }],
   },
@@ -260,6 +261,7 @@ const DepositView: React.FC<DepositViewProps> = ({
   const [bridgeFee, setBridgeFee] = useState<string>("0");
   const [isLoadingFee, setIsLoadingFee] = useState<boolean>(false);
   const [targetChain, setTargetChain] = useState<string>("arbitrum"); // Default target chain
+  const { switchChain } = useSwitchChain();
 
   // Get strategy config based on asset type
   const strategyConfigs = {
@@ -269,7 +271,8 @@ const DepositView: React.FC<DepositViewProps> = ({
   };
 
   // Explicitly access the strategies for the selected asset first
-  const assetStrategies = strategyConfigs[selectedAsset as keyof typeof strategyConfigs];
+  const assetStrategies =
+    strategyConfigs[selectedAsset as keyof typeof strategyConfigs];
 
   // Now access the specific duration and strategy type
   const strategyConfig = (assetStrategies as any)[duration][ // Cast assetStrategies to any for indexing
@@ -337,9 +340,14 @@ const DepositView: React.FC<DepositViewProps> = ({
     allowance: allowance?.toString(),
     hasAllowance: !!allowance,
     amount: amount ? parseUnits(amount, depositTokenDecimals).toString() : "0",
-    needsApproval: amount ? (BigInt(allowance?.toString() || "0") < parseUnits(amount, depositTokenDecimals)) : false,
-    currentAllowanceFormatted: allowance ? formatUnits(BigInt(allowance.toString()), depositTokenDecimals) : "0",
-    requestedAmountFormatted: amount || "0"
+    needsApproval: amount
+      ? BigInt(allowance?.toString() || "0") <
+        parseUnits(amount, depositTokenDecimals)
+      : false,
+    currentAllowanceFormatted: allowance
+      ? formatUnits(BigInt(allowance.toString()), depositTokenDecimals)
+      : "0",
+    requestedAmountFormatted: amount || "0",
   });
 
   // Watch approve transaction
@@ -364,7 +372,7 @@ const DepositView: React.FC<DepositViewProps> = ({
   useEffect(() => {
     const checkTokenContract = async () => {
       if (!tokenContractAddress || !address) return;
-      
+
       try {
         const client = createPublicClient({
           transport: http(strategyConfig.rpc || "https://base.llamarpc.com"),
@@ -378,29 +386,39 @@ const DepositView: React.FC<DepositViewProps> = ({
               symbol: "ETH",
             },
             rpcUrls: {
-              default: { http: [strategyConfig.rpc || "https://base.llamarpc.com"] },
-              public: { http: [strategyConfig.rpc || "https://base.llamarpc.com"] },
+              default: {
+                http: [strategyConfig.rpc || "https://base.llamarpc.com"],
+              },
+              public: {
+                http: [strategyConfig.rpc || "https://base.llamarpc.com"],
+              },
             },
           },
         });
 
         // Try to read basic token info
         const [name, symbol, decimals] = await Promise.all([
-          client.readContract({
-            address: tokenContractAddress as Address,
-            abi: ERC20_ABI,
-            functionName: "name",
-          }).catch(() => "Error reading name"),
-          client.readContract({
-            address: tokenContractAddress as Address,
-            abi: ERC20_ABI,
-            functionName: "symbol",
-          }).catch(() => "Error reading symbol"),
-          client.readContract({
-            address: tokenContractAddress as Address,
-            abi: ERC20_ABI,
-            functionName: "decimals",
-          }).catch(() => "Error reading decimals"),
+          client
+            .readContract({
+              address: tokenContractAddress as Address,
+              abi: ERC20_ABI,
+              functionName: "name",
+            })
+            .catch(() => "Error reading name"),
+          client
+            .readContract({
+              address: tokenContractAddress as Address,
+              abi: ERC20_ABI,
+              functionName: "symbol",
+            })
+            .catch(() => "Error reading symbol"),
+          client
+            .readContract({
+              address: tokenContractAddress as Address,
+              abi: ERC20_ABI,
+              functionName: "decimals",
+            })
+            .catch(() => "Error reading decimals"),
         ]);
 
         console.log("Token contract debug info:", {
@@ -533,18 +551,22 @@ const DepositView: React.FC<DepositViewProps> = ({
             symbol: "ETH",
           },
           rpcUrls: {
-            default: { http: [strategyConfig.rpc || "https://base.llamarpc.com"] },
-            public: { http: [strategyConfig.rpc || "https://base.llamarpc.com"] },
+            default: {
+              http: [strategyConfig.rpc || "https://base.llamarpc.com"],
+            },
+            public: {
+              http: [strategyConfig.rpc || "https://base.llamarpc.com"],
+            },
           },
         },
       });
 
       // Get bridge wildcard based on target chain
       const bridgeWildCard = getBridgeWildCard(targetChain);
-      
+
       // Convert amount to uint96 for previewFee
       const shareAmount = amount as unknown as bigint;
-      
+
       // Call previewFee function with exact parameters from your example
       const fee = await client.readContract({
         address: vaultContractAddress as Address,
@@ -554,7 +576,7 @@ const DepositView: React.FC<DepositViewProps> = ({
           shareAmount, // shareAmount (uint96)
           address as Address, // to address
           bridgeWildCard, // bridgeWildCard bytes
-          "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" as Address // feeToken (ETH address)
+          "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" as Address, // feeToken (ETH address)
         ],
       });
 
@@ -563,7 +585,7 @@ const DepositView: React.FC<DepositViewProps> = ({
         to: address,
         bridgeWildCard,
         feeToken: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-        calculatedFee: fee.toString()
+        calculatedFee: fee.toString(),
       });
 
       setBridgeFee(formatUnits(fee as bigint, 18));
@@ -621,8 +643,13 @@ const DepositView: React.FC<DepositViewProps> = ({
         throw new Error("Invalid amount");
       }
 
-      const roundedAmount = Math.round(amountFloat * Math.pow(10, depositTokenDecimals)) / Math.pow(10, depositTokenDecimals);
-      const amountInWei = parseUnits(roundedAmount.toFixed(depositTokenDecimals), depositTokenDecimals);
+      const roundedAmount =
+        Math.round(amountFloat * Math.pow(10, depositTokenDecimals)) /
+        Math.pow(10, depositTokenDecimals);
+      const amountInWei = parseUnits(
+        roundedAmount.toFixed(depositTokenDecimals),
+        depositTokenDecimals
+      );
 
       // First approve USDS for the boring vault
       const boringVaultAddress = strategyConfig.boringVaultAddress;
@@ -631,18 +658,22 @@ const DepositView: React.FC<DepositViewProps> = ({
       }
 
       // Check if we need approval
-      const currentAllowance = allowance ? BigInt(allowance.toString()) : BigInt(0);
+      const currentAllowance = allowance
+        ? BigInt(allowance.toString())
+        : BigInt(0);
       const needsApproval = currentAllowance < amountInWei;
 
       if (allowance === undefined) {
-        setErrorMessage('Unable to fetch allowance. Please check your network and try again.');
+        setErrorMessage(
+          "Unable to fetch allowance. Please check your network and try again."
+        );
         setIsWaitingForSignature(false);
         return;
       }
 
       // Step 1: Approve USDS for boring vault if needed
       if (needsApproval && !isApproved && !isApproving) {
-        console.log('Calling approve function...');
+        console.log("Calling approve function...");
         setIsApproving(true);
         try {
           const approveTx = await approve({
@@ -677,20 +708,22 @@ const DepositView: React.FC<DepositViewProps> = ({
         setIsDepositing(true);
 
         // Calculate minimum mint amount based on slippage
-        const slippageAmount = amountInWei * BigInt(Math.floor(parseFloat(slippage) * 10000)) / BigInt(10000);
+        const slippageAmount =
+          (amountInWei * BigInt(Math.floor(parseFloat(slippage) * 10000))) /
+          BigInt(10000);
         // const minimumMint = amountInWei - slippageAmount;
         const minimumMint = amountInWei - slippageAmount;
 
         if (isMultiChain) {
           // Preview bridge fee before proceeding
           await previewBridgeFee(amountInWei);
-          
+
           // Get bridge wildcard
           const bridgeWildCard = getBridgeWildCard(targetChain);
-          
+
           // Convert bridge fee to wei
           const bridgeFeeWei = parseEther(bridgeFee);
-          
+
           // Proceed with multi-chain deposit
           console.log("Sending multi-chain deposit transaction:", {
             contract: vaultContractAddress,
@@ -712,7 +745,7 @@ const DepositView: React.FC<DepositViewProps> = ({
               address as Address,
               bridgeWildCard,
               "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" as Address, // ETH address
-              bridgeFeeWei // Use the calculated bridge fee
+              bridgeFeeWei, // Use the calculated bridge fee
             ],
             chainId: 8453,
             account: address as Address,
@@ -772,14 +805,15 @@ const DepositView: React.FC<DepositViewProps> = ({
     setIsLoadingBalance(true);
     try {
       // Use correct USDS token contract address on Base
-      const tokenContractAddress = "0x820C137fa70C8691f0e44Dc420a5e53c168921Dc" as Address;
+      const tokenContractAddress =
+        "0x820C137fa70C8691f0e44Dc420a5e53c168921Dc" as Address;
       const rpcUrl = "https://base.llamarpc.com";
 
       console.log("Fetching balance for:", {
         tokenContract: tokenContractAddress,
         userAddress: address,
         network: "base",
-        rpc: rpcUrl
+        rpc: rpcUrl,
       });
 
       const client = createPublicClient({
@@ -803,21 +837,27 @@ const DepositView: React.FC<DepositViewProps> = ({
       // First try to get token info to verify contract
       try {
         const [name, symbol, decimals] = await Promise.all([
-          client.readContract({
-            address: tokenContractAddress,
-            abi: ERC20_ABI,
-            functionName: "name",
-          }).catch(() => "Error reading name"),
-          client.readContract({
-            address: tokenContractAddress,
-            abi: ERC20_ABI,
-            functionName: "symbol",
-          }).catch(() => "Error reading symbol"),
-          client.readContract({
-            address: tokenContractAddress,
-            abi: ERC20_ABI,
-            functionName: "decimals",
-          }).catch(() => "Error reading decimals"),
+          client
+            .readContract({
+              address: tokenContractAddress,
+              abi: ERC20_ABI,
+              functionName: "name",
+            })
+            .catch(() => "Error reading name"),
+          client
+            .readContract({
+              address: tokenContractAddress,
+              abi: ERC20_ABI,
+              functionName: "symbol",
+            })
+            .catch(() => "Error reading symbol"),
+          client
+            .readContract({
+              address: tokenContractAddress,
+              abi: ERC20_ABI,
+              functionName: "decimals",
+            })
+            .catch(() => "Error reading decimals"),
         ]);
 
         console.log("Token contract info:", {
@@ -832,23 +872,27 @@ const DepositView: React.FC<DepositViewProps> = ({
 
       // Then try to get balance
       const [balanceResult, decimalsResult] = await Promise.all([
-        client.readContract({
-          address: tokenContractAddress,
-          abi: ERC20_ABI,
-          functionName: "balanceOf",
-          args: [address as Address],
-        }).catch(error => {
-          console.error("Error reading balance:", error);
-          return BigInt(0);
-        }),
-        client.readContract({
-          address: tokenContractAddress,
-          abi: ERC20_ABI,
-          functionName: "decimals",
-        }).catch(error => {
-          console.error("Error reading decimals:", error);
-          return 6; // Default to 6 decimals for USDS
-        }),
+        client
+          .readContract({
+            address: tokenContractAddress,
+            abi: ERC20_ABI,
+            functionName: "balanceOf",
+            args: [address as Address],
+          })
+          .catch((error) => {
+            console.error("Error reading balance:", error);
+            return BigInt(0);
+          }),
+        client
+          .readContract({
+            address: tokenContractAddress,
+            abi: ERC20_ABI,
+            functionName: "decimals",
+          })
+          .catch((error) => {
+            console.error("Error reading decimals:", error);
+            return 6; // Default to 6 decimals for USDS
+          }),
       ]);
 
       console.log("Balance results:", {
@@ -901,7 +945,10 @@ const DepositView: React.FC<DepositViewProps> = ({
         decimals: strategyConfig.deposit_token_decimal || 6,
       });
     }
-    if (strategyConfig.deposit_token_2 && strategyConfig.deposit_token_contract_2) {
+    if (
+      strategyConfig.deposit_token_2 &&
+      strategyConfig.deposit_token_contract_2
+    ) {
       options.push({
         name: strategyConfig.deposit_token_2,
         contract: strategyConfig.deposit_token_contract_2,
@@ -909,7 +956,10 @@ const DepositView: React.FC<DepositViewProps> = ({
         decimals: strategyConfig.deposit_token_decimal_2 || 6,
       });
     }
-    if (strategyConfig.deposit_token_3 && strategyConfig.deposit_token_contract_3) {
+    if (
+      strategyConfig.deposit_token_3 &&
+      strategyConfig.deposit_token_contract_3
+    ) {
       options.push({
         name: strategyConfig.deposit_token_3,
         contract: strategyConfig.deposit_token_contract_3,
@@ -922,6 +972,30 @@ const DepositView: React.FC<DepositViewProps> = ({
 
   const [selectedAssetIdx, setSelectedAssetIdx] = useState(0);
   const selectedAssetOption = assetOptions[selectedAssetIdx] || assetOptions[0];
+
+  // Add effect to switch network when target chain changes
+  useEffect(() => {
+    if (isMultiChain && targetChain && switchChain) {
+      const chainId = getChainId(targetChain);
+      if (chainId) {
+        switchChain({ chainId });
+      }
+    }
+  }, [targetChain, isMultiChain, switchChain]);
+
+  // Helper function to get chain ID
+  const getChainId = (chain: string): number | undefined => {
+    switch (chain) {
+      case "arbitrum":
+        return 42161;
+      case "optimism":
+        return 10;
+      case "ethereum":
+        return 1;
+      default:
+        return undefined;
+    }
+  };
 
   return (
     <div className="h-[calc(100vh-128px)] relative overflow-hidden">
@@ -1042,7 +1116,9 @@ const DepositView: React.FC<DepositViewProps> = ({
                     </label>
                     <select
                       value={selectedAssetIdx}
-                      onChange={e => setSelectedAssetIdx(Number(e.target.value))}
+                      onChange={(e) =>
+                        setSelectedAssetIdx(Number(e.target.value))
+                      }
                       className="w-full bg-[#1A1B1E] text-[#EDF2F8] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8]"
                     >
                       {assetOptions.map((opt, idx) => (
@@ -1055,16 +1131,18 @@ const DepositView: React.FC<DepositViewProps> = ({
                 )}
                 {/* Multi-chain Toggle (always shown) */}
                 <div className="mt-4 flex items-center justify-between">
-                  <span className="text-[#9C9DA2] font-inter text-[12px]">Multi-chain Deposit</span>
+                  <span className="text-[#9C9DA2] font-inter text-[12px]">
+                    Multi-chain Deposit
+                  </span>
                   <button
                     onClick={() => setIsMultiChain(!isMultiChain)}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                      isMultiChain ? 'bg-[#B88AF8]' : 'bg-[#1A1B1E]'
+                      isMultiChain ? "bg-[#B88AF8]" : "bg-[#1A1B1E]"
                     }`}
                   >
                     <span
                       className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        isMultiChain ? 'translate-x-6' : 'translate-x-1'
+                        isMultiChain ? "translate-x-6" : "translate-x-1"
                       }`}
                     />
                   </button>
@@ -1081,7 +1159,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                       className="w-full bg-[#1A1B1E] text-[#EDF2F8] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8]"
                     >
                       <option value="arbitrum">Arbitrum</option>
-                      <option value="optimism">Optimism</option>
+
                       <option value="ethereum">Ethereum</option>
                     </select>
                   </div>
@@ -1189,7 +1267,9 @@ const DepositView: React.FC<DepositViewProps> = ({
                             />
                           </svg>
                           <span className="text-[#9C9DA2] font-inter text-[12px] leading-normal">
-                            You need to have enough ETH in your wallet to cover the bridge fee. The fee will be paid in ETH along with your deposit.
+                            You need to have enough ETH in your wallet to cover
+                            the bridge fee. The fee will be paid in ETH along
+                            with your deposit.
                           </span>
                         </div>
                       </div>
