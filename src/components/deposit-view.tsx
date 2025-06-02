@@ -32,29 +32,39 @@ type StrategyType = "STABLE" | "INCENTIVE";
 interface StrategyConfig {
   network: string;
   contract: string;
-  deposit_token: string;
-  deposit_contract: string;
-  deposit_token_contract?: string; // Optional field for backward compatibility
-  deposit_token_image?: string; // Optional field for deposit token image
-  deposit_token_decimal?: number; // Optional field for deposit token decimal
-  // Add support for multiple deposit tokens
-  deposit_token_2?: string;
-  deposit_token_contract_2?: string;
-  deposit_token_image_2?: string;
-  deposit_token_2_decimal?: number;
-  deposit_token_3?: string;
-  deposit_token_contract_3?: string;
-  deposit_token_image_3?: string;
-  deposit_token_3_decimal?: number;
+  base: {
+    tokens: Array<{
+      name: string;
+      contract: string;
+      decimal: number;
+      image: string;
+    }>;
+  };
+  ethereum: {
+    tokens: Array<{
+      name: string;
+      contract: string;
+      decimal: number;
+      image: string;
+    }>;
+  };
+  arbitrum: {
+    tokens: Array<{
+      name: string;
+      contract: string;
+      decimal: number;
+      image: string;
+    }>;
+  };
   description: string;
   apy: string;
   incentives: string;
   tvl: string;
-  rpc?: string; // Optional field for backward compatibility
+  rpc?: string;
   show_cap: boolean;
   filled_cap: string;
   cap_limit: string;
-  boringVaultAddress?: string; // Optional field for boring vault address
+  boringVaultAddress?: string;
 }
 
 // ERC20 ABI for token operations
@@ -275,9 +285,35 @@ const DepositView: React.FC<DepositViewProps> = ({
     strategyConfigs[selectedAsset as keyof typeof strategyConfigs];
 
   // Now access the specific duration and strategy type
-  const strategyConfig = (assetStrategies as any)[duration][ // Cast assetStrategies to any for indexing
+  const strategyConfig = (assetStrategies as any)[duration][
     strategy === "stable" ? "STABLE" : "INCENTIVE"
   ] as StrategyConfig;
+
+  // Get the appropriate network tokens based on the current network
+  const getNetworkTokens = () => {
+    switch (strategyConfig.network) {
+      case "base":
+        return strategyConfig.base.tokens;
+      case "ethereum":
+        return strategyConfig.ethereum.tokens;
+      case "arbitrum":
+        return strategyConfig.arbitrum.tokens;
+      default:
+        return strategyConfig.base.tokens;
+    }
+  };
+
+  // Parse all available deposit assets from strategyConfig
+  const assetOptions = useMemo(() => {
+    return getNetworkTokens();
+  }, [strategyConfig]);
+
+  const [selectedAssetIdx, setSelectedAssetIdx] = useState(0);
+  const selectedAssetOption = assetOptions[selectedAssetIdx] || assetOptions[0];
+
+  // Update token contract address and decimals
+  const tokenContractAddress = selectedAssetOption.contract;
+  const depositTokenDecimals = selectedAssetOption.decimal;
 
   // Calculate deposit cap values from env config
   const showDepositCap = strategyConfig.show_cap;
@@ -305,14 +341,6 @@ const DepositView: React.FC<DepositViewProps> = ({
 
   const { address } = useAccount();
 
-  // Get deposit token name, image, and decimals (only if defined in config)
-  const depositToken = strategyConfig.deposit_token;
-  const depositTokenImage = strategyConfig.deposit_token_image;
-  const depositTokenDecimals = strategyConfig.deposit_token_decimal || 6;
-
-  // USDC token contract for approvals
-  const tokenContractAddress =
-    strategyConfig.deposit_token_contract || strategyConfig.deposit_contract;
   // Vault contract for deposits
   const vaultContractAddress = strategyConfig.contract;
 
@@ -476,10 +504,10 @@ const DepositView: React.FC<DepositViewProps> = ({
       console.log("Deposit successful!", {
         hash: transactionHash,
         amount,
-        token: depositToken,
+        token: selectedAssetOption.name,
       });
     }
-  }, [isDepositSuccess, transactionHash, amount, depositToken]);
+  }, [isDepositSuccess, transactionHash, amount, selectedAssetOption.name]);
 
   useEffect(() => {
     const checkApproval = async () => {
@@ -805,7 +833,7 @@ const DepositView: React.FC<DepositViewProps> = ({
     setIsLoadingBalance(true);
     try {
       const tokenContractAddress = selectedAssetOption.contract as Address;
-      const decimals = Number(selectedAssetOption.decimals);
+      const decimals = Number(selectedAssetOption.decimal);
       const rpcUrl = "https://base.llamarpc.com";
 
       const client = createPublicClient({
@@ -842,46 +870,6 @@ const DepositView: React.FC<DepositViewProps> = ({
       setIsLoadingBalance(false);
     }
   };
-
-  // --- Asset selection state ---
-  // Parse all available deposit assets from strategyConfig
-  const assetOptions = useMemo(() => {
-    const options = [];
-    if (strategyConfig.deposit_token && strategyConfig.deposit_token_contract) {
-      options.push({
-        name: strategyConfig.deposit_token,
-        contract: strategyConfig.deposit_token_contract,
-        image: strategyConfig.deposit_token_image,
-        decimals: strategyConfig.deposit_token_decimal,
-      });
-    }
-    if (
-      strategyConfig.deposit_token_2 &&
-      strategyConfig.deposit_token_contract_2
-    ) {
-      options.push({
-        name: strategyConfig.deposit_token_2,
-        contract: strategyConfig.deposit_token_contract_2,
-        image: strategyConfig.deposit_token_image_2,
-        decimals: strategyConfig.deposit_token_2_decimal,
-      });
-    }
-    if (
-      strategyConfig.deposit_token_3 &&
-      strategyConfig.deposit_token_contract_3
-    ) {
-      options.push({
-        name: strategyConfig.deposit_token_3,
-        contract: strategyConfig.deposit_token_contract_3,
-        image: strategyConfig.deposit_token_image_3,
-        decimals: strategyConfig.deposit_token_3_decimal,
-      });
-    }
-    return options;
-  }, [strategyConfig]);
-
-  const [selectedAssetIdx, setSelectedAssetIdx] = useState(0);
-  const selectedAssetOption = assetOptions[selectedAssetIdx] || assetOptions[0];
 
   // Add effect to switch network when target chain changes
   useEffect(() => {

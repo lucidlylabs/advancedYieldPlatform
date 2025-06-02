@@ -6,21 +6,53 @@ import { USD_STRATEGIES, BTC_STRATEGIES, ETH_STRATEGIES } from "../config/env";
 type DurationType = "30_DAYS" | "60_DAYS" | "180_DAYS" | "PERPETUAL_DURATION";
 type StrategyType = "STABLE" | "INCENTIVE";
 
-interface StrategyConfig {
+interface TokenConfig {
+  name: string;
+  contract: string;
+  decimal: number;
+  image: string;
+}
+
+interface NetworkConfig {
+  tokens: TokenConfig[];
+}
+
+interface BaseStrategyConfig {
   network: string;
   contract: string;
-  deposit_token: string;
-  deposit_token_contract: string;
+  boringVaultAddress: string;
+  solverAddress: string;
+  shareAddress: string;
+  shareAddress_token_decimal: number;
+  base: NetworkConfig;
+  ethereum: NetworkConfig;
+  arbitrum: NetworkConfig;
   description: string;
   apy: string;
   incentives: string;
   tvl: string;
   rpc: string;
+  show_cap: boolean;
+  filled_cap: string;
+  cap_limit: string;
+}
+
+interface IncentiveStrategyConfig {
+  network: string;
+  comingSoon: boolean;
+  contract: string;
+  deposit_token: string;
+  deposit_token_contract: string;
+  tvl: string;
+  rpc: string;
+  description: string;
+  apy: string;
+  incentives: string;
 }
 
 interface StrategyDuration {
-  STABLE: StrategyConfig;
-  INCENTIVE: StrategyConfig;
+  STABLE: BaseStrategyConfig;
+  INCENTIVE: IncentiveStrategyConfig;
 }
 
 interface StrategyAsset {
@@ -65,19 +97,17 @@ interface YieldSubpageProps {
 
 const getStrategyInfo = (duration: DurationType): StrategyData => {
   const getAssetStrategies = (asset: AssetType) => {
-    const strategies: StrategyAsset = {
-      USD: USD_STRATEGIES,
-      BTC: BTC_STRATEGIES,
-      ETH: ETH_STRATEGIES,
-    }[asset];
+    const strategies: Record<AssetType, Record<DurationType, StrategyDuration>> = {
+      USD: USD_STRATEGIES as Record<DurationType, StrategyDuration>,
+      BTC: BTC_STRATEGIES as Record<DurationType, StrategyDuration>,
+      ETH: ETH_STRATEGIES as Record<DurationType, StrategyDuration>,
+    };
 
-    // Use the duration as is since it matches the keys in env.ts
-    const durationKey = duration;
-    const strategy = strategies[durationKey];
+    const strategy = strategies[asset][duration];
 
     if (!strategy) {
       console.error(
-        `No strategy found for ${asset} with duration ${durationKey}`
+        `No strategy found for ${asset} with duration ${duration}`
       );
       return {
         stable: {
@@ -112,7 +142,7 @@ const getStrategyInfo = (duration: DurationType): StrategyData => {
           value: strategy.INCENTIVE.apy,
           info: strategy.INCENTIVE.incentives,
         },
-        comingSoon: (strategy.INCENTIVE as any).comingSoon === true,
+        comingSoon: strategy.INCENTIVE.comingSoon,
       },
     };
   };
@@ -120,45 +150,41 @@ const getStrategyInfo = (duration: DurationType): StrategyData => {
   return {
     stable: {
       USD: getAssetStrategies("USD").stable,
-      BTC: getAssetStrategies("BTC").stable,
       ETH: getAssetStrategies("ETH").stable,
+      BTC: getAssetStrategies("BTC").stable,
     },
     incentives: {
       USD: getAssetStrategies("USD").incentives,
-      BTC: getAssetStrategies("BTC").incentives,
       ETH: getAssetStrategies("ETH").incentives,
+      BTC: getAssetStrategies("BTC").incentives,
     },
   };
 };
 
 const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
   const [selectedAsset, setSelectedAsset] = useState<SelectedAsset | null>(null);
-  const [selectedStrategy, setSelectedStrategy] = useState<SelectedStrategy | null>(null);
+  const [selectedStrategy, setSelectedStrategy] = useState<SelectedStrategy | null>(
+    null
+  );
 
-  // Add effect to handle URL parameters or parent navigation
   useEffect(() => {
-    if (depositParams?.asset && depositParams?.duration) {
+    if (depositParams) {
+      const apy =
+        getStrategyInfo(depositParams.duration as DurationType)[
+          depositParams.strategy === "stable" ? "stable" : "incentives"
+        ][depositParams.asset as AssetType].apy.value;
+
       setSelectedAsset({
         asset: depositParams.asset,
         duration: depositParams.duration as DurationType,
       });
 
-      if (depositParams.strategy) {
-        const strategyInfo = getStrategyInfo(
-          depositParams.duration as DurationType
-        );
-        const apy =
-          strategyInfo[
-            depositParams.strategy === "stable" ? "stable" : "incentives"
-          ][depositParams.asset as AssetType].apy.value;
-
-        setSelectedStrategy({
-          type: depositParams.strategy as "stable" | "incentive",
-          asset: depositParams.asset,
-          duration: depositParams.duration as DurationType,
-          apy,
-        });
-      }
+      setSelectedStrategy({
+        type: depositParams.strategy as "stable" | "incentive",
+        asset: depositParams.asset,
+        duration: depositParams.duration as DurationType,
+        apy,
+      });
     }
   }, [depositParams]);
 
@@ -319,7 +345,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
               onDurationSelect={(duration: DurationType) =>
                 handleDurationSelect("USD", duration)
               }
-              availableDurations={Object.keys(USD_STRATEGIES) as DurationType[]}
+              availableDurations={["PERPETUAL_DURATION"]}
             />
             <CustomCard
               heading="Ethereum"
