@@ -679,7 +679,7 @@ const DepositView: React.FC<DepositViewProps> = ({
         // Calculate minimum mint amount based on slippage
         const slippageAmount = amountInWei * BigInt(Math.floor(parseFloat(slippage) * 10000)) / BigInt(10000);
         // const minimumMint = amountInWei - slippageAmount;
-        const minimumMint = "2000000";
+        const minimumMint = amountInWei - slippageAmount;
 
         if (isMultiChain) {
           // Preview bridge fee before proceeding
