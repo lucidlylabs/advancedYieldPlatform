@@ -7,7 +7,8 @@ export const USD_STRATEGIES = {
       solverAddress: "0xF632c10b19f2a0451cD4A653fC9ca0c15eA1040b",
       shareAddress: "0x279CAD277447965AF3d24a78197aad1B02a2c589",
       shareAddress_token_decimal: 6,
-      
+      rateProvider: "0x03D9a9cE13D16C7cFCE564f41bd7E85E5cde8Da6",
+
       // Base Network Configuration
       base: {
         tokens: [
@@ -15,21 +16,21 @@ export const USD_STRATEGIES = {
             name: "USDC",
             contract: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
             decimal: 6,
-            image: "/images/icons/usdc.svg"
+            image: "/images/icons/usdc.svg",
           },
           {
             name: "USDS",
             contract: "0x820C137fa70C8691f0e44Dc420a5e53c168921Dc",
             decimal: 18,
-            image: "/images/icons/usds.svg"
+            image: "/images/icons/usds.svg",
           },
           {
             name: "sUSDS",
             contract: "0x5875eEE11Cf8398102FdAd704C9E96607675467a",
             decimal: 18,
-            image: "/images/icons/sUSDS.svg"
-          }
-        ]
+            image: "/images/icons/sUSDS.svg",
+          },
+        ],
       },
 
       // Ethereum Mainnet Configuration
@@ -39,21 +40,21 @@ export const USD_STRATEGIES = {
             name: "USDC",
             contract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
             decimal: 6,
-            image: "/images/icons/usdc.svg"
+            image: "/images/icons/usdc.svg",
           },
           {
             name: "USDT",
             contract: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
             decimal: 6,
-            image: "/images/icons/usdt.svg"
+            image: "/images/icons/usdt.svg",
           },
           {
             name: "USDS",
             contract: "0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD",
             decimal: 18,
-            image: "/images/icons/usds.svg"
-          }
-        ]
+            image: "/images/icons/usds.svg",
+          },
+        ],
       },
 
       // Arbitrum Configuration
@@ -63,15 +64,15 @@ export const USD_STRATEGIES = {
             name: "USDC",
             contract: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
             decimal: 6,
-            image: "/images/icons/usdc.svg"
+            image: "/images/icons/usdc.svg",
           },
           {
             name: "USDS",
             contract: "0x6491c05A82219b8D1479057361ff1654749b876b",
             decimal: 18,
-            image: "/images/icons/USDS.svg"
-          }
-        ]
+            image: "/images/icons/USDS.svg",
+          },
+        ],
       },
 
       description: "Perpetual stable USD strategy on Sonic network",

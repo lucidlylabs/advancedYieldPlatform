@@ -26,6 +26,7 @@ import {
   http,
   parseUnits,
 } from "viem";
+import { RATE_PROVIDER_ABI } from "../config/abi/rateProvider";
 
 type DurationType = "30_DAYS" | "60_DAYS" | "180_DAYS" | "PERPETUAL_DURATION";
 type StrategyType = "STABLE" | "INCENTIVE";
@@ -66,6 +67,8 @@ interface StrategyConfig {
   filled_cap: string;
   cap_limit: string;
   boringVaultAddress?: string;
+  rateProvider: string;
+  shareAddress: string;
 }
 
 // ERC20 ABI for token operations
@@ -680,6 +683,49 @@ const DepositView: React.FC<DepositViewProps> = ({
         depositTokenDecimals
       );
 
+      // Get rate from rate provider
+      const rateProviderAddress = strategyConfig.rateProvider;
+
+      const client = createPublicClient({
+        transport: http(strategyConfig.rpc || "https://base.llamarpc.com"),
+        chain: {
+          id: 8453,
+          name: "Base",
+          network: "base",
+          nativeCurrency: {
+            decimals: 18,
+            name: "Ethereum",
+            symbol: "ETH",
+          },
+          rpcUrls: {
+            default: {
+              http: [strategyConfig.rpc || "https://base.llamarpc.com"],
+            },
+            public: {
+              http: [strategyConfig.rpc || "https://base.llamarpc.com"],
+            },
+          },
+        },
+      });
+
+      // Get rate from rate provider using the deposit token address
+      const rate = await client.readContract({
+        address: rateProviderAddress as Address,
+        abi: RATE_PROVIDER_ABI,
+        functionName: "getRateInQuote",
+        args: [selectedAssetOption.contract as Address],
+      });
+
+      console.log("Rate calculation:", {
+        rateProvider: rateProviderAddress,
+        depositToken: selectedAssetOption.contract,
+        rate: rate.toString(),
+        amountInWei: amountInWei.toString(),
+      });
+
+      // Calculate minimum mint amount based on rate - no slippage
+      const minimumMint = (amountInWei * BigInt(rate)) / BigInt(1e18);
+
       // First approve USDS for the boring vault
       const boringVaultAddress = strategyConfig.boringVaultAddress;
       if (!boringVaultAddress) {
@@ -736,13 +782,6 @@ const DepositView: React.FC<DepositViewProps> = ({
       if (!needsApproval || isApproved) {
         setIsDepositing(true);
 
-        // Calculate minimum mint amount based on slippage
-        const slippageAmount =
-          (amountInWei * BigInt(Math.floor(parseFloat(slippage) * 10000))) /
-          BigInt(10000);
-        // const minimumMint = amountInWei - slippageAmount;
-        const minimumMint = amountInWei - slippageAmount;
-
         if (isMultiChain) {
           // Preview bridge fee before proceeding
           await previewBridgeFee(amountInWei);
@@ -763,26 +802,36 @@ const DepositView: React.FC<DepositViewProps> = ({
             bridgeFee: bridgeFeeWei.toString(),
           });
 
-          const tx = await deposit({
-            address: vaultContractAddress as Address,
-            abi: VAULT_ABI,
-            functionName: "depositAndBridge",
-            args: [
-              tokenContractAddress as Address,
-              amountInWei,
-              BigInt(0), // Set minimumMint to 0 for multi-chain
-              address as Address,
-              bridgeWildCard,
-              "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" as Address, // ETH address
-              bridgeFeeWei, // Use the calculated bridge fee
-            ],
-            chainId: 8453,
-            account: address as Address,
-            value: bridgeFeeWei, // Include the calculated bridge fee in ETH
-          });
+          try {
+            const tx = await deposit({
+              address: vaultContractAddress as Address,
+              abi: VAULT_ABI,
+              functionName: "depositAndBridge",
+              args: [
+                tokenContractAddress as Address,
+                amountInWei,
+                BigInt(0), // Set minimumMint to 0 for multi-chain
+                address as Address,
+                bridgeWildCard,
+                "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" as Address, // ETH address
+                bridgeFeeWei, // Use the calculated bridge fee
+              ],
+              chainId: 8453,
+              account: address as Address,
+              value: bridgeFeeWei, // Include the calculated bridge fee in ETH
+            });
 
-          if (tx && typeof tx === "string" && tx.startsWith("0x")) {
-            setTransactionHash(tx as `0x${string}`);
+            if (tx && typeof tx === "string" && tx.startsWith("0x")) {
+              setTransactionHash(tx as `0x${string}`);
+              console.log("Multi-chain deposit transaction sent:", tx);
+            } else {
+              throw new Error("Invalid transaction response");
+            }
+          } catch (error: any) {
+            console.error("Multi-chain deposit failed:", error);
+            setErrorMessage(error.message || "Multi-chain deposit failed");
+            setIsDepositing(false);
+            return;
           }
         } else {
           // Regular single-chain deposit
@@ -793,17 +842,27 @@ const DepositView: React.FC<DepositViewProps> = ({
             minimumMint: minimumMint.toString(),
           });
 
-          const tx = await deposit({
-            address: vaultContractAddress as Address,
-            abi: VAULT_ABI,
-            functionName: "deposit",
-            args: [tokenContractAddress as Address, amountInWei, minimumMint],
-            chainId: 8453,
-            account: address as Address,
-          });
+          try {
+            const tx = await deposit({
+              address: vaultContractAddress as Address,
+              abi: VAULT_ABI,
+              functionName: "deposit",
+              args: [tokenContractAddress as Address, amountInWei, minimumMint],
+              chainId: 8453,
+              account: address as Address,
+            });
 
-          if (tx && typeof tx === "string" && tx.startsWith("0x")) {
-            setTransactionHash(tx as `0x${string}`);
+            if (tx && typeof tx === "string" && tx.startsWith("0x")) {
+              setTransactionHash(tx as `0x${string}`);
+              console.log("Deposit transaction sent:", tx);
+            } else {
+              throw new Error("Invalid transaction response");
+            }
+          } catch (error: any) {
+            console.error("Deposit failed:", error);
+            setErrorMessage(error.message || "Deposit failed");
+            setIsDepositing(false);
+            return;
           }
         }
       } else {
@@ -811,10 +870,10 @@ const DepositView: React.FC<DepositViewProps> = ({
         setErrorMessage("Please approve the token spending first");
       }
     } catch (error: any) {
-      console.error("TRX failed:", transactionHash);
+      console.error("Transaction failed:", error);
       setIsApproving(false);
       setIsDepositing(false);
-      setErrorMessage(`TRX failed${transactionHash ? ': ' + transactionHash : ''}`);
+      setErrorMessage(error.message || "Transaction failed");
     } finally {
       setIsWaitingForSignature(false);
     }

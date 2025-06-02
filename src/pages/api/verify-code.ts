@@ -24,7 +24,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     const token = jwt.sign({ verified: true }, JWT_SECRET, { expiresIn: '1h' }); // Token expires in 1 hour
 
     // Set JWT as an HTTP-only cookie
-    res.setHeader('Set-Cookie', `auth_token=${token}; HttpOnly; Path=/; Max-Age=${60 * 60}`); // Max-Age in seconds (1 hour)
+    res.setHeader('Set-Cookie', `auth_token=${token}; HttpOnly; Path=/; Max-Age=${6 * 60 * 60}`); // Max-Age in seconds (6 hours)
 
     return res.status(200).json({ message: 'Verification successful' });
   } else {
