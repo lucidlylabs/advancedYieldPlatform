@@ -36,6 +36,15 @@ interface StrategyConfig {
   deposit_token_contract?: string; // Optional field for backward compatibility
   deposit_token_image?: string; // Optional field for deposit token image
   deposit_token_decimal?: number; // Optional field for deposit token decimal
+  // Add support for multiple deposit tokens
+  deposit_token_2?: string;
+  deposit_token_contract_2?: string;
+  deposit_token_image_2?: string;
+  deposit_token_decimal_2?: number;
+  deposit_token_3?: string;
+  deposit_token_contract_3?: string;
+  deposit_token_image_3?: string;
+  deposit_token_decimal_3?: number;
   description: string;
   apy: string;
   incentives: string;
@@ -669,7 +678,8 @@ const DepositView: React.FC<DepositViewProps> = ({
 
         // Calculate minimum mint amount based on slippage
         const slippageAmount = amountInWei * BigInt(Math.floor(parseFloat(slippage) * 10000)) / BigInt(10000);
-        const minimumMint = amountInWei - slippageAmount;
+        // const minimumMint = amountInWei - slippageAmount;
+        const minimumMint = "2000000";
 
         if (isMultiChain) {
           // Preview bridge fee before proceeding
@@ -879,6 +889,40 @@ const DepositView: React.FC<DepositViewProps> = ({
     }
   };
 
+  // --- Asset selection state ---
+  // Parse all available deposit assets from strategyConfig
+  const assetOptions = useMemo(() => {
+    const options = [];
+    if (strategyConfig.deposit_token && strategyConfig.deposit_token_contract) {
+      options.push({
+        name: strategyConfig.deposit_token,
+        contract: strategyConfig.deposit_token_contract,
+        image: strategyConfig.deposit_token_image,
+        decimals: strategyConfig.deposit_token_decimal || 6,
+      });
+    }
+    if (strategyConfig.deposit_token_2 && strategyConfig.deposit_token_contract_2) {
+      options.push({
+        name: strategyConfig.deposit_token_2,
+        contract: strategyConfig.deposit_token_contract_2,
+        image: strategyConfig.deposit_token_image_2,
+        decimals: strategyConfig.deposit_token_decimal_2 || 6,
+      });
+    }
+    if (strategyConfig.deposit_token_3 && strategyConfig.deposit_token_contract_3) {
+      options.push({
+        name: strategyConfig.deposit_token_3,
+        contract: strategyConfig.deposit_token_contract_3,
+        image: strategyConfig.deposit_token_image_3,
+        decimals: strategyConfig.deposit_token_decimal_3 || 6,
+      });
+    }
+    return options;
+  }, [strategyConfig]);
+
+  const [selectedAssetIdx, setSelectedAssetIdx] = useState(0);
+  const selectedAssetOption = assetOptions[selectedAssetIdx] || assetOptions[0];
+
   return (
     <div className="h-[calc(100vh-128px)] relative overflow-hidden">
       {depositSuccess ? (
@@ -955,7 +999,7 @@ const DepositView: React.FC<DepositViewProps> = ({
               <div className="flex items-center justify-between">
                 <span className="text-[#9C9DA2]">Amount</span>
                 <span className="text-[#D7E3EF]">
-                  {amount} {depositToken}
+                  {amount} {selectedAssetOption.name}
                 </span>
               </div>
             </div>
@@ -975,23 +1019,41 @@ const DepositView: React.FC<DepositViewProps> = ({
               <div className="w-[280px] h-[311px] bg-[#0D101C] rounded-[4px] border border-[rgba(255,255,255,0.05)] p-6 flex flex-col">
                 <div className="flex items-center justify-center">
                   <div className="flex flex-col items-center mt-[20px]">
-                    {depositTokenImage && (
+                    {selectedAssetOption.image && (
                       <img
-                        src={depositTokenImage}
-                        alt={depositToken}
+                        src={selectedAssetOption.image}
+                        alt={selectedAssetOption.name}
                         className="w-[56px] h-[56px]"
                       />
                     )}
                     <span className="text-[#EDF2F8] text-center font-inter text-[14px] font-semibold leading-normal mt-[16px]">
-                      Deposit {depositToken}
+                      Deposit {selectedAssetOption.name}
                     </span>
                     <span className="text-[#00D1A0] text-center font-inter text-[12px] font-normal leading-normal">
                       +0.00 in 1 year
                     </span>
                   </div>
                 </div>
-
-                {/* Multi-chain Toggle */}
+                {/* --- Asset Dropdown & Multi-chain Toggle --- */}
+                {assetOptions.length > 1 && (
+                  <div className="mt-4">
+                    <label className="text-[#9C9DA2] font-inter text-[12px] block mb-2">
+                      Select Asset
+                    </label>
+                    <select
+                      value={selectedAssetIdx}
+                      onChange={e => setSelectedAssetIdx(Number(e.target.value))}
+                      className="w-full bg-[#1A1B1E] text-[#EDF2F8] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8]"
+                    >
+                      {assetOptions.map((opt, idx) => (
+                        <option value={idx} key={opt.contract}>
+                          {opt.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {/* Multi-chain Toggle (always shown) */}
                 <div className="mt-4 flex items-center justify-between">
                   <span className="text-[#9C9DA2] font-inter text-[12px]">Multi-chain Deposit</span>
                   <button
@@ -1007,7 +1069,6 @@ const DepositView: React.FC<DepositViewProps> = ({
                     />
                   </button>
                 </div>
-
                 {/* Target Chain Selection - Only shown when multi-chain is enabled */}
                 {isMultiChain && (
                   <div className="mt-4">
@@ -1025,7 +1086,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                     </select>
                   </div>
                 )}
-
+                {/* --- End Asset Dropdown & Multi-chain Toggle --- */}
                 <div className="mt-auto flex flex-col gap-[1px]">
                   <div className="relative flex items-center">
                     <input
