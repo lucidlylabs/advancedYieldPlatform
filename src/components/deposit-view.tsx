@@ -41,11 +41,11 @@ interface StrategyConfig {
   deposit_token_2?: string;
   deposit_token_contract_2?: string;
   deposit_token_image_2?: string;
-  deposit_token_decimal_2?: number;
+  deposit_token_2_decimal?: number;
   deposit_token_3?: string;
   deposit_token_contract_3?: string;
   deposit_token_image_3?: string;
-  deposit_token_decimal_3?: number;
+  deposit_token_3_decimal?: number;
   description: string;
   apy: string;
   incentives: string;
@@ -800,21 +800,13 @@ const DepositView: React.FC<DepositViewProps> = ({
   }, [amount, isMultiChain, targetChain]);
 
   const fetchBalance = async () => {
-    if (!address || selectedAsset !== "USD") return;
+    if (!address) return;
 
     setIsLoadingBalance(true);
     try {
-      // Use correct USDS token contract address on Base
-      const tokenContractAddress =
-        "0x820C137fa70C8691f0e44Dc420a5e53c168921Dc" as Address;
+      const tokenContractAddress = selectedAssetOption.contract as Address;
+      const decimals = Number(selectedAssetOption.decimals);
       const rpcUrl = "https://base.llamarpc.com";
-
-      console.log("Fetching balance for:", {
-        tokenContract: tokenContractAddress,
-        userAddress: address,
-        network: "base",
-        rpc: rpcUrl,
-      });
 
       const client = createPublicClient({
         transport: http(rpcUrl),
@@ -834,102 +826,20 @@ const DepositView: React.FC<DepositViewProps> = ({
         },
       });
 
-      // First try to get token info to verify contract
-      try {
-        const [name, symbol, decimals] = await Promise.all([
-          client
-            .readContract({
-              address: tokenContractAddress,
-              abi: ERC20_ABI,
-              functionName: "name",
-            })
-            .catch(() => "Error reading name"),
-          client
-            .readContract({
-              address: tokenContractAddress,
-              abi: ERC20_ABI,
-              functionName: "symbol",
-            })
-            .catch(() => "Error reading symbol"),
-          client
-            .readContract({
-              address: tokenContractAddress,
-              abi: ERC20_ABI,
-              functionName: "decimals",
-            })
-            .catch(() => "Error reading decimals"),
-        ]);
-
-        console.log("Token contract info:", {
-          address: tokenContractAddress,
-          name,
-          symbol,
-          decimals,
-        });
-      } catch (error) {
-        console.error("Error reading token info:", error);
-      }
-
-      // Then try to get balance
-      const [balanceResult, decimalsResult] = await Promise.all([
-        client
-          .readContract({
-            address: tokenContractAddress,
-            abi: ERC20_ABI,
-            functionName: "balanceOf",
-            args: [address as Address],
-          })
-          .catch((error) => {
-            console.error("Error reading balance:", error);
-            return BigInt(0);
-          }),
-        client
-          .readContract({
-            address: tokenContractAddress,
-            abi: ERC20_ABI,
-            functionName: "decimals",
-          })
-          .catch((error) => {
-            console.error("Error reading decimals:", error);
-            return 6; // Default to 6 decimals for USDS
-          }),
-      ]);
-
-      console.log("Balance results:", {
-        rawBalance: balanceResult?.toString(),
-        decimals: decimalsResult,
+      const balanceResult = await client.readContract({
+        address: tokenContractAddress,
+        abi: ERC20_ABI,
+        functionName: "balanceOf",
+        args: [address as Address],
       });
 
-      const formattedBalance = formatUnits(
-        balanceResult as bigint,
-        decimalsResult as number
-      );
-      console.log("Formatted balance:", formattedBalance);
+      const formattedBalance = Number(formatUnits(balanceResult as bigint, decimals)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       setBalance(formattedBalance);
     } catch (error) {
       console.error("Error fetching balance:", error);
       setBalance("0.00");
     } finally {
       setIsLoadingBalance(false);
-    }
-  };
-
-  // Initial balance fetch
-  useEffect(() => {
-    if (address && selectedAsset === "USD") {
-      fetchBalance();
-    }
-  }, [address, selectedAsset, duration, strategy]);
-
-  const handleMaxClick = () => {
-    setAmount(balance);
-  };
-
-  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    if (/^\d*\.?\d*$/.test(value)) {
-      // Only allow numbers and one decimal point
-      setAmount(value);
     }
   };
 
@@ -942,7 +852,7 @@ const DepositView: React.FC<DepositViewProps> = ({
         name: strategyConfig.deposit_token,
         contract: strategyConfig.deposit_token_contract,
         image: strategyConfig.deposit_token_image,
-        decimals: strategyConfig.deposit_token_decimal || 6,
+        decimals: strategyConfig.deposit_token_decimal,
       });
     }
     if (
@@ -953,7 +863,7 @@ const DepositView: React.FC<DepositViewProps> = ({
         name: strategyConfig.deposit_token_2,
         contract: strategyConfig.deposit_token_contract_2,
         image: strategyConfig.deposit_token_image_2,
-        decimals: strategyConfig.deposit_token_decimal_2 || 6,
+        decimals: strategyConfig.deposit_token_2_decimal,
       });
     }
     if (
@@ -964,7 +874,7 @@ const DepositView: React.FC<DepositViewProps> = ({
         name: strategyConfig.deposit_token_3,
         contract: strategyConfig.deposit_token_contract_3,
         image: strategyConfig.deposit_token_image_3,
-        decimals: strategyConfig.deposit_token_decimal_3 || 6,
+        decimals: strategyConfig.deposit_token_3_decimal,
       });
     }
     return options;
@@ -999,6 +909,24 @@ const DepositView: React.FC<DepositViewProps> = ({
         return 1;
       default:
         return undefined;
+    }
+  };
+
+  useEffect(() => {
+    if (address) {
+      fetchBalance();
+    }
+  }, [address, selectedAssetIdx, selectedAsset, duration, strategy]);
+
+  const handleMaxClick = () => {
+    setAmount(balance);
+  };
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (/^\d*\.?\d*$/.test(value)) {
+      // Only allow numbers and one decimal point
+      setAmount(value);
     }
   };
 
