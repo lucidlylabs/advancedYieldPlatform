@@ -975,10 +975,15 @@ const DepositView: React.FC<DepositViewProps> = ({
 
   // Add effect to switch network when target chain changes
   useEffect(() => {
-    if (isMultiChain && targetChain && switchChain) {
-      const chainId = getChainId(targetChain);
-      if (chainId) {
-        switchChain({ chainId });
+    if (switchChain) {
+      if (isMultiChain && targetChain) {
+        const chainId = getChainId(targetChain);
+        if (chainId) {
+          switchChain({ chainId });
+        }
+      } else if (!isMultiChain) {
+        // Always switch to Base when multi-chain is off
+        switchChain({ chainId: 8453 });
       }
     }
   }, [targetChain, isMultiChain, switchChain]);
