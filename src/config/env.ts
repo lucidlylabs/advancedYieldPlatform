@@ -9,7 +9,6 @@ export const USD_STRATEGIES = {
       shareAddress_token_decimal: 6,
       rateProvider: "0x03D9a9cE13D16C7cFCE564f41bd7E85E5cde8Da6",
 
-      // Base Network Configuration
       base: {
         tokens: [
           {
@@ -75,7 +74,7 @@ export const USD_STRATEGIES = {
         ],
       },
 
-      description: "Perpetual stable USD strategy on Sonic network",
+      description: "Perpetual stable USD strategy on base network",
       apy: "4.5%",
       incentives: "None",
       cap_limit: "1,000,000",
