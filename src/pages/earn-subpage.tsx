@@ -216,7 +216,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
   // Always render the main content, assuming verification is handled by parent
   return (
     <div
-      className="min-h-[calc(100vh-98px)] relative"
+      className="min-h-screen[calc(100vh-98px)] w-full relative"
       style={{
         backgroundImage: "url('/images/background/earn-page-bg.svg')",
         backgroundPosition: "bottom",
@@ -236,8 +236,8 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
         />
       ) : selectedAsset ? (
         <div className="flex flex-col gap-6 items-center pt-[8vh]">
-          <h1 className="text-[40px] font-bold">Select a Yield Source</h1>
-          <div className="flex gap-6 justify-center items-center">
+          <h1 className="text-[20px] sm:text-[40px] font-bold">Select a Yield Source</h1>
+          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
             <CustomCard
               heading={selectedAsset.asset as AssetType}
               imageSrc={`/images/icons/card-${(
@@ -253,9 +253,9 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
               selectedDuration={selectedAsset.duration}
               onReset={handleReset}
               disableHover={true}
-              className="h-[311px]"
+              className="h-[311px] w-full"
             />
-            <div className="flex items-center justify-center gap-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] w-[555px] h-[311px] p-6">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] w-full p-6">
               <div
                 onClick={() =>
                   handleStrategySelect(
@@ -334,10 +334,10 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
         </div>
       ) : (
         <div className="flex flex-col gap-6 items-center pt-[8vh]">
-          <h1 className="text-[40px] font-bold">
+          <h1 className="text-[20px] font-bold sm:text-[40px]">
             Select a asset you want yield on
           </h1>
-          <div className="flex gap-6 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
             <CustomCard
               heading="USD"
               imageSrc="/images/icons/card-usd.svg"

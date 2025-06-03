@@ -42,7 +42,7 @@ export function Header({
     <div className={`flex flex-col w-full ${className}`} {...props}>
       {shouldShowBanner && (
         <div
-          className="w-[1512px] h-[40px] flex-shrink-0 bg-[rgba(53,22,95,0.10)] text-amber-100 px-4 relative flex items-center"
+          className="w-full h-[40px] flex-shrink-0 bg-[rgba(53,22,95,0.10)] text-amber-100 px-4 relative flex items-center"
         >
           <div className="flex flex-col sm:flex-row items-center justify-center text-center text-sm gap-2 w-full">
             <span className="text-[rgba(215,227,239,0.6)] font-inter text-[12px] font-normal leading-[14px] tracking-[0.33px] flex items-center gap-2">
@@ -112,7 +112,7 @@ export function Header({
         </div>
       )}
 
-      <div className="flex items-center justify-between py-0 px-6 bg-[#080B17] text-white border-b border-[rgba(255,255,255,0.1)] backdrop-blur-sm">
+      <div className="flex flex-col items-center justify-between py-0 bg-[#080B17] text-white border-b border-[rgba(255,255,255,0.1)] backdrop-blur-sm">
         {children}
       </div>
     </div>

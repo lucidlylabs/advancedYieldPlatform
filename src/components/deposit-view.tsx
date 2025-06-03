@@ -1041,7 +1041,7 @@ const DepositView: React.FC<DepositViewProps> = ({
   };
 
   return (
-    <div className="h-[calc(100vh-128px)] relative overflow-hidden">
+    <div className="relative overflow-hidden">
       {depositSuccess ? (
         <div className="flex flex-col items-center justify-center h-full">
           <div className="w-[580px] bg-[#0D101C] rounded-lg p-8 text-center">
@@ -1130,10 +1130,10 @@ const DepositView: React.FC<DepositViewProps> = ({
         </div>
       ) : (
         <div className="flex flex-col gap-6 items-center pt-[calc(8vh+38px)]">
-          <div className="w-[580px] h-[459px] flex-shrink-0">
-            <div className="flex gap-6 justify-center items-center">
+          <div className="w-[280px] sm:w-[580px] flex-shrink-0">
+            <div className="flex flex-col sm:flex-row gap-6 justify-center items-stretch">
               {/* Left Card - Deposit Input */}
-              <div className="w-[280px] h-[311px] bg-[#0D101C] rounded-[4px] border border-[rgba(255,255,255,0.05)] p-6 flex flex-col">
+              <div className="w-[280px] bg-[#0D101C] rounded-[4px] border border-[rgba(255,255,255,0.05)] p-6 flex flex-col">
                 <div className="flex items-center justify-center">
                   <div className="flex flex-col items-center mt-[20px]">
                     {selectedAssetOption.image && (
@@ -1322,7 +1322,7 @@ const DepositView: React.FC<DepositViewProps> = ({
               </div>
 
               {/* Right Card - Strategy Info */}
-              <div className="w-[280px] h-[311px] bg-[#0D101C] rounded-[4px] border border-[rgba(255,255,255,0.05)] p-6 relative flex flex-col">
+              <div className="w-[280px] bg-[#0D101C] rounded-[4px] border border-[rgba(255,255,255,0.05)] p-6 relative flex flex-col">
                 {/* Background gradient effect - top */}
                 <div className="absolute top-0 left-0 right-0 h-[200px] bg-gradient-to-b from-[rgba(255,255,255,0.02)] to-transparent rounded-t-[4px] pointer-events-none"></div>
 
@@ -1382,7 +1382,7 @@ const DepositView: React.FC<DepositViewProps> = ({
 
             {/* Deposit Cap Progress Bar - Only shown if show_cap is true */}
             {showDepositCap && (
-              <div className="w-full mt-6 mb-4 p-4 rounded-[4px] bg-[rgba(255,255,255,0.02)]">
+              <div className="w-[280px] sm:w-full mt-6 mb-4 p-4 rounded-[4px] bg-[rgba(255,255,255,0.02)]">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-[#EDF2F8] font-inter text-[14px] font-medium">
                     ${remainingSpace} Remaining
@@ -1439,7 +1439,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                   <button
                     onClick={connected ? handleDeposit : openConnectModal}
                     disabled={isLoading || isLoadingBalance}
-                    className="w-full py-4 mt-6 rounded bg-[#B88AF8] text-[#1A1B1E] font-semibold hover:opacity-90 transition-all duration-200 disabled:opacity-50"
+                    className="w-full py-4 my-6 rounded bg-[#B88AF8] text-[#1A1B1E] font-semibold hover:opacity-90 transition-all duration-200 disabled:opacity-50"
                   >
                     {buttonText}
                   </button>
