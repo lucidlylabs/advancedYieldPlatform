@@ -1,10 +1,10 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-    TooltipProvider,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
 } from "@/components/ui/tooltip";
 import { InfoIcon } from "lucide-react";
 
@@ -31,9 +31,9 @@ interface CustomCardProps {
 }
 
 const formatDuration = (duration: string) => {
-    if (duration === "PERPETUAL_DURATION") return "Liquid";
-    const [number, period] = duration.split("_");
-    return `${number} ${period.toLowerCase()}`;
+  if (duration === "PERPETUAL_DURATION") return "Perpetual";
+  const [number, period] = duration.split("_");
+  return `${number} ${period.toLowerCase()}`;
 };
 
 const CustomCard: React.FC<CustomCardProps> = ({
@@ -53,15 +53,15 @@ const CustomCard: React.FC<CustomCardProps> = ({
   availableDurations,
   ...props
 }) => {
-    const handleDurationClick = (duration: DurationType) => {
-        if (onDurationSelect) {
-            onDurationSelect(duration);
-        }
-    };
+  const handleDurationClick = (duration: DurationType) => {
+    if (onDurationSelect) {
+      onDurationSelect(duration);
+    }
+  };
 
-    const handleTooltipClick = (e: React.MouseEvent) => {
-        e.stopPropagation(); // Stop event from bubbling up to parent card
-    };
+  const handleTooltipClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Stop event from bubbling up to parent card
+  };
 
   // Helper function to check if a duration is available
   const isDurationAvailable = (duration: DurationType) => {
@@ -201,39 +201,22 @@ const CustomCard: React.FC<CustomCardProps> = ({
                       >
                         Change Asset
                         <img
-                            src={imageSrc}
-                            alt={imageAlt}
-                            className="w-[56px] h-[56px] object-contain"
+                          src="/images/icons/arrow.svg"
+                          alt="arrow"
+                          className="w-[11px] h-[8px] -ml-1"
                         />
+                      </button>
                     </div>
-
-                    <div className="px-6 pt-6 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                            <h3 className="text-white text-base font-semibold leading-5">
-                                {heading}
-                            </h3>
-                            {info && (
-                                <TooltipProvider>
-                                    <Tooltip delayDuration={0}>
-                                        <TooltipTrigger asChild>
-                                            <button
-                                                onClick={handleTooltipClick}
-                                                className="text-white opacity-60 hover:opacity-100 transition-all duration-200"
-                                            >
-                                                <InfoIcon />
-                                            </button>
-                                        </TooltipTrigger>
-                                        <TooltipContent
-                                            onClick={handleTooltipClick}
-                                            className="bg-[#1A1B1E] text-white p-2 rounded-md border border-[rgba(255,255,255,0.1)]"
-                                        >
-                                            <p>{info}</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            )}
-                        </div>
+                  )}
+                  {selectedDuration && !onReset && (
+                    <div className="text-lg opacity-60 mt-2">
+                      {formatDuration(selectedDuration)}
                     </div>
+                  )}
+                </h3>
+              </div>
+            </div>
+          </div>
 
           {!selectedDuration && onDurationSelect && !isComingSoon && (
             <div className="p-6 pt-0 flex-1 relative z-10 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]">
@@ -402,194 +385,30 @@ const CustomCard: React.FC<CustomCardProps> = ({
                     className="absolute w-full h-[200px] object-contain transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] group-hover:translate-y-[-20px] group-hover:opacity-0"
                   />
                 </div>
-            ) : (
-                <>
-                    <div className="relative">
-                        <div
-                            className={cn(
-                                "absolute inset-0 opacity-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-                                !disableHover && "group-hover:opacity-100"
-                            )}
-                            style={{ backgroundColor: hoverColor }}
-                        />
-                        <div className="p-6 relative z-10">
-                            <div className="flex items-center gap-2">
-                                <h3
-                                    className={cn(
-                                        "text-[32px] leading-none tracking-tight text-white transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] w-full flex flex-col items-center justify-center",
-                                        !disableHover && "group-hover:text-[#1A1B1E]"
-                                    )}
-                                >
-                                    {heading}
-                                    {selectedDuration && onReset && (
-                                        <div className="flex flex-col items-center gap-4 mt-2">
-                                            <div
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    onReset();
-                                                }}
-                                                className="text-lg opacity-60 hover:opacity-100 transition-all duration-200 underline decoration-[rgba(255,255,255,0.6)] hover:decoration-white cursor-pointer"
-                                            >
-                                                {formatDuration(selectedDuration)}
-                                            </div>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    onReset();
-                                                }}
-                                                className="text-[#B88AF8] hover:opacity-100 transition-all duration-200 flex items-center gap-2 font-normal text-xs leading-none"
-                                            >
-                                                Change Asset
-                                                <img
-                                                    src="/images/icons/arrow.svg"
-                                                    alt="arrow"
-                                                    className="w-[11px] h-[8px] -ml-1"
-                                                />
-                                            </button>
-                                        </div>
-                                    )}
-                                    {selectedDuration && !onReset && (
-                                        <div className="text-lg opacity-60 mt-2">
-                                            {formatDuration(selectedDuration)}
-                                        </div>
-                                    )}
-                                </h3>
-                            </div>
-                        </div>
-                    </div>
+              </div>
+            </>
+          )}
 
-                    {!selectedDuration && onDurationSelect && !isComingSoon && (
-                        <div className="p-6 pt-0 flex-1 relative z-10 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]">
-                            <p className="text-white flex items-center justify-center gap-2 mb-4 mt-5 w-full">
-                                <svg
-                                    width="20"
-                                    height="20"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                >
-                                    <path
-                                        d="M12 8V12L15 15M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
-                                        stroke="white"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    />
-                                </svg>
-                                Select Duration
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                                <button
-                                    onClick={() => handleDurationClick("30_DAYS")}
-                                    className={cn(
-                                        "w-[calc(50%-4px)] px-4 py-2 rounded-[4px] border border-[rgba(184,138,248,0.30)] text-white bg-transparent transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] hover:cursor-pointer",
-                                        !disableHover && `hover:text-[#1A1B1E]`
-                                    )}
-                                    onMouseEnter={(e) => {
-                                        if (!disableHover)
-                                            e.currentTarget.style.backgroundColor = hoverColor;
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        if (!disableHover)
-                                            e.currentTarget.style.backgroundColor = "";
-                                    }}
-                                >
-                                    {formatDuration("30_DAYS")}
-                                </button>
-                                <button
-                                    onClick={() => handleDurationClick("60_DAYS")}
-                                    className={cn(
-                                        "w-[calc(50%-4px)] px-4 py-2 rounded-[4px] border border-[rgba(184,138,248,0.30)] text-white bg-transparent transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] hover:cursor-pointer",
-                                        !disableHover && `hover:text-[#1A1B1E]`
-                                    )}
-                                    onMouseEnter={(e) => {
-                                        if (!disableHover)
-                                            e.currentTarget.style.backgroundColor = hoverColor;
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        if (!disableHover)
-                                            e.currentTarget.style.backgroundColor = "";
-                                    }}
-                                >
-                                    {formatDuration("60_DAYS")}
-                                </button>
-                                <button
-                                    onClick={() => handleDurationClick("180_DAYS")}
-                                    className={cn(
-                                        "w-full px-4 py-2 rounded-[4px] border border-[rgba(184,138,248,0.30)] text-white bg-transparent transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] hover:cursor-pointer",
-                                        !disableHover && `hover:text-[#1A1B1E]`
-                                    )}
-                                    onMouseEnter={(e) => {
-                                        if (!disableHover)
-                                            e.currentTarget.style.backgroundColor = hoverColor;
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        if (!disableHover)
-                                            e.currentTarget.style.backgroundColor = "";
-                                    }}
-                                >
-                                    {formatDuration("180_DAYS")}
-                                </button>
-                                <button
-                                    onClick={() => handleDurationClick("PERPETUAL_DURATION")}
-                                    className={cn(
-                                        "w-full px-4 py-2 rounded-[4px] border border-[rgba(184,138,248,0.30)] text-white bg-transparent transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] hover:cursor-pointer",
-                                        !disableHover && `hover:text-[#1A1B1E]`
-                                    )}
-                                    onMouseEnter={(e) => {
-                                        if (!disableHover)
-                                            e.currentTarget.style.backgroundColor = hoverColor;
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        if (!disableHover)
-                                            e.currentTarget.style.backgroundColor = "";
-                                    }}
-                                >
-                                    {formatDuration("PERPETUAL_DURATION")}
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {isComingSoon && (
-                        <>
-                            <div className="p-6 pt-0 flex-1 relative z-10 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex items-center justify-center">
-                                <p className="text-[#B88AF8] flex items-center justify-center w-full text-[24px] font-bold text-center">
-                                    Coming Soon
-                                </p>
-                            </div>
-                            <div className="w-full flex justify-center mt-auto">
-                                <div className="relative w-[200px] h-[100px]">
-                                    <img
-                                        src={imageSrc}
-                                        alt={imageAlt}
-                                        className="absolute w-full h-[200px] object-contain transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] group-hover:translate-y-[-20px] group-hover:opacity-0"
-                                    />
-                                </div>
-                            </div>
-                        </>
-                    )}
-
-                    {!isComingSoon && (
-                        <div className="w-full flex justify-center mt-auto">
-                            <div className="relative w-[200px] h-[100px]">
-                                <img
-                                    src={imageSrc}
-                                    alt={imageAlt}
-                                    className={cn(
-                                        "absolute w-full h-[200px] object-contain transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-                                        selectedDuration
-                                            ? "bottom-[-30%] translate-y-[30%]"
-                                            : "bottom-0 group-hover:translate-y-[-20px] group-hover:opacity-0"
-                                    )}
-                                />
-                            </div>
-                        </div>
-                    )}
-                </>
-            )}
-        </div>
-    );
+          {!isComingSoon && (
+            <div className="w-full flex justify-center mt-auto">
+              <div className="relative w-[200px] h-[100px]">
+                <img
+                  src={imageSrc}
+                  alt={imageAlt}
+                  className={cn(
+                    "absolute w-full h-[200px] object-contain transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                    selectedDuration
+                      ? "bottom-[-30%] translate-y-[30%]"
+                      : "bottom-0 group-hover:translate-y-[-20px] group-hover:opacity-0"
+                  )}
+                />
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
 };
 
 export { CustomCard };

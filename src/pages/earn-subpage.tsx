@@ -56,19 +56,19 @@ interface StrategyDuration {
 }
 
 interface StrategyAsset {
-    [key: string]: StrategyDuration;
+  [key: string]: StrategyDuration;
 }
 
 interface SelectedAsset {
-    asset: string;
-    duration: DurationType;
+  asset: string;
+  duration: DurationType;
 }
 
 interface SelectedStrategy {
-    type: "stable" | "incentive";
-    asset: string;
-    duration: DurationType;
-    apy: string;
+  type: "stable" | "incentive";
+  asset: string;
+  duration: DurationType;
+  apy: string;
 }
 
 type AssetType = "USD" | "ETH" | "BTC";
@@ -83,16 +83,16 @@ interface StrategyInfo {
 }
 
 interface StrategyData {
-    stable: Record<AssetType, StrategyInfo>;
-    incentives: Record<AssetType, StrategyInfo>;
+  stable: Record<AssetType, StrategyInfo>;
+  incentives: Record<AssetType, StrategyInfo>;
 }
 
 interface YieldSubpageProps {
-    depositParams?: {
-        asset: string;
-        duration: string;
-        strategy: string;
-    } | null;
+  depositParams?: {
+    asset: string;
+    duration: string;
+    strategy: string;
+  } | null;
 }
 
 const getStrategyInfo = (duration: DurationType): StrategyData => {
@@ -129,15 +129,18 @@ const getStrategyInfo = (duration: DurationType): StrategyData => {
     }
 
     return {
-        stable: {
-            USD: getAssetStrategies("USD").stable,
-            BTC: getAssetStrategies("BTC").stable,
-            ETH: getAssetStrategies("ETH").stable,
+      stable: {
+        description: strategy.STABLE.description,
+        apy: {
+          value: strategy.STABLE.apy,
+          info: strategy.STABLE.incentives,
         },
-        incentives: {
-            USD: getAssetStrategies("USD").incentives,
-            BTC: getAssetStrategies("BTC").incentives,
-            ETH: getAssetStrategies("ETH").incentives,
+      },
+      incentives: {
+        description: strategy.INCENTIVE.description,
+        apy: {
+          value: strategy.INCENTIVE.apy,
+          info: strategy.INCENTIVE.incentives,
         },
         comingSoon: strategy.INCENTIVE.comingSoon,
       },
@@ -185,51 +188,100 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
     }
   }, [depositParams]);
 
-    const handleDurationSelect = (asset: string, duration: DurationType) => {
-        setSelectedAsset({ asset, duration });
-    };
+  const handleDurationSelect = (asset: string, duration: DurationType) => {
+    setSelectedAsset({ asset, duration });
+  };
 
-    const handleStrategySelect = (
-        type: "stable" | "incentive",
-        asset: AssetType
-    ) => {
-        if (selectedAsset) {
-            setSelectedStrategy({
-                type,
-                asset: selectedAsset.asset,
-                duration: selectedAsset.duration,
-                apy: getStrategyInfo(selectedAsset.duration)[
-                    type === "stable" ? "stable" : "incentives"
-                ][asset].apy.value,
-            });
-        }
-    };
+  const handleStrategySelect = (
+    type: "stable" | "incentive",
+    asset: AssetType
+  ) => {
+    if (selectedAsset) {
+      setSelectedStrategy({
+        type,
+        asset: selectedAsset.asset,
+        duration: selectedAsset.duration,
+        apy: getStrategyInfo(selectedAsset.duration)[
+          type === "stable" ? "stable" : "incentives"
+        ][asset].apy.value,
+      });
+    }
+  };
 
-    const handleReset = () => {
-        setSelectedAsset(null);
-        setSelectedStrategy(null);
-    };
+  const handleReset = () => {
+    setSelectedAsset(null);
+    setSelectedStrategy(null);
+  };
 
-    // Always render the main content, assuming verification is handled by parent
-    return (
-        <div
-            className="min-h-[calc(100vh-98px)] relative"
-            style={{
-                backgroundImage: "url('/images/background/earn-page-bg.svg')",
-                backgroundPosition: "bottom",
-                backgroundRepeat: "no-repeat",
-                backgroundSize: "100% auto",
-                backgroundAttachment: "fixed",
-            }}
-        >
-            {selectedStrategy ? (
-                <DepositView
-                    selectedAsset={selectedStrategy.asset}
-                    duration={selectedStrategy.duration}
-                    strategy={selectedStrategy.type}
-                    apy={selectedStrategy.apy}
-                    onBack={() => setSelectedStrategy(null)}
-                    onReset={handleReset}
+  // Always render the main content, assuming verification is handled by parent
+  return (
+    <div
+      className="min-h-[calc(100vh-98px)] relative"
+      style={{
+        backgroundImage: "url('/images/background/earn-page-bg.svg')",
+        backgroundPosition: "bottom",
+        backgroundRepeat: "no-repeat",
+        backgroundSize: "100% auto",
+        backgroundAttachment: "fixed",
+      }}
+    >
+      {selectedStrategy ? (
+        <DepositView
+          selectedAsset={selectedStrategy.asset}
+          duration={selectedStrategy.duration}
+          strategy={selectedStrategy.type}
+          apy={selectedStrategy.apy}
+          onBack={() => setSelectedStrategy(null)}
+          onReset={handleReset}
+        />
+      ) : selectedAsset ? (
+        <div className="flex flex-col gap-6 items-center pt-[8vh]">
+          <h1 className="text-[40px] font-bold">Select a Yield Source</h1>
+          <div className="flex gap-6 justify-center items-center">
+            <CustomCard
+              heading={selectedAsset.asset as AssetType}
+              imageSrc={`/images/icons/card-${(
+                selectedAsset.asset as AssetType
+              ).toLowerCase()}.svg`}
+              hoverColor={
+                selectedAsset.asset === "USD"
+                  ? "#B88AF8"
+                  : selectedAsset.asset === "ETH"
+                  ? "#627EEA"
+                  : "#F7931A"
+              }
+              selectedDuration={selectedAsset.duration}
+              onReset={handleReset}
+              disableHover={true}
+              className="h-[311px]"
+            />
+            <div className="flex items-center justify-center gap-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] w-[555px] h-[311px] p-6">
+              <div
+                onClick={() =>
+                  handleStrategySelect(
+                    "stable",
+                    selectedAsset.asset as AssetType
+                  )
+                }
+                className="cursor-pointer"
+              >
+                <CustomCard
+                  heading={`Stable ${selectedAsset.asset}`}
+                  imageSrc={`/images/icons/${(
+                    selectedAsset.asset as AssetType
+                  ).toLowerCase()}-stable.svg`}
+                  info={
+                    getStrategyInfo(selectedAsset.duration).stable[
+                      selectedAsset.asset as AssetType
+                    ].description
+                  }
+                  apy={
+                    getStrategyInfo(selectedAsset.duration).stable[
+                      selectedAsset.asset as AssetType
+                    ].apy
+                  }
+                  isStrategyCard={true}
+                  disableHover={true}
                 />
               </div>
               <div
