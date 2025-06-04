@@ -17,27 +17,56 @@ import {
   parseUnits,
 } from "viem";
 
-interface StrategyConfig {
+interface NetworkConfig {
+  tokens: Array<{
+    name: string;
+    contract: string;
+    decimal: number;
+    image: string;
+  }>;
+}
+
+interface BaseStrategyConfig {
   network: string;
   contract: string;
-  deposit_token: string;
-  deposit_token_contract: string;
+  boringVaultAddress: string;
+  solverAddress: string;
+  shareAddress: string;
+  shareAddress_token_decimal: number;
+  rateProvider: string;
+  base: NetworkConfig;
+  ethereum: NetworkConfig;
+  arbitrum: NetworkConfig;
   description: string;
   apy: string;
   incentives: string;
   tvl: string;
   rpc: string;
+  show_cap: boolean;
+  filled_cap: string;
+  cap_limit: string;
 }
 
-type DurationType = "30_DAYS" | "60_DAYS" | "180_DAYS" | "PERPETUAL_DURATION";
-type StrategyType = "STABLE" | "INCENTIVE";
-
-type StrategyDuration = {
-  [K in StrategyType]: StrategyConfig;
+interface IncentiveStrategyConfig {
+  network: string;
+  comingSoon: boolean;
+  contract: string;
+  deposit_token: string;
+  deposit_token_contract: string;
+  tvl: string;
+  rpc: string;
+  description: string;
+  apy: string;
+  incentives: string;
 }
 
-type StrategyAsset = {
-  [K in DurationType]?: StrategyDuration;
+interface StrategyDuration {
+  STABLE: BaseStrategyConfig;
+  INCENTIVE: IncentiveStrategyConfig;
+}
+
+interface StrategyAsset {
+  [key: string]: StrategyDuration;
 }
 
 const PortfolioSubpage: React.FC = () => {
@@ -196,7 +225,7 @@ const PortfolioSubpage: React.FC = () => {
     try {
       setIsRefreshingBalance(true);
       const allStrategies = [
-        ...Object.entries(USD_STRATEGIES as StrategyAsset).flatMap(([duration, strategies]) =>
+        ...Object.entries(USD_STRATEGIES as unknown as StrategyAsset).flatMap(([duration, strategies]) =>
           Object.entries(strategies as StrategyDuration).map(([type, strategy]) => ({
             ...strategy,
             duration,
@@ -204,7 +233,7 @@ const PortfolioSubpage: React.FC = () => {
             asset: "USD"
           }))
         ),
-        ...Object.entries(BTC_STRATEGIES as StrategyAsset).flatMap(([duration, strategies]) =>
+        ...Object.entries(BTC_STRATEGIES as unknown as StrategyAsset).flatMap(([duration, strategies]) =>
           Object.entries(strategies as StrategyDuration).map(([type, strategy]) => ({
             ...strategy,
             duration,
@@ -212,7 +241,7 @@ const PortfolioSubpage: React.FC = () => {
             asset: "BTC"
           }))
         ),
-        ...Object.entries(ETH_STRATEGIES as StrategyAsset).flatMap(([duration, strategies]) =>
+        ...Object.entries(ETH_STRATEGIES as unknown as StrategyAsset).flatMap(([duration, strategies]) =>
           Object.entries(strategies as StrategyDuration).map(([type, strategy]) => ({
             ...strategy,
             duration,

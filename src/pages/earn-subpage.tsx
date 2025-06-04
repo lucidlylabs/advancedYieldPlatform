@@ -14,7 +14,13 @@ interface TokenConfig {
 }
 
 interface NetworkConfig {
-  tokens: TokenConfig[];
+  tokens: Array<{
+    name: string;
+    contract: string;
+    decimal: number;
+    image: string;
+  }>;
+  rpc: string;
 }
 
 interface BaseStrategyConfig {
@@ -24,6 +30,7 @@ interface BaseStrategyConfig {
   solverAddress: string;
   shareAddress: string;
   shareAddress_token_decimal: number;
+  rateProvider: string;
   base: NetworkConfig;
   ethereum: NetworkConfig;
   arbitrum: NetworkConfig;
@@ -97,10 +104,10 @@ interface YieldSubpageProps {
 
 const getStrategyInfo = (duration: DurationType): StrategyData => {
   const getAssetStrategies = (asset: AssetType) => {
-    const strategies: Record<AssetType, Record<DurationType, StrategyDuration>> = {
-      USD: USD_STRATEGIES as Record<DurationType, StrategyDuration>,
-      BTC: BTC_STRATEGIES as Record<DurationType, StrategyDuration>,
-      ETH: ETH_STRATEGIES as Record<DurationType, StrategyDuration>,
+    const strategies: Record<AssetType, Partial<Record<DurationType, StrategyDuration>>> = {
+      USD: USD_STRATEGIES as unknown as Partial<Record<DurationType, StrategyDuration>>,
+      BTC: BTC_STRATEGIES as unknown as Partial<Record<DurationType, StrategyDuration>>,
+      ETH: ETH_STRATEGIES as unknown as Partial<Record<DurationType, StrategyDuration>>,
     };
 
     const strategy = strategies[asset][duration];
