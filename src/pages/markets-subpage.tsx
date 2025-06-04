@@ -83,99 +83,31 @@ const AssetButton: React.FC<{
 };
 
 const MarketsSubpage: React.FC = () => {
-    const [selectedAsset, setSelectedAsset] = useState<AssetType>("ALL");
-    const [sortColumn, setSortColumn] = useState<string | null>(null);
-    const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-    const [selectedItem, setSelectedItem] = useState<MarketItem | null>(null);
-
-    // Market data
-    const marketData: Record<AssetType, MarketItem[]> = {
-        ALL: [],
-        ETH: [
-            {
-                id: 1,
-                name: "Base Yield ETH",
-                type: "eth",
-                baseYield: "6.64%",
-                incentives: ["eth", "usdc"],
-                tvl: "$1,016.96",
-                description:
-                    "Provides a stable yield through diversified ETH lending protocols with lower risk exposure.",
-                riskLevel: "Low",
-                network: "Ethereum",
-                contractAddress: "0x82...2d",
-            },
-            {
-                id: 2,
-                name: "Incentive Maxi ETH",
-                type: "eth",
-                baseYield: "23.43%",
-                incentives: ["eth"],
-                tvl: "$1,403.72",
-                description:
-                    "Higher yield strategy combining ETH staking with protocol incentives and token rewards.",
-                riskLevel: "Medium",
-                network: "Ethereum",
-                contractAddress: "0x74...5e",
-            },
-        ],
-        BTC: [
-            {
-                id: 3,
-                name: "Base Yield BTC",
-                type: "btc",
-                baseYield: "6.64%",
-                incentives: ["btc", "usdc"],
-                tvl: "$1,016.96",
-                description:
-                    "Generates consistent returns through secure BTC lending across multiple platforms.",
-                riskLevel: "Low",
-                network: "Bitcoin",
-                contractAddress: "0x91...3f",
-            },
-            {
-                id: 4,
-                name: "Incentive Maxi BTC",
-                type: "btc",
-                baseYield: "10.00%",
-                incentives: ["btc"],
-                tvl: "$450.00",
-                description:
-                    "Maximizes BTC yield through a combination of lending and liquidity provision with token incentives.",
-                riskLevel: "Medium",
-                network: "Bitcoin",
-                contractAddress: "0x47...8a",
-            },
-        ],
-        USD: [
-            {
-                id: 5,
-                name: "Stable USD",
-                type: "usd",
-                baseYield: "25.00%",
-                incentives: ["usdc"],
-                tvl: "$1,403.72",
-                description:
-                    "Conservative stablecoin strategy focused on capital preservation with consistent returns.",
-                riskLevel: "Very Low",
-                network: "Ethereum",
-                contractAddress: "0x33...9c",
-            },
-            {
-                id: 6,
-                name: "Incentives USD",
-                type: "usd",
-                baseYield: "15.20%",
-                incentives: ["usdc"],
-                tvl: "$320.00",
-                description:
-                    "Enhanced stablecoin yield through protocol incentives and optimized position management.",
-                riskLevel: "Low",
-                network: "Ethereum",
-                contractAddress: "0x59...4d",
-            },
-        ],
-    };
+  const [selectedAsset, setSelectedAsset] = useState<AssetType>("ALL");
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [selectedItem, setSelectedItem] = useState<MarketItem | null>(null);
+  // Market data
+  const marketData: Record<AssetType, MarketItem[]> = {
+    ALL: [],
+    ETH: [],
+    BTC: [],
+    USD: [
+      {
+        id: 5,
+        name: "Stable USD",
+        type: "usd",
+        baseYield: "25.00%",
+        incentives: ["usdc"],
+        tvl: "$1,403.72",
+        description:
+          "Conservative stablecoin strategy focused on capital preservation with consistent returns.",
+        riskLevel: "Very Low",
+        network: "Ethereum",
+        contractAddress: "0x33...9c",
+      }
+    ],
+  };
 
     // Fill the "ALL" category
     marketData.ALL = [...marketData.ETH, ...marketData.BTC, ...marketData.USD];

@@ -6,23 +6,53 @@ import { USD_STRATEGIES, BTC_STRATEGIES, ETH_STRATEGIES } from "../config/env";
 type DurationType = "30_DAYS" | "60_DAYS" | "180_DAYS" | "PERPETUAL_DURATION";
 type StrategyType = "STABLE" | "INCENTIVE";
 
-interface StrategyConfig {
-    network: string;
-    contract: string;
-    boringVaultAddress: string;
-    tellerAddress: string;
-    deposit_tokens: string[];
-    deposit_token_contracts: string[];
-    description: string;
-    apy: string;
-    incentives: string;
-    tvl: string;
-    rpc: string;
+interface TokenConfig {
+  name: string;
+  contract: string;
+  decimal: number;
+  image: string;
+}
+
+interface NetworkConfig {
+  tokens: TokenConfig[];
+}
+
+interface BaseStrategyConfig {
+  network: string;
+  contract: string;
+  boringVaultAddress: string;
+  solverAddress: string;
+  shareAddress: string;
+  shareAddress_token_decimal: number;
+  base: NetworkConfig;
+  ethereum: NetworkConfig;
+  arbitrum: NetworkConfig;
+  description: string;
+  apy: string;
+  incentives: string;
+  tvl: string;
+  rpc: string;
+  show_cap: boolean;
+  filled_cap: string;
+  cap_limit: string;
+}
+
+interface IncentiveStrategyConfig {
+  network: string;
+  comingSoon: boolean;
+  contract: string;
+  deposit_token: string;
+  deposit_token_contract: string;
+  tvl: string;
+  rpc: string;
+  description: string;
+  apy: string;
+  incentives: string;
 }
 
 interface StrategyDuration {
-    STABLE: StrategyConfig;
-    INCENTIVE: StrategyConfig;
+  STABLE: BaseStrategyConfig;
+  INCENTIVE: IncentiveStrategyConfig;
 }
 
 interface StrategyAsset {
@@ -44,11 +74,12 @@ interface SelectedStrategy {
 type AssetType = "USD" | "ETH" | "BTC";
 
 interface StrategyInfo {
-    description: string;
-    apy: {
-        value: string;
-        info: string;
-    };
+  description: string;
+  apy: {
+    value: string;
+    info: string;
+  };
+  comingSoon?: boolean;
 }
 
 interface StrategyData {
@@ -65,56 +96,37 @@ interface YieldSubpageProps {
 }
 
 const getStrategyInfo = (duration: DurationType): StrategyData => {
-    const getAssetStrategies = (asset: AssetType) => {
-        const strategies: StrategyAsset = {
-            USD: USD_STRATEGIES,
-            BTC: BTC_STRATEGIES,
-            ETH: ETH_STRATEGIES,
-        }[asset];
-
-        // Use the duration as is since it matches the keys in env.ts
-        const durationKey = duration;
-        const strategy = strategies[durationKey];
-
-        if (!strategy) {
-            console.error(
-                `No strategy found for ${asset} with duration ${durationKey}`
-            );
-            return {
-                stable: {
-                    description: "Strategy not available",
-                    apy: {
-                        value: "0%",
-                        info: "-",
-                    },
-                },
-                incentives: {
-                    description: "Strategy not available",
-                    apy: {
-                        value: "0%",
-                        info: "-",
-                    },
-                },
-            };
-        }
-
-        return {
-            stable: {
-                description: strategy.STABLE.description,
-                apy: {
-                    value: strategy.STABLE.apy,
-                    info: strategy.STABLE.incentives,
-                },
-            },
-            incentives: {
-                description: strategy.INCENTIVE.description,
-                apy: {
-                    value: strategy.INCENTIVE.apy,
-                    info: strategy.INCENTIVE.incentives,
-                },
-            },
-        };
+  const getAssetStrategies = (asset: AssetType) => {
+    const strategies: Record<AssetType, Record<DurationType, StrategyDuration>> = {
+      USD: USD_STRATEGIES as Record<DurationType, StrategyDuration>,
+      BTC: BTC_STRATEGIES as Record<DurationType, StrategyDuration>,
+      ETH: ETH_STRATEGIES as Record<DurationType, StrategyDuration>,
     };
+
+    const strategy = strategies[asset][duration];
+
+    if (!strategy) {
+      console.error(
+        `No strategy found for ${asset} with duration ${duration}`
+      );
+      return {
+        stable: {
+          description: "Strategy not available",
+          apy: {
+            value: "0%",
+            info: "-",
+          },
+        },
+        incentives: {
+          description: "Strategy not available",
+          apy: {
+            value: "0%",
+            info: "-",
+          },
+          comingSoon: true,
+        },
+      };
+    }
 
     return {
         stable: {
@@ -127,39 +139,51 @@ const getStrategyInfo = (duration: DurationType): StrategyData => {
             BTC: getAssetStrategies("BTC").incentives,
             ETH: getAssetStrategies("ETH").incentives,
         },
+        comingSoon: strategy.INCENTIVE.comingSoon,
+      },
     };
+  };
+
+  return {
+    stable: {
+      USD: getAssetStrategies("USD").stable,
+      ETH: getAssetStrategies("ETH").stable,
+      BTC: getAssetStrategies("BTC").stable,
+    },
+    incentives: {
+      USD: getAssetStrategies("USD").incentives,
+      ETH: getAssetStrategies("ETH").incentives,
+      BTC: getAssetStrategies("BTC").incentives,
+    },
+  };
 };
 
 const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
-    const [selectedAsset, setSelectedAsset] = useState<SelectedAsset | null>(null);
-    const [selectedStrategy, setSelectedStrategy] = useState<SelectedStrategy | null>(null);
+  const [selectedAsset, setSelectedAsset] = useState<SelectedAsset | null>(null);
+  const [selectedStrategy, setSelectedStrategy] = useState<SelectedStrategy | null>(
+    null
+  );
 
-    // Add effect to handle URL parameters or parent navigation
-    useEffect(() => {
-        if (depositParams?.asset && depositParams?.duration) {
-            setSelectedAsset({
-                asset: depositParams.asset,
-                duration: depositParams.duration as DurationType,
-            });
+  useEffect(() => {
+    if (depositParams) {
+      const apy =
+        getStrategyInfo(depositParams.duration as DurationType)[
+          depositParams.strategy === "stable" ? "stable" : "incentives"
+        ][depositParams.asset as AssetType].apy.value;
 
-            if (depositParams.strategy) {
-                const strategyInfo = getStrategyInfo(
-                    depositParams.duration as DurationType
-                );
-                const apy =
-                    strategyInfo[
-                        depositParams.strategy === "stable" ? "stable" : "incentives"
-                    ][depositParams.asset as AssetType].apy.value;
+      setSelectedAsset({
+        asset: depositParams.asset,
+        duration: depositParams.duration as DurationType,
+      });
 
-                setSelectedStrategy({
-                    type: depositParams.strategy as "stable" | "incentive",
-                    asset: depositParams.asset,
-                    duration: depositParams.duration as DurationType,
-                    apy,
-                });
-            }
-        }
-    }, [depositParams]);
+      setSelectedStrategy({
+        type: depositParams.strategy as "stable" | "incentive",
+        asset: depositParams.asset,
+        duration: depositParams.duration as DurationType,
+        apy,
+      });
+    }
+  }, [depositParams]);
 
     const handleDurationSelect = (asset: string, duration: DurationType) => {
         setSelectedAsset({ asset, duration });
@@ -207,128 +231,97 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                     onBack={() => setSelectedStrategy(null)}
                     onReset={handleReset}
                 />
-            ) : selectedAsset ? (
-                <div className="flex flex-col gap-6 items-center pt-[8vh]">
-                    <h1 className="text-[40px] font-bold">Select a Yield Source</h1>
-                    <div className="flex gap-6 justify-center items-center">
-                        <CustomCard
-                            heading={selectedAsset.asset as AssetType}
-                            imageSrc={`/images/icons/card-${(
-                                selectedAsset.asset as AssetType
-                            ).toLowerCase()}.svg`}
-                            hoverColor={
-                                selectedAsset.asset === "USD"
-                                    ? "#B88AF8"
-                                    : selectedAsset.asset === "ETH"
-                                        ? "#627EEA"
-                                        : "#F7931A"
-                            }
-                            selectedDuration={selectedAsset.duration}
-                            onReset={handleReset}
-                            disableHover={true}
-                            className="h-[311px]"
-                        />
-                        <div className="flex items-center justify-center gap-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] w-[555px] h-[311px] p-6">
-                            <div
-                                onClick={() =>
-                                    handleStrategySelect(
-                                        "stable",
-                                        selectedAsset.asset as AssetType
-                                    )
-                                }
-                                className="cursor-pointer"
-                            >
-                                <CustomCard
-                                    heading={`Stable ${selectedAsset.asset}`}
-                                    imageSrc={`/images/icons/${(
-                                        selectedAsset.asset as AssetType
-                                    ).toLowerCase()}-stable.svg`}
-                                    info={
-                                        getStrategyInfo(selectedAsset.duration).stable[
-                                            selectedAsset.asset as AssetType
-                                        ].description
-                                    }
-                                    apy={
-                                        getStrategyInfo(selectedAsset.duration).stable[
-                                            selectedAsset.asset as AssetType
-                                        ].apy
-                                    }
-                                    isStrategyCard={true}
-                                    disableHover={true}
-                                />
-                            </div>
-                            <div
-                                onClick={() =>
-                                    handleStrategySelect(
-                                        "incentive",
-                                        selectedAsset.asset as AssetType
-                                    )
-                                }
-                                className="cursor-pointer"
-                            >
-                                <CustomCard
-                                    heading={`Incentives ${selectedAsset.asset}`}
-                                    imageSrc={`/images/icons/${(
-                                        selectedAsset.asset as AssetType
-                                    ).toLowerCase()}-incentive.svg`}
-                                    info={
-                                        getStrategyInfo(selectedAsset.duration).incentives[
-                                            selectedAsset.asset as AssetType
-                                        ].description
-                                    }
-                                    apy={
-                                        getStrategyInfo(selectedAsset.duration).incentives[
-                                            selectedAsset.asset as AssetType
-                                        ].apy
-                                    }
-                                    isStrategyCard={true}
-                                    disableHover={true}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            ) : (
-                <div className="flex flex-col gap-6 items-center pt-[8vh]">
-                    <h1 className="text-[40px] font-bold">
-                        Select the asset you want yield on
-                    </h1>
-                    <div className="flex gap-6 justify-center items-center">
-                        <CustomCard
-                            heading="USD"
-                            imageSrc="/images/icons/card-usd.svg"
-                            hoverColor="#B88AF8"
-                            onDurationSelect={(duration: DurationType) =>
-                                handleDurationSelect("USD", duration)
-                            }
-                        />
-                        <CustomCard
-                            heading="ETH"
-                            imageSrc="/images/icons/card-eth.svg"
-                            imageAlt="Ethereum semi-circle"
-                            hoverColor="#627EEA"
-                            onDurationSelect={(duration: DurationType) =>
-                                handleDurationSelect("ETH", duration)
-                            }
-                            className="overflow-hidden"
-                            isComingSoon={true}
-                        />
-                        <CustomCard
-                            heading="BTC"
-                            imageSrc="/images/icons/card-btc.svg"
-                            imageAlt="Bitcoin semi-circle"
-                            hoverColor="#F7931A"
-                            onDurationSelect={(duration: DurationType) =>
-                                handleDurationSelect("BTC", duration)
-                            }
-                            isComingSoon={true}
-                            className="overflow-hidden"
-                        />
-                    </div>
-                </div>
-            )}
+              </div>
+              <div
+                {...(getStrategyInfo(selectedAsset.duration).incentives[
+                  selectedAsset.asset as AssetType
+                ].comingSoon
+                  ? {}
+                  : {
+                      onClick: () =>
+                        handleStrategySelect(
+                          "incentive",
+                          selectedAsset.asset as AssetType
+                        ),
+                    })}
+                className={
+                  "group " +
+                  (getStrategyInfo(selectedAsset.duration).incentives[
+                    selectedAsset.asset as AssetType
+                  ].comingSoon
+                    ? "pointer-events-none opacity-60"
+                    : "cursor-pointer")
+                }
+              >
+                <CustomCard
+                  heading={`Incentives ${selectedAsset.asset}`}
+                  imageSrc={`/images/icons/${(
+                    selectedAsset.asset as AssetType
+                  ).toLowerCase()}-incentive.svg`}
+                  info={
+                    getStrategyInfo(selectedAsset.duration).incentives[
+                      selectedAsset.asset as AssetType
+                    ].description
+                  }
+                  apy={
+                    getStrategyInfo(selectedAsset.duration).incentives[
+                      selectedAsset.asset as AssetType
+                    ].apy
+                  }
+                  isStrategyCard={true}
+                  disableHover={true}
+                  isComingSoon={
+                    getStrategyInfo(selectedAsset.duration).incentives[
+                      selectedAsset.asset as AssetType
+                    ].comingSoon === true
+                  }
+                />
+              </div>
+            </div>
+          </div>
         </div>
-    );
+      ) : (
+        <div className="flex flex-col gap-6 items-center pt-[8vh]">
+          <h1 className="text-[40px] font-bold">
+            Select a asset you want yield on
+          </h1>
+          <div className="flex gap-6 justify-center items-center">
+            <CustomCard
+              heading="USD"
+              imageSrc="/images/icons/card-usd.svg"
+              hoverColor="#B88AF8"
+              onDurationSelect={(duration: DurationType) =>
+                handleDurationSelect("USD", duration)
+              }
+              availableDurations={["PERPETUAL_DURATION"]}
+            />
+            <CustomCard
+              heading="Ethereum"
+              imageSrc="/images/icons/card-eth.svg"
+              imageAlt="Ethereum semi-circle"
+              hoverColor="#627EEA"
+              onDurationSelect={(duration: DurationType) =>
+                handleDurationSelect("ETH", duration)
+              }
+              className="overflow-hidden"
+              isComingSoon={true}
+            />
+            <CustomCard
+              heading="Bitcoin"
+              imageSrc="/images/icons/card-btc.svg"
+              imageAlt="Bitcoin semi-circle"
+              hoverColor="#F7931A"
+              onDurationSelect={(duration: DurationType) =>
+                handleDurationSelect("BTC", duration)
+              }
+              isComingSoon={true}
+              className="overflow-hidden"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default YieldSubpage;

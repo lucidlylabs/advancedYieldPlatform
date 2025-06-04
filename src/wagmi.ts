@@ -1,5 +1,5 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
-import { base, mainnet, sepolia, Chain } from "wagmi/chains";
+import { base, mainnet, sepolia, Chain, arbitrum } from "wagmi/chains";
 
 const sonic: Chain = {
     id: 146, // Sonic mainnet chain ID (0x92)
@@ -23,13 +23,8 @@ const sonic: Chain = {
 };
 
 export const config = getDefaultConfig({
-    appName: "Advanced Yield Platform",
-    projectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID || "YOUR_PROJECT_ID",
-    chains: [
-        mainnet,
-        base,
-        sonic,
-        ...(process.env.NEXT_PUBLIC_ENABLE_TESTNETS === "true" ? [sepolia] : []),
-    ],
-    ssr: true,
+  appName: "Advanced Yield Platform",
+  projectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID || "YOUR_PROJECT_ID",
+  chains: [mainnet, base, arbitrum, sonic],
+  ssr: true,
 });
