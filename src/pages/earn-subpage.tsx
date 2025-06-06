@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { CustomCard } from "@/components/ui/card";
 import DepositView from "@/components/deposit-view";
 import { USD_STRATEGIES, BTC_STRATEGIES, ETH_STRATEGIES } from "../config/env";
+import { useRouter } from "next/router";
 
 type DurationType = "30_DAYS" | "60_DAYS" | "180_DAYS" | "PERPETUAL_DURATION";
 type StrategyType = "STABLE" | "INCENTIVE";
@@ -174,6 +175,8 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
     null
   );
 
+  const router = useRouter();
+
   useEffect(() => {
     if (depositParams) {
       const apy =
@@ -220,6 +223,14 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
     setSelectedStrategy(null);
   };
 
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      router.back(); // Go to previous page
+    } else {
+      router.push("/"); // Or any default fallback route
+    }
+  };
+
   // Always render the main content, assuming verification is handled by parent
   return (
     <div
@@ -242,8 +253,28 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
           onReset={handleReset}
         />
       ) : selectedAsset ? (
-        <div className="flex flex-col gap-6 items-center pt-[8vh]">
-          <h1 className="text-[40px] font-bold">Select a Yield Source</h1>
+        <div className="flex flex-col gap-6 pt-[8vh] w-full">
+        {/* Back Button aligned left */}
+        <div className="w-full flex justify-start pl-6">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleBack();
+            }}
+            className="text-[#B88AF8] hover:opacity-100 transition-all duration-200 flex items-center gap-2 font-inter font-normal text-xs leading-none"
+          >
+            <img
+              src="/images/icons/arrow.svg"
+              alt="Back"
+              className="w-[24px] h-[24px] rotate-180"
+            />
+          </button>
+        </div>
+      
+        {/* Centered Heading */}
+        <div className="flex justify-center">
+          <h1 className="text-[40px] font-bold font-inter">Select a Yield Source</h1>
+        </div>
           <div className="flex gap-6 justify-center items-center">
             <CustomCard
               heading={selectedAsset.asset as AssetType}
@@ -273,7 +304,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                 className="cursor-pointer"
               >
                 <CustomCard
-                  heading={`Stable ${selectedAsset.asset}`}
+                  heading={`syUSD`}
                   imageSrc={`/images/icons/${(
                     selectedAsset.asset as AssetType
                   ).toLowerCase()}-stable.svg`}
@@ -341,7 +372,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
         </div>
       ) : (
         <div className="flex flex-col gap-6 items-center pt-[8vh]">
-          <h1 className="text-[40px] font-bold">
+          <h1 className="text-[40px] font-bold font-inter">
             Select a asset you want yield on
           </h1>
           <div className="flex gap-6 justify-center items-center">

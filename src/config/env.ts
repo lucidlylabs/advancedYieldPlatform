@@ -74,7 +74,7 @@ export const USD_STRATEGIES = {
                 ],
             },
 
-            description: "Perpetual stable USD strategy on base network",
+            description: "Perpetual syUSD strategy on base network",
             apy: "4.5%",
             incentives: "None",
             cap_limit: "1,000,000",

@@ -95,7 +95,7 @@ const MarketsSubpage: React.FC = () => {
     USD: [
       {
         id: 5,
-        name: "Stable USD",
+        name: "syUSD",
         type: "usd",
         baseYield: "25.00%",
         incentives: ["usdc"],

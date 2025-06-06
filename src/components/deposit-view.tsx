@@ -27,6 +27,7 @@ import {
   parseUnits,
 } from "viem";
 import { RATE_PROVIDER_ABI } from "../config/abi/rateProvider";
+import { useRouter } from "next/router";
 
 type DurationType = "30_DAYS" | "60_DAYS" | "180_DAYS" | "PERPETUAL_DURATION";
 type StrategyType = "STABLE" | "INCENTIVE";
@@ -277,6 +278,7 @@ const DepositView: React.FC<DepositViewProps> = ({
   const [targetChain, setTargetChain] = useState<string>("arbitrum"); // Default target chain
   const { switchChain } = useSwitchChain();
   const { chain } = useAccount(); // Get connected chain info
+  const router = useRouter();
 
   // Get strategy config based on asset type
   const strategyConfigs = {
@@ -1040,8 +1042,35 @@ const DepositView: React.FC<DepositViewProps> = ({
     }
   };
 
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      router.back(); // Go to previous page
+    } else {
+      router.push("/"); // Or any default fallback route
+    }
+  };
+
   return (
-    <div className="h-[calc(100vh-128px)] relative overflow-hidden">
+    <>
+      <div className="flex flex-col gap-6 pt-[8vh] w-full">
+        {/* Back Button aligned left */}
+        <div className="w-full flex justify-start pl-6">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleBack();
+            }}
+            className="text-[#B88AF8] hover:opacity-100 transition-all duration-200 flex items-center gap-2 font-inter font-normal text-xs leading-none"
+          >
+            <img
+              src="/images/icons/arrow.svg"
+              alt="Back"
+              className="w-[24px] h-[24px] rotate-180"
+            />
+          </button>
+        </div>
+      </div>
+      <div className="h-[calc(100vh-128px)] relative overflow-hidden">
       {depositSuccess ? (
         <div className="flex flex-col items-center justify-center h-full">
           <div className="w-[580px] bg-[#0D101C] rounded-lg p-8 text-center">
@@ -1060,7 +1089,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                  />
+                  />  
                 </svg>
               </div>
             </div>
@@ -1162,7 +1191,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                       onChange={(e) =>
                         setSelectedAssetIdx(Number(e.target.value))
                       }
-                      className="w-full bg-[#1A1B1E] text-[#EDF2F8] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8]"
+                      className="w-full bg-[#0D101C] text-[#EDF2F8] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] border border-[rgba(255,255,255,0.19)]"
                     >
                       {assetOptions.map((opt, idx) => (
                         <option value={idx} key={opt.contract}>
@@ -1173,7 +1202,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                   </div>
                 )}
                 {/* Multi-chain Toggle (always shown) */}
-                <div className="mt-4 flex items-center justify-between">
+                {/* <div className="mt-4 flex items-center justify-between">
                   <span className="text-[#9C9DA2] font-inter text-[12px]">
                     Multi-chain Deposit
                   </span>
@@ -1189,7 +1218,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                       }`}
                     />
                   </button>
-                </div>
+                </div> */}
                 {/* Target Chain Selection - Only shown when multi-chain is enabled */}
                 {isMultiChain && (
                   <div className="mt-4">
@@ -1225,38 +1254,6 @@ const DepositView: React.FC<DepositViewProps> = ({
                         MAX
                       </span>
                     </button>
-                  </div>
-                  <div className="mt-[12px]">
-                    <span className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
-                      Balance:{" "}
-                      {isLoadingBalance ? (
-                        <span className="inline-flex items-center gap-1">
-                          <svg
-                            className="animate-spin h-3 w-3 text-white"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            ></circle>
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
-                          </svg>
-                          <span className="text-white">Loading...</span>
-                        </span>
-                      ) : (
-                        <span className="text-white">{balance}</span>
-                      )}
-                    </span>
                   </div>
                   {/* Bridge Fee Display */}
                   {isMultiChain && (
@@ -1334,18 +1331,12 @@ const DepositView: React.FC<DepositViewProps> = ({
                   <h3 className="text-[32px] text-[#D7E3EF] font-inter font-medium leading-normal mb-[8px] mt-[12px]">
                     {selectedAsset}
                   </h3>
-                  <div
+                  {/* <div
                     onClick={onReset}
                     className="text-[16px] text-[#9C9DA2] font-inter font-normal leading-normal underline decoration-solid underline-offset-auto mb-[25px] cursor-pointer hover:text-[#9C9DA2]/80 transition-all duration-200"
                   >
                     {formatDuration(duration)}
-                  </div>
-                  <div
-                    onClick={onReset}
-                    className="text-[#B88AF8] cursor-pointer font-inter text-[12px] font-light leading-normal hover:opacity-80 transition-all duration-200"
-                  >
-                    Change Asset →
-                  </div>
+                  </div> */}
                 </div>
 
                 {/* Strategy Info - Positioned at bottom */}
@@ -1362,12 +1353,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                         <div className="text-white font-semibold capitalize">
                           {strategy} {selectedAsset}
                         </div>
-                        <img
-                          src="/images/icons/select-icon.svg"
-                          alt="select"
-                          className="w-[16px] h-[16px] flex-shrink-0 cursor-pointer ml-auto hover:opacity-80 transition-all duration-200"
-                          onClick={onBack}
-                        />
+                        
                       </div>
                       <div className="flex items-center gap-4 mt-[4px]">
                         <span className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
@@ -1380,8 +1366,41 @@ const DepositView: React.FC<DepositViewProps> = ({
               </div>
             </div>
 
+            <div className="relative mt-[12px]">
+                    <span className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
+                      Balance:{" "}
+                      {isLoadingBalance ? (
+                        <span className="inline-flex items-center gap-1">
+                          <svg
+                            className="animate-spin h-3 w-3 text-white"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                          <span className="text-white">Loading...</span>
+                        </span>
+                      ) : (
+                        <span className="text-white">{balance}</span>
+                      )}
+                    </span>
+                  </div>
+
             {/* Deposit Cap Progress Bar - Only shown if show_cap is true */}
-            {showDepositCap && (
+            {/* {showDepositCap && (
               <div className="w-full mt-6 mb-4 p-4 rounded-[4px] bg-[rgba(255,255,255,0.02)]">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-[#EDF2F8] font-inter text-[14px] font-medium">
@@ -1398,7 +1417,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                   />
                 </div>
               </div>
-            )}
+            )} */}
 
             {/* Dynamic Connect/Deposit Button */}
             <ConnectButton.Custom>
@@ -1476,6 +1495,7 @@ const DepositView: React.FC<DepositViewProps> = ({
         </div>
       )}
     </div>
+    </>
   );
 };
 

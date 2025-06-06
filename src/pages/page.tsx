@@ -117,7 +117,7 @@ export default function Page() {
     <div className="min-h-screen flex flex-col">
       <Header onNavigateToDeposit={handleNavigateToDeposit}>
         <div className="flex items-stretch h-full">
-          <div className="flex items-center pl-3">
+          <div className="flex items-center">
             <div
               className="cursor-pointer"
               onClick={() => {
