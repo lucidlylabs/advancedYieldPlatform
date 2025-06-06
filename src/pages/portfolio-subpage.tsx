@@ -16,6 +16,15 @@ import {
   formatUnits,
   parseUnits,
 } from "viem";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
 
 interface StrategyConfig {
   network: string;
@@ -39,6 +48,76 @@ type StrategyDuration = {
 type StrategyAsset = {
   [K in DurationType]?: StrategyDuration;
 }
+
+// Mock data for stacked chart
+const chartData = [
+  { date: "FEB 24", base: 2, incentive: 1 },
+  { date: "FEB 24", base: 2.5, incentive: 0.8 },
+  { date: "FEB 24", base: 3, incentive: 1.2 },
+
+  { date: "MAR 24", base: 4, incentive: 1.4 },
+  { date: "MAR 24", base: 4.5, incentive: 1.6 },
+  { date: "MAR 24", base: 5, incentive: 1.8 },
+
+  { date: "APR 24", base: 6.2, incentive: 2 },
+  { date: "APR 24", base: 6.8, incentive: 2.5 },
+  { date: "APR 24", base: 7.1, incentive: 2.7 },
+
+  { date: "MAY 24", base: 8.2, incentive: 3 },
+  { date: "MAY 24", base: 9.4, incentive: 2.8 },
+
+  { date: "JUN 24", base: 10.2, incentive: 3.4 },
+  { date: "JUN 24", base: 10.8, incentive: 3.7 },
+
+  { date: "JUL 24", base: 12, incentive: 4.2 },
+  { date: "JUL 24", base: 13, incentive: 4.8 },
+
+  { date: "AUG 24", base: 14.5, incentive: 5.5 },
+  { date: "AUG 24", base: 15.5, incentive: 6.2 },
+
+  { date: "SEP 24", base: 18, incentive: 6.8 },
+  { date: "SEP 24", base: 19.5, incentive: 7 },
+
+  { date: "OCT 24", base: 21, incentive: 8 },
+  { date: "OCT 24", base: 23, incentive: 8.4 },
+
+  { date: "NOV 24", base: 27, incentive: 8.6 },
+  { date: "NOV 24", base: 28, incentive: 9 },
+
+  { date: "DEC 24", base: 30, incentive: 9.6 },
+  { date: "DEC 24", base: 32, incentive: 10 },
+
+  { date: "JAN 24", base: 34, incentive: 10.4 },
+  { date: "JAN 24", base: 36, incentive: 10.9 },
+];
+
+// Mock data for the table rows
+export const tableData = [
+  {
+    id: 1,
+    name: "Base Yield ETH",
+    expiry: "29th March 2025",
+    expiresIn: "20 days to Expire",
+    apy: "6.64%",
+    currentBalance: "$115,447.00",
+    change: "+$100.00 (10%)",
+    changeColor: "text-green-400",
+    period: "+0.00 in 1 year",
+    icon: "/icons/eth-icon.svg", // Use appropriate path or emoji
+  },
+  {
+    id: 2,
+    name: "Incentive Maxi ETH",
+    expiry: "16th February 2025",
+    expiresIn: "7 days to Expire",
+    apy: "23.43%",
+    currentBalance: "$343,504,807.10",
+    change: "-$100.00 (10%)",
+    changeColor: "text-red-400",
+    period: "+0.00 in 1 year",
+    icon: "/icons/eth-icon.svg",
+  },
+];
 
 const PortfolioSubpage: React.FC = () => {
   const { address, isConnected } = useAccount();
@@ -461,10 +540,23 @@ const PortfolioSubpage: React.FC = () => {
     }
   };
 
+  const CustomXAxisTick = ({ x, y, payload, index, data }) => {
+    const currentLabel = payload.value;
+    const prevLabel = index > 0 ? data[index - 1]?.date : null;
+  
+    const showLabel = currentLabel !== prevLabel;
+  
+    return showLabel ? (
+      <text x={x} y={y + 15} fill="#9C9DA2" fontSize={6}>
+        {currentLabel}
+      </text>
+    ) : null;
+  };
+
   return (
     <div className="flex flex-col min-h-screen text-white">
       {/* Top Section - Portfolio Value, PNL, and Wallet */}
-      <div className="w-full h-[124px] flex items-center justify-between px-8 bg-[#0D101C] border-b border-[rgba(255,255,255,0.1)]">
+      <div className="flex flex-col sm:flex-row w-full py-4 items-center justify-between px-8 bg-[#0D101C] border-b border-[rgba(255,255,255,0.1)]">
         <div>
           <div className="flex gap-32">
             <div className="flex flex-col">
@@ -534,11 +626,11 @@ const PortfolioSubpage: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="flex flex-col justify-center items-end gap-2 py-[10px] px-4 rounded-[4px] border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)]">
+        <div className="flex flex-col w-full sm:w-auto justify-center items-center gap-2 py-[10px] px-4 rounded-[4px] border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)]">
           <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-[16px]">
             Wallet Address
           </div>
-          <div className="text-[#D7E3EF] font-mono opacity-80">
+          <div className="text-[#D7E3EF] font-mono opacity-80 text-xs sm:text-md">
             {isConnected ? address : "Not connected"}
           </div>
         </div>
@@ -547,19 +639,54 @@ const PortfolioSubpage: React.FC = () => {
       {/* Main Content - Split View */}
       <div className="flex flex-1">
         {/* Left Side - Assets Table */}
-        <div className="w-1/2 border-r border-[rgba(255,255,255,0.1)] pt-8 pl-8">
+        <div className="w-full sm:w-1/2 border-r border-[rgba(255,255,255,0.1)] pt-8 px-4 sm:pl-8">
           <div className="mb-6">
             <div className="text-[rgba(255,255,255,0.70)] font-inter text-[16px] font-bold uppercase">
               Total Portfolio Value
             </div>
           </div>
 
-          {/* Column Headers */}
-          <div className="grid grid-cols-12 pl-4 pr-6 py-2 border-b border-[rgba(255,255,255,0.15)]">
-            <div className="text-[#9C9DA2] font-inter text-[14px] font-medium col-span-4">
+          {/* Graph */}
+          <div className="w-full h-[350px] rounded-xl">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={chartData}
+                barCategoryGap={1} 
+                barGap={0}
+              >
+                <CartesianGrid vertical={false} stroke="#1F1F2B" />
+                <XAxis
+                  dataKey="date"
+                  stroke="#9C9DA2"
+                  fontSize={8}
+                  tickMargin={4}
+                  interval={2}
+                  tick={(props) => <CustomXAxisTick {...props} data={chartData} />}
+                />
+                <YAxis
+                  orientation="right"
+                  stroke="#9C9DA2"
+                  tickFormatter={(value) => `$${value}`}
+                  domain={[0, 100]}
+                  fontSize={12}
+                  axisLine={false}
+                />
+                <Tooltip
+                  contentStyle={{ backgroundColor: "#1A1A2F", border: "none", color: "#fff" }}
+                  labelStyle={{ color: "#9C9DA2" }}
+                  formatter={(value: number) => [`$${value.toFixed(2)}`, "Value"]}
+                />
+                <Bar dataKey="base" stackId="a" fill="#00E8C2" radius={[2, 2, 0, 0]} />
+                <Bar dataKey="incentive" stackId="a" fill="#7155FF" radius={[2, 2, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+                
+          <div className="grid grid-cols-12 gap-y-2 pr-6 py-2 border-b border-[rgba(255,255,255,0.15)]">
+            <div className="flex items-center col-span-3 sm:col-span-3 text-[#9C9DA2] font-inter text-[14px] font-medium">
               Available Yields
             </div>
-            <div className="text-[#9C9DA2] font-inter text-[14px] font-medium flex items-center col-span-3">
+            <div className="flex items-center col-span-3 sm:col-span-3 text-[#9C9DA2] font-inter text-[14px] font-medium">
               Expiry
               <svg
                 className="ml-1"
@@ -572,7 +699,7 @@ const PortfolioSubpage: React.FC = () => {
                 <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
               </svg>
             </div>
-            <div className="text-[#9C9DA2] font-inter text-[14px] font-medium flex items-center col-span-2">
+            <div className="flex items-center col-span-3 sm:col-span-3 text-[#9C9DA2] font-inter text-[14px] font-medium">
               Base APY
               <svg
                 className="ml-1"
@@ -585,13 +712,13 @@ const PortfolioSubpage: React.FC = () => {
                 <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
               </svg>
             </div>
-            <div className="text-[#9C9DA2] font-inter text-[14px] font-medium flex items-center justify-end col-span-3">
+            <div className="flex items-center justify-start col-span-3 sm:col-span-3 text-[#9C9DA2] font-inter text-[14px] font-medium">
               Current Balance
               <svg
                 className="ml-1"
                 width="16"
                 height="16"
-                viewBox="0 0 16 16"
+                viewBox="0 0 12 12"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
               >
@@ -722,7 +849,7 @@ const PortfolioSubpage: React.FC = () => {
         </div>
 
         {/* Right Side - Withdraw Form or Info */}
-        <div className="w-1/2 p-8">
+        <div className="w-1/2 p-8 hidden sm:block">
           {selectedStrategy ? (
             <div className="flex flex-col h-full rounded-lg p-6">
               <h1 className="text-[#D7E3EF] font-inter text-[20px] font-semibold leading-normal mb-4">

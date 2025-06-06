@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState , useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { MarketsTable } from "@/components/ui/markets-table";
 import { YieldDetailsView } from "@/components/yield-details-view";
@@ -9,6 +9,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import Image from "next/image";
+import { useRouter } from "next/router";
+
+const isMobile = () => typeof window !== "undefined" && window.innerWidth < 640;
 
 type AssetType = "ALL" | "USD" | "ETH" | "BTC";
 
@@ -108,6 +111,7 @@ const MarketsSubpage: React.FC = () => {
       }
     ],
   };
+  const router = useRouter();
 
   // Fill the "ALL" category
   marketData.ALL = [...marketData.ETH, ...marketData.BTC, ...marketData.USD];
@@ -124,7 +128,20 @@ const MarketsSubpage: React.FC = () => {
 
   // Handler for row clicks
   const handleRowClick = (item: MarketItem) => {
-    setSelectedItem(item);
+    if (isMobile()) {
+      router.push({
+        pathname: `/yield/${item.id}`,
+        query: { 
+          name: item.name,
+          tvl: item.tvl,
+          baseApy: item.baseYield,
+          contractAddress: item.contractAddress || "",
+          network: item.network || ""
+        },
+      });
+    } else {
+      setSelectedItem(item);
+    }
   };
 
   // Get sorted data
@@ -172,10 +189,10 @@ const MarketsSubpage: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen text-white">
+    <div className="flex min-h-screen text-white w-full">
       {/* Left side - 50% */}
-      <div className="w-[757px] flex flex-col relative">
-        <div className="w-[757px] h-[124px] flex flex-col justify-center items-start relative pl-[32px]">
+      <div className="w-full flex flex-col relative">
+        <div className="w-full h-[124px] flex flex-col justify-center items-start relative px-[16px]">
           <div
             className="absolute inset-0 bg-[url('/images/background/earn-page-heading-bg.svg')] bg-no-repeat bg-cover"
             style={{ height: "100%" }}
@@ -193,28 +210,12 @@ const MarketsSubpage: React.FC = () => {
         </div>
 
         {/* Asset Selection */}
-        <div className="pl-[32px] mt-[16px]">
-          <div className="flex border-b-[0.5px] border-[rgba(255,255,255,0.15)] pr-6">
-            <AssetButton
-              asset="ALL"
-              activeAsset={selectedAsset}
-              onClick={setSelectedAsset}
-            />
-            <AssetButton
-              asset="USD"
-              activeAsset={selectedAsset}
-              onClick={setSelectedAsset}
-            />
-            <AssetButton
-              asset="ETH"
-              activeAsset={selectedAsset}
-              onClick={setSelectedAsset}
-            />
-            <AssetButton
-              asset="BTC"
-              activeAsset={selectedAsset}
-              onClick={setSelectedAsset}
-            />
+        <div className="px-4 mt-4">
+          <div className="grid grid-cols-4 gap-3 sm:flex sm:border-b-[0.5px] sm:border-[rgba(255,255,255,0.15)] sm:pr-6">
+            <AssetButton asset="ALL" activeAsset={selectedAsset} onClick={setSelectedAsset} />
+            <AssetButton asset="USD" activeAsset={selectedAsset} onClick={setSelectedAsset} />
+            <AssetButton asset="ETH" activeAsset={selectedAsset} onClick={setSelectedAsset} />
+            <AssetButton asset="BTC" activeAsset={selectedAsset} onClick={setSelectedAsset} />
           </div>
         </div>
 
@@ -251,7 +252,7 @@ const MarketsSubpage: React.FC = () => {
       <div className="w-[1px] bg-[rgba(255,255,255,0.1)]" />
 
       {/* Right side - 50% */}
-      <div className="w-1/2 ml-[30px]">
+      <div className="w-1/2 ml-[30px] hidden sm:block pr-6">
         {selectedItem ? (
           <YieldDetailsView
             name={selectedItem.name}

@@ -173,7 +173,7 @@ const CustomCard: React.FC<CustomCardProps> = ({
               style={{ backgroundColor: hoverColor }}
             />
             <div className="p-6 relative z-10">
-              <div className="flex flex-row items-center gap-2">
+              <div className="flex items-center gap-2">
                 <h3
                   className={cn(
                     "text-[32px] leading-none tracking-tight text-white transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] w-full flex flex-col items-center justify-center",

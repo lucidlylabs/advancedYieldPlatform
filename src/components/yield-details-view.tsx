@@ -112,7 +112,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
         </h2>
 
         {/* Toggle buttons */}
-        <div className="inline-flex overflow-hidden border border-gray-700 rounded-md">
+        <div className="inline-flex border border-gray-700 rounded-md">
           <button className="text-[#D7E3EF] font-inter text-[12px] font-normal leading-[16px] px-4 py-2 rounded-[6px_0px_0px_6px] border border-[rgba(184,138,248,0.50)] bg-[rgba(184,138,248,0.15)]">
             Total Deposits
           </button>
@@ -250,16 +250,16 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   );
 
   return (
-    <div className="w-full pl-4 mt-10">
+    <div className="w-full">
       <div className="flex justify-between items-center mb-2">
         <div className="flex items-center pl-0">
-          <div className="inline-flex items-center gap-[6px] pl-0">
-            <h1 className="text-[20px] font-semibold text-[#D7E3EF] font-inter leading-normal inline-flex items-center pl-0">
+          <div className="inline-flex items-center pl-0">
+            <h1 className="text-[20px] font-semibold text-[#D7E3EF] font-inter leading-normal inline-flex items-center pl-0 mt-4">
               {name}
             </h1>
           </div>
         </div>
-        <div className="flex items-center gap-3 mr-8">
+        <div className="flex items-center gap-3">
           <button className="bg-[#B88AF8] hover:bg-[#9F6EE9] text-[#080B17] flex items-center gap-[8px] px-[16px] py-[6px] rounded-[4px] transition-colors font-inter text-[14px] font-normal leading-normal">
             Deposit
           </button>
@@ -267,29 +267,37 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
       </div>
 
       {/* Stats */}
-      <div className="flex items-center border-b border-gray-700 pb-2">
-        <div className="w-[100px] flex flex-col pl-0 pr-6 relative after:content-[''] after:absolute after:right-0 after:top-[4px] after:w-[1px] after:h-[calc(100%-4px)] after:bg-[#2D2F3D]">
-          <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-normal">TVL</div>
-          <div className="text-white font-inter text-[14px] font-semibold leading-normal mt-[8px] text-left">{tvl}</div>
+      <div className="w-full grid grid-cols-2 gap-y-4 border-b border-[#2D2F3D] py-4 text-sm font-inter text-white sm:flex sm:items-center sm:justify-between sm:py-0 sm:px-0 sm:gap-0 sm:border-gray-700">
+        {/* TVL */}
+        <div className="flex flex-col items-start justify-center px-4 border-r border-[#2D2F3D]">
+          <div className="text-[#9C9DA2] text-xs font-normal">TVL</div>
+          <div className="mt-1 font-semibold">{tvl}</div>
         </div>
-        <div className="flex flex-col px-6 relative after:content-[''] after:absolute after:right-0 after:top-[4px] after:w-[1px] after:h-[calc(100%-4px)] after:bg-[#2D2F3D]">
-          <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-normal flex items-center gap-1">Base APY</div>
-          <div className="text-white font-inter text-[14px] font-semibold leading-normal mt-[8px]">{baseApy}</div>
+
+        {/* Base APY */}
+        <div className="flex flex-col items-start justify-center px-4">
+          <div className="text-[#9C9DA2] text-xs font-normal">Base APY</div>
+          <div className="mt-1 font-semibold">{baseApy}</div>
         </div>
-        <div className="flex flex-col px-6 relative after:content-[''] after:absolute after:right-0 after:top-[4px] after:w-[1px] after:h-[calc(100%-4px)] after:bg-[#2D2F3D]">
-          <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-normal">Contract Address</div>
-          <div className="text-white font-inter text-[14px] font-semibold leading-normal flex items-center gap-1 mt-[8px]">
+
+        {/* Contract Address */}
+        <div className="flex flex-col items-start justify-center px-4 border-r border-[#2D2F3D]">
+          <div className="text-[#9C9DA2] text-xs font-normal">Contract Address</div>
+          <div className="mt-1 font-semibold flex items-center gap-1">
             {contractAddress}
             <button className="text-[#9C9DA2] hover:text-white transition-colors">
               <ExternalLinkIcon />
             </button>
           </div>
         </div>
-        <div className="flex flex-col px-6">
-          <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-normal">Network</div>
-          <div className="text-white font-inter text-[14px] font-semibold leading-normal mt-[8px]">{network}</div>
+
+        {/* Network */}
+        <div className="flex flex-col items-start justify-center px-4">
+          <div className="text-[#9C9DA2] text-xs font-normal">Network</div>
+          <div className="mt-1 font-semibold">{network}</div>
         </div>
       </div>
+
 
       {/* Tabs */}
       <div className="flex border-b border-gray-700 pl-0">
