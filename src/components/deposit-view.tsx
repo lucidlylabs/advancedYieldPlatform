@@ -41,6 +41,22 @@ interface TokenConfig {
 interface ChainConfig {
   tokens: TokenConfig[];
   image?: string; // Add optional image property for chain
+  rpc: string;
+  chainId: number;
+  chainObject: {
+    id: number;
+    name: string;
+    network: string;
+    nativeCurrency: {
+      decimals: number;
+      name: string;
+      symbol: string;
+    };
+    rpcUrls: {
+      default: { http: string[] };
+      public: { http: string[] };
+    };
+  };
 }
 
 interface StrategyConfig {
@@ -431,26 +447,10 @@ const DepositView: React.FC<DepositViewProps> = ({
       if (!tokenContractAddress || !address) return;
 
       try {
+        const { rpcUrl, chain: targetChainConfig } = getChainConfig(targetChain);
         const client = createPublicClient({
-          transport: http(strategyConfig.rpc || "https://base.llamarpc.com"),
-          chain: {
-            id: 8453,
-            name: "Base",
-            network: "base",
-            nativeCurrency: {
-              decimals: 18,
-              name: "Ethereum",
-              symbol: "ETH",
-            },
-            rpcUrls: {
-              default: {
-                http: [strategyConfig.rpc || "https://base.llamarpc.com"],
-              },
-              public: {
-                http: [strategyConfig.rpc || "https://base.llamarpc.com"],
-              },
-            },
-          },
+          transport: http(rpcUrl),
+          chain: targetChainConfig,
         });
 
         // Try to read basic token info
@@ -490,7 +490,7 @@ const DepositView: React.FC<DepositViewProps> = ({
     };
 
     checkTokenContract();
-  }, [tokenContractAddress, address, strategyConfig.rpc]);
+  }, [tokenContractAddress, address, targetChain]);
 
   // Watch for approval success and update allowance
   useEffect(() => {
@@ -592,30 +592,14 @@ const DepositView: React.FC<DepositViewProps> = ({
 
   // Add preview fee function
   const previewBridgeFee = async (amount: bigint) => {
-    if (!address || !amount || !isMultiChain) return;
+    if (!address || !amount) return;
 
     setIsLoadingFee(true);
     try {
+      const { rpcUrl, chain: clientChain } = getChainConfig(targetChain);
       const client = createPublicClient({
-        transport: http(strategyConfig.rpc || "https://base.llamarpc.com"),
-        chain: {
-          id: 8453,
-          name: "Base",
-          network: "base",
-          nativeCurrency: {
-            decimals: 18,
-            name: "Ethereum",
-            symbol: "ETH",
-          },
-          rpcUrls: {
-            default: {
-              http: [strategyConfig.rpc || "https://base.llamarpc.com"],
-            },
-            public: {
-              http: [strategyConfig.rpc || "https://base.llamarpc.com"],
-            },
-          },
-        },
+        transport: http(rpcUrl),
+        chain: clientChain,
       });
 
       // Get bridge wildcard based on target chain
@@ -708,29 +692,19 @@ const DepositView: React.FC<DepositViewProps> = ({
         depositTokenDecimals
       );
 
+      // Determine if multi-chain deposit is needed
+      const currentChainId = chain?.id;
+      const targetChainConfig = getChainConfig(targetChain);
+      const targetChainId = targetChainConfig.chainId;
+
+      setIsMultiChain(currentChainId !== targetChainId);
+
       // Get rate from rate provider
       const rateProviderAddress = strategyConfig.rateProvider;
 
       const client = createPublicClient({
-        transport: http(strategyConfig.rpc || "https://base.llamarpc.com"),
-        chain: {
-          id: 8453,
-          name: "Base",
-          network: "base",
-          nativeCurrency: {
-            decimals: 18,
-            name: "Ethereum",
-            symbol: "ETH",
-          },
-          rpcUrls: {
-            default: {
-              http: [strategyConfig.rpc || "https://base.llamarpc.com"],
-            },
-            public: {
-              http: [strategyConfig.rpc || "https://base.llamarpc.com"],
-            },
-          },
-        },
+        transport: http(targetChainConfig.rpcUrl),
+        chain: targetChainConfig.chain,
       });
 
       // Get rate from rate provider using the deposit token address
@@ -788,7 +762,7 @@ const DepositView: React.FC<DepositViewProps> = ({
             abi: ERC20_ABI,
             functionName: "approve",
             args: [boringVaultAddress as Address, amountInWei],
-            chainId: 8453,
+            chainId: targetChainId,
             account: address as Address,
           });
 
@@ -848,7 +822,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                 "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" as Address, // ETH address
                 bridgeFeeWei, // Use the calculated bridge fee
               ],
-              chainId: 8453,
+              chainId: targetChainId,
               account: address as Address,
               value: bridgeFeeWei, // Include the calculated bridge fee in ETH
             });
@@ -884,7 +858,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                 amountInWei,
                 minimumMintIn6Decimals,
               ],
-              chainId: 8453,
+              chainId: targetChainId,
               account: address as Address,
             });
 
@@ -924,52 +898,45 @@ const DepositView: React.FC<DepositViewProps> = ({
   }, [amount, isMultiChain, targetChain]);
 
   // Helper to get correct RPC and chain config for each chain
-  const getChainConfig = (chain: string) => {
-    switch (chain) {
+  const getChainConfig = (chainName: string) => {
+    let chainData;
+    switch (chainName) {
       case "arbitrum":
-        return {
-          rpcUrl: "https://arbitrum.drpc.org",
-          chain: {
-            id: 42161,
-            name: "Arbitrum",
-            network: "arbitrum",
-            nativeCurrency: { decimals: 18, name: "Ether", symbol: "ETH" },
-            rpcUrls: {
-              default: { http: ["https://arbitrum.drpc.org"] },
-              public: { http: ["https://arbitrum.drpc.org"] },
-            },
-          },
-        };
+        chainData = strategyConfig.arbitrum;
+        break;
       case "ethereum":
-        return {
-          rpcUrl: "https://eth.llamarpc.com",
-          chain: {
-            id: 1,
-            name: "Ethereum",
-            network: "ethereum",
-            nativeCurrency: { decimals: 18, name: "Ether", symbol: "ETH" },
-            rpcUrls: {
-              default: { http: ["https://eth.llamarpc.com"] },
-              public: { http: ["https://eth.llamarpc.com"] },
-            },
-          },
-        };
+        chainData = strategyConfig.ethereum;
+        break;
       case "base":
       default:
-        return {
-          rpcUrl: "https://base.llamarpc.com",
-          chain: {
-            id: 8453,
-            name: "Base",
-            network: "base",
-            nativeCurrency: { decimals: 18, name: "Ethereum", symbol: "ETH" },
-            rpcUrls: {
-              default: { http: ["https://base.llamarpc.com"] },
-              public: { http: ["https://base.llamarpc.com"] },
-            },
-          },
-        };
+        chainData = strategyConfig.base;
+        break;
     }
+
+    if (!chainData || !chainData.rpc || !chainData.chainId || !chainData.chainObject) {
+      // Fallback to a default or throw an error if configuration is missing
+      console.error(`Missing chain configuration for ${chainName}`);
+      return {
+        rpcUrl: "https://base.llamarpc.com",
+        chainId: 8453,
+        chain: {
+          id: 8453,
+          name: "Base",
+          network: "base",
+          nativeCurrency: { decimals: 18, name: "Ethereum", symbol: "ETH" },
+          rpcUrls: {
+            default: { http: ["https://base.llamarpc.com"] },
+            public: { http: ["https://base.llamarpc.com"] },
+          },
+        },
+      };
+    }
+
+    return {
+      rpcUrl: chainData.rpc,
+      chainId: chainData.chainId,
+      chain: chainData.chainObject,
+    };
   };
 
   const fetchBalance = async () => {
@@ -1011,7 +978,7 @@ const DepositView: React.FC<DepositViewProps> = ({
   // Add effect to switch network when target chain changes
   useEffect(() => {
     if (switchChain && targetChain) {
-      const chainId = getChainId(targetChain);
+      const { chainId } = getChainConfig(targetChain);
       if (chainId && chain?.id !== chainId) {
         switchChain({ chainId });
       }
@@ -1019,19 +986,9 @@ const DepositView: React.FC<DepositViewProps> = ({
   }, [targetChain, switchChain, chain]);
 
   // Helper function to get chain ID
-  const getChainId = (chain: string): number | undefined => {
-    switch (chain) {
-      case "arbitrum":
-        return 42161;
-      case "optimism":
-        return 10;
-      case "ethereum":
-        return 1;
-      case "base":
-        return 8453;
-      default:
-        return undefined;
-    }
+  const getChainId = (chainName: string): number | undefined => {
+    const { chainId } = getChainConfig(chainName);
+    return chainId;
   };
 
   useEffect(() => {

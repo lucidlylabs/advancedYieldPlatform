@@ -11,6 +11,18 @@ export const USD_STRATEGIES = {
 
       base: {
         image: "/images/logo/base.svg",
+        rpc: "https://base.llamarpc.com",
+        chainId: 8453,
+        chainObject: {
+          id: 8453,
+          name: "Base",
+          network: "base",
+          nativeCurrency: { decimals: 18, name: "Ethereum", symbol: "ETH" },
+          rpcUrls: {
+            default: { http: ["https://base.llamarpc.com"] },
+            public: { http: ["https://base.llamarpc.com"] },
+          },
+        },
         tokens: [
           {
             name: "USDC",
@@ -36,6 +48,18 @@ export const USD_STRATEGIES = {
       // Ethereum Mainnet Configuration
       ethereum: {
         image: "/images/logo/eth.svg",
+        rpc: "https://eth.llamarpc.com",
+        chainId: 1,
+        chainObject: {
+          id: 1,
+          name: "Ethereum",
+          network: "ethereum",
+          nativeCurrency: { decimals: 18, name: "Ether", symbol: "ETH" },
+          rpcUrls: {
+            default: { http: ["https://eth.llamarpc.com"] },
+            public: { http: ["https://eth.llamarpc.com"] },
+          },
+        },
         tokens: [
           {
             name: "USDC",
@@ -61,6 +85,18 @@ export const USD_STRATEGIES = {
       // Arbitrum Configuration
       arbitrum: {
         image: "/images/logo/arb.svg",
+        rpc: "https://arbitrum.drpc.org",
+        chainId: 42161,
+        chainObject: {
+          id: 42161,
+          name: "Arbitrum",
+          network: "arbitrum",
+          nativeCurrency: { decimals: 18, name: "Ether", symbol: "ETH" },
+          rpcUrls: {
+            default: { http: ["https://arbitrum.drpc.org"] },
+            public: { http: ["https://arbitrum.drpc.org"] },
+          },
+        },
         tokens: [
           {
             name: "USDC",
