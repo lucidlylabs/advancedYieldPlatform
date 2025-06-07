@@ -9,6 +9,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import Image from "next/image";
+import { USD_STRATEGIES } from "@/config/env";
 
 type AssetType = "ALL" | "USD" | "ETH" | "BTC";
 
@@ -30,7 +31,8 @@ const AssetButton: React.FC<{
     asset: AssetType;
     activeAsset: AssetType;
     onClick: (asset: AssetType) => void;
-}> = ({ asset, activeAsset, onClick }) => {
+    disabled?: boolean;
+}> = ({ asset, activeAsset, onClick, disabled = false }) => {
     const getAssetDetails = () => {
         switch (asset) {
             case "ALL":
@@ -56,12 +58,15 @@ const AssetButton: React.FC<{
 
     return (
         <button
-            className={cn(
-                "flex items-center gap-[4px] py-2 pb-[8px] transition-all duration-200 mr-[24px] last:mr-0 relative",
-                activeAsset === asset ? "opacity-100" : "opacity-50",
-                "hover:opacity-100"
-            )}
-            onClick={() => onClick(asset)}
+        className={cn(
+            "flex items-center gap-[4px] py-2 pb-[8px] transition-all duration-200 mr-[24px] last:mr-0 relative",
+            activeAsset === asset ? "opacity-100" : "opacity-50",
+            "hover:opacity-100",
+            disabled ? "cursor-not-allowed opacity-30" : "cursor-pointer"
+          )}
+            onClick={() => {
+                if (!disabled) onClick(asset);
+              }}
         >
             <div className="w-4 h-4 flex items-center justify-center flex-shrink-0 rounded-full overflow-hidden">
                 <Image
@@ -87,6 +92,7 @@ const MarketsSubpage: React.FC = () => {
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [selectedItem, setSelectedItem] = useState<MarketItem | null>(null);
+  
   // Market data
   const marketData: Record<AssetType, MarketItem[]> = {
     ALL: [],
@@ -95,16 +101,15 @@ const MarketsSubpage: React.FC = () => {
     USD: [
       {
         id: 5,
-        name: "Stable USD",
-        type: "usd",
-        baseYield: "25.00%",
-        incentives: ["usdc"],
-        tvl: "$1,403.72",
-        description:
-          "Conservative stablecoin strategy focused on capital preservation with consistent returns.",
+        name: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.name,
+        type: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.type,
+        baseYield: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.apy,
+        incentives: [USD_STRATEGIES.PERPETUAL_DURATION.STABLE.incentives],
+        tvl: `$${USD_STRATEGIES.PERPETUAL_DURATION.STABLE.tvl}`,
+        description: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.description,
         riskLevel: "Very Low",
-        network: "Ethereum",
-        contractAddress: "0x33...9c",
+        network: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.network,
+        contractAddress: `${USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.slice(0, 6)}...${USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.slice(-2)}`,
       }
     ],
   };
@@ -206,11 +211,13 @@ const MarketsSubpage: React.FC = () => {
                             asset="ETH"
                             activeAsset={selectedAsset}
                             onClick={setSelectedAsset}
+                            disabled
                         />
                         <AssetButton
                             asset="BTC"
                             activeAsset={selectedAsset}
                             onClick={setSelectedAsset}
+                            disabled
                         />
                     </div>
                 </div>
@@ -252,6 +259,9 @@ const MarketsSubpage: React.FC = () => {
                         baseApy={selectedItem.baseYield}
                         contractAddress={selectedItem.contractAddress}
                         network={selectedItem.network}
+                        data={getSortedData()}
+                        // hasRealData={false}
+                        // fullContractAddress={USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress}
                     />
                 ) : (
                     <div className="flex items-center justify-center h-full">
@@ -271,7 +281,7 @@ const MarketsSubpage: React.FC = () => {
                                 Select a Yield Option to View Details
                             </h2>
                             <p className="text-[#9C9DA2] text-center text-[14px] font-normal leading-[19.2px] mt-2">
-                                Discover key insights, performance metrics, and <br />
+                                Discover key insights, performance metrics, and<br />
                                 potential returns for each yield source.
                             </p>
                         </div>

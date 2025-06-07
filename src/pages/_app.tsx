@@ -6,6 +6,9 @@ import { WagmiProvider } from 'wagmi';
 import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import { config } from '../wagmi';
 import { ErrorBoundary } from 'react-error-boundary';
+import { Inter } from 'next/font/google';
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 import Head from 'next/head';
 
 const client = new QueryClient();

@@ -6,6 +6,21 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import Image from 'next/image';
+import DepositView from "./deposit-view";
+
+interface MarketItem {
+    id: number;
+    name: string;
+    type: string;
+    baseYield: string;
+    incentives: string[];
+    tvl: string;
+    description?: string;
+    riskLevel?: string;
+    network?: string;
+    contractAddress?: string;
+}
 
 // Define types
 interface YieldDetailsViewProps {
@@ -14,6 +29,7 @@ interface YieldDetailsViewProps {
     baseApy: string;
     contractAddress?: string;
     network?: string;
+    data:MarketItem[];
 }
 
 // Helper components
@@ -84,8 +100,9 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
     const [activeTab, setActiveTab] = useState<
         "deposits" | "baseApy" | "incentives"
     >("deposits");
+    const [showDepositView, setShowDepositView] = useState<boolean>(false);
 
-    // Mock data for the chart
+    // Mock data for the chart - This data will only be used if hasRealData is true
     const chartData = [
         { month: "FEB 24", value: 20 },
         { month: "MAR 24", value: 15 },
@@ -103,152 +120,174 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
     // Sub-components for each tab
     const renderDepositsTab = () => (
+        // <div>
+        //     <div className="flex justify-between items-center mb-6">
+        //         <h2 className="text-[rgba(255,255,255,0.70)]  text-[16px] font-bold">
+        //             TOTAL DEPOSITS IN {name}
+        //         </h2>
+
+        //         {/* Toggle buttons */}
+        //         <div className="inline-flex overflow-hidden border border-gray-700 rounded-md">
+        //             <button className="text-[#D7E3EF]  text-[12px] font-normal leading-[16px] px-4 py-2 rounded-[6px_0px_0px_6px] border border-[rgba(184,138,248,0.50)] bg-[rgba(184,138,248,0.15)]">
+        //                 Total Deposits
+        //             </button>
+        //             <button className="text-[#D7E3EF]  text-[12px] font-normal leading-[16px] px-4 py-2 hover:text-white transition-colors">
+        //                 Allocation
+        //             </button>
+        //         </div>
+        //     </div>
+
+        //     {/* Chart */}
+        //     <div className="w-full h-64 relative">
+        //         {/* Y-axis labels */}
+        //         <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-between text-right text-xs text-gray-400">
+        //             <span>$100M</span>
+        //             <span>$80M</span>
+        //             <span>$60M</span>
+        //             <span>$40M</span>
+        //             <span>$20M</span>
+        //             <span>$0</span>
+        //         </div>
+
+        //         {/* Chart bars */}
+        //         <div className="flex justify-between items-end h-full pr-12">
+        //             {chartData.map((month, index) => (
+        //                 <div key={index} className="flex-1 flex flex-col items-center">
+        //                     <div
+        //                         className="w-4/5 bg-blue-500 mb-1"
+        //                         style={{ height: `${month.value * 2}px` }}
+        //                     ></div>
+        //                     <div
+        //                         className="w-4/5 bg-teal-300 mb-1"
+        //                         style={{ height: `${month.value * 1.5}px` }}
+        //                     ></div>
+        //                     <div
+        //                         className="w-4/5 bg-yellow-300 mb-1"
+        //                         style={{ height: `${month.value}px` }}
+        //                     ></div>
+        //                 </div>
+        //             ))}
+        //         </div>
+
+        //         {/* X-axis labels */}
+        //         <div className="flex justify-between pr-12 mt-2 text-xs text-gray-400">
+        //             {chartData.map((month, index) => (
+        //                 <div key={index} className="flex-1 text-center">
+        //                     {month.month}
+        //                 </div>
+        //             ))}
+        //         </div>
+        //     </div>
+        // </div>
         <div>
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-[rgba(255,255,255,0.70)]  text-[16px] font-bold">
-                    TOTAL DEPOSITS IN {name.toUpperCase()}
-                </h2>
-
-                {/* Toggle buttons */}
-                <div className="inline-flex overflow-hidden border border-gray-700 rounded-md">
-                    <button className="text-[#D7E3EF]  text-[12px] font-normal leading-[16px] px-4 py-2 rounded-[6px_0px_0px_6px] border border-[rgba(184,138,248,0.50)] bg-[rgba(184,138,248,0.15)]">
-                        Total Deposits
-                    </button>
-                    <button className="text-[#D7E3EF]  text-[12px] font-normal leading-[16px] px-4 py-2 hover:text-white transition-colors">
-                        Allocation
-                    </button>
-                </div>
-            </div>
-
-            {/* Chart */}
-            <div className="w-full h-64 relative">
-                {/* Y-axis labels */}
-                <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-between text-right text-xs text-gray-400">
-                    <span>$100M</span>
-                    <span>$80M</span>
-                    <span>$60M</span>
-                    <span>$40M</span>
-                    <span>$20M</span>
-                    <span>$0</span>
-                </div>
-
-                {/* Chart bars */}
-                <div className="flex justify-between items-end h-full pr-12">
-                    {chartData.map((month, index) => (
-                        <div key={index} className="flex-1 flex flex-col items-center">
-                            <div
-                                className="w-4/5 bg-blue-500 mb-1"
-                                style={{ height: `${month.value * 2}px` }}
-                            ></div>
-                            <div
-                                className="w-4/5 bg-teal-300 mb-1"
-                                style={{ height: `${month.value * 1.5}px` }}
-                            ></div>
-                            <div
-                                className="w-4/5 bg-yellow-300 mb-1"
-                                style={{ height: `${month.value}px` }}
-                            ></div>
-                        </div>
-                    ))}
-                </div>
-
-                {/* X-axis labels */}
-                <div className="flex justify-between pr-12 mt-2 text-xs text-gray-400">
-                    {chartData.map((month, index) => (
-                        <div key={index} className="flex-1 text-center">
-                            {month.month}
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </div>
+        <Image src="/images/background/yields-blurred.jpg" alt="Deposits Chart" width={600} height={300} className="w-full h-auto mb-6 rounded-md" />
+        <h2 className="absolute text-lg pl-60">Collecting data...</h2>
+    </div>
     );
 
     const renderBaseApyTab = () => (
-        <div>
-            <h2 className="text-[rgba(255,255,255,0.70)]  text-[16px] font-bold my-6">
-                BASE APY HISTORY
-            </h2>
+        // <div>
+        //     <h2 className="text-[rgba(255,255,255,0.70)]  text-[16px] font-bold my-6">
+        //         BASE APY HISTORY
+        //     </h2>
 
-            {/* APY History Chart (simplified for example) */}
-            <div className="w-full h-64 bg-gray-800 rounded-md flex items-end">
-                <div className="w-full flex items-end justify-between p-4">
-                    {[15, 18, 22, 25, 20, 24, 28, 30, 27, 25, 27, 25].map((val, i) => (
-                        <div
-                            key={i}
-                            className="w-2 bg-purple-500 rounded-t"
-                            style={{ height: `${val * 2}px` }}
-                        ></div>
-                    ))}
-                </div>
-            </div>
-        </div>
+        //     {/* APY History Chart (simplified for example) */}
+        //     <div className="w-full h-64 bg-gray-800 rounded-md flex items-end">
+        //         <div className="w-full flex items-end justify-between p-4">
+        //             {[15, 18, 22, 25, 20, 24, 28, 30, 27, 25, 27, 25].map((val, i) => (
+        //                 <div
+        //                     key={i}
+        //                     className="w-2 bg-purple-500 rounded-t"
+        //                     style={{ height: `${val * 2}px` }}
+        //                 ></div>
+        //             ))}
+        //         </div>
+        //     </div>
+        // </div>
+        <div>
+        <Image src="/images/background/yields-blurred.jpg" alt="Deposits Chart" width={600} height={300} className="w-full h-auto mb-6 rounded-md" />
+        <h2 className="absolute text-lg pl-60">Collecting data...</h2>
+    </div>
     );
 
     const renderIncentivesTab = () => (
+        // <div>
+        //     <h2 className="text-[rgba(255,255,255,0.70)]  text-[16px] font-bold my-6">
+        //         INCENTIVE REWARDS
+        //     </h2>
+
+        //     <div className="bg-gray-800 rounded-md p-6">
+        //         <div className="grid grid-cols-2 gap-4">
+        //             <div className="border border-gray-700 rounded-md p-4">
+        //                 <div className="flex items-center gap-2 mb-4">
+        //                     <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+        //                         <svg
+        //                             width="16"
+        //                             height="16"
+        //                             viewBox="0 0 24 24"
+        //                             fill="none"
+        //                             xmlns="http://www.w3.org/2000/svg"
+        //                         >
+        //                             <path
+        //                                 d="M12 2L12 9.5M12 2L6 5M12 2L18 5M12 22L12 15M12 22L6 19M12 22L18 19"
+        //                                 stroke="white"
+        //                                 strokeWidth="2"
+        //                                 strokeLinecap="round"
+        //                                 strokeLinejoin="round"
+        //                             />
+        //                         </svg>
+        //                     </div>
+        //                     <span className="font-medium">ETH Rewards</span>
+        //                 </div>
+        //                 <div className="text-2xl font-bold mb-1">0.25 ETH</div>
+        //                 <div className="text-gray-400 text-sm">~$625.00 USD</div>
+        //             </div>
+
+        //             <div className="border border-gray-700 rounded-md p-4">
+        //                 <div className="flex items-center gap-2 mb-4">
+        //                     <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+        //                         <svg
+        //                             width="16"
+        //                             height="16"
+        //                             viewBox="0 0 24 24"
+        //                             fill="none"
+        //                             xmlns="http://www.w3.org/2000/svg"
+        //                         >
+        //                             <path
+        //                                 d="M12 2V22M17 5H9.5C7.567 5 6 6.567 6 8.5C6 10.433 7.567 12 9.5 12H14.5C16.433 12 18 13.567 18 15.5C18 17.433 16.433 19 14.5 19H7"
+        //                                 stroke="white"
+        //                                 strokeWidth="2"
+        //                                 strokeLinecap="round"
+        //                                 strokeLinejoin="round"
+        //                             />
+        //                         </svg>
+        //                     </div>
+        //                     <span className="font-medium">Platform Token</span>
+        //                 </div>
+        //                 <div className="text-2xl font-bold mb-1">150 LCY</div>
+        //                 <div className="text-gray-400 text-sm">$75 USD</div>
+        //             </div>
+        //         </div>
+        //     </div>
+        // </div>
         <div>
-            <h2 className="text-[rgba(255,255,255,0.70)]  text-[16px] font-bold my-6">
-                INCENTIVE REWARDS
-            </h2>
-
-            <div className="bg-gray-800 rounded-md p-6">
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="border border-gray-700 rounded-md p-4">
-                        <div className="flex items-center gap-2 mb-4">
-                            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                                <svg
-                                    width="16"
-                                    height="16"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                >
-                                    <path
-                                        d="M12 2L12 9.5M12 2L6 5M12 2L18 5M12 22L12 15M12 22L6 19M12 22L18 19"
-                                        stroke="white"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    />
-                                </svg>
-                            </div>
-                            <span className="font-medium">ETH Rewards</span>
-                        </div>
-                        <div className="text-2xl font-bold mb-1">0.25 ETH</div>
-                        <div className="text-gray-400 text-sm">~$625.00 USD</div>
-                    </div>
-
-                    <div className="border border-gray-700 rounded-md p-4">
-                        <div className="flex items-center gap-2 mb-4">
-                            <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
-                                <svg
-                                    width="16"
-                                    height="16"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                >
-                                    <path
-                                        d="M12 2V22M17 5H9.5C7.567 5 6 6.567 6 8.5C6 10.433 7.567 12 9.5 12H14.5C16.433 12 18 13.567 18 15.5C18 17.433 16.433 19 14.5 19H7"
-                                        stroke="white"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    />
-                                </svg>
-                            </div>
-                            <span className="font-medium">Platform Token</span>
-                        </div>
-                        <div className="text-2xl font-bold mb-1">150 LCY</div>
-                        <div className="text-gray-400 text-sm">$75 USD</div>
-                    </div>
-                </div>
-            </div>
+        <Image src="/images/background/yields-blurred.jpg" alt="Deposits Chart" width={600} height={300} className="w-full h-auto mb-6 rounded-md" />
+        <h2 className="absolute text-lg pl-60">Collecting data...</h2>
         </div>
     );
 
     return (
-        <div className="w-full pl-4 mt-10">
+        <>
+        {showDepositView ? (
+            <DepositView
+            selectedAsset="USD"
+            duration="PERPETUAL_DURATION"
+            strategy="stable"
+            apy="4.5%"
+            onBack={() => setShowDepositView(false)}
+            onReset={() => setShowDepositView(false)}
+            />):(
+              <div className="w-full pl-4 mt-10">
             <div className="flex justify-between items-center mb-2">
                 <div className="flex items-center pl-0">
                     <div className="inline-flex items-center gap-[6px] pl-0">
@@ -258,7 +297,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                     </div>
                 </div>
                 <div className="flex items-center gap-3 mr-8">
-                    <button className="bg-[#B88AF8] hover:bg-[#9F6EE9] text-[#080B17] flex items-center gap-[8px] px-[16px] py-[6px] rounded-[4px] transition-colors  text-[14px] font-normal leading-normal">
+                    <button className="bg-[#B88AF8] hover:bg-[#9F6EE9] text-[#080B17] flex items-center gap-[8px] px-[16px] py-[6px] rounded-[4px] transition-colors  text-[14px] font-normal leading-normal" onClick={() => setShowDepositView(true)}>
                         Deposit
                     </button>
                 </div>
@@ -268,11 +307,11 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
             <div className="flex items-center border-b border-gray-700 pb-2">
                 <div className="w-[100px] flex flex-col pl-0 pr-6 relative after:content-[''] after:absolute after:right-0 after:top-[4px] after:w-[1px] after:h-[calc(100%-4px)] after:bg-[#2D2F3D]">
                     <div className="text-[#9C9DA2]  text-[14px] font-normal leading-normal">TVL</div>
-                    <div className="text-white  text-[14px] font-semibold leading-normal mt-[8px] text-left">{tvl}</div>
+                    <div className="text-white  text-[14px] font-semibold leading-normal mt-[8px] text-left">---</div>
                 </div>
                 <div className="flex flex-col px-6 relative after:content-[''] after:absolute after:right-0 after:top-[4px] after:w-[1px] after:h-[calc(100%-4px)] after:bg-[#2D2F3D]">
                     <div className="text-[#9C9DA2]  text-[14px] font-normal leading-normal flex items-center gap-1">Base APY</div>
-                    <div className="text-white  text-[14px] font-semibold leading-normal mt-[8px]">{baseApy}</div>
+                    <div className="text-white  text-[14px] font-semibold leading-normal mt-[8px]">---</div>
                 </div>
                 <div className="flex flex-col px-6 relative after:content-[''] after:absolute after:right-0 after:top-[4px] after:w-[1px] after:h-[calc(100%-4px)] after:bg-[#2D2F3D]">
                     <div className="text-[#9C9DA2]  text-[14px] font-normal leading-normal">Contract Address</div>
@@ -283,9 +322,30 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                         </button>
                     </div>
                 </div>
-                <div className="flex flex-col px-6">
-                    <div className="text-[#9C9DA2]  text-[14px] font-normal leading-normal">Network</div>
-                    <div className="text-white text-[14px] font-semibold leading-normal mt-[8px]">{network}</div>
+                <div className="flex flex-col px-6 relative">
+                    <div className="text-[#9C9DA2] text-[14px] font-normal leading-normal">Network</div>
+
+                <div className="relative mt-2 w-[36px] h-[24px] cursor-pointer group">
+                    {/* Ethereum Icon */}
+                    <div className="absolute left-0 z-10 transition-transform duration-300 hover:scale-110">
+                    <Image
+                        src="/images/icons/eth-stable.svg"
+                        alt="Ethereum"
+                        width={24}
+                        height={24}
+                    />
+                    </div>
+
+                    {/* BTC Icon */}
+                    <div className="absolute left-3 z-20 transition-transform duration-300 hover:scale-110">
+                    <Image
+                        src="/images/icons/btc-stable.svg"
+                        alt="Btc"
+                        width={24}
+                        height={24}
+                    />
+                    </div>
+                </div>
                 </div>
             </div>
 
@@ -337,7 +397,9 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                 {activeTab === "baseApy" && renderBaseApyTab()}
                 {activeTab === "incentives" && renderIncentivesTab()}
             </div>
-        </div>
+              </div>
+            )}
+        </>
     );
 };
 

@@ -27,6 +27,7 @@ import {
   parseUnits,
 } from "viem";
 import { RATE_PROVIDER_ABI } from "../config/abi/rateProvider";
+import { useRouter } from "next/router";
 
 type DurationType = "30_DAYS" | "60_DAYS" | "180_DAYS" | "PERPETUAL_DURATION";
 type StrategyType = "STABLE" | "INCENTIVE";
@@ -289,6 +290,7 @@ const DepositView: React.FC<DepositViewProps> = ({
   const [targetChain, setTargetChain] = useState<string>(chain?.name.toLowerCase() || "base"); // Initialize targetChain based on connected chain
 
   // receiveChain will mirror targetChain
+  const router = useRouter();
 
   // Get strategy config based on asset type
   const strategyConfigs = {
@@ -770,9 +772,16 @@ const DepositView: React.FC<DepositViewProps> = ({
             setApprovalHash(approveTx as `0x${string}`);
           }
         } catch (error: any) {
+
           console.error("Approval transaction failed:", error);
           setIsApproving(false);
-          setErrorMessage(error.message || "Approval failed");
+          setErrorMessage("Approval failed");
+          // console.error("Approval transaction failed:", error);
+          if (error.code === 4001) {
+            setErrorMessage("Approval cancelled by user.");
+          } else {
+            setErrorMessage("Approval failed. Please try again."); // Simpler message for other errors
+          }
         }
         setIsWaitingForSignature(false);
         return;
@@ -834,8 +843,13 @@ const DepositView: React.FC<DepositViewProps> = ({
               throw new Error("Invalid transaction response");
             }
           } catch (error: any) {
-            console.error("Multi-chain deposit failed:", error);
-            setErrorMessage(error.message || "Multi-chain deposit failed");
+            setErrorMessage("Multi-chain deposit failed");
+            // console.error("Multi-chain deposit failed:", error);
+            if (error.code === 4001) {
+              setErrorMessage("Multi-chain deposit cancelled by user.");
+            } else {
+              setErrorMessage("Multi-chain deposit failed. Please try again."); // Simpler message
+            }
             setIsDepositing(false);
             return;
           }
@@ -868,9 +882,17 @@ const DepositView: React.FC<DepositViewProps> = ({
             } else {
               throw new Error("Invalid transaction response");
             }
-          } catch (error: any) {
-            console.error("Deposit failed:", error);
-            setErrorMessage(error.message || "Deposit failed");
+          } catch (error: any) {  
+            // Check if user rejected the MetaMask transaction
+            if (
+              error?.name === "ContractFunctionExecutionError" &&
+              error?.cause?.message?.includes("User denied transaction signature")
+            ) {
+              setErrorMessage("Transaction cancelled by user.");
+            } else {
+              setErrorMessage("Deposit failed. Please try again.");
+            }
+
             setIsDepositing(false);
             return;
           }
@@ -883,7 +905,7 @@ const DepositView: React.FC<DepositViewProps> = ({
       console.error("Transaction failed:", error);
       setIsApproving(false);
       setIsDepositing(false);
-      setErrorMessage(error.message || "Transaction failed");
+      setErrorMessage("Transaction failed");
     } finally {
       setIsWaitingForSignature(false);
     }
@@ -1017,9 +1039,10 @@ const DepositView: React.FC<DepositViewProps> = ({
   };
 
   return (
-    <div className="h-[calc(100vh-128px)] relative overflow-hidden">
+    <>
+      <div className="relative overflow-hidden">
       {depositSuccess ? (
-        <div className="flex flex-col items-center justify-center h-full">
+        <div className="flex flex-col items-center justify-center h-full pt-12">
           <div className="w-[580px] bg-[#0D101C] rounded-lg p-8 text-center">
             <div className="flex justify-center mb-6">
               <div className="w-16 h-16 bg-[#00D1A0] rounded-full flex items-center justify-center">
@@ -1036,7 +1059,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                  />
+                  />  
                 </svg>
               </div>
             </div>
@@ -1231,10 +1254,10 @@ const DepositView: React.FC<DepositViewProps> = ({
                         className="w-[56px] h-[56px]"
                       />
                     )}
-                    <span className="text-[#EDF2F8] text-center font-inter text-[14px] font-semibold leading-normal mt-[16px]">
+                    <span className="text-[#EDF2F8] text-center   text-[14px] font-semibold leading-normal mt-[16px]">
                       Deposit {selectedAssetOption.name}
                     </span>
-                    <span className="text-[#00D1A0] text-center font-inter text-[12px] font-normal leading-normal">
+                    <span className="text-[#00D1A0] text-center   text-[12px] font-normal leading-normal">
                       +0.00 in 1 year
                     </span>
                   </div>
@@ -1243,7 +1266,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                 {/* Asset Dropdown */}
                 {assetOptions.length > 1 && (
                   <div className="mt-4">
-                    <label className="text-[#9C9DA2] font-inter text-[12px] block mb-2">
+                    <label className="text-[#9C9DA2]   text-[12px] block mb-2">
                       Select Asset
                     </label>
                     <select
@@ -1251,7 +1274,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                       onChange={(e) =>
                         setSelectedAssetIdx(Number(e.target.value))
                       }
-                      className="w-full bg-[#1A1B1E] text-[#EDF2F8] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8]"
+                      className="w-full bg-[#0D101C] text-[#EDF2F8] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] border border-[rgba(255,255,255,0.19)]"
                     >
                       {assetOptions.map((opt, idx) => (
                         <option value={idx} key={opt.contract}>
@@ -1261,7 +1284,42 @@ const DepositView: React.FC<DepositViewProps> = ({
                     </select>
                   </div>
                 )}
+                {/* Multi-chain Toggle (always shown) */}
+                {/* <div className="mt-4 flex items-center justify-between">
+                  <span className="text-[#9C9DA2]   text-[12px]">
+                    Multi-chain Deposit
+                  </span>
+                  <button
+                    onClick={() => setIsMultiChain(!isMultiChain)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                      isMultiChain ? "bg-[#B88AF8]" : "bg-[#1A1B1E]"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        isMultiChain ? "translate-x-6" : "translate-x-1"
+                      }`}
+                    />
+                  </button>
+                </div> */}
+                {/* Target Chain Selection - Only shown when multi-chain is enabled */}
+                {isMultiChain && (
+                  <div className="mt-4">
+                    <label className="text-[#9C9DA2]   text-[12px] block mb-2">
+                      Target Chain
+                    </label>
+                    <select
+                      value={targetChain}
+                      onChange={(e) => setTargetChain(e.target.value)}
+                      className="w-full bg-[#1A1B1E] text-[#EDF2F8] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8]"
+                    >
+                      <option value="arbitrum">Arbitrum</option>
 
+                      <option value="ethereum">Ethereum</option>
+                    </select>
+                  </div>
+                )}
+                {/* --- End Asset Dropdown & Multi-chain Toggle --- */}
                 <div className="mt-auto flex flex-col gap-[1px]">
                   <div className="relative flex items-center">
                     <input
@@ -1269,19 +1327,130 @@ const DepositView: React.FC<DepositViewProps> = ({
                       value={amount}
                       onChange={handleAmountChange}
                       placeholder="0.00"
-                      className="w-[calc(100%-70px)] bg-transparent text-[#EDF2F8] font-inter text-[24px] font-bold leading-normal outline-none focus:ring-0 border-0 border-b border-[rgba(255,255,255,0.19)]"
+                      className="w-[calc(100%-70px)] bg-transparent text-[#EDF2F8]   text-[24px] font-bold leading-normal outline-none focus:ring-0 border-0 border-b border-[rgba(255,255,255,0.19)]"
                     />
                     <button
                       onClick={handleMaxClick}
                       className="absolute right-0 flex justify-center items-center px-[8px] py-[4px] gap-[10px] rounded-[4px] border border-[rgba(255,255,255,0.30)] bg-transparent hover:opacity-80 transition-all duration-200"
                     >
-                      <span className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
+                      <span className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
                         MAX
                       </span>
                     </button>
                   </div>
-                  <div className="mt-[12px]">
-                    <span className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
+                  {/* Bridge Fee Display */}
+                  {isMultiChain && (
+                    <div className="mt-[12px] flex flex-col gap-2">
+                      <span className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
+                        Bridge Fee:{" "}
+                        {isLoadingFee ? (
+                          <span className="inline-flex items-center gap-1">
+                            <svg
+                              className="animate-spin h-3 w-3 text-white"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              ></circle>
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              ></path>
+                            </svg>
+                            <span className="text-white">Loading...</span>
+                          </span>
+                        ) : (
+                          <span className="text-white">{bridgeFee} ETH</span>
+                        )}
+                      </span>
+                      <div className="bg-[#1A1B1E] rounded p-2 border border-[#B88AF8]/20">
+                        <div className="flex items-start gap-2">
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="text-[#B88AF8] mt-0.5 flex-shrink-0"
+                          >
+                            <path
+                              d="M12 16V12M12 8H12.01M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                          <span className="text-[#9C9DA2]   text-[12px] leading-normal">
+                            You need to have enough ETH in your wallet to cover
+                            the bridge fee. The fee will be paid in ETH along
+                            with your deposit.
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Card - Strategy Info */}
+              <div className="w-[280px] h-[311px] bg-[#0D101C] rounded-b-[4px] border-l border-r border-b border-[rgba(255,255,255,0.05)] p-6 relative flex flex-col">
+                {/* Background gradient effect - top */}
+                <div className="absolute top-0 left-0 right-0 h-[200px] bg-gradient-to-b from-[rgba(255,255,255,0.02)] to-transparent rounded-t-[4px] pointer-events-none"></div>
+
+                {/* Background blur effect - bottom */}
+                <div className="absolute -bottom-[100px] left-1/2 -translate-x-1/2 w-[200px] h-[200px] bg-white/[0.05] blur-[25px] pointer-events-none"></div>
+
+                {/* Asset Info */}
+                <div className="flex flex-col items-center text-center relative z-10">
+                  <h3 className="text-[32px] text-[#D7E3EF]   font-medium leading-normal mb-[8px] mt-[12px]">
+                    {selectedAsset}
+                  </h3>
+                  {/* <div
+                    onClick={onReset}
+                    className="text-[16px] text-[#9C9DA2]   font-normal leading-normal underline decoration-solid underline-offset-auto mb-[25px] cursor-pointer hover:text-[#9C9DA2]/80 transition-all duration-200"
+                  >
+                    {formatDuration(duration)}
+                  </div> */}
+                </div>
+
+                {/* Strategy Info - Positioned at bottom */}
+                <div className="mt-auto w-full p-3 bg-[#121521] rounded-[4px] border border-[rgba(255,255,255,0.05)]">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={`/images/icons/${selectedAsset.toLowerCase()}-${strategy}.svg`}
+                      alt={strategy}
+                      className="w-[32px] h-[32px] ml-[4px] mr-[12px] my-auto cursor-pointer hover:opacity-80 transition-all duration-200"
+                      onClick={onReset}
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <div className="text-white font-semibold capitalize">
+                          {strategy} {selectedAsset}
+                        </div>
+                        
+                      </div>
+                      <div className="flex items-center gap-4 mt-[4px]">
+                        <span className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
+                          APY {apy}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative mt-[12px]">
+                    <span className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
                       Balance:{" "}
                       {isLoadingBalance ? (
                         <span className="inline-flex items-center gap-1">
@@ -1311,77 +1480,16 @@ const DepositView: React.FC<DepositViewProps> = ({
                         <span className="text-white">{balance}</span>
                       )}
                     </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Card - Strategy Info */}
-              <div className="w-[280px] h-[311px] bg-[#0D101C] rounded-b-[4px] border-l border-r border-b border-[rgba(255,255,255,0.05)] p-6 relative flex flex-col">
-                {/* Background gradient effect - top */}
-                <div className="absolute top-0 left-0 right-0 h-[200px] bg-gradient-to-b from-[rgba(255,255,255,0.02)] to-transparent rounded-t-[4px] pointer-events-none"></div>
-
-                {/* Background blur effect - bottom */}
-                <div className="absolute -bottom-[100px] left-1/2 -translate-x-1/2 w-[200px] h-[200px] bg-white/[0.05] blur-[25px] pointer-events-none"></div>
-
-                {/* Asset Info */}
-                <div className="flex flex-col items-center text-center relative z-10">
-                  <h3 className="text-[32px] text-[#D7E3EF] font-inter font-medium leading-normal mb-[8px] mt-[12px]">
-                    {selectedAsset}
-                  </h3>
-                  <div
-                    onClick={onReset}
-                    className="text-[16px] text-[#9C9DA2] font-inter font-normal leading-normal underline decoration-solid underline-offset-auto mb-[25px] cursor-pointer hover:text-[#9C9DA2]/80 transition-all duration-200"
-                  >
-                    {formatDuration(duration)}
-                  </div>
-                  <div
-                    onClick={onReset}
-                    className="text-[#B88AF8] cursor-pointer font-inter text-[12px] font-light leading-normal hover:opacity-80 transition-all duration-200"
-                  >
-                    Change Asset →
-                  </div>
-                </div>
-
-                {/* Strategy Info - Positioned at bottom */}
-                <div className="mt-auto w-full p-3 bg-[#121521] rounded-[4px] border border-[rgba(255,255,255,0.05)]">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={`/images/icons/${selectedAsset.toLowerCase()}-${strategy}.svg`}
-                      alt={strategy}
-                      className="w-[32px] h-[32px] ml-[4px] mr-[12px] my-auto cursor-pointer hover:opacity-80 transition-all duration-200"
-                      onClick={onReset}
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <div className="text-white font-semibold capitalize">
-                          {strategy} {selectedAsset}
-                        </div>
-                        <img
-                          src="/images/icons/select-icon.svg"
-                          alt="select"
-                          className="w-[16px] h-[16px] flex-shrink-0 cursor-pointer ml-auto hover:opacity-80 transition-all duration-200"
-                          onClick={onBack}
-                        />
-                      </div>
-                      <div className="flex items-center gap-4 mt-[4px]">
-                        <span className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
-                          APY {apy}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* Deposit Cap Progress Bar - Only shown if show_cap is true */}
-            {showDepositCap && (
+            {/* {showDepositCap && (
               <div className="w-full mt-6 mb-4 p-4 rounded-[4px] bg-[rgba(255,255,255,0.02)]">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-[#EDF2F8] font-inter text-[14px] font-medium">
+                  <span className="text-[#EDF2F8]   text-[14px] font-medium">
                     ${remainingSpace} Remaining
                   </span>
-                  <span className="text-[#9C9DA2] font-inter text-[14px]">
+                  <span className="text-[#9C9DA2]   text-[14px]">
                     Limited Space: ${depositCap.used}/${depositCap.total}
                   </span>
                 </div>
@@ -1392,7 +1500,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                   />
                 </div>
               </div>
-            )}
+            )} */}
 
             {/* Dynamic Connect/Deposit Button */}
             <ConnectButton.Custom>
@@ -1415,8 +1523,13 @@ const DepositView: React.FC<DepositViewProps> = ({
                   (isApproving && isWaitingForApproval) ||
                   (isDepositing && isWaitingForDeposit);
 
+                const hasInsufficientFunds =
+                connected && amount && balance && Number(amount) > Number(balance);
+
                 const buttonText = connected
-                  ? status === "loading"
+                    ? hasInsufficientFunds
+                    ? "Insufficient Funds"
+                    : status === "loading"
                     ? "Loading..."
                     : status === "waitingForSignature"
                     ? "Waiting for Signature..."
@@ -1431,9 +1544,15 @@ const DepositView: React.FC<DepositViewProps> = ({
 
                 return (
                   <button
-                    onClick={connected ? handleDeposit : openConnectModal}
-                    disabled={isLoading || isLoadingBalance}
-                    className="w-full py-4 mt-6 rounded bg-[#B88AF8] text-[#1A1B1E] font-semibold hover:opacity-90 transition-all duration-200 disabled:opacity-50"
+                    onClick={
+                      connected && !hasInsufficientFunds ? handleDeposit : openConnectModal
+                    }
+                    disabled={!!isLoading || !!isLoadingBalance || !!hasInsufficientFunds}
+                    className={`w-full py-4 mt-6 rounded font-semibold transition-all duration-200 ${
+                      connected && hasInsufficientFunds
+                        ? "bg-gray-500 text-white opacity-50 cursor-not-allowed"
+                        : "bg-[#B88AF8] text-[#1A1B1E] hover:opacity-90"
+                    }`}
                   >
                     {buttonText}
                   </button>
@@ -1470,6 +1589,7 @@ const DepositView: React.FC<DepositViewProps> = ({
         </div>
       )}
     </div>
+    </>
   );
 };
 

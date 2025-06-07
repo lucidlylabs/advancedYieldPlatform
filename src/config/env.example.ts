@@ -6,7 +6,7 @@ export const USD_STRATEGIES = {
       deposit_token: "USDC.e",
       deposit_token_contract: "0x0000000000000000000000000000000000000000", // Replace with actual token contract
       deposit_token_image: "/images/icons/usdc.svg",
-      description: "Perpetual stable USD strategy on Sonic network",
+      description: "Perpetual syUSD strategy on Sonic network",
       apy: "0.0%", // Replace with actual APY
       incentives: "None",
       cap_limit: "0", // Replace with actual cap limit
@@ -33,7 +33,7 @@ export const USD_STRATEGIES = {
       contract: "0x0000000000000000000000000000000000000000", // Replace with actual contract address
       deposit_token: "USD.e",
       deposit_token_contract: "0x0000000000000000000000000000000000000000", // Replace with actual token contract
-      description: "30-day stable USD strategy on Sonic network",
+      description: "30-day syUSD strategy on Sonic network",
       apy: "0.0%", // Replace with actual APY
       incentives: "-",
       tvl: "0", // Replace with actual TVL
@@ -57,7 +57,7 @@ export const USD_STRATEGIES = {
       contract: "0x0000000000000000000000000000000000000000", // Replace with actual contract address
       deposit_token: "USD.e",
       deposit_token_contract: "0x0000000000000000000000000000000000000000", // Replace with actual token contract
-      description: "60-day stable USD strategy on Sonic network",
+      description: "60-day syUSD strategy on Sonic network",
       apy: "0.0%", // Replace with actual APY
       incentives: "-",
       tvl: "0", // Replace with actual TVL
@@ -81,7 +81,7 @@ export const USD_STRATEGIES = {
       contract: "0x0000000000000000000000000000000000000000", // Replace with actual contract address
       deposit_token: "USD.e",
       deposit_token_contract: "0x0000000000000000000000000000000000000000", // Replace with actual token contract
-      description: "180-day stable USD strategy on Sonic network",
+      description: "180-day syUSD strategy on Sonic network",
       apy: "0.0%", // Replace with actual APY
       incentives: "-",
       tvl: "0", // Replace with actual TVL

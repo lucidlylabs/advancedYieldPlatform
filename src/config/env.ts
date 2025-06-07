@@ -1,13 +1,15 @@
 export const USD_STRATEGIES = {
-  PERPETUAL_DURATION: {
-    STABLE: {
-      network: "base",
-      contract: "0xaefc11908fF97c335D16bdf9F2Bf720817423825",
-      boringVaultAddress: "0x279CAD277447965AF3d24a78197aad1B02a2c589",
-      solverAddress: "0xF632c10b19f2a0451cD4A653fC9ca0c15eA1040b",
-      shareAddress: "0x279CAD277447965AF3d24a78197aad1B02a2c589",
-      shareAddress_token_decimal: 6,
-      rateProvider: "0x03D9a9cE13D16C7cFCE564f41bd7E85E5cde8Da6",
+    PERPETUAL_DURATION: {
+        STABLE: {
+            name: "syUSD",
+            type: "usd",
+            network: "Base",
+            contract: "0xaefc11908fF97c335D16bdf9F2Bf720817423825",
+            boringVaultAddress: "0x279CAD277447965AF3d24a78197aad1B02a2c589",
+            solverAddress: "0xF632c10b19f2a0451cD4A653fC9ca0c15eA1040b",
+            shareAddress: "0x279CAD277447965AF3d24a78197aad1B02a2c589",
+            shareAddress_token_decimal: 6,
+            rateProvider: "0x03D9a9cE13D16C7cFCE564f41bd7E85E5cde8Da6",
 
       base: {
         image: "/images/logo/base.svg",
@@ -113,28 +115,28 @@ export const USD_STRATEGIES = {
         ],
       },
 
-      description: "Perpetual stable USD strategy on base network",
-      apy: "4.5%",
-      incentives: "None",
-      cap_limit: "1,000,000",
-      filled_cap: "800,000",
-      show_cap: true,
-      tvl: "5000000",
-      rpc: "https://base.llamarpc.com",
+            description: "Perpetual syUSD strategy on base network",
+            apy: "4.5%",
+            incentives: "None",
+            cap_limit: "1,000,000",
+            filled_cap: "800,000",
+            show_cap: true,
+            tvl: "5000000",
+            rpc: "https://base.llamarpc.com",
+        },
+        INCENTIVE: {
+            network: "",
+            comingSoon: true,
+            contract: "",
+            deposit_token: "",
+            deposit_token_contract: "",
+            tvl: "",
+            rpc: "",
+            description: "",
+            apy: "",
+            incentives: "",
+        },
     },
-    INCENTIVE: {
-      network: "",
-      comingSoon: true,
-      contract: "",
-      deposit_token: "",
-      deposit_token_contract: "",
-      tvl: "",
-      rpc: "",
-      description: "",
-      apy: "",
-      incentives: "",
-    },
-  },
 };
 
 export const BTC_STRATEGIES = {};

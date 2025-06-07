@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { CustomCard } from "@/components/ui/card";
 import DepositView from "@/components/deposit-view";
 import { USD_STRATEGIES, BTC_STRATEGIES, ETH_STRATEGIES } from "../config/env";
+import { useRouter } from "next/router";
 
 type DurationType = "30_DAYS" | "60_DAYS" | "180_DAYS" | "PERPETUAL_DURATION";
 type StrategyType = "STABLE" | "INCENTIVE";
@@ -110,12 +111,12 @@ const getStrategyInfo = (duration: DurationType): StrategyData => {
       ETH: ETH_STRATEGIES as unknown as Partial<Record<DurationType, StrategyDuration>>,
     };
 
-    const strategy = strategies[asset][duration];
+    const strategy = strategies[asset][duration]; 
 
     if (!strategy) {
-      console.error(
-        `No strategy found for ${asset} with duration ${duration}`
-      );
+      // console.error(
+      //   `No strategy found for ${asset} with duration ${duration}`
+      // );
       return {
         stable: {
           description: "Strategy not available",
@@ -174,6 +175,8 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
     null
   );
 
+  const router = useRouter();
+
   useEffect(() => {
     if (depositParams) {
       const apy =
@@ -220,6 +223,8 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
     setSelectedStrategy(null);
   };
 
+  console.log("Selected Strategy:", selectedStrategy);
+
   // Always render the main content, assuming verification is handled by parent
   return (
     <div
@@ -242,9 +247,34 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
           onReset={handleReset}
         />
       ) : selectedAsset ? (
-        <div className="flex flex-col gap-6 items-center pt-[8vh]">
-          <h1 className="text-[40px] font-bold">Select a Yield Source</h1>
-          <div className="flex gap-6 justify-center items-center">
+        <div className="flex flex-col gap-6 pt-[8vh] w-full px-72">
+        {/* Back Button aligned left */}
+      
+        {/* Centered Heading */}
+        <div className="flex justify-center">
+          <h1 className="text-[40px] font-bold  ">Select a Yield Source</h1>
+        </div>
+        <div className="pl-4">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleReset();
+            }}
+            className="text-[#B88AF8] hover:opacity-100 transition-all duration-200 flex items-center gap-2   font-normal text-xs leading-none"
+          >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="w-[24px] h-[24px]"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          </button>
+        </div>
+        <div className="flex gap-6 justify-center items-center">
             <CustomCard
               heading={selectedAsset.asset as AssetType}
               imageSrc={`/images/icons/card-${(
@@ -273,7 +303,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                 className="cursor-pointer"
               >
                 <CustomCard
-                  heading={`Stable ${selectedAsset.asset}`}
+                  heading={`syUSD`}
                   imageSrc={`/images/icons/${(
                     selectedAsset.asset as AssetType
                   ).toLowerCase()}-stable.svg`}
@@ -288,6 +318,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                     ].apy
                   }
                   isStrategyCard={true}
+                  onReset={handleReset}
                   disableHover={true}
                 />
               </div>
@@ -329,6 +360,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                   }
                   isStrategyCard={true}
                   disableHover={true}
+                  onReset={handleReset}
                   isComingSoon={
                     getStrategyInfo(selectedAsset.duration).incentives[
                       selectedAsset.asset as AssetType
@@ -337,11 +369,11 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                 />
               </div>
             </div>
-          </div>
+        </div>
         </div>
       ) : (
         <div className="flex flex-col gap-6 items-center pt-[8vh]">
-          <h1 className="text-[40px] font-bold">
+          <h1 className="text-[40px] font-bold  ">
             Select a asset you want yield on
           </h1>
           <div className="flex gap-6 justify-center items-center">

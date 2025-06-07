@@ -49,7 +49,7 @@ export function Header({
                                 alt="USD Stable"
                                 className="w-4 h-4"
                             />
-                            Deposit cap for Perpetual Stable USD{" "}
+                            Deposit cap for Perpetual syUSD{" "}
                             <span className="font-semibold text-[#D7E3EF]">
                                 ${formatNumber(currentDeposit)}
                             </span>{" "}
