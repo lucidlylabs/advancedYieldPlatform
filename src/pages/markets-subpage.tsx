@@ -259,8 +259,9 @@ const MarketsSubpage: React.FC = () => {
                         baseApy={selectedItem.baseYield}
                         contractAddress={selectedItem.contractAddress}
                         network={selectedItem.network}
-                        hasRealData={false}
-                        fullContractAddress={USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress}
+                        data={getSortedData()}
+                        // hasRealData={false}
+                        // fullContractAddress={USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress}
                     />
                 ) : (
                     <div className="flex items-center justify-center h-full">
