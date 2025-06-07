@@ -1042,13 +1042,9 @@ const DepositView: React.FC<DepositViewProps> = ({
     }
   };
 
-  const handleBack = () => {
-    if (window.history.length > 1) {
-      router.back(); // Go to previous page
-    } else {
-      router.push("/"); // Or any default fallback route
-    }
-  };
+  const handleReset = () => {
+    
+  }
 
   return (
     <>
@@ -1058,7 +1054,7 @@ const DepositView: React.FC<DepositViewProps> = ({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              handleBack();
+              onReset();
             }}
             className="text-[#B88AF8] hover:opacity-100 transition-all duration-200 flex items-center gap-2 font-inter font-normal text-xs leading-none"
           >
@@ -1397,7 +1393,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                         <span className="text-white">{balance}</span>
                       )}
                     </span>
-                  </div>
+            </div>
 
             {/* Deposit Cap Progress Bar - Only shown if show_cap is true */}
             {/* {showDepositCap && (
@@ -1440,8 +1436,13 @@ const DepositView: React.FC<DepositViewProps> = ({
                   (isApproving && isWaitingForApproval) ||
                   (isDepositing && isWaitingForDeposit);
 
+                const hasInsufficientFunds =
+                connected && amount && balance && Number(amount) > Number(balance);
+
                 const buttonText = connected
-                  ? status === "loading"
+                    ? hasInsufficientFunds
+                    ? "Insufficient Funds"
+                    : status === "loading"
                     ? "Loading..."
                     : status === "waitingForSignature"
                     ? "Waiting for Signature..."
@@ -1456,9 +1457,15 @@ const DepositView: React.FC<DepositViewProps> = ({
 
                 return (
                   <button
-                    onClick={connected ? handleDeposit : openConnectModal}
-                    disabled={isLoading || isLoadingBalance}
-                    className="w-full py-4 mt-6 rounded bg-[#B88AF8] text-[#1A1B1E] font-semibold hover:opacity-90 transition-all duration-200 disabled:opacity-50"
+                    onClick={
+                      connected && !hasInsufficientFunds ? handleDeposit : openConnectModal
+                    }
+                    disabled={!!isLoading || !!isLoadingBalance || !!hasInsufficientFunds}
+                    className={`w-full py-4 mt-6 rounded font-semibold transition-all duration-200 ${
+                      connected && hasInsufficientFunds
+                        ? "bg-gray-500 text-white opacity-50 cursor-not-allowed"
+                        : "bg-[#B88AF8] text-[#1A1B1E] hover:opacity-90"
+                    }`}
                   >
                     {buttonText}
                   </button>

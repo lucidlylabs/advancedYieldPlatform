@@ -111,7 +111,7 @@ const getStrategyInfo = (duration: DurationType): StrategyData => {
       ETH: ETH_STRATEGIES as unknown as Partial<Record<DurationType, StrategyDuration>>,
     };
 
-    const strategy = strategies[asset][duration];
+    const strategy = strategies[asset][duration]; 
 
     if (!strategy) {
       console.error(
@@ -259,7 +259,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              handleBack();
+              handleReset();
             }}
             className="text-[#B88AF8] hover:opacity-100 transition-all duration-200 flex items-center gap-2 font-inter font-normal text-xs leading-none"
           >
@@ -319,6 +319,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                     ].apy
                   }
                   isStrategyCard={true}
+                  onReset={handleReset}
                   disableHover={true}
                 />
               </div>
@@ -360,6 +361,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                   }
                   isStrategyCard={true}
                   disableHover={true}
+                  onReset={handleReset}
                   isComingSoon={
                     getStrategyInfo(selectedAsset.duration).incentives[
                       selectedAsset.asset as AssetType
