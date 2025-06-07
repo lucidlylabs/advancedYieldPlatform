@@ -10,6 +10,7 @@ export const USD_STRATEGIES = {
       rateProvider: "0x03D9a9cE13D16C7cFCE564f41bd7E85E5cde8Da6",
 
       base: {
+        image: "/images/logo/base.svg",
         tokens: [
           {
             name: "USDC",
@@ -34,6 +35,7 @@ export const USD_STRATEGIES = {
 
       // Ethereum Mainnet Configuration
       ethereum: {
+        image: "/images/logo/eth.svg",
         tokens: [
           {
             name: "USDC",
@@ -58,6 +60,7 @@ export const USD_STRATEGIES = {
 
       // Arbitrum Configuration
       arbitrum: {
+        image: "/images/logo/arb.svg",
         tokens: [
           {
             name: "USDC",
