@@ -114,9 +114,9 @@ const getStrategyInfo = (duration: DurationType): StrategyData => {
     const strategy = strategies[asset][duration]; 
 
     if (!strategy) {
-      console.error(
-        `No strategy found for ${asset} with duration ${duration}`
-      );
+      // console.error(
+      //   `No strategy found for ${asset} with duration ${duration}`
+      // );
       return {
         stable: {
           description: "Strategy not available",

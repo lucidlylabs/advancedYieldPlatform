@@ -462,7 +462,7 @@ const DepositView: React.FC<DepositViewProps> = ({
           decimals,
         });
       } catch (error) {
-        console.error("Error checking token contract:", error);
+        // console.error("Error checking token contract:", error);
       }
     };
 
@@ -522,7 +522,7 @@ const DepositView: React.FC<DepositViewProps> = ({
         // Perform the approval check logic here
         // Ensure this doesn't set isApproving to true
       } catch (error) {
-        console.error("Error checking approval:", error);
+        // console.error("Error checking approval:", error);
       } finally {
         setIsCheckingApproval(false);
       }
@@ -585,12 +585,8 @@ const DepositView: React.FC<DepositViewProps> = ({
             symbol: "ETH",
           },
           rpcUrls: {
-            default: {
-              http: [strategyConfig.rpc || "https://base.llamarpc.com"],
-            },
-            public: {
-              http: [strategyConfig.rpc || "https://base.llamarpc.com"],
-            },
+            default: { http: [strategyConfig.rpc || "https://base.llamarpc.com"] },
+            public: { http: [strategyConfig.rpc || "https://base.llamarpc.com"] },
           },
         },
       });
@@ -624,7 +620,8 @@ const DepositView: React.FC<DepositViewProps> = ({
 
       setBridgeFee(formatUnits(fee as bigint, 18));
     } catch (error) {
-      console.error("Error previewing bridge fee:", error);
+      // console.error("Error previewing bridge fee:", error);
+      setErrorMessage("Failed to preview bridge fee.");
       setBridgeFee("0");
     } finally {
       setIsLoadingFee(false);
@@ -700,12 +697,8 @@ const DepositView: React.FC<DepositViewProps> = ({
             symbol: "ETH",
           },
           rpcUrls: {
-            default: {
-              http: [strategyConfig.rpc || "https://base.llamarpc.com"],
-            },
-            public: {
-              http: [strategyConfig.rpc || "https://base.llamarpc.com"],
-            },
+            default: { http: [strategyConfig.rpc || "https://base.llamarpc.com"] },
+            public: { http: [strategyConfig.rpc || "https://base.llamarpc.com"] },
           },
         },
       });
@@ -773,9 +766,12 @@ const DepositView: React.FC<DepositViewProps> = ({
             setApprovalHash(approveTx as `0x${string}`);
           }
         } catch (error: any) {
-          console.error("Approval transaction failed:", error);
-          setIsApproving(false);
-          setErrorMessage(error.message || "Approval failed");
+          // console.error("Approval transaction failed:", error);
+          if (error.code === 4001) {
+            setErrorMessage("Approval cancelled by user.");
+          } else {
+            setErrorMessage("Approval failed. Please try again."); // Simpler message for other errors
+          }
         }
         setIsWaitingForSignature(false);
         return;
@@ -837,8 +833,12 @@ const DepositView: React.FC<DepositViewProps> = ({
               throw new Error("Invalid transaction response");
             }
           } catch (error: any) {
-            console.error("Multi-chain deposit failed:", error);
-            setErrorMessage(error.message || "Multi-chain deposit failed");
+            // console.error("Multi-chain deposit failed:", error);
+            if (error.code === 4001) {
+              setErrorMessage("Multi-chain deposit cancelled by user.");
+            } else {
+              setErrorMessage("Multi-chain deposit failed. Please try again."); // Simpler message
+            }
             setIsDepositing(false);
             return;
           }
@@ -856,7 +856,11 @@ const DepositView: React.FC<DepositViewProps> = ({
               address: vaultContractAddress as Address,
               abi: VAULT_ABI,
               functionName: "deposit",
-              args: [tokenContractAddress as Address, amountInWei, minimumMintIn6Decimals],
+              args: [
+                tokenContractAddress as Address,
+                amountInWei,
+                minimumMintIn6Decimals,
+              ],
               chainId: 8453,
               account: address as Address,
             });
@@ -868,23 +872,32 @@ const DepositView: React.FC<DepositViewProps> = ({
               throw new Error("Invalid transaction response");
             }
           } catch (error: any) {
-            console.error("Deposit failed:", error);
-            setErrorMessage(error.message || "Deposit failed");
+            // console.error("Deposit failed:", error);
+            if (error.code === 4001) {
+              setErrorMessage("Deposit cancelled by user.");
+            } else {
+              setErrorMessage("Deposit failed. Please try again."); // Simpler message
+            }
             setIsDepositing(false);
             return;
           }
         }
-      } else {
-        console.log("Insufficient allowance, approval needed first");
-        setErrorMessage("Please approve the token spending first");
+
+        // If we reach here, either approval was not needed or it completed successfully, and deposit was attempted.
+        // If deposit was multi-chain, it's handled above.
+        // If single chain, it's also handled above. So this part is for post-transaction logic (success).
+        setIsDepositing(false);
+        onReset(); // Reset the form on successful deposit
       }
     } catch (error: any) {
-      console.error("Transaction failed:", error);
-      setIsApproving(false);
-      setIsDepositing(false);
-      setErrorMessage(error.message || "Transaction failed");
-    } finally {
+      // console.error("General deposit error:", error);
       setIsWaitingForSignature(false);
+      // Fallback for any other unexpected errors during the overall process
+      if (error.code === 4001) {
+        setErrorMessage("Operation cancelled by user.");
+      } else {
+        setErrorMessage("An unexpected error occurred. Please try again."); // Simpler message
+      }
     }
   };
 
@@ -974,7 +987,8 @@ const DepositView: React.FC<DepositViewProps> = ({
       });
       setBalance(formattedBalance);
     } catch (error) {
-      console.error("Error fetching balance:", error);
+      // console.error("Error fetching balance:", error);
+      setErrorMessage("Failed to fetch balance.");
       setBalance("0.00");
     } finally {
       setIsLoadingBalance(false);
@@ -989,7 +1003,7 @@ const DepositView: React.FC<DepositViewProps> = ({
         if (chainId) {
           switchChain({ chainId });
         }
-      } else if (!isMultiChain) {
+      } else { // This covers the case where !isMultiChain
         // Always switch to Base when multi-chain is off
         switchChain({ chainId: 8453 });
       }

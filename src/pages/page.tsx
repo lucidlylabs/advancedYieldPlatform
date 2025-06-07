@@ -59,7 +59,7 @@ export default function Page() {
         setIsCodePopupOpen(true);
       }
     } catch (error) {
-      console.error("Error verifying code:", error);
+      // console.error("Error verifying code:", error);
       setVerificationError("An error occurred during verification.");
       setIsVerified(false);
       setIsCodePopupOpen(true);

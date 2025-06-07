@@ -131,7 +131,8 @@ const PortfolioSubpage: React.FC = () => {
             setIsRefreshingBalance(false);
           })
           .catch((error) => {
-            console.error("Error refreshing balances:", error);
+            // console.error("Error refreshing balances:", error);
+            setErrorMessage("Failed to refresh balances.");
             setIsRefreshingBalance(false);
           });
         setSelectedStrategy(null);
@@ -210,11 +211,13 @@ const PortfolioSubpage: React.FC = () => {
         
         return formattedBalance;
       } catch (error) {
-        console.error("Error reading boring vault:", error);
+        // console.error("Error reading boring vault:", error);
+        setErrorMessage("Failed to read vault balance.");
         return 0;
       }
     } catch (error) {
-      console.error("Error checking balance for strategy:", strategy, error);
+      // console.error("Error checking balance for strategy:", strategy, error);
+      setErrorMessage("Failed to check strategy balance.");
       return 0;
     }
   };
@@ -251,39 +254,16 @@ const PortfolioSubpage: React.FC = () => {
         ),
       ];
 
-      // Filter out strategies with invalid contract addresses
-      const validStrategies = allStrategies.filter(
-        (strategy) =>
-          strategy.contract &&
-          strategy.contract !== "0x0000000000000000000000000000000000000000"
-      );
-
-      console.log("Valid strategies to check:", validStrategies);
-
-      if (validStrategies.length === 0) {
-        console.warn(
-          "No valid strategies found with proper contract addresses"
-        );
-        setStrategiesWithBalance([]);
-        return;
-      }
-
-      const strategiesWithBalances = await Promise.all(
-        validStrategies.map(async (strategy) => {
+      const balances = await Promise.all(
+        allStrategies.map(async (strategy) => {
           const balance = await checkStrategyBalance(strategy);
-          console.log(`Balance for ${strategy.contract}:`, balance);
           return { ...strategy, balance };
         })
       );
-
-      console.log("Strategies with balances:", strategiesWithBalances);
-
-      setStrategiesWithBalance(
-        strategiesWithBalances.filter((s) => s.balance > 0)
-      );
+      setStrategiesWithBalance(balances.filter((s) => s.balance > 0));
     } catch (error) {
-      console.error("Error checking all balances:", error);
-      throw error;
+      // console.error("Error checking all balances:", error);
+      setErrorMessage("Failed to fetch all balances.");
     } finally {
       setIsRefreshingBalance(false);
     }
@@ -370,9 +350,13 @@ const PortfolioSubpage: React.FC = () => {
       } else {
         throw new Error("Failed to get approval transaction hash");
       }
-    } catch (error) {
-      console.error("Approval failed:", error);
-      setErrorMessage("Approval failed. Please try again.");
+    } catch (error: any) {
+      // console.error("Approval failed:", error);
+      if (error.code === 4001) {
+        setErrorMessage("Approval cancelled by user.");
+      } else {
+        setErrorMessage("Approval failed. Please try again.");
+      }
     } finally {
       setIsApproving(false);
     }
@@ -457,9 +441,13 @@ const PortfolioSubpage: React.FC = () => {
       } else {
         throw new Error("Failed to get transaction hash");
       }
-    } catch (error) {
-      console.error("Contract call failed:", error);
-      setErrorMessage("Transaction failed. Please try again.");
+    } catch (error: any) {
+      // console.error("Contract call failed:", error);
+      if (error.code === 4001) {
+        setErrorMessage("Withdrawal cancelled by user.");
+      } else {
+        setErrorMessage("Withdrawal failed. Please try again.");
+      }
     } finally {
       setIsWithdrawing(false);
     }
