@@ -223,13 +223,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
     setSelectedStrategy(null);
   };
 
-  const handleBack = () => {
-    if (window.history.length > 1) {
-      router.back(); // Go to previous page
-    } else {
-      router.push("/"); // Or any default fallback route
-    }
-  };
+  console.log("Selected Strategy:", selectedStrategy);
 
   // Always render the main content, assuming verification is handled by parent
   return (
@@ -253,29 +247,34 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
           onReset={handleReset}
         />
       ) : selectedAsset ? (
-        <div className="flex flex-col gap-6 pt-[8vh] w-full">
+        <div className="flex flex-col gap-6 pt-[8vh] w-full px-72">
         {/* Back Button aligned left */}
-        <div className="w-full flex justify-start pl-6">
+      
+        {/* Centered Heading */}
+        <div className="flex justify-center">
+          <h1 className="text-[40px] font-bold  ">Select a Yield Source</h1>
+        </div>
+        <div className="pl-4">
           <button
             onClick={(e) => {
               e.stopPropagation();
               handleReset();
             }}
-            className="text-[#B88AF8] hover:opacity-100 transition-all duration-200 flex items-center gap-2 font-inter font-normal text-xs leading-none"
+            className="text-[#B88AF8] hover:opacity-100 transition-all duration-200 flex items-center gap-2   font-normal text-xs leading-none"
           >
-            <img
-              src="/images/icons/arrow.svg"
-              alt="Back"
-              className="w-[24px] h-[24px] rotate-180"
-            />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="w-[24px] h-[24px]"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
           </button>
         </div>
-      
-        {/* Centered Heading */}
-        <div className="flex justify-center">
-          <h1 className="text-[40px] font-bold font-inter">Select a Yield Source</h1>
-        </div>
-          <div className="flex gap-6 justify-center items-center">
+        <div className="flex gap-6 justify-center items-center">
             <CustomCard
               heading={selectedAsset.asset as AssetType}
               imageSrc={`/images/icons/card-${(
@@ -370,11 +369,11 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                 />
               </div>
             </div>
-          </div>
+        </div>
         </div>
       ) : (
         <div className="flex flex-col gap-6 items-center pt-[8vh]">
-          <h1 className="text-[40px] font-bold font-inter">
+          <h1 className="text-[40px] font-bold  ">
             Select a asset you want yield on
           </h1>
           <div className="flex gap-6 justify-center items-center">

@@ -105,7 +105,7 @@ const CustomCard: React.FC<CustomCardProps> = ({
           {/* Heading */}
           <div className="px-6 pt-6 text-center">
             <div className="flex items-center justify-center gap-2">
-              <h3 className="text-white font-inter text-base font-semibold leading-5">
+              <h3 className="text-white   text-base font-semibold leading-5">
                 {heading}
               </h3>
               {info && (
@@ -177,7 +177,7 @@ const CustomCard: React.FC<CustomCardProps> = ({
               <div className="flex items-center gap-2">
                 <h3
                   className={cn(
-                    "text-[32px] leading-none tracking-tight text-white transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] w-full flex flex-col items-center justify-center font-inter",
+                    "text-[32px] leading-none tracking-tight text-white transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] w-full flex flex-col items-center justify-center  ",
                     !disableHover && "group-hover:text-[#1A1B1E]"
                   )}
                 >
@@ -360,7 +360,7 @@ const CustomCard: React.FC<CustomCardProps> = ({
           {isComingSoon && (
             <>
               <div className="p-6 pt-0 flex-1 relative z-10 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex items-center justify-center">
-                <p className="text-white flex items-center justify-center w-full text-[24px] font-inter text-center">
+                <p className="text-white flex items-center justify-center w-full text-[24px]   text-center">
                   Coming Soon
                 </p>
               </div>

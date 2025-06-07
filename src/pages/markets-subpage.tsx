@@ -30,7 +30,8 @@ const AssetButton: React.FC<{
     asset: AssetType;
     activeAsset: AssetType;
     onClick: (asset: AssetType) => void;
-}> = ({ asset, activeAsset, onClick }) => {
+    disabled?: boolean;
+}> = ({ asset, activeAsset, onClick, disabled = false }) => {
     const getAssetDetails = () => {
         switch (asset) {
             case "ALL":
@@ -56,12 +57,15 @@ const AssetButton: React.FC<{
 
     return (
         <button
-            className={cn(
-                "flex items-center gap-[4px] py-2 pb-[8px] transition-all duration-200 mr-[24px] last:mr-0 relative",
-                activeAsset === asset ? "opacity-100" : "opacity-50",
-                "hover:opacity-100"
-            )}
-            onClick={() => onClick(asset)}
+        className={cn(
+            "flex items-center gap-[4px] py-2 pb-[8px] transition-all duration-200 mr-[24px] last:mr-0 relative",
+            activeAsset === asset ? "opacity-100" : "opacity-50",
+            "hover:opacity-100",
+            disabled ? "cursor-not-allowed opacity-30" : "cursor-pointer"
+          )}
+            onClick={() => {
+                if (!disabled) onClick(asset);
+              }}
         >
             <div className="w-4 h-4 flex items-center justify-center flex-shrink-0 rounded-full overflow-hidden">
                 <Image
@@ -206,11 +210,13 @@ const MarketsSubpage: React.FC = () => {
                             asset="ETH"
                             activeAsset={selectedAsset}
                             onClick={setSelectedAsset}
+                            disabled
                         />
                         <AssetButton
                             asset="BTC"
                             activeAsset={selectedAsset}
                             onClick={setSelectedAsset}
+                            disabled
                         />
                     </div>
                 </div>
@@ -252,6 +258,7 @@ const MarketsSubpage: React.FC = () => {
                         baseApy={selectedItem.baseYield}
                         contractAddress={selectedItem.contractAddress}
                         network={selectedItem.network}
+                        data={getSortedData()}
                     />
                 ) : (
                     <div className="flex items-center justify-center h-full">
@@ -271,7 +278,7 @@ const MarketsSubpage: React.FC = () => {
                                 Select a Yield Option to View Details
                             </h2>
                             <p className="text-[#9C9DA2] text-center text-[14px] font-normal leading-[19.2px] mt-2">
-                                Discover key insights, performance metrics, and <br />
+                                Discover key insights, performance metrics, and<br />
                                 potential returns for each yield source.
                             </p>
                         </div>

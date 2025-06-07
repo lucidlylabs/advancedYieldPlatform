@@ -309,6 +309,12 @@ const DepositView: React.FC<DepositViewProps> = ({
     }
   };
 
+  console.log("duration", duration);
+  console.log("strategy", strategy);
+  console.log("assetStrategies", assetStrategies);
+  console.log("assetStrategies[duration]", assetStrategies[duration]);
+
+
   // Parse all available deposit assets from strategyConfig, filtered by targetChain
   const assetOptions = useMemo(() => {
     return getNetworkTokens();
@@ -775,7 +781,7 @@ const DepositView: React.FC<DepositViewProps> = ({
         } catch (error: any) {
           console.error("Approval transaction failed:", error);
           setIsApproving(false);
-          setErrorMessage(error.message || "Approval failed");
+          setErrorMessage("Approval failed");
         }
         setIsWaitingForSignature(false);
         return;
@@ -837,8 +843,7 @@ const DepositView: React.FC<DepositViewProps> = ({
               throw new Error("Invalid transaction response");
             }
           } catch (error: any) {
-            console.error("Multi-chain deposit failed:", error);
-            setErrorMessage(error.message || "Multi-chain deposit failed");
+            setErrorMessage("Multi-chain deposit failed");
             setIsDepositing(false);
             return;
           }
@@ -867,9 +872,17 @@ const DepositView: React.FC<DepositViewProps> = ({
             } else {
               throw new Error("Invalid transaction response");
             }
-          } catch (error: any) {
-            console.error("Deposit failed:", error);
-            setErrorMessage(error.message || "Deposit failed");
+          } catch (error: any) {  
+            // Check if user rejected the MetaMask transaction
+            if (
+              error?.name === "ContractFunctionExecutionError" &&
+              error?.cause?.message?.includes("User denied transaction signature")
+            ) {
+              setErrorMessage("Transaction cancelled by user.");
+            } else {
+              setErrorMessage("Deposit failed. Please try again.");
+            }
+
             setIsDepositing(false);
             return;
           }
@@ -882,7 +895,7 @@ const DepositView: React.FC<DepositViewProps> = ({
       console.error("Transaction failed:", error);
       setIsApproving(false);
       setIsDepositing(false);
-      setErrorMessage(error.message || "Transaction failed");
+      setErrorMessage("Transaction failed");
     } finally {
       setIsWaitingForSignature(false);
     }
@@ -1042,33 +1055,11 @@ const DepositView: React.FC<DepositViewProps> = ({
     }
   };
 
-  const handleReset = () => {
-    
-  }
-
   return (
     <>
-      <div className="flex flex-col gap-6 pt-[8vh] w-full">
-        {/* Back Button aligned left */}
-        <div className="w-full flex justify-start pl-6">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onReset();
-            }}
-            className="text-[#B88AF8] hover:opacity-100 transition-all duration-200 flex items-center gap-2 font-inter font-normal text-xs leading-none"
-          >
-            <img
-              src="/images/icons/arrow.svg"
-              alt="Back"
-              className="w-[24px] h-[24px] rotate-180"
-            />
-          </button>
-        </div>
-      </div>
-      <div className="h-[calc(100vh-128px)] relative overflow-hidden">
+      <div className="relative overflow-hidden">
       {depositSuccess ? (
-        <div className="flex flex-col items-center justify-center h-full">
+        <div className="flex flex-col items-center justify-center h-full pt-12">
           <div className="w-[580px] bg-[#0D101C] rounded-lg p-8 text-center">
             <div className="flex justify-center mb-6">
               <div className="w-16 h-16 bg-[#00D1A0] rounded-full flex items-center justify-center">
@@ -1154,8 +1145,32 @@ const DepositView: React.FC<DepositViewProps> = ({
           </div>
         </div>
       ) : (
-        <div className="flex flex-col gap-6 items-center pt-[calc(8vh+38px)]">
-          <div className="w-[580px] h-[459px] flex-shrink-0">
+        <div className="flex flex-col gap-6 items-center pt-6">
+          <div className="w-[580px] flex-shrink-0">
+            <div className="flex flex-col gap-6 pt-[8vh] w-full">
+              {/* Back Button aligned left */}
+              <div className="w-full flex justify-start pb-4">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onReset();
+                  }}
+                  className="text-[#B88AF8] hover:opacity-100 transition-all duration-200 flex items-center gap-2   font-normal text-xs leading-none"
+                >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-[24px] h-[24px]"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+                </button>
+              </div>
+            </div>
+
             <div className="flex gap-6 justify-center items-center">
               {/* Left Card - Deposit Input */}
               <div className="w-[280px] h-[311px] bg-[#0D101C] rounded-[4px] border border-[rgba(255,255,255,0.05)] p-6 flex flex-col">
@@ -1168,10 +1183,10 @@ const DepositView: React.FC<DepositViewProps> = ({
                         className="w-[56px] h-[56px]"
                       />
                     )}
-                    <span className="text-[#EDF2F8] text-center font-inter text-[14px] font-semibold leading-normal mt-[16px]">
+                    <span className="text-[#EDF2F8] text-center   text-[14px] font-semibold leading-normal mt-[16px]">
                       Deposit {selectedAssetOption.name}
                     </span>
-                    <span className="text-[#00D1A0] text-center font-inter text-[12px] font-normal leading-normal">
+                    <span className="text-[#00D1A0] text-center   text-[12px] font-normal leading-normal">
                       +0.00 in 1 year
                     </span>
                   </div>
@@ -1179,7 +1194,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                 {/* --- Asset Dropdown & Multi-chain Toggle --- */}
                 {assetOptions.length > 1 && (
                   <div className="mt-4">
-                    <label className="text-[#9C9DA2] font-inter text-[12px] block mb-2">
+                    <label className="text-[#9C9DA2]   text-[12px] block mb-2">
                       Select Asset
                     </label>
                     <select
@@ -1199,7 +1214,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                 )}
                 {/* Multi-chain Toggle (always shown) */}
                 {/* <div className="mt-4 flex items-center justify-between">
-                  <span className="text-[#9C9DA2] font-inter text-[12px]">
+                  <span className="text-[#9C9DA2]   text-[12px]">
                     Multi-chain Deposit
                   </span>
                   <button
@@ -1218,7 +1233,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                 {/* Target Chain Selection - Only shown when multi-chain is enabled */}
                 {isMultiChain && (
                   <div className="mt-4">
-                    <label className="text-[#9C9DA2] font-inter text-[12px] block mb-2">
+                    <label className="text-[#9C9DA2]   text-[12px] block mb-2">
                       Target Chain
                     </label>
                     <select
@@ -1240,13 +1255,13 @@ const DepositView: React.FC<DepositViewProps> = ({
                       value={amount}
                       onChange={handleAmountChange}
                       placeholder="0.00"
-                      className="w-[calc(100%-70px)] bg-transparent text-[#EDF2F8] font-inter text-[24px] font-bold leading-normal outline-none focus:ring-0 border-0 border-b border-[rgba(255,255,255,0.19)]"
+                      className="w-[calc(100%-70px)] bg-transparent text-[#EDF2F8]   text-[24px] font-bold leading-normal outline-none focus:ring-0 border-0 border-b border-[rgba(255,255,255,0.19)]"
                     />
                     <button
                       onClick={handleMaxClick}
                       className="absolute right-0 flex justify-center items-center px-[8px] py-[4px] gap-[10px] rounded-[4px] border border-[rgba(255,255,255,0.30)] bg-transparent hover:opacity-80 transition-all duration-200"
                     >
-                      <span className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
+                      <span className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
                         MAX
                       </span>
                     </button>
@@ -1254,7 +1269,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                   {/* Bridge Fee Display */}
                   {isMultiChain && (
                     <div className="mt-[12px] flex flex-col gap-2">
-                      <span className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
+                      <span className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
                         Bridge Fee:{" "}
                         {isLoadingFee ? (
                           <span className="inline-flex items-center gap-1">
@@ -1302,7 +1317,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                               strokeLinejoin="round"
                             />
                           </svg>
-                          <span className="text-[#9C9DA2] font-inter text-[12px] leading-normal">
+                          <span className="text-[#9C9DA2]   text-[12px] leading-normal">
                             You need to have enough ETH in your wallet to cover
                             the bridge fee. The fee will be paid in ETH along
                             with your deposit.
@@ -1324,12 +1339,12 @@ const DepositView: React.FC<DepositViewProps> = ({
 
                 {/* Asset Info */}
                 <div className="flex flex-col items-center text-center relative z-10">
-                  <h3 className="text-[32px] text-[#D7E3EF] font-inter font-medium leading-normal mb-[8px] mt-[12px]">
+                  <h3 className="text-[32px] text-[#D7E3EF]   font-medium leading-normal mb-[8px] mt-[12px]">
                     {selectedAsset}
                   </h3>
                   {/* <div
                     onClick={onReset}
-                    className="text-[16px] text-[#9C9DA2] font-inter font-normal leading-normal underline decoration-solid underline-offset-auto mb-[25px] cursor-pointer hover:text-[#9C9DA2]/80 transition-all duration-200"
+                    className="text-[16px] text-[#9C9DA2]   font-normal leading-normal underline decoration-solid underline-offset-auto mb-[25px] cursor-pointer hover:text-[#9C9DA2]/80 transition-all duration-200"
                   >
                     {formatDuration(duration)}
                   </div> */}
@@ -1352,7 +1367,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                         
                       </div>
                       <div className="flex items-center gap-4 mt-[4px]">
-                        <span className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
+                        <span className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
                           APY {apy}
                         </span>
                       </div>
@@ -1363,7 +1378,7 @@ const DepositView: React.FC<DepositViewProps> = ({
             </div>
 
             <div className="relative mt-[12px]">
-                    <span className="text-[#9C9DA2] font-inter text-[12px] font-normal leading-normal">
+                    <span className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
                       Balance:{" "}
                       {isLoadingBalance ? (
                         <span className="inline-flex items-center gap-1">
@@ -1399,10 +1414,10 @@ const DepositView: React.FC<DepositViewProps> = ({
             {/* {showDepositCap && (
               <div className="w-full mt-6 mb-4 p-4 rounded-[4px] bg-[rgba(255,255,255,0.02)]">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-[#EDF2F8] font-inter text-[14px] font-medium">
+                  <span className="text-[#EDF2F8]   text-[14px] font-medium">
                     ${remainingSpace} Remaining
                   </span>
-                  <span className="text-[#9C9DA2] font-inter text-[14px]">
+                  <span className="text-[#9C9DA2]   text-[14px]">
                     Limited Space: ${depositCap.used}/${depositCap.total}
                   </span>
                 </div>
