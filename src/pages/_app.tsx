@@ -6,6 +6,7 @@ import { WagmiProvider } from 'wagmi';
 import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import { config } from '../wagmi';
 import { ErrorBoundary } from 'react-error-boundary';
+import Head from 'next/head';
 
 const client = new QueryClient();
 
@@ -24,6 +25,10 @@ function MyApp({ Component, pageProps }: AppProps) {
       <WagmiProvider config={config}>
         <QueryClientProvider client={client}>
           <RainbowKitProvider>
+            <Head>
+              <link rel="icon" href="/images/logo/logo.svg" />
+              <title>Lucidly Finance</title>
+            </Head>
             <Component {...pageProps} />
           </RainbowKitProvider>
         </QueryClientProvider>
