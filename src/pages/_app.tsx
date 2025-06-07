@@ -28,6 +28,7 @@ function MyApp({ Component, pageProps }: AppProps) {
             <Head>
               <link rel="icon" href="/images/logo/logo.svg" />
               <title>Lucidly Finance</title>
+              <meta property="og:image" content="/images/background/metaImage.svg" />
             </Head>
             <Component {...pageProps} />
           </RainbowKitProvider>
