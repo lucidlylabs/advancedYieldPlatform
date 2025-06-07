@@ -6,6 +6,7 @@ import { WagmiProvider } from 'wagmi';
 import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import { config } from '../wagmi';
 import { ErrorBoundary } from 'react-error-boundary';
+import Head from 'next/head';
 
 const client = new QueryClient();
 
@@ -19,17 +20,22 @@ function ErrorFallback({ error }: { error: Error }) {
 }
 
 function MyApp({ Component, pageProps }: AppProps) {
-    return (
-        <ErrorBoundary FallbackComponent={ErrorFallback}>
-            <WagmiProvider config={config}>
-                <QueryClientProvider client={client}>
-                    <RainbowKitProvider>
-                        <Component {...pageProps} />
-                    </RainbowKitProvider>
-                </QueryClientProvider>
-            </WagmiProvider>
-        </ErrorBoundary>
-    );
+  return (
+    <ErrorBoundary FallbackComponent={ErrorFallback}>
+      <WagmiProvider config={config}>
+        <QueryClientProvider client={client}>
+          <RainbowKitProvider>
+            <Head>
+              <link rel="icon" href="/images/logo/logo.svg" />
+              <title>Lucidly Finance</title>
+              <meta property="og:image" content="/images/background/metaImage.svg" />
+            </Head>
+            <Component {...pageProps} />
+          </RainbowKitProvider>
+        </QueryClientProvider>
+      </WagmiProvider>
+    </ErrorBoundary>
+  );
 }
 
 export default MyApp;
