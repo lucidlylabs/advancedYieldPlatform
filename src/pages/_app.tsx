@@ -6,6 +6,9 @@ import { WagmiProvider } from 'wagmi';
 import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import { config } from '../wagmi';
 import { ErrorBoundary } from 'react-error-boundary';
+import { Inter } from 'next/font/google';
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 const client = new QueryClient();
 
@@ -24,7 +27,9 @@ function MyApp({ Component, pageProps }: AppProps) {
             <WagmiProvider config={config}>
                 <QueryClientProvider client={client}>
                     <RainbowKitProvider>
-                        <Component {...pageProps} />
+                        <main className={`${inter.variable} font-inter`}>
+                            <Component {...pageProps} />
+                        </main>
                     </RainbowKitProvider>
                 </QueryClientProvider>
             </WagmiProvider>
