@@ -24,34 +24,18 @@ export default function Page() {
     strategy: string;
   } | null>(null);
 
-  const [isVerified, setIsVerified] = useState(true);
-  const [isCodePopupOpen, setIsCodePopupOpen] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
+  const [isCodePopupOpen, setIsCodePopupOpen] = useState(true);
   const [verificationError, setVerificationError] = useState("");
 
-  // Function to check for an existing session (will need a backend API to read the cookie)
-  const checkSession = async () => {
-    try {
-      const response = await fetch('/api/check-session'); // We will need to create this API route
-      if (response.ok) {
-        const data = await response.json();
-        if (data.isValid) {
-          setIsVerified(true);
-          setIsCodePopupOpen(false);
-          return true;
-        }
-      }
-    } catch (error) {
-      console.error("Error checking session:", error);
-    }
-    setIsVerified(false);
-    setIsCodePopupOpen(true);
-    return false;
-  };
-
-  // useEffect to check session on component mount
+  // Check if user is already verified from localStorage
   useEffect(() => {
-    // checkSession();
-  }, []); // Run only once on mount
+    const verified = localStorage.getItem('isVerified');
+    if (verified === 'true') {
+      setIsVerified(true);
+      setIsCodePopupOpen(false);
+    }
+  }, []);
 
   const handleVerifyCode = async (code: string) => {
     try {
@@ -66,7 +50,8 @@ export default function Page() {
       if (response.ok) {
         setIsVerified(true);
         setIsCodePopupOpen(false);
-        setVerificationError(""); // Clear any previous errors
+        setVerificationError("");
+        localStorage.setItem('isVerified', 'true');
       } else {
         const data = await response.json();
         setVerificationError(data.message || "Incorrect code. Please try again.");
@@ -74,7 +59,7 @@ export default function Page() {
         setIsCodePopupOpen(true);
       }
     } catch (error) {
-      console.error("Error verifying code:", error);
+      // console.error("Error verifying code:", error);
       setVerificationError("An error occurred during verification.");
       setIsVerified(false);
       setIsCodePopupOpen(true);

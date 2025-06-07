@@ -9,6 +9,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import Image from "next/image";
+import { USD_STRATEGIES } from "@/config/env";
 
 type AssetType = "ALL" | "USD" | "ETH" | "BTC";
 
@@ -91,6 +92,7 @@ const MarketsSubpage: React.FC = () => {
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [selectedItem, setSelectedItem] = useState<MarketItem | null>(null);
+  
   // Market data
   const marketData: Record<AssetType, MarketItem[]> = {
     ALL: [],
@@ -99,16 +101,15 @@ const MarketsSubpage: React.FC = () => {
     USD: [
       {
         id: 5,
-        name: "syUSD",
-        type: "usd",
-        baseYield: "25.00%",
-        incentives: ["usdc"],
-        tvl: "$1,403.72",
-        description:
-          "Conservative stablecoin strategy focused on capital preservation with consistent returns.",
+        name: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.name,
+        type: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.type,
+        baseYield: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.apy,
+        incentives: [USD_STRATEGIES.PERPETUAL_DURATION.STABLE.incentives],
+        tvl: `$${USD_STRATEGIES.PERPETUAL_DURATION.STABLE.tvl}`,
+        description: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.description,
         riskLevel: "Very Low",
-        network: "Ethereum",
-        contractAddress: "0x33...9c",
+        network: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.network,
+        contractAddress: `${USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.slice(0, 6)}...${USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.slice(-2)}`,
       }
     ],
   };
@@ -258,7 +259,8 @@ const MarketsSubpage: React.FC = () => {
                         baseApy={selectedItem.baseYield}
                         contractAddress={selectedItem.contractAddress}
                         network={selectedItem.network}
-                        data={getSortedData()}
+                        hasRealData={false}
+                        fullContractAddress={USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress}
                     />
                 ) : (
                     <div className="flex items-center justify-center h-full">
