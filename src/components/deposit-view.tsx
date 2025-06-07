@@ -15,7 +15,7 @@ import {
   useTransaction,
   useReadContracts,
   useSwitchChain,
-  useChainId
+  useChainId,
 } from "wagmi";
 import { USD_STRATEGIES, BTC_STRATEGIES, ETH_STRATEGIES } from "../config/env";
 import {
@@ -32,33 +32,40 @@ import { useRouter } from "next/router";
 type DurationType = "30_DAYS" | "60_DAYS" | "180_DAYS" | "PERPETUAL_DURATION";
 type StrategyType = "STABLE" | "INCENTIVE";
 
+interface TokenConfig {
+  name: string;
+  contract: string;
+  decimal: number;
+  image: string;
+}
+
+interface ChainConfig {
+  tokens: TokenConfig[];
+  image?: string; // Add optional image property for chain
+  rpc: string;
+  chainId: number;
+  chainObject: {
+    id: number;
+    name: string;
+    network: string;
+    nativeCurrency: {
+      decimals: number;
+      name: string;
+      symbol: string;
+    };
+    rpcUrls: {
+      default: { http: string[] };
+      public: { http: string[] };
+    };
+  };
+}
+
 interface StrategyConfig {
   network: string;
   contract: string;
-  base: {
-    tokens: Array<{
-      name: string;
-      contract: string;
-      decimal: number;
-      image: string;
-    }>;
-  };
-  ethereum: {
-    tokens: Array<{
-      name: string;
-      contract: string;
-      decimal: number;
-      image: string;
-    }>;
-  };
-  arbitrum: {
-    tokens: Array<{
-      name: string;
-      contract: string;
-      decimal: number;
-      image: string;
-    }>;
-  };
+  base: ChainConfig;
+  ethereum: ChainConfig;
+  arbitrum: ChainConfig;
   description: string;
   apy: string;
   incentives: string;
@@ -275,9 +282,14 @@ const DepositView: React.FC<DepositViewProps> = ({
   const [isMultiChain, setIsMultiChain] = useState<boolean>(false);
   const [bridgeFee, setBridgeFee] = useState<string>("0");
   const [isLoadingFee, setIsLoadingFee] = useState<boolean>(false);
-  const [targetChain, setTargetChain] = useState<string>("arbitrum"); // Default target chain
   const { switchChain } = useSwitchChain();
   const { chain } = useAccount(); // Get connected chain info
+
+  // Add state for custom dropdown
+  const [isChainDropdownOpen, setIsChainDropdownOpen] = useState(false);
+  const [targetChain, setTargetChain] = useState<string>(chain?.name.toLowerCase() || "base"); // Initialize targetChain based on connected chain
+
+  // receiveChain will mirror targetChain
   const router = useRouter();
 
   // Get strategy config based on asset type
@@ -295,6 +307,35 @@ const DepositView: React.FC<DepositViewProps> = ({
   const strategyConfig = (assetStrategies as any)[duration][
     strategy === "stable" ? "STABLE" : "INCENTIVE"
   ] as StrategyConfig;
+
+  // Helper to extract unique chain configurations
+  const getUniqueChainConfigs = useMemo(() => {
+    const uniqueChains = new Map<string, { name: string; network: string; image: string; }>();
+
+    // Directly access the STABLE strategy within PERPETUAL_DURATION
+    const stablePerpetualConfig = USD_STRATEGIES.PERPETUAL_DURATION.STABLE as StrategyConfig;
+
+    if (stablePerpetualConfig) {
+      if (stablePerpetualConfig.base && stablePerpetualConfig.base.image) {
+        uniqueChains.set("base", { name: "Base", network: "base", image: stablePerpetualConfig.base.image });
+      }
+      if (stablePerpetualConfig.ethereum && stablePerpetualConfig.ethereum.image) {
+        uniqueChains.set("ethereum", { name: "Ethereum", network: "ethereum", image: stablePerpetualConfig.ethereum.image });
+      }
+      if (stablePerpetualConfig.arbitrum && stablePerpetualConfig.arbitrum.image) {
+        uniqueChains.set("arbitrum", { name: "Arbitrum", network: "arbitrum", image: stablePerpetualConfig.arbitrum.image });
+      }
+    }
+
+    // Optionally, you can add other durations if they also define chain images
+    // For example:
+    // const stable30DaysConfig = USD_STRATEGIES["30_DAYS"].STABLE as StrategyConfig;
+    // if (stable30DaysConfig && stable30DaysConfig.base && stable30DaysConfig.base.image) {
+    //   uniqueChains.set("base", { name: "Base", network: "base", image: stable30DaysConfig.base.image });
+    // }
+
+    return Array.from(uniqueChains.values());
+  }, [USD_STRATEGIES]);
 
   // Get the appropriate network tokens based on the selected target chain
   const getNetworkTokens = () => {
@@ -408,26 +449,10 @@ const DepositView: React.FC<DepositViewProps> = ({
       if (!tokenContractAddress || !address) return;
 
       try {
+        const { rpcUrl, chain: targetChainConfig } = getChainConfig(targetChain);
         const client = createPublicClient({
-          transport: http(strategyConfig.rpc || "https://base.llamarpc.com"),
-          chain: {
-            id: 8453,
-            name: "Base",
-            network: "base",
-            nativeCurrency: {
-              decimals: 18,
-              name: "Ethereum",
-              symbol: "ETH",
-            },
-            rpcUrls: {
-              default: {
-                http: [strategyConfig.rpc || "https://base.llamarpc.com"],
-              },
-              public: {
-                http: [strategyConfig.rpc || "https://base.llamarpc.com"],
-              },
-            },
-          },
+          transport: http(rpcUrl),
+          chain: targetChainConfig,
         });
 
         // Try to read basic token info
@@ -467,7 +492,7 @@ const DepositView: React.FC<DepositViewProps> = ({
     };
 
     checkTokenContract();
-  }, [tokenContractAddress, address, strategyConfig.rpc]);
+  }, [tokenContractAddress, address, targetChain]);
 
   // Watch for approval success and update allowance
   useEffect(() => {
@@ -569,30 +594,14 @@ const DepositView: React.FC<DepositViewProps> = ({
 
   // Add preview fee function
   const previewBridgeFee = async (amount: bigint) => {
-    if (!address || !amount || !isMultiChain) return;
+    if (!address || !amount) return;
 
     setIsLoadingFee(true);
     try {
+      const { rpcUrl, chain: clientChain } = getChainConfig(targetChain);
       const client = createPublicClient({
-        transport: http(strategyConfig.rpc || "https://base.llamarpc.com"),
-        chain: {
-          id: 8453,
-          name: "Base",
-          network: "base",
-          nativeCurrency: {
-            decimals: 18,
-            name: "Ethereum",
-            symbol: "ETH",
-          },
-          rpcUrls: {
-            default: {
-              http: [strategyConfig.rpc || "https://base.llamarpc.com"],
-            },
-            public: {
-              http: [strategyConfig.rpc || "https://base.llamarpc.com"],
-            },
-          },
-        },
+        transport: http(rpcUrl),
+        chain: clientChain,
       });
 
       // Get bridge wildcard based on target chain
@@ -685,29 +694,19 @@ const DepositView: React.FC<DepositViewProps> = ({
         depositTokenDecimals
       );
 
+      // Determine if multi-chain deposit is needed
+      const currentChainId = chain?.id;
+      const targetChainConfig = getChainConfig(targetChain);
+      const targetChainId = targetChainConfig.chainId;
+
+      setIsMultiChain(currentChainId !== targetChainId);
+
       // Get rate from rate provider
       const rateProviderAddress = strategyConfig.rateProvider;
 
       const client = createPublicClient({
-        transport: http(strategyConfig.rpc || "https://base.llamarpc.com"),
-        chain: {
-          id: 8453,
-          name: "Base",
-          network: "base",
-          nativeCurrency: {
-            decimals: 18,
-            name: "Ethereum",
-            symbol: "ETH",
-          },
-          rpcUrls: {
-            default: {
-              http: [strategyConfig.rpc || "https://base.llamarpc.com"],
-            },
-            public: {
-              http: [strategyConfig.rpc || "https://base.llamarpc.com"],
-            },
-          },
-        },
+        transport: http(targetChainConfig.rpcUrl),
+        chain: targetChainConfig.chain,
       });
 
       // Get rate from rate provider using the deposit token address
@@ -765,7 +764,7 @@ const DepositView: React.FC<DepositViewProps> = ({
             abi: ERC20_ABI,
             functionName: "approve",
             args: [boringVaultAddress as Address, amountInWei],
-            chainId: 8453,
+            chainId: targetChainId,
             account: address as Address,
           });
 
@@ -832,7 +831,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                 "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" as Address, // ETH address
                 bridgeFeeWei, // Use the calculated bridge fee
               ],
-              chainId: 8453,
+              chainId: targetChainId,
               account: address as Address,
               value: bridgeFeeWei, // Include the calculated bridge fee in ETH
             });
@@ -868,8 +867,12 @@ const DepositView: React.FC<DepositViewProps> = ({
               address: vaultContractAddress as Address,
               abi: VAULT_ABI,
               functionName: "deposit",
-              args: [tokenContractAddress as Address, amountInWei, minimumMintIn6Decimals],
-              chainId: 8453,
+              args: [
+                tokenContractAddress as Address,
+                amountInWei,
+                minimumMintIn6Decimals,
+              ],
+              chainId: targetChainId,
               account: address as Address,
             });
 
@@ -917,52 +920,45 @@ const DepositView: React.FC<DepositViewProps> = ({
   }, [amount, isMultiChain, targetChain]);
 
   // Helper to get correct RPC and chain config for each chain
-  const getChainConfig = (chain: string) => {
-    switch (chain) {
+  const getChainConfig = (chainName: string) => {
+    let chainData;
+    switch (chainName) {
       case "arbitrum":
-        return {
-          rpcUrl: "https://arbitrum.drpc.org",
-          chain: {
-            id: 42161,
-            name: "Arbitrum",
-            network: "arbitrum",
-            nativeCurrency: { decimals: 18, name: "Ether", symbol: "ETH" },
-            rpcUrls: {
-              default: { http: ["https://arbitrum.drpc.org"] },
-              public: { http: ["https://arbitrum.drpc.org"] },
-            },
-          },
-        };
+        chainData = strategyConfig.arbitrum;
+        break;
       case "ethereum":
-        return {
-          rpcUrl: "https://eth.llamarpc.com",
-          chain: {
-            id: 1,
-            name: "Ethereum",
-            network: "ethereum",
-            nativeCurrency: { decimals: 18, name: "Ether", symbol: "ETH" },
-            rpcUrls: {
-              default: { http: ["https://eth.llamarpc.com"] },
-              public: { http: ["https://eth.llamarpc.com"] },
-            },
-          },
-        };
+        chainData = strategyConfig.ethereum;
+        break;
       case "base":
       default:
-        return {
-          rpcUrl: "https://base.llamarpc.com",
-          chain: {
-            id: 8453,
-            name: "Base",
-            network: "base",
-            nativeCurrency: { decimals: 18, name: "Ethereum", symbol: "ETH" },
-            rpcUrls: {
-              default: { http: ["https://base.llamarpc.com"] },
-              public: { http: ["https://base.llamarpc.com"] },
-            },
-          },
-        };
+        chainData = strategyConfig.base;
+        break;
     }
+
+    if (!chainData || !chainData.rpc || !chainData.chainId || !chainData.chainObject) {
+      // Fallback to a default or throw an error if configuration is missing
+      console.error(`Missing chain configuration for ${chainName}`);
+      return {
+        rpcUrl: "https://base.llamarpc.com",
+        chainId: 8453,
+        chain: {
+          id: 8453,
+          name: "Base",
+          network: "base",
+          nativeCurrency: { decimals: 18, name: "Ethereum", symbol: "ETH" },
+          rpcUrls: {
+            default: { http: ["https://base.llamarpc.com"] },
+            public: { http: ["https://base.llamarpc.com"] },
+          },
+        },
+      };
+    }
+
+    return {
+      rpcUrl: chainData.rpc,
+      chainId: chainData.chainId,
+      chain: chainData.chainObject,
+    };
   };
 
   const fetchBalance = async () => {
@@ -1003,31 +999,18 @@ const DepositView: React.FC<DepositViewProps> = ({
 
   // Add effect to switch network when target chain changes
   useEffect(() => {
-    if (switchChain) {
-      if (isMultiChain && targetChain) {
-        const chainId = getChainId(targetChain);
-        if (chainId) {
-          switchChain({ chainId });
-        }
-      } else if (!isMultiChain) {
-        // Always switch to Base when multi-chain is off
-        switchChain({ chainId: 8453 });
+    if (switchChain && targetChain) {
+      const { chainId } = getChainConfig(targetChain);
+      if (chainId && chain?.id !== chainId) {
+        switchChain({ chainId });
       }
     }
-  }, [targetChain, isMultiChain, switchChain]);
+  }, [targetChain, switchChain, chain]);
 
   // Helper function to get chain ID
-  const getChainId = (chain: string): number | undefined => {
-    switch (chain) {
-      case "arbitrum":
-        return 42161;
-      case "optimism":
-        return 10;
-      case "ethereum":
-        return 1;
-      default:
-        return undefined;
-    }
+  const getChainId = (chainName: string): number | undefined => {
+    const { chainId } = getChainConfig(chainName);
+    return chainId;
   };
 
   useEffect(() => {
@@ -1042,13 +1025,6 @@ const DepositView: React.FC<DepositViewProps> = ({
     strategy,
     targetChain,
   ]);
-
-  // Update targetChain when connected chain changes
-  useEffect(() => {
-    if (chain) {
-      setTargetChain(chain.name.toLowerCase());
-    }
-  }, [chain]);
 
   const handleMaxClick = () => {
     setAmount(balance);
@@ -1152,35 +1128,123 @@ const DepositView: React.FC<DepositViewProps> = ({
           </div>
         </div>
       ) : (
-        <div className="flex flex-col gap-6 items-center pt-6">
-          <div className="w-[580px] flex-shrink-0">
-            <div className="flex flex-col gap-6 pt-[8vh] w-full">
-              {/* Back Button aligned left */}
-              <div className="w-full flex justify-start pb-4">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onReset();
-                  }}
-                  className="text-[#B88AF8] hover:opacity-100 transition-all duration-200 flex items-center gap-2   font-normal text-xs leading-none"
-                >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-[24px] h-[24px]"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                </svg>
-                </button>
+        <div className="flex flex-col items-center">
+          <div className="w-[580px] flex gap-6 justify-center items-center">
+            {/* Deposit Chain Dropdown */}
+            <div className="w-[280px] bg-[#121420] rounded-t-md p-4 border-l border-r border-t border-[rgba(255,255,255,0.05)]">
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-[#9C9DA2] font-inter text-[12px] whitespace-nowrap flex items-center gap-1">
+                  Deposit Chain
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div>
+                          <InfoIcon />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent className="text-xs" side="top">
+                        This is the chain where your deposit will be settled.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </label>
+                <div className="relative w-full">
+                  <button
+                    onClick={() => setIsChainDropdownOpen(!isChainDropdownOpen)}
+                    className="flex items-center justify-between w-full bg-[#121420] text-[#EDF2F8] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] pr-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      {targetChain && (
+                        <img
+                          src={getUniqueChainConfigs.find(c => c.network === targetChain)?.image || ""}
+                          alt={targetChain} // Use network name for alt text
+                          className="w-5 h-5 rounded-full"
+                        />
+                      )}
+                      <span className="capitalize">{targetChain}</span>
+                    </div>
+                    <svg
+                      className={`w-4 h-4 transform transition-transform duration-200 ${isChainDropdownOpen ? 'rotate-180' : 'rotate-0'}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M19 9l-7 7-7-7"
+                      ></path>
+                    </svg>
+                  </button>
+                  {isChainDropdownOpen && (
+                    <div className="absolute z-10 w-full mt-2 bg-[#1F202D] rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 focus:outline-none">
+                      {getUniqueChainConfigs.map((chainOption) => (
+                        <button
+                          key={chainOption.network}
+                          onClick={() => {
+                            setTargetChain(chainOption.network);
+                            setIsChainDropdownOpen(false);
+                          }}
+                          className="flex items-center w-full px-4 py-2 text-sm text-[#EDF2F8] hover:bg-[#1A1B1E]"
+                        >
+                          <img
+                            src={chainOption.image}
+                            alt={chainOption.name}
+                            className="w-5 h-5 mr-2 rounded-full"
+                          />
+                          {chainOption.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
+            {/* Receive on Dropdown */}
+            <div className="w-[280px] bg-[#121420] rounded-t-md p-4 border-l border-r border-t border-[rgba(255,255,255,0.05)]">
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-[#9C9DA2] font-inter text-[12px] whitespace-nowrap flex items-center gap-1">
+                  Receive on
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div>
+                          <InfoIcon />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent className="text-xs" side="top">
+                        This is the chain where you will receive your assets.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </label>
+                <div className="relative w-full">
+                  <div
+                    className="flex items-center justify-between w-full bg-[#121420] text-[#EDF2F8] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] pr-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      {strategyConfig.network && (
+                        <img
+                          src={getUniqueChainConfigs.find(c => c.network === strategyConfig.network)?.image || ""}
+                          alt={strategyConfig.network} // Use network name for alt text
+                          className="w-5 h-5 rounded-full"
+                        />
+                      )}
+                      <span className="capitalize">{strategyConfig.network}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="w-[580px] h-[459px] flex-shrink-0">
             <div className="flex gap-6 justify-center items-center">
               {/* Left Card - Deposit Input */}
-              <div className="w-[280px] h-[311px] bg-[#0D101C] rounded-[4px] border border-[rgba(255,255,255,0.05)] p-6 flex flex-col">
+              <div className="w-[280px] h-[311px] bg-[#0D101C] rounded-b-[4px] border-l border-r border-b border-[rgba(255,255,255,0.05)] p-6 flex flex-col">
                 <div className="flex items-center justify-center">
                   <div className="flex flex-col items-center mt-[20px]">
                     {selectedAssetOption.image && (
@@ -1198,7 +1262,8 @@ const DepositView: React.FC<DepositViewProps> = ({
                     </span>
                   </div>
                 </div>
-                {/* --- Asset Dropdown & Multi-chain Toggle --- */}
+
+                {/* Asset Dropdown */}
                 {assetOptions.length > 1 && (
                   <div className="mt-4">
                     <label className="text-[#9C9DA2]   text-[12px] block mb-2">
@@ -1337,7 +1402,7 @@ const DepositView: React.FC<DepositViewProps> = ({
               </div>
 
               {/* Right Card - Strategy Info */}
-              <div className="w-[280px] h-[311px] bg-[#0D101C] rounded-[4px] border border-[rgba(255,255,255,0.05)] p-6 relative flex flex-col">
+              <div className="w-[280px] h-[311px] bg-[#0D101C] rounded-b-[4px] border-l border-r border-b border-[rgba(255,255,255,0.05)] p-6 relative flex flex-col">
                 {/* Background gradient effect - top */}
                 <div className="absolute top-0 left-0 right-0 h-[200px] bg-gradient-to-b from-[rgba(255,255,255,0.02)] to-transparent rounded-t-[4px] pointer-events-none"></div>
 
