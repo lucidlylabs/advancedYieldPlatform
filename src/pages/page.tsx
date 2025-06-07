@@ -24,8 +24,8 @@ export default function Page() {
     strategy: string;
   } | null>(null);
 
-  const [isVerified, setIsVerified] = useState(false);
-  const [isCodePopupOpen, setIsCodePopupOpen] = useState(true);
+  const [isVerified, setIsVerified] = useState(true);
+  const [isCodePopupOpen, setIsCodePopupOpen] = useState(false);
   const [verificationError, setVerificationError] = useState("");
 
   // Function to check for an existing session (will need a backend API to read the cookie)
@@ -50,7 +50,7 @@ export default function Page() {
 
   // useEffect to check session on component mount
   useEffect(() => {
-    checkSession();
+    // checkSession();
   }, []); // Run only once on mount
 
   const handleVerifyCode = async (code: string) => {

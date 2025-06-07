@@ -2,24 +2,24 @@ import { getDefaultConfig } from "@rainbow-me/rainbowkit";
 import { base, mainnet, sepolia, Chain, arbitrum } from "wagmi/chains";
 
 const sonic: Chain = {
-  id: 146, // Sonic mainnet chain ID (0x92)
-  name: "Sonic",
-  nativeCurrency: {
+    id: 146, // Sonic mainnet chain ID (0x92)
     name: "Sonic",
-    symbol: "S",
-    decimals: 18,
-  },
-  rpcUrls: {
-    default: { http: ["https://rpc.soniclabs.com"] },
-    public: { http: ["https://rpc.soniclabs.com"] },
-  },
-  blockExplorers: {
-    default: {
-      name: "Sonic Explorer",
-      url: "https://explorer.sonic.oasys.games",
+    nativeCurrency: {
+        name: "Sonic",
+        symbol: "S",
+        decimals: 18,
     },
-  },
-  testnet: false,
+    rpcUrls: {
+        default: { http: ["https://rpc.soniclabs.com"] },
+        public: { http: ["https://rpc.soniclabs.com"] },
+    },
+    blockExplorers: {
+        default: {
+            name: "Sonic Explorer",
+            url: "https://explorer.sonic.oasys.games",
+        },
+    },
+    testnet: false,
 };
 
 export const config = getDefaultConfig({
