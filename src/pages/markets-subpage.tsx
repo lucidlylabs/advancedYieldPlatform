@@ -252,6 +252,7 @@ const MarketsSubpage: React.FC = () => {
                         baseApy={selectedItem.baseYield}
                         contractAddress={selectedItem.contractAddress}
                         network={selectedItem.network}
+                        hasRealData={false}
                     />
                 ) : (
                     <div className="flex items-center justify-center h-full">

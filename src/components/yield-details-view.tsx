@@ -14,6 +14,7 @@ interface YieldDetailsViewProps {
     baseApy: string;
     contractAddress?: string;
     network?: string;
+    hasRealData?: boolean;
 }
 
 // Helper components
@@ -80,12 +81,13 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
     baseApy,
     contractAddress = "0x82...2d",
     network = "Ethereum",
+    hasRealData = false,
 }) => {
     const [activeTab, setActiveTab] = useState<
         "deposits" | "baseApy" | "incentives"
     >("deposits");
 
-    // Mock data for the chart
+    // Mock data for the chart - This data will only be used if hasRealData is true
     const chartData = [
         { month: "FEB 24", value: 20 },
         { month: "MAR 24", value: 15 },
@@ -122,8 +124,16 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
             {/* Chart */}
             <div className="w-full h-64 relative">
+                {!hasRealData && (
+                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-md backdrop-blur-sm z-10">
+                        <span className="text-white text-lg font-semibold">Collecting Data</span>
+                    </div>
+                )}
                 {/* Y-axis labels */}
-                <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-between text-right text-xs text-gray-400">
+                <div className={cn(
+                    "absolute right-0 top-0 bottom-0 flex flex-col justify-between text-right text-xs text-gray-400",
+                    !hasRealData && "blur"
+                )}>
                     <span>$100M</span>
                     <span>$80M</span>
                     <span>$60M</span>
@@ -133,7 +143,10 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                 </div>
 
                 {/* Chart bars */}
-                <div className="flex justify-between items-end h-full pr-12">
+                <div className={cn(
+                    "flex justify-between items-end h-full pr-12",
+                    !hasRealData && "blur"
+                )}>
                     {chartData.map((month, index) => (
                         <div key={index} className="flex-1 flex flex-col items-center">
                             <div
@@ -153,7 +166,10 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                 </div>
 
                 {/* X-axis labels */}
-                <div className="flex justify-between pr-12 mt-2 text-xs text-gray-400">
+                <div className={cn(
+                    "flex justify-between pr-12 mt-2 text-xs text-gray-400",
+                    !hasRealData && "blur"
+                )}>
                     {chartData.map((month, index) => (
                         <div key={index} className="flex-1 text-center">
                             {month.month}
@@ -171,15 +187,25 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
             </h2>
 
             {/* APY History Chart (simplified for example) */}
-            <div className="w-full h-64 bg-gray-800 rounded-md flex items-end">
-                <div className="w-full flex items-end justify-between p-4">
-                    {[15, 18, 22, 25, 20, 24, 28, 30, 27, 25, 27, 25].map((val, i) => (
-                        <div
-                            key={i}
-                            className="w-2 bg-purple-500 rounded-t"
-                            style={{ height: `${val * 2}px` }}
-                        ></div>
-                    ))}
+            <div className="w-full h-64 relative">
+                {!hasRealData && (
+                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-md backdrop-blur-sm z-10">
+                        <span className="text-white text-lg font-semibold">Collecting Data</span>
+                    </div>
+                )}
+                <div className={cn(
+                    "w-full h-full bg-gray-800 rounded-md flex items-end",
+                    !hasRealData && "blur"
+                )}>
+                    <div className="w-full flex items-end justify-between p-4">
+                        {[15, 18, 22, 25, 20, 24, 28, 30, 27, 25, 27, 25].map((val, i) => (
+                            <div
+                                key={i}
+                                className="w-2 bg-purple-500 rounded-t"
+                                style={{ height: `${val * 2}px` }}
+                            ></div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>
@@ -191,8 +217,16 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                 INCENTIVE REWARDS
             </h2>
 
-            <div className="bg-gray-800 rounded-md p-6">
-                <div className="grid grid-cols-2 gap-4">
+            <div className="bg-gray-800 rounded-md p-6 relative">
+                {!hasRealData && (
+                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-md backdrop-blur-sm z-10">
+                        <span className="text-white text-lg font-semibold">Collecting Data</span>
+                    </div>
+                )}
+                <div className={cn(
+                    "grid grid-cols-2 gap-4",
+                    !hasRealData && "blur"
+                )}>
                     <div className="border border-gray-700 rounded-md p-4">
                         <div className="flex items-center gap-2 mb-4">
                             <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
