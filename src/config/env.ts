@@ -1,7 +1,9 @@
 export const USD_STRATEGIES = {
     PERPETUAL_DURATION: {
         STABLE: {
-            network: "base",
+            name: "syUSD",
+            type: "usd",
+            network: "Base",
             contract: "0xaefc11908fF97c335D16bdf9F2Bf720817423825",
             boringVaultAddress: "0x279CAD277447965AF3d24a78197aad1B02a2c589",
             solverAddress: "0xF632c10b19f2a0451cD4A653fC9ca0c15eA1040b",
