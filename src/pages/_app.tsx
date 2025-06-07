@@ -9,6 +9,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { Inter } from 'next/font/google';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+import Head from 'next/head';
 
 const client = new QueryClient();
 
@@ -22,19 +23,22 @@ function ErrorFallback({ error }: { error: Error }) {
 }
 
 function MyApp({ Component, pageProps }: AppProps) {
-    return (
-        <ErrorBoundary FallbackComponent={ErrorFallback}>
-            <WagmiProvider config={config}>
-                <QueryClientProvider client={client}>
-                    <RainbowKitProvider>
-                        <main className={`${inter.variable} font-inter`}>
-                            <Component {...pageProps} />
-                        </main>
-                    </RainbowKitProvider>
-                </QueryClientProvider>
-            </WagmiProvider>
-        </ErrorBoundary>
-    );
+  return (
+    <ErrorBoundary FallbackComponent={ErrorFallback}>
+      <WagmiProvider config={config}>
+        <QueryClientProvider client={client}>
+          <RainbowKitProvider>
+            <Head>
+              <link rel="icon" href="/images/logo/logo.svg" />
+              <title>Lucidly Finance</title>
+              <meta property="og:image" content="/images/background/metaImage.svg" />
+            </Head>
+            <Component {...pageProps} />
+          </RainbowKitProvider>
+        </QueryClientProvider>
+      </WagmiProvider>
+    </ErrorBoundary>
+  );
 }
 
 export default MyApp;
