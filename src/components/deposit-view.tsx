@@ -1040,7 +1040,7 @@ const DepositView: React.FC<DepositViewProps> = ({
 
   return (
     <>
-      <div className="relative overflow-hidden">
+    <div className="relative overflow-hidden pt-24">
       {depositSuccess ? (
         <div className="flex flex-col items-center justify-center h-full pt-12">
           <div className="w-[580px] bg-[#0D101C] rounded-lg p-8 text-center">
@@ -1228,8 +1228,8 @@ const DepositView: React.FC<DepositViewProps> = ({
                     <div className="flex items-center gap-2">
                       {strategyConfig.network && (
                         <img
-                          src={getUniqueChainConfigs.find(c => c.network === strategyConfig.network)?.image || ""}
-                          alt={strategyConfig.network} // Use network name for alt text
+                          src={getUniqueChainConfigs.find(c => c.network === targetChain)?.image || ""}
+                          alt={targetChain} // Use network name for alt text
                           className="w-5 h-5 rounded-full"
                         />
                       )}
@@ -1241,7 +1241,7 @@ const DepositView: React.FC<DepositViewProps> = ({
             </div>
           </div>
 
-          <div className="w-[580px] h-[459px] flex-shrink-0">
+          <div className="w-[580px] flex-shrink-0">
             <div className="flex gap-6 justify-center items-center">
               {/* Left Card - Deposit Input */}
               <div className="w-[280px] h-[311px] bg-[#0D101C] rounded-b-[4px] border-l border-r border-b border-[rgba(255,255,255,0.05)] p-6 flex flex-col">
@@ -1527,7 +1527,9 @@ const DepositView: React.FC<DepositViewProps> = ({
                 connected && amount && balance && Number(amount) > Number(balance);
 
                 const buttonText = connected
-                    ? hasInsufficientFunds
+                    ? !amount || Number(amount) === 0
+                      ? "Enter Amount"
+                    : hasInsufficientFunds
                     ? "Insufficient Funds"
                     : status === "loading"
                     ? "Loading..."
@@ -1552,7 +1554,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                       connected && hasInsufficientFunds
                         ? "bg-gray-500 text-white opacity-50 cursor-not-allowed"
                         : "bg-[#B88AF8] text-[#1A1B1E] hover:opacity-90"
-                    }`}
+                    } ${ (!amount || Number(amount) === 0) && "bg-gray-500 text-white opacity-50 cursor-not-allowed"}`}
                   >
                     {buttonText}
                   </button>
