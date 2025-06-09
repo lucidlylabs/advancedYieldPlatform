@@ -1251,7 +1251,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                     <div className="flex items-center gap-2">
                       {strategyConfig.network && (
                         <img
-                          src={getUniqueChainConfigs.find(c => c.network === targetChain)?.image || ""}
+                          src={getUniqueChainConfigs.find(c => c.network === "base")?.image || ""}
                           alt={targetChain} // Use network name for alt text
                           className="w-5 h-5 rounded-full"
                         />
