@@ -179,8 +179,8 @@ const MarketsSubpage: React.FC = () => {
     return (
         <div className="flex min-h-screen text-white">
             {/* Left side - 50% */}
-            <div className="w-[757px] flex flex-col relative">
-                <div className="w-[757px] h-[124px] flex flex-col justify-center items-start relative pl-[32px]">
+            <div className="w-full flex flex-col relative">
+                <div className="w-full h-[124px] flex flex-col justify-center items-start relative pl-[32px]">
                     <div
                         className="absolute inset-0 bg-[url('/images/background/earn-page-heading-bg.svg')] bg-no-repeat bg-cover"
                         style={{ height: "100%" }}
@@ -251,7 +251,7 @@ const MarketsSubpage: React.FC = () => {
 
             <div className="w-[1px] bg-[rgba(255,255,255,0.1)]" />
 
-            <div className="w-1/2 ml-[30px]">
+            <div className="w-full">
                 {selectedItem ? (
                     <YieldDetailsView
                         name={selectedItem.name}

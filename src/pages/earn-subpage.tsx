@@ -247,20 +247,17 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
           onReset={handleReset}
         />
       ) : selectedAsset ? (
-        <div className="flex flex-col gap-6 pt-[8vh] w-full px-72">
-        {/* Back Button aligned left */}
-      
+        <div className="relative flex flex-col items-center gap-6 pt-[8vh] min-h-screen w-full">      
         {/* Centered Heading */}
-        <div className="flex justify-center">
-          <h1 className="text-[40px] font-bold  ">Select a Yield Source</h1>
+        <div className="text-center">
+          <h1 className="text-[40px] font-bold">Select a Yield Source</h1>
         </div>
-        <div className="pl-4">
-          <button
+        <button
             onClick={(e) => {
               e.stopPropagation();
               handleReset();
             }}
-            className="text-[#B88AF8] hover:opacity-100 transition-all duration-200 flex items-center gap-2   font-normal text-xs leading-none"
+            className="absolute -translate-x-[412px] translate-y-[56px] text-[#B88AF8] hover:opacity-100 transition-all duration-200 flex items-center gap-2 font-normal text-xs leading-none"
           >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -272,8 +269,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-          </button>
-        </div>
+        </button>
         <div className="flex gap-6 justify-center items-center">
             <CustomCard
               heading={selectedAsset.asset as AssetType}
@@ -387,7 +383,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
               availableDurations={["PERPETUAL_DURATION"]}
             />
             <CustomCard
-              heading="Ethereum"
+              heading="ETH"
               imageSrc="/images/icons/card-eth.svg"
               imageAlt="Ethereum semi-circle"
               hoverColor="#627EEA"
@@ -398,7 +394,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
               isComingSoon={true}
             />
             <CustomCard
-              heading="Bitcoin"
+              heading="BTC"
               imageSrc="/images/icons/card-btc.svg"
               imageAlt="Bitcoin semi-circle"
               hoverColor="#F7931A"

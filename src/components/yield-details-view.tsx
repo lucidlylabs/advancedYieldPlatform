@@ -179,10 +179,16 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
         //         </div>
         //     </div>
         // </div>
-        <div>
-        <Image src="/images/background/yields-blurred.jpg" alt="Deposits Chart" width={600} height={300} className="w-full h-auto mb-6 rounded-md" />
-        <h2 className="absolute text-lg pl-60">Collecting data...</h2>
-    </div>
+        <div className="relative w-full mb-6">
+        <h2 className="absolute top-48 left-1/2 -translate-x-1/2 text-lg text-white z-10">Collecting data...</h2>
+        <Image
+            src="/images/background/yields-blurred.jpg"
+            alt="Deposits Chart"
+            width={600}
+            height={300}
+            className="w-full h-auto"
+        />
+        </div>
     );
 
     const renderBaseApyTab = () => (
@@ -204,10 +210,16 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
         //         </div>
         //     </div>
         // </div>
-        <div>
-        <Image src="/images/background/yields-blurred.jpg" alt="Deposits Chart" width={600} height={300} className="w-full h-auto mb-6 rounded-md" />
-        <h2 className="absolute text-lg pl-60">Collecting data...</h2>
-    </div>
+        <div className="relative w-full mb-6">
+        <h2 className="absolute top-48 left-1/2 -translate-x-1/2 text-lg text-white z-10">Collecting data...</h2>
+        <Image
+            src="/images/background/yields-blurred.jpg"
+            alt="Deposits Chart"
+            width={600}
+            height={300}
+            className="w-full h-auto"
+        />
+        </div>
     );
 
     const renderIncentivesTab = () => (
@@ -270,9 +282,15 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
         //         </div>
         //     </div>
         // </div>
-        <div>
-        <Image src="/images/background/yields-blurred.jpg" alt="Deposits Chart" width={600} height={300} className="w-full h-auto mb-6 rounded-md" />
-        <h2 className="absolute text-lg pl-60">Collecting data...</h2>
+        <div className="relative w-full mb-6">
+        <h2 className="absolute top-48 left-1/2 -translate-x-1/2 text-lg text-white z-10">Collecting data...</h2>
+        <Image
+            src="/images/background/yields-blurred.jpg"
+            alt="Deposits Chart"
+            width={600}
+            height={300}
+            className="w-full h-auto"
+        />
         </div>
     );
 
@@ -327,24 +345,44 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
                 <div className="relative mt-2 w-[36px] h-[24px] cursor-pointer group">
                     {/* Ethereum Icon */}
-                    <div className="absolute left-0 z-10 transition-transform duration-300 hover:scale-110">
-                    <Image
+                    <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                      <div className="absolute left-0 z-10 transition-transform duration-300 hover:scale-110">
+                      <Image
                         src="/images/icons/eth-stable.svg"
                         alt="Ethereum"
                         width={24}
                         height={24}
                     />
                     </div>
+                      </TooltipTrigger>
+                      <TooltipContent className="text-xs" side="top">
+                        Ethereum
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
 
                     {/* BTC Icon */}
-                    <div className="absolute left-3 z-20 transition-transform duration-300 hover:scale-110">
-                    <Image
-                        src="/images/icons/btc-stable.svg"
-                        alt="Btc"
+                    <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                      <div className="absolute left-3 z-20 transition-transform duration-300 hover:scale-110">
+                      <Image
+                        src="/images/icons/base-logo.svg"
+                        alt="Base"
                         width={24}
                         height={24}
-                    />
+                      />
                     </div>
+                      </TooltipTrigger>
+                      <TooltipContent className="text-xs" side="top">
+                        Base
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
                 </div>
                 </div>
             </div>

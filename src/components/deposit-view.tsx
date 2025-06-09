@@ -501,8 +501,7 @@ const DepositView: React.FC<DepositViewProps> = ({
       refetchAllowance();
       setIsApproving(false);
       setIsApproved(true);
-      // Automatically trigger deposit after approval
-      handleDeposit();
+      // Remove automatic deposit trigger from here
     }
   }, [isApprovalSuccess, approvalHash, refetchAllowance]);
 
@@ -512,8 +511,7 @@ const DepositView: React.FC<DepositViewProps> = ({
       if (isApprovalSuccess) {
         setIsApproved(true);
         setIsApproving(false);
-        // Automatically trigger deposit after approval
-        handleDeposit();
+        // Remove automatic deposit trigger from here
       } else {
         setIsApproving(false);
       }
@@ -720,10 +718,7 @@ const DepositView: React.FC<DepositViewProps> = ({
       console.log("Raw rate from contract:", rate.toString());
 
       // Calculate minimum mint amount in 6 decimals
-      // First multiply by rate, then divide by 1e18 to get 6 decimals
       const minimumMint = (amountInWei * BigInt(rate)) / BigInt(1e18);
-
-      // Convert to exactly 6 decimals by multiplying by 1e6 and dividing by 1e18
       const minimumMintIn6Decimals = (minimumMint * BigInt(1e6)) / BigInt(1e18);
 
       console.log("Minimum mint calculation details:", {
@@ -770,21 +765,28 @@ const DepositView: React.FC<DepositViewProps> = ({
 
           if (typeof approveTx === "string" && approveTx.startsWith("0x")) {
             setApprovalHash(approveTx as `0x${string}`);
+            // Wait for approval transaction to be mined
+            await new Promise((resolve) => {
+              const checkApproval = setInterval(async () => {
+                if (isApprovalSuccess) {
+                  clearInterval(checkApproval);
+                  resolve(true);
+                }
+              }, 1000);
+            });
           }
         } catch (error: any) {
-
           console.error("Approval transaction failed:", error);
           setIsApproving(false);
           setErrorMessage("Approval failed");
-          // console.error("Approval transaction failed:", error);
           if (error.code === 4001) {
             setErrorMessage("Approval cancelled by user.");
           } else {
-            setErrorMessage("Approval failed. Please try again."); // Simpler message for other errors
+            setErrorMessage("Approval failed. Please try again.");
           }
+          setIsWaitingForSignature(false);
+          return;
         }
-        setIsWaitingForSignature(false);
-        return;
       }
 
       // If we're already approving, don't proceed with deposit
@@ -844,11 +846,10 @@ const DepositView: React.FC<DepositViewProps> = ({
             }
           } catch (error: any) {
             setErrorMessage("Multi-chain deposit failed");
-            // console.error("Multi-chain deposit failed:", error);
             if (error.code === 4001) {
               setErrorMessage("Multi-chain deposit cancelled by user.");
             } else {
-              setErrorMessage("Multi-chain deposit failed. Please try again."); // Simpler message
+              setErrorMessage("Multi-chain deposit failed. Please try again.");
             }
             setIsDepositing(false);
             return;
@@ -883,7 +884,6 @@ const DepositView: React.FC<DepositViewProps> = ({
               throw new Error("Invalid transaction response");
             }
           } catch (error: any) {  
-            // Check if user rejected the MetaMask transaction
             if (
               error?.name === "ContractFunctionExecutionError" &&
               error?.cause?.message?.includes("User denied transaction signature")
@@ -1040,7 +1040,7 @@ const DepositView: React.FC<DepositViewProps> = ({
 
   return (
     <>
-      <div className="relative overflow-hidden">
+    <div className="relative overflow-hidden pt-24">
       {depositSuccess ? (
         <div className="flex flex-col items-center justify-center h-full pt-12">
           <div className="w-[580px] bg-[#0D101C] rounded-lg p-8 text-center">
@@ -1228,8 +1228,8 @@ const DepositView: React.FC<DepositViewProps> = ({
                     <div className="flex items-center gap-2">
                       {strategyConfig.network && (
                         <img
-                          src={getUniqueChainConfigs.find(c => c.network === strategyConfig.network)?.image || ""}
-                          alt={strategyConfig.network} // Use network name for alt text
+                          src={getUniqueChainConfigs.find(c => c.network === targetChain)?.image || ""}
+                          alt={targetChain} // Use network name for alt text
                           className="w-5 h-5 rounded-full"
                         />
                       )}
@@ -1241,7 +1241,7 @@ const DepositView: React.FC<DepositViewProps> = ({
             </div>
           </div>
 
-          <div className="w-[580px] h-[459px] flex-shrink-0">
+          <div className="w-[580px] flex-shrink-0">
             <div className="flex gap-6 justify-center items-center">
               {/* Left Card - Deposit Input */}
               <div className="w-[280px] h-[311px] bg-[#0D101C] rounded-b-[4px] border-l border-r border-b border-[rgba(255,255,255,0.05)] p-6 flex flex-col">
@@ -1527,7 +1527,9 @@ const DepositView: React.FC<DepositViewProps> = ({
                 connected && amount && balance && Number(amount) > Number(balance);
 
                 const buttonText = connected
-                    ? hasInsufficientFunds
+                    ? !amount || Number(amount) === 0
+                      ? "Enter Amount"
+                    : hasInsufficientFunds
                     ? "Insufficient Funds"
                     : status === "loading"
                     ? "Loading..."
@@ -1539,6 +1541,8 @@ const DepositView: React.FC<DepositViewProps> = ({
                     ? "Approval Done - Click to Deposit"
                     : status === "depositing"
                     ? "Depositing..."
+                    : isApproved
+                    ? "Approval Done - Click to Deposit"
                     : "Deposit"
                   : "Connect Wallet";
 
@@ -1552,7 +1556,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                       connected && hasInsufficientFunds
                         ? "bg-gray-500 text-white opacity-50 cursor-not-allowed"
                         : "bg-[#B88AF8] text-[#1A1B1E] hover:opacity-90"
-                    }`}
+                    } ${ (!amount || Number(amount) === 0) && "bg-gray-500 text-white opacity-50 cursor-not-allowed"}`}
                   >
                     {buttonText}
                   </button>
