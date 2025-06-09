@@ -30,6 +30,7 @@ interface YieldDetailsViewProps {
     contractAddress?: string;
     network?: string;
     data:MarketItem[];
+    onOpenDepositView: () => void;
 }
 
 // Helper components
@@ -96,6 +97,8 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
     baseApy,
     contractAddress = "0x82...2d",
     network = "Ethereum",
+    data,
+    onOpenDepositView
 }) => {
     const [activeTab, setActiveTab] = useState<
         "deposits" | "baseApy" | "incentives"
@@ -296,7 +299,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
     return (
         <>
-        {showDepositView ? (
+        {/* {showDepositView ? (
             <DepositView
             selectedAsset="USD"
             duration="PERPETUAL_DURATION"
@@ -304,7 +307,8 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
             apy="4.5%"
             onBack={() => setShowDepositView(false)}
             onReset={() => setShowDepositView(false)}
-            />):(
+            />
+        ):( */}
               <div className="w-full pl-4 mt-10">
             <div className="flex justify-between items-center mb-2">
                 <div className="flex items-center pl-0">
@@ -315,7 +319,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                     </div>
                 </div>
                 <div className="flex items-center gap-3 mr-8">
-                    <button className="bg-[#B88AF8] hover:bg-[#9F6EE9] text-[#080B17] flex items-center gap-[8px] px-[16px] py-[6px] rounded-[4px] transition-colors  text-[14px] font-normal leading-normal" onClick={() => setShowDepositView(true)}>
+                    <button className="bg-[#B88AF8] hover:bg-[#9F6EE9] text-[#080B17] flex items-center gap-[8px] px-[16px] py-[6px] rounded-[4px] transition-colors  text-[14px] font-normal leading-normal" onClick={onOpenDepositView}>
                         Deposit
                     </button>
                 </div>
@@ -436,7 +440,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                 {activeTab === "incentives" && renderIncentivesTab()}
             </div>
               </div>
-            )}
+            {/* )} */}
         </>
     );
 };

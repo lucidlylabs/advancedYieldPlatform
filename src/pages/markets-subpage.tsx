@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/tooltip";
 import Image from "next/image";
 import { USD_STRATEGIES } from "@/config/env";
+import DepositView from "../components/deposit-view";
 
 type AssetType = "ALL" | "USD" | "ETH" | "BTC";
 
@@ -92,6 +93,7 @@ const MarketsSubpage: React.FC = () => {
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [selectedItem, setSelectedItem] = useState<MarketItem | null>(null);
+  const [showDepositView, setShowDepositView] = useState(false);
   
   // Market data
   const marketData: Record<AssetType, MarketItem[]> = {
@@ -169,15 +171,27 @@ const MarketsSubpage: React.FC = () => {
         });
     };
 
-    // Calculate the selected item's position in the current list
-    const getSelectedItemPosition = () => {
-        if (!selectedItem) return 0;
-        const currentData = getSortedData();
-        return currentData.findIndex((item) => item.id === selectedItem.id);
-    };
+    function handleOpenDepositView() {
+        setShowDepositView(true);
+    }
+    
+      function handleCloseDepositView() {
+        setShowDepositView(false);
+    }
 
     return (
-        <div className="flex min-h-screen text-white">
+        <>
+            {showDepositView ? (
+                            <DepositView
+                            selectedAsset="USD"
+                            duration="PERPETUAL_DURATION"
+                            strategy="stable"
+                            apy="4.5%"
+                            onBack={() => setShowDepositView(false)}
+                            onReset={() => setShowDepositView(false)}
+                            />
+            ):(        
+                <div className="flex min-h-screen text-white">
             {/* Left side - 50% */}
             <div className="w-full flex flex-col relative">
                 <div className="w-full h-[124px] flex flex-col justify-center items-start relative pl-[32px]">
@@ -260,6 +274,7 @@ const MarketsSubpage: React.FC = () => {
                         contractAddress={selectedItem.contractAddress}
                         network={selectedItem.network}
                         data={getSortedData()}
+                        onOpenDepositView={handleOpenDepositView}
                         // hasRealData={false}
                         // fullContractAddress={USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress}
                     />
@@ -288,7 +303,9 @@ const MarketsSubpage: React.FC = () => {
                     </div>
                 )}
             </div>
-        </div>
+                </div>
+            )}
+        </>
     );
 };
 
