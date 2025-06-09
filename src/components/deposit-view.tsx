@@ -501,8 +501,7 @@ const DepositView: React.FC<DepositViewProps> = ({
       refetchAllowance();
       setIsApproving(false);
       setIsApproved(true);
-      // Automatically trigger deposit after approval
-      handleDeposit();
+      // Remove automatic deposit trigger from here
     }
   }, [isApprovalSuccess, approvalHash, refetchAllowance]);
 
@@ -512,8 +511,7 @@ const DepositView: React.FC<DepositViewProps> = ({
       if (isApprovalSuccess) {
         setIsApproved(true);
         setIsApproving(false);
-        // Automatically trigger deposit after approval
-        handleDeposit();
+        // Remove automatic deposit trigger from here
       } else {
         setIsApproving(false);
       }
@@ -720,10 +718,7 @@ const DepositView: React.FC<DepositViewProps> = ({
       console.log("Raw rate from contract:", rate.toString());
 
       // Calculate minimum mint amount in 6 decimals
-      // First multiply by rate, then divide by 1e18 to get 6 decimals
       const minimumMint = (amountInWei * BigInt(rate)) / BigInt(1e18);
-
-      // Convert to exactly 6 decimals by multiplying by 1e6 and dividing by 1e18
       const minimumMintIn6Decimals = (minimumMint * BigInt(1e6)) / BigInt(1e18);
 
       console.log("Minimum mint calculation details:", {
@@ -770,21 +765,28 @@ const DepositView: React.FC<DepositViewProps> = ({
 
           if (typeof approveTx === "string" && approveTx.startsWith("0x")) {
             setApprovalHash(approveTx as `0x${string}`);
+            // Wait for approval transaction to be mined
+            await new Promise((resolve) => {
+              const checkApproval = setInterval(async () => {
+                if (isApprovalSuccess) {
+                  clearInterval(checkApproval);
+                  resolve(true);
+                }
+              }, 1000);
+            });
           }
         } catch (error: any) {
-
           console.error("Approval transaction failed:", error);
           setIsApproving(false);
           setErrorMessage("Approval failed");
-          // console.error("Approval transaction failed:", error);
           if (error.code === 4001) {
             setErrorMessage("Approval cancelled by user.");
           } else {
-            setErrorMessage("Approval failed. Please try again."); // Simpler message for other errors
+            setErrorMessage("Approval failed. Please try again.");
           }
+          setIsWaitingForSignature(false);
+          return;
         }
-        setIsWaitingForSignature(false);
-        return;
       }
 
       // If we're already approving, don't proceed with deposit
@@ -844,11 +846,10 @@ const DepositView: React.FC<DepositViewProps> = ({
             }
           } catch (error: any) {
             setErrorMessage("Multi-chain deposit failed");
-            // console.error("Multi-chain deposit failed:", error);
             if (error.code === 4001) {
               setErrorMessage("Multi-chain deposit cancelled by user.");
             } else {
-              setErrorMessage("Multi-chain deposit failed. Please try again."); // Simpler message
+              setErrorMessage("Multi-chain deposit failed. Please try again.");
             }
             setIsDepositing(false);
             return;
@@ -883,7 +884,6 @@ const DepositView: React.FC<DepositViewProps> = ({
               throw new Error("Invalid transaction response");
             }
           } catch (error: any) {  
-            // Check if user rejected the MetaMask transaction
             if (
               error?.name === "ContractFunctionExecutionError" &&
               error?.cause?.message?.includes("User denied transaction signature")
@@ -1541,6 +1541,8 @@ const DepositView: React.FC<DepositViewProps> = ({
                     ? "Approval Done - Click to Deposit"
                     : status === "depositing"
                     ? "Depositing..."
+                    : isApproved
+                    ? "Approval Done - Click to Deposit"
                     : "Deposit"
                   : "Connect Wallet";
 
