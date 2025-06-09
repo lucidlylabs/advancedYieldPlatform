@@ -1133,6 +1133,25 @@ const DepositView: React.FC<DepositViewProps> = ({
         </div>
       ) : (
         <div className="flex flex-col items-center">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onReset();
+            }}
+            className="absolute -translate-x-[284px] -translate-y-[42px] text-[#B88AF8] hover:opacity-100 transition-all duration-200 flex items-center gap-2 font-normal text-xs leading-none"
+          >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="w-[24px] h-[24px]"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          </button>
+        
           <div className="w-[580px] flex gap-6 justify-center items-center">
             {/* Deposit Chain Dropdown */}
             <div className="w-[280px] bg-[#121420] rounded-t-md p-4 border-l border-r border-t border-[rgba(255,255,255,0.05)]">
