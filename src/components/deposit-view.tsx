@@ -770,6 +770,8 @@ const DepositView: React.FC<DepositViewProps> = ({
               const checkApproval = setInterval(async () => {
                 if (isApprovalSuccess) {
                   clearInterval(checkApproval);
+                  setIsApproving(false);
+                  setIsWaitingForSignature(false);
                   resolve(true);
                 }
               }, 1000);
@@ -778,13 +780,13 @@ const DepositView: React.FC<DepositViewProps> = ({
         } catch (error: any) {
           console.error("Approval transaction failed:", error);
           setIsApproving(false);
+          setIsWaitingForSignature(false);
           setErrorMessage("Approval failed");
           if (error.code === 4001) {
             setErrorMessage("Approval cancelled by user.");
           } else {
             setErrorMessage("Approval failed. Please try again.");
           }
-          setIsWaitingForSignature(false);
           return;
         }
       }
@@ -884,8 +886,10 @@ const DepositView: React.FC<DepositViewProps> = ({
               throw new Error("Invalid transaction response");
             }
           } catch (error: any) {  
+            console.log("error",error)
             if (
-              error?.name === "ContractFunctionExecutionError" &&
+              error?.name === "UserRejectedRequestError" ||
+              error?.message?.includes("User rejected the request") ||
               error?.cause?.message?.includes("User denied transaction signature")
             ) {
               setErrorMessage("Transaction cancelled by user.");
