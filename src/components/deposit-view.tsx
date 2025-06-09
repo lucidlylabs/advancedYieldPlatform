@@ -284,6 +284,8 @@ const DepositView: React.FC<DepositViewProps> = ({
   const [isLoadingFee, setIsLoadingFee] = useState<boolean>(false);
   const { switchChain } = useSwitchChain();
   const { chain } = useAccount(); // Get connected chain info
+  const [isAssetDropdownOpen, setIsAssetDropdownOpen] = useState(false);
+  const [selectedAssetIdx, setSelectedAssetIdx] = useState(0);
 
   // Add state for custom dropdown
   const [isChainDropdownOpen, setIsChainDropdownOpen] = useState(false);
@@ -355,7 +357,6 @@ const DepositView: React.FC<DepositViewProps> = ({
     return getNetworkTokens();
   }, [strategyConfig, targetChain]);
 
-  const [selectedAssetIdx, setSelectedAssetIdx] = useState(0);
   const selectedAssetOption = assetOptions[selectedAssetIdx] || assetOptions[0];
 
   // Update token contract address and decimals
@@ -1289,22 +1290,67 @@ const DepositView: React.FC<DepositViewProps> = ({
                 {/* Asset Dropdown */}
                 {assetOptions.length > 1 && (
                   <div className="mt-4">
-                    <label className="text-[#9C9DA2]   text-[12px] block mb-2">
+                    <label className="text-[#9C9DA2] text-[12px] block mb-2">
                       Select Deposit Asset
                     </label>
-                    <select
-                      value={selectedAssetIdx}
-                      onChange={(e) =>
-                        setSelectedAssetIdx(Number(e.target.value))
-                      }
-                      className="w-full bg-[#0D101C] text-[#EDF2F8] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] border border-[rgba(255,255,255,0.19)]"
-                    >
-                      {assetOptions.map((opt, idx) => (
-                        <option value={idx} key={opt.contract}>
-                          {opt.name}
-                        </option>
-                      ))}
-                    </select>
+
+                    <div className="relative w-full">
+                      <button
+                        onClick={() => setIsAssetDropdownOpen(!isAssetDropdownOpen)}
+                        className="flex items-center justify-between w-full bg-[#0D101C] text-[#EDF2F8] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] border border-[rgba(255,255,255,0.19)]"
+                      >
+                        <div className="flex items-center gap-2">
+                          {assetOptions[selectedAssetIdx]?.image && (
+                            <img
+                              src={assetOptions[selectedAssetIdx].image}
+                              alt={assetOptions[selectedAssetIdx].name}
+                              className="w-5 h-5 rounded-full"
+                            />
+                          )}
+                          <span>{assetOptions[selectedAssetIdx].name}</span>
+                        </div>
+                        <svg
+                          className={`w-4 h-4 transform transition-transform duration-200 ${
+                            isAssetDropdownOpen ? "rotate-180" : "rotate-0"
+                          }`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M19 9l-7 7-7-7"
+                          ></path>
+                        </svg>
+                      </button>
+
+                      {isAssetDropdownOpen && (
+                        <div className="absolute z-10 w-full mt-2 bg-[#1F202D] rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 focus:outline-none">
+                          {assetOptions.map((opt, idx) => (
+                            <button
+                              key={opt.contract}
+                              onClick={() => {
+                                setSelectedAssetIdx(idx);
+                                setIsAssetDropdownOpen(false);
+                              }}
+                              className="flex items-center w-full px-4 py-2 text-sm text-[#EDF2F8] hover:bg-[#1A1B1E]"
+                            >
+                              {opt.image && (
+                                <img
+                                  src={opt.image}
+                                  alt={opt.name}
+                                  className="w-5 h-5 mr-2 rounded-full"
+                                />
+                              )}
+                              {opt.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
                 {/* Multi-chain Toggle (always shown) */}
