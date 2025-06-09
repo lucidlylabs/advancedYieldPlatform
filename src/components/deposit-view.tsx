@@ -1596,24 +1596,22 @@ const DepositView: React.FC<DepositViewProps> = ({
                 connected && amount && balance && Number(amount) > Number(balance);
 
                 const buttonText = connected
-                    ? !amount || Number(amount) === 0
-                      ? "Enter Amount"
-                    : hasInsufficientFunds
-                    ? "Insufficient Funds"
-                    : status === "loading"
-                    ? "Loading..."
-                    : status === "waitingForSignature"
-                    ? "Waiting for Signature..."
-                    : status === "processing"
-                    ? "Processing..."
-                    : status === "approved"
-                    ? "Approval Done - Click to Deposit"
-                    : status === "depositing"
-                    ? "Depositing..."
-                    : isApproved
-                    ? "Approval Done - Click to Deposit"
-                    : "Deposit"
-                  : "Connect Wallet";
+                ? !amount || Number(amount) === 0
+                  ? "Enter Amount"
+                  : hasInsufficientFunds
+                  ? "Insufficient Funds"
+                  : isApproved
+                  ? "Approval Done - Click to Deposit"
+                  : status === "loading"
+                  ? "Loading..."
+                  : status === "waitingForSignature"
+                  ? "Waiting for Signature..."
+                  : status === "processing"
+                  ? "Processing..."
+                  : status === "depositing"
+                  ? "Depositing..."
+                  : "Deposit"
+                : "Connect Wallet";
 
                 return (
                   <button
