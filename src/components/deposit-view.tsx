@@ -1290,7 +1290,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                 {assetOptions.length > 1 && (
                   <div className="mt-4">
                     <label className="text-[#9C9DA2]   text-[12px] block mb-2">
-                      Select Asset
+                      Select Deposit Asset
                     </label>
                     <select
                       value={selectedAssetIdx}
