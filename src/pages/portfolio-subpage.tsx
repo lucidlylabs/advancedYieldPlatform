@@ -3,8 +3,8 @@ import Image from "next/image";
 import {
   useAccount,
   useTransaction,
-  useReadContract,
   useWriteContract,
+  useChainId,
 } from "wagmi";
 import { USD_STRATEGIES, BTC_STRATEGIES, ETH_STRATEGIES } from "../config/env";
 import { ERC20_ABI } from "../config/abi/erc20";
@@ -15,6 +15,7 @@ import {
   http,
   formatUnits,
   parseUnits,
+  getAddress
 } from "viem";
 
 interface NetworkConfig {
@@ -135,6 +136,10 @@ const PortfolioSubpage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"withdraw" | "request">("withdraw");
   const [requestTab, setRequestTab] = useState<"pending" | "completed">("pending");
+  const [amountOut, setAmountOut] = useState<string | null>(null);
+
+  const chainId = useChainId();
+  const isBase = chainId === 8453;
 
   // Watch deposit transaction
   const { isLoading: isWaitingForDeposit, isSuccess: isDepositSuccess } =
@@ -188,14 +193,14 @@ const PortfolioSubpage: React.FC = () => {
   }, [isWaitingForWithdraw, isWithdrawing, isWithdrawSuccess, withdrawTxHash]);
 
   useEffect(() => {
-    if (!isWaitingForApproval && isApproving) {
-      if (isApprovalSuccess) {
+      if (approvalHash && isApprovalSuccess) {
         setIsApproved(true);
         setIsApproving(false);
-      } else {
+        console.log("Approval successful:");
+      } else if(approvalHash && !isWaitingForApproval && !isApprovalSuccess) {
+        setErrorMessage("Approval transaction failed");
         setIsApproving(false);
       }
-    }
   }, [isWaitingForApproval, isApproving, isApprovalSuccess]);
 
   // Function to check balance for a strategy
@@ -315,8 +320,6 @@ const PortfolioSubpage: React.FC = () => {
     }
   };
 
-  console.log("Strategies with balance:", strategiesWithBalance); 
-
   // Check balances for all strategies
   useEffect(() => {
     checkAllBalances();
@@ -327,20 +330,21 @@ const PortfolioSubpage: React.FC = () => {
 
   const handleApprove = async () => {
     if (!selectedStrategy || !withdrawAmount || !address) return;
-
+  
     try {
       setIsApproving(true);
       setErrorMessage(null);
-
+      setApprovalHash(null); 
+  
       const solverAddress = selectedStrategy.solverAddress as Address;
       const vaultAddress = selectedStrategy.boringVaultAddress as Address;
-
+  
       console.log("Approval details:", {
         solverAddress,
         vaultAddress,
         address
       });
-
+  
       const client = createPublicClient({
         transport: http(selectedStrategy.rpc),
         chain: {
@@ -358,18 +362,18 @@ const PortfolioSubpage: React.FC = () => {
           },
         },
       });
-
+  
       // Get decimals from vault
       const decimals = (await client.readContract({
         address: vaultAddress,
         abi: ERC20_ABI,
         functionName: "decimals",
       })) as number;
-
+  
       const sharesAmount = parseUnits(withdrawAmount, decimals);
-
+  
       console.log("Requesting approval for amount:", sharesAmount.toString());
-
+  
       // Approve the solver to spend the vault tokens
       const approveTx = await writeContract({
         address: vaultAddress,
@@ -379,34 +383,21 @@ const PortfolioSubpage: React.FC = () => {
         chainId: 8453,
         account: address,
       });
-
+  
       if (approveTx && typeof approveTx === "string" && approveTx.startsWith("0x")) {
-        console.log("Approval transaction submitted:", approveTx);
         setApprovalHash(approveTx as `0x${string}`);
-        
-        // Wait for approval transaction to complete
-        const { isSuccess: isApprovalSuccess } = await useTransaction({
-          hash: approveTx as `0x${string}`,
-        });
-
-        if (isApprovalSuccess) {
-          setIsApproved(true);
-          console.log("Approval successful");
-        } else {
-          throw new Error("Approval failed");
-        }
+        console.log("Approval transaction submitted:", approveTx);
       } else {
         throw new Error("Failed to get approval transaction hash");
       }
     } catch (error: any) {
-      // console.error("Approval failed:", error);
+      console.error("Approval failed:", error);
       if (error.code === 4001) {
         setErrorMessage("Approval cancelled by user.");
       } else {
-        setErrorMessage("Approval failed. Please try again.");
+        setErrorMessage(error.message || "Approval transaction failed");
       }
-    } finally {
-      setIsApproving(false);
+      setIsApproving(false); 
     }
   };
 
@@ -490,7 +481,6 @@ const PortfolioSubpage: React.FC = () => {
         throw new Error("Failed to get transaction hash");
       }
     } catch (error: any) {
-      // console.error("Contract call failed:", error);
       if (error.code === 4001) {
         setErrorMessage("Withdrawal cancelled by user.");
       } else {
@@ -525,6 +515,69 @@ const PortfolioSubpage: React.FC = () => {
       setWithdrawAmount(selectedStrategy.balance.toString());
     }
   };
+
+  useEffect(() => {
+    const fetchAmountOut = async () => {
+      if (!selectedStrategy || !withdrawAmount) return;
+  
+      try {
+
+        const solverAddress = selectedStrategy.solverAddress as Address;
+        const vaultAddress = selectedStrategy.boringVaultAddress as Address;
+        const USDC_ADDRESS_BASE = getAddress("0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913");
+
+        const client = createPublicClient({
+          transport: http(selectedStrategy.rpc),
+          chain: {
+            id: 8453,
+            name: "Base",
+            network: "base",
+            nativeCurrency: {
+              decimals: 18,
+              name: "Ether",
+              symbol: "ETH",
+            },
+            rpcUrls: {
+              default: { http: ["https://mainnet.base.org"] },
+              public: { http: ["https://mainnet.base.org"] },
+            },
+          },
+        });
+
+        //Get decimals of the vault
+        const decimals = (await client.readContract({
+          address: vaultAddress as Address,
+          abi: ERC20_ABI,
+          functionName: "decimals",
+        })) as number;
+  
+        //Convert withdrawAmount to uint128 (BigInt)
+        const shares = parseUnits(withdrawAmount, decimals); 
+        const discount = 0;
+  
+        //Call the previewAssetsOut
+        const result = (await client.readContract({
+          address: solverAddress as Address,
+          abi: SOLVER_ABI,
+          functionName: "previewAssetsOut",
+          args: [
+            USDC_ADDRESS_BASE,
+            shares,
+            discount,
+          ],
+        }));
+  
+        setAmountOut(result.toString());
+      } catch (err) {
+        console.error("Error reading previewAssetsOut:", err);
+        setAmountOut(null);
+      }
+    };
+  
+    fetchAmountOut();
+  }, [selectedStrategy, withdrawAmount]);
+
+  console.log("Amount out:", amountOut);
 
   return (
     <div className="flex flex-col min-h-screen text-white">
@@ -843,7 +896,7 @@ const PortfolioSubpage: React.FC = () => {
                   </div>
                   <div className="text-[#9C9DA2] text-right   text-[12px] font-normal leading-normal">
                     Balance:{" "}
-                    <span className="text-[#D7E3EF]   text-[12px] font-semibold leading-normal">
+                    <span className="text-[#D7E3EF] text-[12px] font-semibold leading-normal">
                       {selectedStrategy.balance.toFixed(4)}
                     </span>
                   </div>
@@ -897,8 +950,8 @@ const PortfolioSubpage: React.FC = () => {
                   <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
                     You Will Receive
                   </div>
-                  <div className="text-[#EDF2F8]   text-[16px] font-medium leading-normal">
-                    {parseFloat(withdrawAmount || "0").toFixed(2)}{" "}
+                  <div className="text-[#EDF2F8] text-[16px] font-medium leading-normal">
+                    {formatUnits(amountOut ? BigInt(amountOut) : BigInt(0), 6)}{" "}
                     {selectedStrategy.asset}
                   </div>
                 </div>
@@ -907,7 +960,8 @@ const PortfolioSubpage: React.FC = () => {
                   className={`w-full py-4 rounded-[4px] border border-[rgba(255,255,255,0.30)] flex justify-center items-center gap-[10px] text-center text-[16px] font-semibold ${
                     isWithdrawing || isApproving
                       ? "bg-[#2D2F3D] text-[#9C9DA2] cursor-not-allowed"
-                      : "bg-[#B88AF8] text-[#080B17] hover:bg-[#9F6EE9] transition-colors"
+                      : "bg-[#B88AF8] text-[#080B17] hover:bg-[#9F6EE9] transition-colors"}
+                      ${isBase ? "" : "bg-[#383941] text-[#9C9DA2] cursor-not-allowed hover:!bg-[#383941]"}
                   }`}
                   onClick={isApproved ? handleWithdraw : handleApprove}
                   disabled={
@@ -966,16 +1020,21 @@ const PortfolioSubpage: React.FC = () => {
                       </svg>
                       Transaction in Progress
                     </>
+
+                  ) : isWithdrawSuccess ?(
+                    "Request Another Withdraw"
                   ) : isApproved ? (
-                    "Withdraw"
+                    "Approved - Click to Withdraw"
+                  ) : !isBase ? (
+                    "Switch Network to Base"
                   ) : (
-                    "Approve"
+                    "Request Withdraw"
                   )}
                 </button>
                 {errorMessage && (
                   <div className="flex justify-between items-center mt-4 bg-[rgba(239,68,68,0.1)] rounded-[4px] p-4">
                     <div className="text-[#EF4444]   text-[14px]">
-                      Transaction Failed
+                      {errorMessage}
                     </div>
                     <div className="text-[#EF4444]   text-[14px] underline">
                       #
