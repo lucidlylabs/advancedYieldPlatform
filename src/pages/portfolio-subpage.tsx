@@ -69,6 +69,50 @@ interface StrategyAsset {
   [key: string]: StrategyDuration;
 }
 
+const requests = [
+  {
+    date: "18th May’25",
+    fromAmount: "1,000,000",
+    toAmount: "1,004,000",
+    canCancel: true,
+  },
+  {
+    date: "19th May’25",
+    fromAmount: "100",
+    toAmount: "104",
+    canCancel: true,
+  },
+  {
+    date: "19th May’25",
+    fromAmount: "900",
+    toAmount: "909",
+    canCancel: true,
+  },
+  {
+    date: "19th May’25",
+    fromAmount: "1,092",
+    toAmount: "1,200",
+    canCancel: true,
+  },
+];
+
+const ExternalLinkIcon = () => (
+  <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="14"
+      height="15"
+      viewBox="0 0 14 15"
+      fill="none"
+  >
+      <path
+          d="M12.25 5.75L12.25 2.25M12.25 2.25H8.75M12.25 2.25L7.58333 6.91667M5.83333 3.41667H4.55C3.56991 3.41667 3.07986 3.41667 2.70552 3.60741C2.37623 3.77518 2.10852 4.0429 1.94074 4.37218C1.75 4.74653 1.75 5.23657 1.75 6.21667V9.95C1.75 10.9301 1.75 11.4201 1.94074 11.7945C2.10852 12.1238 2.37623 12.3915 2.70552 12.5593C3.07986 12.75 3.56991 12.75 4.55 12.75H8.28333C9.26342 12.75 9.75347 12.75 10.1278 12.5593C10.4571 12.3915 10.7248 12.1238 10.8926 11.7945C11.0833 11.4201 11.0833 10.9301 11.0833 9.95V8.66667"
+          stroke="#9C9DA2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+      />
+  </svg>
+);
+
 const PortfolioSubpage: React.FC = () => {
   const { address, isConnected } = useAccount();
   const [depositSuccess, setDepositSuccess] = useState(false);
@@ -89,6 +133,8 @@ const PortfolioSubpage: React.FC = () => {
   );
   const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"withdraw" | "request">("withdraw");
+  const [requestTab, setRequestTab] = useState<"pending" | "completed">("pending");
 
   // Watch deposit transaction
   const { isLoading: isWaitingForDeposit, isSuccess: isDepositSuccess } =
@@ -268,6 +314,8 @@ const PortfolioSubpage: React.FC = () => {
       setIsRefreshingBalance(false);
     }
   };
+
+  console.log("Strategies with balance:", strategiesWithBalance); 
 
   // Check balances for all strategies
   useEffect(() => {
@@ -672,8 +720,8 @@ const PortfolioSubpage: React.FC = () => {
                     <div>
                       <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
                         {strategy.type === "stable"
-                          ? "Base Yield"
-                          : "Incentive Maxi"}{" "}
+                          ? "sy"
+                          : "Incentive Maxi"}
                         {strategy.asset}
                       </div>
                       <div className="text-[#00D1A0]   text-[12px] font-normal">
@@ -743,11 +791,31 @@ const PortfolioSubpage: React.FC = () => {
         <div className="w-1/2 p-8">
           {selectedStrategy ? (
             <div className="flex flex-col h-full rounded-lg p-6">
-              <h1 className="text-[#D7E3EF]   text-[20px] font-semibold leading-normal mb-4">
-                Withdraw
-              </h1>
-
-              <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
+              <div className="flex gap-4 mb-6 border-b border-[rgba(255,255,255,0.15)]">
+                <button
+                  onClick={() => setActiveTab("withdraw")}
+                  className={`px-4 py-2 text-[14px] font-semibold transition-colors ${
+                    activeTab === "withdraw"
+                      ? "text-white border-b-2 border-[#B88AF8]"
+                      : "text-[#9C9DA2]"
+                  }`}
+                >
+                  Withdraw
+                </button>
+                <button
+                  onClick={() => setActiveTab("request")}
+                  className={`px-4 py-2 text-[14px] font-semibold transition-colors ${
+                    activeTab === "request"
+                      ? "text-white border-b-2 border-[#B88AF8]"
+                      : "text-[#9C9DA2]"
+                  }`}
+                >
+                  Request
+                </button>
+              </div>
+              {activeTab === "withdraw" && (
+                <>
+                <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
                 {/* Header with strategy info and balance */}
                 <div className="flex items-center justify-between p-4  bg-[rgba(255,255,255,0.02)] mb-6 border-b border-[rgba(255,255,255,0.15)]">
                   <div className="flex items-center gap-4">
@@ -932,17 +1000,162 @@ const PortfolioSubpage: React.FC = () => {
                     </a>
                   </div>
                 )}
-              </div>
-
-              <div className="mt-2">
-                <div className="text-[#D7E3EF] text-[14px] rounded-[4px] bg-[rgba(255,255,255,0.02)] p-[24px]">
-                  <strong>Note:</strong> By withdrawing, your vault shares will
-                  be converted into the underlying asset, subject to the current
-                  market rates. Withdrawal amounts are calculated based on the
-                  latest market rates and may vary slightly due to price
-                  fluctuations.
                 </div>
-              </div>
+                <div className="mt-2">
+                    <div className="text-[#D7E3EF] text-[14px] rounded-[4px] bg-[rgba(255,255,255,0.02)] p-[24px]">
+                    <strong>Note:</strong> By withdrawing, your vault shares will
+                    be converted into the underlying asset, subject to the current
+                    market rates. Withdrawal amounts are calculated based on the
+                    latest market rates and may vary slightly due to price
+                    fluctuations.
+                    </div>
+                </div>
+                </>
+              )}
+
+              {activeTab === "request" && (
+                <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
+                {/* Tabs */}
+                <div className="mb-4 flex gap-6 border-b border-[#1A1B1E]">
+                  <button
+                    className={`py-2 text-[14px] font-medium ${
+                      requestTab === "pending"
+                        ? "text-white border-b-2 border-[#B88AF8]"
+                        : "text-[#9C9DA2]"
+                    }`}
+                    onClick={() => setRequestTab("pending")}
+                  >
+                    Pending
+                  </button>
+                  <button
+                    className={`py-2 text-[14px] font-medium ${
+                      requestTab === "completed"
+                        ? "text-white border-b-2 border-[#B88AF8]"
+                        : "text-[#9C9DA2]"
+                    }`}
+                    onClick={() => setRequestTab("completed")}
+                  >
+                    Completed
+                  </button>
+                </div>
+
+                {/* Requests List */}
+                {requestTab === "pending" && (                
+                  <div className="space-y-4">
+                  {requests.map((req, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-[rgba(255,255,255,0.02)] rounded-lg p-4 flex justify-between items-center"
+                    >
+                      <div className="flex items-center gap-4">
+                        {/* Calendar Icon + Date */}
+                        <div className="flex items-center text-[#9C9DA2] text-[13px] gap-1">
+                        <button className="text-[#9C9DA2] hover:text-white transition-colors">
+                            <ExternalLinkIcon />
+                        </button>
+                          {req.date}
+                        </div>
+
+                        {/* Amounts */}
+                        <div className="flex items-center gap-2 ml-6">
+                          {/* From Amount */}
+                          <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                            <Image
+                              src={`/images/icons/${selectedStrategy.asset.toLowerCase()}-${
+                                selectedStrategy.type === "stable" ? "stable" : "incentive"
+                              }.svg`}
+                              alt={selectedStrategy.asset}
+                              width={32}
+                              height={32}
+                            />
+                            <span className="text-white text-sm font-medium">{req.fromAmount}</span>
+                          </div>
+
+                          {/* Arrow */}
+                          <span className="text-[#9C9DA2] text-sm">→</span>
+
+                          {/* To Amount */}
+                          <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                            <span className="text-white text-sm font-medium">{req.toAmount}</span>
+                            <Image
+                              src={`/images/icons/${selectedStrategy.asset.toLowerCase()}-${
+                                selectedStrategy.type === "stable" ? "stable" : "incentive"
+                              }.svg`}
+                              alt={selectedStrategy.asset}
+                              width={32}
+                              height={32}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Cancel Button */}
+                      {req.canCancel && (
+                        <button className="text-[#F87171] text-[13px] font-medium hover:underline">
+                          Cancel Request
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  </div>
+                )}
+
+                {requestTab === "completed" && (                
+                  <div className="space-y-4">
+                  {requests.map((req, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-[rgba(255,255,255,0.02)] rounded-lg p-4 flex justify-between items-center"
+                    >
+                      <div className="flex items-center justify-between gap-4 w-full">
+                        {/* Calendar Icon + Date */}
+                        <div className="flex items-center text-[#9C9DA2] text-[13px] gap-1">
+                        <button className="text-[#9C9DA2] hover:text-white transition-colors">
+                            <ExternalLinkIcon />
+                        </button>
+                          {req.date}
+                        </div>
+
+                        {/* Amounts */}
+                        <div className="flex items-center gap-2 ml-6">
+                          {/* From Amount */}
+                          <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                            <Image
+                              src={`/images/icons/${selectedStrategy.asset.toLowerCase()}-${
+                                selectedStrategy.type === "stable" ? "stable" : "incentive"
+                              }.svg`}
+                              alt={selectedStrategy.asset}
+                              width={32}
+                              height={32}
+                            />
+                            <span className="text-white text-sm font-medium">{req.fromAmount}</span>
+                          </div>
+
+                          {/* Arrow */}
+                          <span className="text-[#9C9DA2] text-sm">→</span>
+
+                          {/* To Amount */}
+                          <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                            <span className="text-white text-sm font-medium">{req.toAmount}</span>
+                            <Image
+                              src={`/images/icons/${selectedStrategy.asset.toLowerCase()}-${
+                                selectedStrategy.type === "stable" ? "stable" : "incentive"
+                              }.svg`}
+                              alt={selectedStrategy.asset}
+                              width={32}
+                              height={32}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  </div>
+                )}
+
+                </div>
+              )}
+
             </div>
           ) : (
             <div className="flex items-center justify-center h-full">
