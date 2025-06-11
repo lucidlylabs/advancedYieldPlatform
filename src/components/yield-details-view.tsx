@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/tooltip";
 import Image from 'next/image';
 import DepositView from "./deposit-view";
+import { USD_STRATEGIES } from "../config/env";
 
 interface MarketItem {
     id: number;
@@ -95,7 +96,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
     name,
     tvl,
     baseApy,
-    contractAddress = "0x82...2d",
+    contractAddress = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress,
     network = "Ethereum",
     data,
     onOpenDepositView
@@ -338,56 +339,41 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                 <div className="flex flex-col px-6 relative after:content-[''] after:absolute after:right-0 after:top-[4px] after:w-[1px] after:h-[calc(100%-4px)] after:bg-[#2D2F3D]">
                     <div className="text-[#9C9DA2]  text-[14px] font-normal leading-normal">Contract Address</div>
                     <div className="text-white text-[14px] font-semibold leading-normal flex items-center gap-1 mt-[8px]">
-                        {contractAddress}
-                        <button className="text-[#9C9DA2] hover:text-white transition-colors">
+                        {contractAddress ? `${contractAddress.slice(0, 6)}...${contractAddress.slice(-4)}` : "N/A"}
+                        <a href={`https://basescan.org/address/${contractAddress}`} target="_blank" rel="noopener noreferrer" className="text-[#9C9DA2] hover:text-white transition-colors">
                             <ExternalLinkIcon />
-                        </button>
+                        </a>
                     </div>
                 </div>
                 <div className="flex flex-col px-6 relative">
                     <div className="text-[#9C9DA2] text-[14px] font-normal leading-normal">Network</div>
-
-                <div className="relative mt-2 w-[36px] h-[24px] cursor-pointer group">
-                    {/* Ethereum Icon */}
-                    <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                      <div className="absolute left-0 z-10 transition-transform duration-300 hover:scale-110">
-                      <Image
-                        src="/images/icons/eth-stable.svg"
-                        alt="Ethereum"
-                        width={24}
-                        height={24}
-                    />
+                    <div className="relative mt-2 flex items-center cursor-pointer group">
+                        {([
+                            USD_STRATEGIES.PERPETUAL_DURATION.STABLE.base,
+                            USD_STRATEGIES.PERPETUAL_DURATION.STABLE.ethereum,
+                            USD_STRATEGIES.PERPETUAL_DURATION.STABLE.arbitrum,
+                        ] as const)
+                            .filter(Boolean)
+                            .map((networkConfig, index) => (
+                                <TooltipProvider key={networkConfig.chainObject.name}>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <div className={cn("relative z-10 transition-transform duration-300 hover:scale-110", index > 0 && "-ml-2")}>
+                                                <Image
+                                                    src={networkConfig.image}
+                                                    alt={networkConfig.chainObject.name}
+                                                    width={24}
+                                                    height={24}
+                                                />
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="text-xs" side="top">
+                                            {networkConfig.chainObject.name}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            ))}
                     </div>
-                      </TooltipTrigger>
-                      <TooltipContent className="text-xs" side="top">
-                        Ethereum
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-
-
-                    {/* BTC Icon */}
-                    <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                      <div className="absolute left-3 z-20 transition-transform duration-300 hover:scale-110">
-                      <Image
-                        src="/images/icons/base-logo.svg"
-                        alt="Base"
-                        width={24}
-                        height={24}
-                      />
-                    </div>
-                      </TooltipTrigger>
-                      <TooltipContent className="text-xs" side="top">
-                        Base
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-
-                </div>
                 </div>
             </div>
 
