@@ -182,14 +182,14 @@ const MarketsSubpage: React.FC = () => {
     return (
         <>
             {showDepositView ? (
-                            <DepositView
-                            selectedAsset="USD"
-                            duration="PERPETUAL_DURATION"
-                            strategy="stable"
-                            apy="4.5%"
-                            onBack={() => setShowDepositView(false)}
-                            onReset={() => setShowDepositView(false)}
-                            />
+              <DepositView
+                selectedAsset="USD"
+                duration="PERPETUAL_DURATION"
+                strategy="stable"
+                apy="4.5%"
+                onBack={() => setShowDepositView(false)}
+                onReset={() => setShowDepositView(false)}
+               />
             ):(        
                 <div className="flex min-h-screen text-white">
             {/* Left side - 50% */}

@@ -17,6 +17,12 @@ import {
   parseUnits,
   getAddress
 } from "viem";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface NetworkConfig {
   tokens: Array<{
@@ -114,6 +120,31 @@ const ExternalLinkIcon = () => (
   </svg>
 );
 
+const assetOptions = [
+  {
+    name: "USDC",
+    contract: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    image: "/images/icons/usdc.svg",
+  },
+  {
+    name: "USDS",
+    contract: "0x820C137fa70C8691f0e44Dc420a5e53c168921Dc",
+    image: "/images/icons/usds.svg",
+  },
+  {
+    name: "sUSDS",
+    contract: "0x5875eEE11Cf8398102FdAd704C9E96607675467a",
+    image: "/images/icons/sUSDS.svg",
+  },
+];
+
+const strategy = USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
+const chainConfigs = {
+  base: strategy.base,
+  ethereum: strategy.ethereum,
+  arbitrum: strategy.arbitrum,
+};
+
 const PortfolioSubpage: React.FC = () => {
   const { address, isConnected } = useAccount();
   const [depositSuccess, setDepositSuccess] = useState(false);
@@ -137,6 +168,10 @@ const PortfolioSubpage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"withdraw" | "request">("withdraw");
   const [requestTab, setRequestTab] = useState<"pending" | "completed">("pending");
   const [amountOut, setAmountOut] = useState<string | null>(null);
+  const [selectedAssetIdx, setSelectedAssetIdx] = useState(0);
+  // Add state for custom dropdown
+  const [isAssetDropdownOpen, setIsAssetDropdownOpen] = useState(false);
+  const [depositedChains, setDepositedChains] = useState<string[]>([]);
 
   const chainId = useChainId();
   const isBase = chainId === 8453;
@@ -169,6 +204,21 @@ const PortfolioSubpage: React.FC = () => {
     useTransaction({
       hash: withdrawTxHash || undefined,
     });
+
+  const chainIconMap: Record<string, { src: string; label: string }> = {
+      ethereum: {
+        src: "/images/logo/eth.svg",
+        label: "Ethereum",
+      },
+      base: {
+        src: "/images/logo/base.svg",
+        label: "Base",
+      },
+      arbitrum: {
+        src: "/images/logo/arb.svg",
+        label: "Arbitrum",
+      },
+    };
 
   useEffect(() => {
     if (!isWaitingForWithdraw && isWithdrawing) {
@@ -217,10 +267,6 @@ const PortfolioSubpage: React.FC = () => {
         return 0;
       }
 
-      console.log("Checking balance for boring vault:", strategy.boringVaultAddress);
-      console.log("Using address:", address);
-      console.log("Using RPC:", strategy.rpc);
-
       const client = createPublicClient({
         transport: http(strategy.rpc),
         chain: {
@@ -253,12 +299,9 @@ const PortfolioSubpage: React.FC = () => {
             functionName: "decimals",
           }),
         ]);
-
-        console.log("Raw balance:", balance);
-        console.log("Decimals:", decimals);
+        console.log(`Checking chain balance: ${balance}`);
         
         const formattedBalance = parseFloat(formatUnits(balance as bigint, decimals as number));
-        console.log("Formatted balance:", formattedBalance);
         
         return formattedBalance;
       } catch (error) {
@@ -516,15 +559,84 @@ const PortfolioSubpage: React.FC = () => {
     }
   };
 
+  const getDepositedChainsViem = async ({
+    userAddress,
+    strategy,
+    chainConfigs,
+  }: {
+    userAddress: Address;
+    strategy: any;
+    chainConfigs: Record<
+      string,
+      {
+        rpc: string;
+        chainId: number;
+        image: string;
+        chainObject: any;
+      }
+    >;
+  }): Promise<string[]> => {
+    const depositedChains: string[] = [];
+  
+    for (const [chainKey, chain] of Object.entries(chainConfigs)) {
+      try {
+        const client = createPublicClient({
+          transport: http(chain.rpc),
+          chain: chain.chainObject,
+        });
+  
+        const decimals = strategy.shareAddress_token_decimal ?? 18;
+  
+        const balance = await client.readContract({
+          address: strategy.shareAddress as Address,
+          abi: ERC20_ABI,
+          functionName: "balanceOf",
+          args: [userAddress],
+        });
+  
+        const formatted = Number(formatUnits(balance as bigint, decimals));
+        
+        console.log(`[${chainKey}] Balance: ${formatted}`);
+
+        if (formatted > 0) {
+          depositedChains.push(chainKey);
+        }
+      } catch (err) {
+        console.error(`Error on ${chainKey}:`, err);
+      }
+    }
+  
+    return depositedChains;
+  };
+
+  useEffect(() => {
+    const fetchDeposits = async () => {   
+       if (!address || !strategy || !chainConfigs) {
+      console.log("Missing required data:", { address, strategy, chainConfigs });
+      return;
+      }  
+      console.log("Fetching deposits with:", { address, strategy, chainConfigs });
+
+      const depositedOn = await getDepositedChainsViem({
+        userAddress: address as Address,
+        strategy,
+        chainConfigs,
+      });
+  
+      setDepositedChains(depositedOn);
+      console.log("Deposited on:", depositedOn);  
+    };
+    fetchDeposits();
+  }, [address,strategy,chainConfigs]);
+
   useEffect(() => {
     const fetchAmountOut = async () => {
       if (!selectedStrategy || !withdrawAmount) return;
   
       try {
-
         const solverAddress = selectedStrategy.solverAddress as Address;
         const vaultAddress = selectedStrategy.boringVaultAddress as Address;
-        const USDC_ADDRESS_BASE = getAddress("0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913");
+        const selectedAssetAddress = getAddress(assetOptions[selectedAssetIdx].contract);
 
         const client = createPublicClient({
           transport: http(selectedStrategy.rpc),
@@ -561,7 +673,7 @@ const PortfolioSubpage: React.FC = () => {
           abi: SOLVER_ABI,
           functionName: "previewAssetsOut",
           args: [
-            USDC_ADDRESS_BASE,
+            selectedAssetAddress,
             shares,
             discount,
           ],
@@ -576,8 +688,6 @@ const PortfolioSubpage: React.FC = () => {
   
     fetchAmountOut();
   }, [selectedStrategy, withdrawAmount]);
-
-  console.log("Amount out:", amountOut);
 
   return (
     <div className="flex flex-col min-h-screen text-white">
@@ -673,11 +783,24 @@ const PortfolioSubpage: React.FC = () => {
           </div>
 
           {/* Column Headers */}
-          <div className="grid grid-cols-12 pl-4 pr-6 py-2 border-b border-[rgba(255,255,255,0.15)]">
-            <div className="text-[#9C9DA2]   text-[14px] font-medium col-span-4">
+          <div className="grid grid-cols-5 pl-4 pr-6 py-2 border-b border-[rgba(255,255,255,0.15)]">
+            <div className="flex justify-start text-[#9C9DA2] text-[14px] font-medium">
               Available Yields
             </div>
-            <div className="text-[#9C9DA2]   text-[14px] font-medium flex items-center col-span-3">
+            <div className="flex justify-end text-[#9C9DA2]   text-[14px] font-medium  items-center">
+              Deposited on
+              <svg
+                className="ml-1"
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
+              </svg>
+            </div>
+            <div className="flex justify-center text-[#9C9DA2]   text-[14px] font-medium items-center">
               Expiry
               <svg
                 className="ml-1"
@@ -690,7 +813,7 @@ const PortfolioSubpage: React.FC = () => {
                 <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
               </svg>
             </div>
-            <div className="text-[#9C9DA2]   text-[14px] font-medium flex items-center col-span-2">
+            <div className="flex justify-center text-[#9C9DA2] text-[14px] font-medium items-center">
               Base APY
               <svg
                 className="ml-1"
@@ -703,7 +826,7 @@ const PortfolioSubpage: React.FC = () => {
                 <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
               </svg>
             </div>
-            <div className="text-[#9C9DA2]   text-[14px] font-medium flex items-center justify-end col-span-3">
+            <div className="flex justify-end text-[#9C9DA2]   text-[14px] font-medium items-center">
               Current Balance
               <svg
                 className="ml-1"
@@ -736,7 +859,7 @@ const PortfolioSubpage: React.FC = () => {
               strategiesWithBalance.map((strategy, index) => (
                 <div
                   key={`${strategy.asset}-${strategy.duration}-${strategy.type}`}
-                  className={`grid grid-cols-12 items-center py-4 pl-4 pr-6 relative ${
+                  className={`grid grid-cols-5 items-center py-4 pl-4 pr-6 relative ${
                     index % 2 === 0
                       ? "bg-transparent"
                       : strategy.type === "stable"
@@ -760,7 +883,7 @@ const PortfolioSubpage: React.FC = () => {
                     }`}
                   ></div>
                   {/* Strategy Name */}
-                  <div className="flex items-center gap-4 col-span-4">
+                  <div className="flex items-center gap-4">
                     <Image
                       src={`/images/icons/${strategy.asset.toLowerCase()}-${
                         strategy.type === "stable" ? "stable" : "incentive"
@@ -789,8 +912,46 @@ const PortfolioSubpage: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Deposited On */}
+                  {depositedChains.length === 0 ? (
+                    <div className="flex flex-col items-center justify-end">
+                      <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
+                      -
+                      </div>
+                    </div>                  ) : (
+                    <div className="relative h-[24px] cursor-pointer group">
+                      {depositedChains.map((chainKey, index) => {
+                        const chain = chainIconMap[chainKey];
+                        if (!chain) return null;
+                        console.log("chain", chain)
+
+                        return (
+                          <TooltipProvider key={chainKey}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className="absolute left-16 z-10 transition-transform duration-300 hover:scale-110"
+                                >
+                                  <Image
+                                    src={chain.src}
+                                    alt={chain.label}
+                                    width={24}
+                                    height={24}
+                                  />
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent className="text-xs" side="top">
+                                {chain.label}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   {/* Expiry */}
-                  <div className="flex flex-col col-span-3">
+                  <div className="flex flex-col items-center justify-end">
                     <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
                       {strategy.duration === "PERPETUAL_DURATION"
                         ? "No Expiry"
@@ -804,12 +965,12 @@ const PortfolioSubpage: React.FC = () => {
                   </div>
 
                   {/* APY */}
-                  <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal col-span-2 flex items-center justify-center">
+                  <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal flex items-center justify-center">
                     {strategy.apy}
                   </div>
 
                   {/* Balance */}
-                  <div className="flex flex-col items-end col-span-3">
+                  <div className="flex flex-col items-end">
                     <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
                       ${strategy.balance.toFixed(2)}
                     </div>
@@ -950,9 +1111,71 @@ const PortfolioSubpage: React.FC = () => {
                   <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
                     You Will Receive
                   </div>
-                  <div className="text-[#EDF2F8] text-[16px] font-medium leading-normal">
-                    {formatUnits(amountOut ? BigInt(amountOut) : BigInt(0), 6)}{" "}
-                    {selectedStrategy.asset}
+                  <div className="flex justify-end items-center gap-4">
+                    <div className="text-[#EDF2F8] text-[16px] font-medium leading-normal">
+                      {formatUnits(amountOut ? BigInt(amountOut) : BigInt(0), 6)}{" "}
+                    </div>
+                    {assetOptions.length > 1 && (
+                      <div className="">
+                        <div className="relative w-full">
+                          <button
+                            onClick={() => setIsAssetDropdownOpen(!isAssetDropdownOpen)}
+                            className="flex items-center justify-between w-full bg-[#0D101C] text-[#EDF2F8] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] border border-[rgba(255,255,255,0.19)]"
+                          >
+                            <div className="flex items-center gap-2">
+                              {assetOptions[selectedAssetIdx]?.image && (
+                                <img
+                                  src={assetOptions[selectedAssetIdx].image}
+                                  alt={assetOptions[selectedAssetIdx].name}
+                                  className="w-5 h-5 rounded-full"
+                                />
+                              )}
+                              <span>{assetOptions[selectedAssetIdx].name}</span>
+                            </div>
+                            <svg
+                              className={`w-4 h-4 transform transition-transform duration-200 ${
+                                isAssetDropdownOpen ? "rotate-180" : "rotate-0"
+                              }`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M19 9l-7 7-7-7"
+                              ></path>
+                            </svg>
+                          </button>
+
+                          {isAssetDropdownOpen && (
+                            <div className="absolute z-10 w-full mt-2 bg-[#1F202D] rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 focus:outline-none">
+                              {assetOptions.map((opt, idx) => (
+                                <button
+                                  key={opt.contract}
+                                  onClick={() => {
+                                    setSelectedAssetIdx(idx);
+                                    setIsAssetDropdownOpen(false);
+                                  }}
+                                  className="flex items-center w-full px-4 py-2 text-sm text-[#EDF2F8] hover:bg-[#1A1B1E]"
+                                >
+                                  {opt.image && (
+                                    <img
+                                      src={opt.image}
+                                      alt={opt.name}
+                                      className="w-5 h-5 mr-2 rounded-full"
+                                    />
+                                  )}
+                                  {opt.name}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
