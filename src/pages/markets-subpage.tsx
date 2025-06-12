@@ -111,7 +111,7 @@ const MarketsSubpage: React.FC = () => {
         description: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.description,
         riskLevel: "Very Low",
         network: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.network,
-        contractAddress: `${USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.slice(0, 6)}...${USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.slice(-2)}`,
+        contractAddress: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress,
       }
     ],
   };
