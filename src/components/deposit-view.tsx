@@ -592,8 +592,8 @@ const DepositView: React.FC<DepositViewProps> = ({
   }, [status]);
 
   // Add preview fee function
-  const previewBridgeFee = async (amount: bigint) => {
-    if (!address || !amount) return;
+  const previewBridgeFee = async (amount: bigint): Promise<bigint> => {
+    if (!address || !amount) return BigInt(0); // Return 0 if prerequisites not met
 
     setIsLoadingFee(true);
     try {
@@ -622,18 +622,22 @@ const DepositView: React.FC<DepositViewProps> = ({
         ],
       });
 
-      console.log("Bridge fee calculation:", {
-        shareAmount: shareAmount.toString(),
-        to: address,
-        bridgeWildCard,
-        feeToken: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-        calculatedFee: fee.toString(),
-      });
+      // Remove previous console logs as they are no longer needed
+      // console.log("Raw bridge fee from contract:", fee.toString());
+      // console.log("Bridge fee calculation:", {
+      //   shareAmount: shareAmount.toString(),
+      //   to: address,
+      //   bridgeWildCard,
+      //   feeToken: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      //   calculatedFee: fee.toString(),
+      // });
 
-      setBridgeFee(formatUnits(fee as bigint, 18));
+      // setBridgeFee(formatUnits(fee as bigint, 18)); // Remove state update
+      return fee as bigint; // Return the fee directly
     } catch (error) {
       console.error("Error previewing bridge fee:", error);
-      setBridgeFee("0");
+      // setBridgeFee("0"); // Remove state update
+      return BigInt(0); // Return 0 on error
     } finally {
       setIsLoadingFee(false);
     }
@@ -641,16 +645,7 @@ const DepositView: React.FC<DepositViewProps> = ({
 
   // Helper function to get bridge wildcard
   const getBridgeWildCard = (chain: string): `0x${string}` => {
-    switch (chain) {
-      case "arbitrum":
-        return "0x000000000000000000000000000000000000000000000000000000000000759e";
-      case "optimism":
-        return "0x000000000000000000000000000000000000000000000000000000000000759f";
-      case "ethereum":
-        return "0x000000000000000000000000000000000000000000000000000000000000759d";
-      default:
-        return "0x000000000000000000000000000000000000000000000000000000000000759e";
-    }
+    return "0x00000000000000000000000000000000000000000000000000000000000075e8";
   };
 
   // Modify handleDeposit function
@@ -696,9 +691,17 @@ const DepositView: React.FC<DepositViewProps> = ({
       // Determine if multi-chain deposit is needed
       const currentChainId = chain?.id;
       const targetChainConfig = getChainConfig(targetChain);
-      const targetChainId = targetChainConfig.chainId;
+      const depositChainId = targetChainConfig.chainId;
 
-      setIsMultiChain(currentChainId !== targetChainId);
+      const receiveChainId = getChainConfig(strategyConfig.network).chainId;
+
+      setIsMultiChain(depositChainId !== receiveChainId);
+
+      console.log("Multi-chain check:", {
+        depositChainId,
+        receiveChainId,
+        isMultiChainCalculated: depositChainId !== receiveChainId,
+      });
 
       // Get rate from rate provider
       const rateProviderAddress = strategyConfig.rateProvider;
@@ -760,7 +763,7 @@ const DepositView: React.FC<DepositViewProps> = ({
             abi: ERC20_ABI,
             functionName: "approve",
             args: [boringVaultAddress as Address, amountInWei],
-            chainId: targetChainId,
+            chainId: depositChainId,
             account: address as Address,
           });
 
@@ -804,13 +807,15 @@ const DepositView: React.FC<DepositViewProps> = ({
 
         if (isMultiChain) {
           // Preview bridge fee before proceeding
-          await previewBridgeFee(amountInWei);
+          const calculatedBridgeFee = await previewBridgeFee(amountInWei);
+
+          console.log("Preview Fee:", formatUnits(calculatedBridgeFee, 18));
 
           // Get bridge wildcard
           const bridgeWildCard = getBridgeWildCard(targetChain);
 
           // Convert bridge fee to wei
-          const bridgeFeeWei = parseEther(bridgeFee);
+          const bridgeFeeWei = calculatedBridgeFee;
 
           // Proceed with multi-chain deposit
           console.log("Sending multi-chain deposit transaction:", {
@@ -836,7 +841,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                 "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" as Address, // ETH address
                 bridgeFeeWei, // Use the calculated bridge fee
               ],
-              chainId: targetChainId,
+              chainId: depositChainId,
               account: address as Address,
               value: bridgeFeeWei, // Include the calculated bridge fee in ETH
             });
@@ -876,7 +881,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                 amountInWei,
                 minimumMintIn6Decimals,
               ],
-              chainId: targetChainId,
+              chainId: depositChainId,
               account: address as Address,
             });
 
@@ -1353,41 +1358,6 @@ const DepositView: React.FC<DepositViewProps> = ({
                     </div>
                   </div>
                 )}
-                {/* Multi-chain Toggle (always shown) */}
-                {/* <div className="mt-4 flex items-center justify-between">
-                  <span className="text-[#9C9DA2]   text-[12px]">
-                    Multi-chain Deposit
-                  </span>
-                  <button
-                    onClick={() => setIsMultiChain(!isMultiChain)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                      isMultiChain ? "bg-[#B88AF8]" : "bg-[#1A1B1E]"
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        isMultiChain ? "translate-x-6" : "translate-x-1"
-                      }`}
-                    />
-                  </button>
-                </div> */}
-                {/* Target Chain Selection - Only shown when multi-chain is enabled */}
-                {isMultiChain && (
-                  <div className="mt-4">
-                    <label className="text-[#9C9DA2]   text-[12px] block mb-2">
-                      Target Chain
-                    </label>
-                    <select
-                      value={targetChain}
-                      onChange={(e) => setTargetChain(e.target.value)}
-                      className="w-full bg-[#1A1B1E] text-[#EDF2F8] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8]"
-                    >
-                      <option value="arbitrum">Arbitrum</option>
-
-                      <option value="ethereum">Ethereum</option>
-                    </select>
-                  </div>
-                )}
                 {/* --- End Asset Dropdown & Multi-chain Toggle --- */}
                 <div className="mt-auto flex flex-col gap-[1px]">
                   <div className="relative flex items-center">
@@ -1407,66 +1377,6 @@ const DepositView: React.FC<DepositViewProps> = ({
                       </span>
                     </button>
                   </div>
-                  {/* Bridge Fee Display */}
-                  {isMultiChain && (
-                    <div className="mt-[12px] flex flex-col gap-2">
-                      <span className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
-                        Bridge Fee:{" "}
-                        {isLoadingFee ? (
-                          <span className="inline-flex items-center gap-1">
-                            <svg
-                              className="animate-spin h-3 w-3 text-white"
-                              xmlns="http://www.w3.org/2000/svg"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                            >
-                              <circle
-                                className="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                strokeWidth="4"
-                              ></circle>
-                              <path
-                                className="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                              ></path>
-                            </svg>
-                            <span className="text-white">Loading...</span>
-                          </span>
-                        ) : (
-                          <span className="text-white">{bridgeFee} ETH</span>
-                        )}
-                      </span>
-                      <div className="bg-[#1A1B1E] rounded p-2 border border-[#B88AF8]/20">
-                        <div className="flex items-start gap-2">
-                          <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="text-[#B88AF8] mt-0.5 flex-shrink-0"
-                          >
-                            <path
-                              d="M12 16V12M12 8H12.01M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                          <span className="text-[#9C9DA2]   text-[12px] leading-normal">
-                            You need to have enough ETH in your wallet to cover
-                            the bridge fee. The fee will be paid in ETH along
-                            with your deposit.
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
 
