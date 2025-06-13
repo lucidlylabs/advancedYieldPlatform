@@ -971,6 +971,19 @@ const DepositView: React.FC<DepositViewProps> = ({
     };
   };
 
+  // Add helper function to get explorer URL
+  const getExplorerUrl = (chainName: string, txHash: string) => {
+    switch (chainName.toLowerCase()) {
+      case "ethereum":
+        return `https://etherscan.io/tx/${txHash}`;
+      case "arbitrum":
+        return `https://arbiscan.io/tx/${txHash}`;
+      case "base":
+      default:
+        return `https://basescan.org/tx/${txHash}`;
+    }
+  };
+
   const fetchBalance = async () => {
     if (!address) return;
 
@@ -1083,14 +1096,12 @@ const DepositView: React.FC<DepositViewProps> = ({
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[#9C9DA2]">Transaction Hash</span>
                 <a
-                  href={`https://basescan.org/tx/${transactionHash}`}
+                  href={getExplorerUrl(targetChain, transactionHash || '')}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[#B88AF8] hover:underline flex items-center gap-1"
                 >
-                  {`${transactionHash?.slice(0, 6)}...${transactionHash?.slice(
-                    -4
-                  )}`}
+                  {`${transactionHash?.slice(0, 6)}...${transactionHash?.slice(-4)}`}
                   <svg
                     width="16"
                     height="16"
@@ -1556,7 +1567,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                 {errorMessage}
                 {transactionHash && (
                   <a
-                    href={`https://sonicscan.io/tx/${transactionHash}`}
+                    href={getExplorerUrl(targetChain, transactionHash)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="underline"
