@@ -173,18 +173,18 @@ const CustomCard: React.FC<CustomCardProps> = ({
               )}
               style={{ backgroundColor: hoverColor }}
             />
-            <div className="p-6 relative z-10">
-              <div className="flex items-center gap-2">
+            <div className="px-6 relative z-10 pt-8">
+              <div className="flex items-center justify-center gap-2">
                 <h3
                   className={cn(
-                    "text-[32px] leading-none tracking-tight text-white transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] w-full flex flex-col items-center justify-center  ",
+                    "text-[32px] leading-none tracking-tight text-white transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] w-full flex flex-col items-center ",
                     !disableHover && "group-hover:text-[#1A1B1E]"
                   )}
                 >
                   {heading}
                   {selectedDuration && onReset && (
                     <div className="flex flex-col items-center gap-4 mt-2">
-                      {/* <div
+                      <div
                         onClick={(e) => {
                           e.stopPropagation();
                           onReset();
@@ -192,7 +192,7 @@ const CustomCard: React.FC<CustomCardProps> = ({
                         className="text-lg opacity-60 hover:opacity-100 transition-all duration-200 underline decoration-[rgba(255,255,255,0.6)] hover:decoration-white cursor-pointer"
                       >
                         {formatDuration(selectedDuration)}
-                      </div> */}
+                      </div>
                     </div>
                   )}
                   {selectedDuration && !onReset && (
