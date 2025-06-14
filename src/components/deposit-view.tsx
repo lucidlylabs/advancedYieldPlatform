@@ -269,14 +269,11 @@ const DepositView: React.FC<DepositViewProps> = ({
   );
   const [approvalHash, setApprovalHash] = useState<`0x${string}` | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isCheckingApproval, setIsCheckingApproval] = useState(false);
   const [isWaitingForSignature, setIsWaitingForSignature] = useState(false);
   const [status, setStatus] = useState<
     | "loading"
     | "waitingForSignature"
-    | "processing"
     | "approved"
-    | "depositing"
     | "idle"
   >("idle");
   const [isMultiChain, setIsMultiChain] = useState<boolean>(false);
@@ -424,7 +421,7 @@ const DepositView: React.FC<DepositViewProps> = ({
   });
 
   // Approve token for vault
-  const { writeContractAsync: approve, data: approveData } = useWriteContract();
+  const { writeContractAsync: approve, data: approveData, isPending: approveIsPending } = useWriteContract();
 
   // Check allowance against vault contract
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
@@ -458,7 +455,7 @@ const DepositView: React.FC<DepositViewProps> = ({
     });
 
   // Deposit into vault
-  const { writeContractAsync: deposit, data: depositData } = useWriteContract();
+  const { writeContractAsync: deposit, data: depositData, isPending: depositIsPending } = useWriteContract();
 
   // Watch deposit transaction
   const {
@@ -526,37 +523,34 @@ const DepositView: React.FC<DepositViewProps> = ({
     if (isApprovalSuccess && approvalHash) {
       console.log("Approval successful, updating allowance...");
       refetchAllowance();
-      setIsApproving(false);
       setIsApproved(true);
-      // Remove automatic deposit trigger from here
+      setIsWaitingForSignature(false);
     }
   }, [isApprovalSuccess, approvalHash, refetchAllowance]);
 
   // Reset loading states when transactions complete and refresh balance
   useEffect(() => {
-    if (!isWaitingForApproval && isApproving) {
+    if (!isWaitingForApproval) {
       if (isApprovalSuccess) {
         setIsApproved(true);
-        setIsApproving(false);
-        // Remove automatic deposit trigger from here
-      } else {
-        setIsApproving(false);
+        setIsWaitingForSignature(false);
       }
     }
-  }, [isWaitingForApproval, isApproving, isApprovalSuccess]);
+  }, [isWaitingForApproval, isApprovalSuccess]);
 
   useEffect(() => {
-    if (!isWaitingForDeposit && isDepositing) {
-      setIsDepositing(false);
+    if (!isWaitingForDeposit) {
       setIsApproved(false);
       fetchBalance();
+      setIsWaitingForSignature(false);
     }
-  }, [isWaitingForDeposit, isDepositing]);
+  }, [isWaitingForDeposit]);
 
   // Watch for deposit success
   useEffect(() => {
     if (isDepositSuccess && transactionHash) {
       setDepositSuccess(true);
+      setIsWaitingForSignature(false);
       console.log("Deposit successful!", {
         hash: transactionHash,
         amount,
@@ -566,51 +560,23 @@ const DepositView: React.FC<DepositViewProps> = ({
   }, [isDepositSuccess, transactionHash, amount, selectedAssetOption.name]);
 
   useEffect(() => {
-    const checkApproval = async () => {
-      setIsCheckingApproval(true);
-      try {
-        // Perform the approval check logic here
-        // Ensure this doesn't set isApproving to true
-      } catch (error) {
-        console.error("Error checking approval:", error);
-      } finally {
-        setIsCheckingApproval(false);
-      }
-    };
-
-    checkApproval();
-  }, []);
-
-  useEffect(() => {
-    console.log("isDepositing changed:", isDepositing);
-  }, [isDepositing]);
-
-  useEffect(() => {
-    console.log("isWaitingForDeposit changed:", isWaitingForDeposit);
-  }, [isWaitingForDeposit]);
-
-  useEffect(() => {
     if (isLoadingBalance) {
       setStatus("loading");
-    } else if (isWaitingForSignature) {
+    } else if (isWaitingForSignature || approveIsPending || depositIsPending || isWaitingForApproval || isWaitingForDeposit) {
       setStatus("waitingForSignature");
-    } else if (isApproving && (!isApprovalSuccess || isWaitingForApproval)) {
-      setStatus("processing");
-    } else if (isApproved && !isDepositing && !isWaitingForDeposit) {
+    } else if (isApproved && !depositIsPending && !isWaitingForDeposit) {
       setStatus("approved");
-    } else if (isDepositing && isWaitingForDeposit) {
-      setStatus("depositing");
     } else {
       setStatus("idle");
     }
   }, [
     isLoadingBalance,
     isWaitingForSignature,
-    isApproving,
-    isApprovalSuccess,
-    isApproved,
-    isDepositing,
+    approveIsPending,
+    depositIsPending,
+    isWaitingForApproval,
     isWaitingForDeposit,
+    isApproved,
   ]);
 
   useEffect(() => {
@@ -648,21 +614,9 @@ const DepositView: React.FC<DepositViewProps> = ({
         ],
       });
 
-      // Remove previous console logs as they are no longer needed
-      // console.log("Raw bridge fee from contract:", fee.toString());
-      // console.log("Bridge fee calculation:", {
-      //   shareAmount: shareAmount.toString(),
-      //   to: address,
-      //   bridgeWildCard,
-      //   feeToken: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-      //   calculatedFee: fee.toString(),
-      // });
-
-      // setBridgeFee(formatUnits(fee as bigint, 18)); // Remove state update
       return fee as bigint; // Return the fee directly
     } catch (error) {
       console.error("Error previewing bridge fee:", error);
-      // setBridgeFee("0"); // Remove state update
       return BigInt(0); // Return 0 on error
     } finally {
       setIsLoadingFee(false);
@@ -780,9 +734,8 @@ const DepositView: React.FC<DepositViewProps> = ({
       }
 
       // Step 1: Approve USDS for boring vault if needed
-      if (needsApproval && !isApproved && !isApproving) {
+      if (needsApproval && !isApproved && !approveIsPending) {
         console.log("Calling approve function...");
-        setIsApproving(true);
         try {
           const approveTx = await approve({
             address: tokenContractAddress as Address,
@@ -800,7 +753,6 @@ const DepositView: React.FC<DepositViewProps> = ({
               const checkApproval = setInterval(async () => {
                 if (isApprovalSuccess) {
                   clearInterval(checkApproval);
-                  setIsApproving(false);
                   setIsWaitingForSignature(false);
                   resolve(true);
                 }
@@ -809,28 +761,19 @@ const DepositView: React.FC<DepositViewProps> = ({
           }
         } catch (error: any) {
           console.error("Approval transaction failed:", error);
-          setIsApproving(false);
-          setIsWaitingForSignature(false);
           setErrorMessage("Approval failed");
           if (error.code === 4001) {
             setErrorMessage("Approval cancelled by user.");
           } else {
             setErrorMessage("Approval failed. Please try again.");
           }
+          setIsWaitingForSignature(false);
           return;
         }
       }
 
-      // If we're already approving, don't proceed with deposit
-      if (isApproving) {
-        setIsWaitingForSignature(false);
-        return;
-      }
-
-      // Only proceed with deposit if we have sufficient allowance
-      if (!needsApproval || isApproved) {
-        setIsDepositing(true);
-
+      // Only proceed with deposit if we have sufficient allowance and no pending approval
+      if ((!needsApproval || isApproved) && !approveIsPending) {
         if (isMultiChain) {
           // Preview bridge fee before proceeding
           const calculatedBridgeFee = await previewBridgeFee(amountInWei);
@@ -885,7 +828,7 @@ const DepositView: React.FC<DepositViewProps> = ({
             } else {
               setErrorMessage("Multi-chain deposit failed. Please try again.");
             }
-            setIsDepositing(false);
+            setIsWaitingForSignature(false);
             return;
           }
         } else {
@@ -930,21 +873,22 @@ const DepositView: React.FC<DepositViewProps> = ({
             } else {
               setErrorMessage("Deposit failed. Please try again.");
             }
-
-            setIsDepositing(false);
+            setIsWaitingForSignature(false);
             return;
           }
         }
+      } else if (approveIsPending) {
+        console.log("Approval is pending, waiting for it to complete.");
+        setErrorMessage("Approval is pending. Please complete the approval first.");
+        setIsWaitingForSignature(true);
       } else {
         console.log("Insufficient allowance, approval needed first");
         setErrorMessage("Please approve the token spending first");
+        setIsWaitingForSignature(false);
       }
     } catch (error: any) {
       console.error("Transaction failed:", error);
-      setIsApproving(false);
-      setIsDepositing(false);
       setErrorMessage("Transaction failed");
-    } finally {
       setIsWaitingForSignature(false);
     }
   };
@@ -1569,8 +1513,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                       authenticationStatus === "authenticated");
 
                   const isLoading =
-                    (isApproving && isWaitingForApproval) ||
-                    (isDepositing && isWaitingForDeposit);
+                    approveIsPending || depositIsPending || isWaitingForApproval || isWaitingForDeposit;
 
                   const hasInsufficientFunds =
                     connected &&
@@ -1583,17 +1526,11 @@ const DepositView: React.FC<DepositViewProps> = ({
                       ? "Enter Amount"
                       : hasInsufficientFunds
                       ? "Insufficient Funds"
-                      : isApproved
-                      ? "Approval Done - Click to Deposit"
-                      : status === "loading"
-                      ? "Loading..."
-                      : status === "waitingForSignature"
-                      ? "Waiting for Signature..."
-                      : status === "processing"
-                      ? "Processing..."
-                      : status === "depositing"
-                      ? "Depositing..."
-                      : "Deposit"
+                      : isWaitingForSignature
+                        ? "Waiting for Signature..."
+                        : isApproved && !isLoading
+                          ? "Approval Done - Click to Deposit"
+                          : "Deposit"
                     : "Connect Wallet";
 
                   return (
