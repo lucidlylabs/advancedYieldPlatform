@@ -159,7 +159,18 @@ const CustomCard: React.FC<CustomCardProps> = ({
                   </Tooltip>
                 </TooltipProvider>
               </div>
-              <div className="text-2xl font-semibold">{apy.value}</div>
+              <TooltipProvider>
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <div className="text-2xl font-semibold blur-sm transition-all duration-300">
+                      {apy.value}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-[#1A1B1E] text-white p-2 rounded-md border border-[rgba(255,255,255,0.1)]">
+                    <p>Collecting Data</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           )}
         </div>
@@ -184,7 +195,7 @@ const CustomCard: React.FC<CustomCardProps> = ({
                   {heading}
                   {selectedDuration && onReset && (
                     <div className="flex flex-col items-center gap-4 mt-2">
-                      {/* <div
+                      <div
                         onClick={(e) => {
                           e.stopPropagation();
                           onReset();
@@ -192,7 +203,7 @@ const CustomCard: React.FC<CustomCardProps> = ({
                         className="text-lg opacity-60 hover:opacity-100 transition-all duration-200 underline decoration-[rgba(255,255,255,0.6)] hover:decoration-white cursor-pointer"
                       >
                         {formatDuration(selectedDuration)}
-                      </div> */}
+                      </div>
                     </div>
                   )}
                   {selectedDuration && !onReset && (

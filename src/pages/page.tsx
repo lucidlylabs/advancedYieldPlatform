@@ -106,8 +106,7 @@ export default function Page() {
             <div
               className="cursor-pointer"
               onClick={() => {
-                setSelectedSubPage(SubPage.Yield);
-                setDepositParams(null);
+                window.location.href = 'https://lucidly.finance';
               }}
             >
               <Image

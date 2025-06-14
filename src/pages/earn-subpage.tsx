@@ -252,7 +252,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
         <div className="text-center">
           <h1 className="text-[40px] font-bold">Select a Yield Source</h1>
         </div>
-        <button
+        {/* <button
             onClick={(e) => {
               e.stopPropagation();
               handleReset();
@@ -269,7 +269,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-        </button>
+        </button> */}
         <div className="flex gap-6 justify-center items-center">
             <CustomCard
               heading={selectedAsset.asset as AssetType}
@@ -299,7 +299,11 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                 className="cursor-pointer"
               >
                 <CustomCard
-                  heading={`syUSD`}
+                  heading={
+                    selectedAsset.asset === "USD" 
+                      ? USD_STRATEGIES.PERPETUAL_DURATION.STABLE.name
+                      : `${selectedAsset.asset} Strategy`
+                  }
                   imageSrc={`/images/icons/${(
                     selectedAsset.asset as AssetType
                   ).toLowerCase()}-stable.svg`}
@@ -314,6 +318,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                     ].apy
                   }
                   isStrategyCard={true}
+                  selectedDuration={selectedAsset.duration}
                   onReset={handleReset}
                   disableHover={true}
                 />
@@ -357,6 +362,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                   isStrategyCard={true}
                   disableHover={true}
                   onReset={handleReset}
+                  selectedDuration={selectedAsset.duration}
                   isComingSoon={
                     getStrategyInfo(selectedAsset.duration).incentives[
                       selectedAsset.asset as AssetType
