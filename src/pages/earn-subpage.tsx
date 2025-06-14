@@ -252,7 +252,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
         <div className="text-center">
           <h1 className="text-[40px] font-bold">Select a Yield Source</h1>
         </div>
-        <button
+        {/* <button
             onClick={(e) => {
               e.stopPropagation();
               handleReset();
@@ -269,7 +269,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-        </button>
+        </button> */}
         <div className="flex gap-6 justify-center items-center">
             <CustomCard
               heading={selectedAsset.asset as AssetType}
