@@ -16,15 +16,18 @@ import {
   formatUnits,
   parseUnits,
 } from "viem";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts";
+import { useRouter } from "next/router";
+
+const isMobile = () => typeof window !== "undefined" && window.innerWidth < 640;
+// import {
+//   BarChart,
+//   Bar,
+//   XAxis,
+//   YAxis,
+//   Tooltip,
+//   ResponsiveContainer,
+//   CartesianGrid,
+// } from "recharts";
 
 interface StrategyConfig {
   network: string;
@@ -139,6 +142,8 @@ const PortfolioSubpage: React.FC = () => {
   );
   const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const router = useRouter();
 
   // Watch deposit transaction
   const { isLoading: isWaitingForDeposit, isSuccess: isDepositSuccess } =
@@ -515,9 +520,31 @@ const PortfolioSubpage: React.FC = () => {
     }
   };
 
+  // Handler for row clicks
   const handleStrategySelect = (strategy: any) => {
-    setSelectedStrategy(strategy);
-    setWithdrawAmount(strategy.balance.toString());
+    console.log("strategy",strategy)
+    if (isMobile()) {
+        router.push({
+          pathname: `/portfolio/${strategy.contract}`,
+          query: { 
+            strategy: strategy.contract,
+            asset: strategy.asset,
+            balance: strategy.balance,
+            duration: strategy.duration,
+            type: strategy.type,
+            apy: strategy.apy,
+            SolverAddress: strategy.solverAddress,
+            boringVaultAddress: strategy.boringVaultAddress,
+            // tvl: strategy.tvl,
+            // baseApy: strategy.baseYield,
+            // contractAddress: strategy.contractAddress || "",
+            // network: strategy.network || ""
+          },
+        });
+    } else {
+        setSelectedStrategy(strategy);
+        setWithdrawAmount(strategy.balance.toString());
+    }
   };
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -540,18 +567,18 @@ const PortfolioSubpage: React.FC = () => {
     }
   };
 
-  const CustomXAxisTick = ({ x, y, payload, index, data }) => {
-    const currentLabel = payload.value;
-    const prevLabel = index > 0 ? data[index - 1]?.date : null;
+  // const CustomXAxisTick = ({ x, y, payload, index, data }) => {
+  //   const currentLabel = payload.value;
+  //   const prevLabel = index > 0 ? data[index - 1]?.date : null;
   
-    const showLabel = currentLabel !== prevLabel;
+  //   const showLabel = currentLabel !== prevLabel;
   
-    return showLabel ? (
-      <text x={x} y={y + 15} fill="#9C9DA2" fontSize={6}>
-        {currentLabel}
-      </text>
-    ) : null;
-  };
+  //   return showLabel ? (
+  //     <text x={x} y={y + 15} fill="#9C9DA2" fontSize={6}>
+  //       {currentLabel}
+  //     </text>
+  //   ) : null;
+  // };
 
   return (
     <div className="flex flex-col min-h-screen text-white">
@@ -647,7 +674,7 @@ const PortfolioSubpage: React.FC = () => {
           </div>
 
           {/* Graph */}
-          <div className="w-full h-[350px] rounded-xl">
+          {/* <div className="w-full h-[350px] rounded-xl">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={chartData}
@@ -680,7 +707,7 @@ const PortfolioSubpage: React.FC = () => {
                 <Bar dataKey="incentive" stackId="a" fill="#7155FF" radius={[2, 2, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          </div>
+          </div> */}
                 
           <div className="grid grid-cols-12 gap-y-2 pr-6 py-2 border-b border-[rgba(255,255,255,0.15)]">
             <div className="flex items-center col-span-3 sm:col-span-3 text-[#9C9DA2] font-inter text-[14px] font-medium">

@@ -128,6 +128,7 @@ const MarketsSubpage: React.FC = () => {
 
   // Handler for row clicks
   const handleRowClick = (item: MarketItem) => {
+    console.log("Row clicked:", item);
     if (isMobile()) {
       router.push({
         pathname: `/yield/${item.id}`,
