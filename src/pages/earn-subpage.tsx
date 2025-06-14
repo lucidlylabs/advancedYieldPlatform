@@ -299,7 +299,11 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                 className="cursor-pointer"
               >
                 <CustomCard
-                  heading={`syUSD`}
+                  heading={
+                    selectedAsset.asset === "USD" 
+                      ? USD_STRATEGIES.PERPETUAL_DURATION.STABLE.name
+                      : `${selectedAsset.asset} Strategy`
+                  }
                   imageSrc={`/images/icons/${(
                     selectedAsset.asset as AssetType
                   ).toLowerCase()}-stable.svg`}
@@ -314,6 +318,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                     ].apy
                   }
                   isStrategyCard={true}
+                  selectedDuration={selectedAsset.duration}
                   onReset={handleReset}
                   disableHover={true}
                 />
@@ -357,6 +362,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                   isStrategyCard={true}
                   disableHover={true}
                   onReset={handleReset}
+                  selectedDuration={selectedAsset.duration}
                   isComingSoon={
                     getStrategyInfo(selectedAsset.duration).incentives[
                       selectedAsset.asset as AssetType

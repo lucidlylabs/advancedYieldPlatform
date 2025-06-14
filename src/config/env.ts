@@ -77,7 +77,7 @@ export const USD_STRATEGIES = {
           },
           {
             name: "USDS",
-            contract: "0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD",
+            contract: "0xdC035D45d973E3EC169d2276DDab16f1e407384F",
             decimal: 18,
             image: "/images/icons/usds.svg",
           },
