@@ -1034,7 +1034,7 @@ const PortfolioSubpage: React.FC = () => {
                 >
                   Withdraw
                 </button>
-                <button
+                {/* <button
                   onClick={() => setActiveTab("request")}
                   className={`px-4 py-2 text-[14px] font-semibold transition-colors ${
                     activeTab === "request"
@@ -1043,7 +1043,7 @@ const PortfolioSubpage: React.FC = () => {
                   }`}
                 >
                   Request
-                </button>
+                </button> */}
               </div>
               {activeTab === "withdraw" && (
                 <>
