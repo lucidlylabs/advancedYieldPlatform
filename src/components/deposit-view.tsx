@@ -242,12 +242,6 @@ const InfoIcon = () => (
   </svg>
 );
 
-const formatDuration = (duration: string) => {
-  if (duration === "PERPETUAL_DURATION") return "Perpetual";
-  const [number, period] = duration.split("_");
-  return `${number} ${period.toLowerCase()}`;
-};
-
 const DepositView: React.FC<DepositViewProps> = ({
   selectedAsset,
   duration,

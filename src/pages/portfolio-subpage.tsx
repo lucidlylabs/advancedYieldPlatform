@@ -3,8 +3,8 @@ import Image from "next/image";
 import {
   useAccount,
   useTransaction,
-  useReadContract,
   useWriteContract,
+  useChainId,
 } from "wagmi";
 import { USD_STRATEGIES, BTC_STRATEGIES, ETH_STRATEGIES } from "../config/env";
 import { ERC20_ABI } from "../config/abi/erc20";
@@ -15,7 +15,14 @@ import {
   http,
   formatUnits,
   parseUnits,
+  getAddress,
 } from "viem";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface NetworkConfig {
   tokens: Array<{
@@ -69,6 +76,75 @@ interface StrategyAsset {
   [key: string]: StrategyDuration;
 }
 
+const requests = [
+  {
+    date: "18th May'25",
+    fromAmount: "1,000,000",
+    toAmount: "1,004,000",
+    canCancel: true,
+  },
+  {
+    date: "19th May'25",
+    fromAmount: "100",
+    toAmount: "104",
+    canCancel: true,
+  },
+  {
+    date: "19th May'25",
+    fromAmount: "900",
+    toAmount: "909",
+    canCancel: true,
+  },
+  {
+    date: "19th May'25",
+    fromAmount: "1,092",
+    toAmount: "1,200",
+    canCancel: true,
+  },
+];
+
+const ExternalLinkIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="14"
+    height="15"
+    viewBox="0 0 14 15"
+    fill="none"
+  >
+    <path
+      d="M12.25 5.75L12.25 2.25M12.25 2.25H8.75M12.25 2.25L7.58333 6.91667M5.83333 3.41667H4.55C3.56991 3.41667 3.07986 3.41667 2.70552 3.60741C2.37623 3.77518 2.10852 4.0429 1.94074 4.37218C1.75 4.74653 1.75 5.23657 1.75 6.21667V9.95C1.75 10.9301 1.75 11.4201 1.94074 11.7945C2.10852 12.1238 2.37623 12.3915 2.70552 12.5593C3.07986 12.75 3.56991 12.75 4.55 12.75H8.28333C9.26342 12.75 9.75347 12.75 10.1278 12.5593C10.4571 12.3915 10.7248 12.1238 10.8926 11.7945C11.0833 11.4201 11.0833 10.9301 11.0833 9.95V8.66667"
+      stroke="#9C9DA2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const assetOptions = [
+  {
+    name: "USDC",
+    contract: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    image: "/images/icons/usdc.svg",
+  },
+  {
+    name: "USDS",
+    contract: "0x820C137fa70C8691f0e44Dc420a5e53c168921Dc",
+    image: "/images/icons/usds.svg",
+  },
+  {
+    name: "sUSDS",
+    contract: "0x5875eEE11Cf8398102FdAd704C9E96607675467a",
+    image: "/images/icons/sUSDS.svg",
+  },
+];
+
+const strategy = USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
+const chainConfigs = {
+  base: strategy.base,
+  ethereum: strategy.ethereum,
+  arbitrum: strategy.arbitrum,
+};
+
 const PortfolioSubpage: React.FC = () => {
   const { address, isConnected } = useAccount();
   const [depositSuccess, setDepositSuccess] = useState(false);
@@ -89,6 +165,20 @@ const PortfolioSubpage: React.FC = () => {
   );
   const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"withdraw" | "request">(
+    "withdraw"
+  );
+  const [requestTab, setRequestTab] = useState<"pending" | "completed">(
+    "pending"
+  );
+  const [amountOut, setAmountOut] = useState<string | null>(null);
+  const [selectedAssetIdx, setSelectedAssetIdx] = useState(0);
+  // Add state for custom dropdown
+  const [isAssetDropdownOpen, setIsAssetDropdownOpen] = useState(false);
+  const [depositedChains, setDepositedChains] = useState<string[]>([]);
+
+  const chainId = useChainId();
+  const isBase = chainId === 8453;
 
   // Watch deposit transaction
   const { isLoading: isWaitingForDeposit, isSuccess: isDepositSuccess } =
@@ -119,6 +209,21 @@ const PortfolioSubpage: React.FC = () => {
       hash: withdrawTxHash || undefined,
     });
 
+  const chainIconMap: Record<string, { src: string; label: string }> = {
+    ethereum: {
+      src: "/images/logo/eth.svg",
+      label: "Ethereum",
+    },
+    base: {
+      src: "/images/logo/base.svg",
+      label: "Base",
+    },
+    arbitrum: {
+      src: "/images/logo/arb.svg",
+      label: "Arbitrum",
+    },
+  };
+
   useEffect(() => {
     if (!isWaitingForWithdraw && isWithdrawing) {
       setIsWithdrawing(false);
@@ -142,13 +247,13 @@ const PortfolioSubpage: React.FC = () => {
   }, [isWaitingForWithdraw, isWithdrawing, isWithdrawSuccess, withdrawTxHash]);
 
   useEffect(() => {
-    if (!isWaitingForApproval && isApproving) {
-      if (isApprovalSuccess) {
-        setIsApproved(true);
-        setIsApproving(false);
-      } else {
-        setIsApproving(false);
-      }
+    if (approvalHash && isApprovalSuccess) {
+      setIsApproved(true);
+      setIsApproving(false);
+      console.log("Approval successful:");
+    } else if (approvalHash && !isWaitingForApproval && !isApprovalSuccess) {
+      setErrorMessage("Approval transaction failed");
+      setIsApproving(false);
     }
   }, [isWaitingForApproval, isApproving, isApprovalSuccess]);
 
@@ -160,15 +265,12 @@ const PortfolioSubpage: React.FC = () => {
       // Validate boring vault address
       if (
         !strategy.boringVaultAddress ||
-        strategy.boringVaultAddress === "0x0000000000000000000000000000000000000000"
+        strategy.boringVaultAddress ===
+          "0x0000000000000000000000000000000000000000"
       ) {
         console.warn("Invalid boring vault address for strategy:", strategy);
         return 0;
       }
-
-      console.log("Checking balance for boring vault:", strategy.boringVaultAddress);
-      console.log("Using address:", address);
-      console.log("Using RPC:", strategy.rpc);
 
       const client = createPublicClient({
         transport: http(strategy.rpc),
@@ -202,13 +304,12 @@ const PortfolioSubpage: React.FC = () => {
             functionName: "decimals",
           }),
         ]);
+        console.log(`Checking chain balance: ${balance}`);
 
-        console.log("Raw balance:", balance);
-        console.log("Decimals:", decimals);
-        
-        const formattedBalance = parseFloat(formatUnits(balance as bigint, decimals as number));
-        console.log("Formatted balance:", formattedBalance);
-        
+        const formattedBalance = parseFloat(
+          formatUnits(balance as bigint, decimals as number)
+        );
+
         return formattedBalance;
       } catch (error) {
         // console.error("Error reading boring vault:", error);
@@ -228,29 +329,38 @@ const PortfolioSubpage: React.FC = () => {
     try {
       setIsRefreshingBalance(true);
       const allStrategies = [
-        ...Object.entries(USD_STRATEGIES as unknown as StrategyAsset).flatMap(([duration, strategies]) =>
-          Object.entries(strategies as StrategyDuration).map(([type, strategy]) => ({
-            ...strategy,
-            duration,
-            type: type.toLowerCase(),
-            asset: "USD"
-          }))
+        ...Object.entries(USD_STRATEGIES as unknown as StrategyAsset).flatMap(
+          ([duration, strategies]) =>
+            Object.entries(strategies as StrategyDuration).map(
+              ([type, strategy]) => ({
+                ...strategy,
+                duration,
+                type: type.toLowerCase(),
+                asset: "USD",
+              })
+            )
         ),
-        ...Object.entries(BTC_STRATEGIES as unknown as StrategyAsset).flatMap(([duration, strategies]) =>
-          Object.entries(strategies as StrategyDuration).map(([type, strategy]) => ({
-            ...strategy,
-            duration,
-            type: type.toLowerCase(),
-            asset: "BTC"
-          }))
+        ...Object.entries(BTC_STRATEGIES as unknown as StrategyAsset).flatMap(
+          ([duration, strategies]) =>
+            Object.entries(strategies as StrategyDuration).map(
+              ([type, strategy]) => ({
+                ...strategy,
+                duration,
+                type: type.toLowerCase(),
+                asset: "BTC",
+              })
+            )
         ),
-        ...Object.entries(ETH_STRATEGIES as unknown as StrategyAsset).flatMap(([duration, strategies]) =>
-          Object.entries(strategies as StrategyDuration).map(([type, strategy]) => ({
-            ...strategy,
-            duration,
-            type: type.toLowerCase(),
-            asset: "ETH"
-          }))
+        ...Object.entries(ETH_STRATEGIES as unknown as StrategyAsset).flatMap(
+          ([duration, strategies]) =>
+            Object.entries(strategies as StrategyDuration).map(
+              ([type, strategy]) => ({
+                ...strategy,
+                duration,
+                type: type.toLowerCase(),
+                asset: "ETH",
+              })
+            )
         ),
       ];
 
@@ -283,6 +393,7 @@ const PortfolioSubpage: React.FC = () => {
     try {
       setIsApproving(true);
       setErrorMessage(null);
+      setApprovalHash(null);
 
       const solverAddress = selectedStrategy.solverAddress as Address;
       const vaultAddress = selectedStrategy.boringVaultAddress as Address;
@@ -290,7 +401,7 @@ const PortfolioSubpage: React.FC = () => {
       console.log("Approval details:", {
         solverAddress,
         vaultAddress,
-        address
+        address,
       });
 
       const client = createPublicClient({
@@ -332,32 +443,23 @@ const PortfolioSubpage: React.FC = () => {
         account: address,
       });
 
-      if (approveTx && typeof approveTx === "string" && approveTx.startsWith("0x")) {
-        console.log("Approval transaction submitted:", approveTx);
+      if (
+        approveTx &&
+        typeof approveTx === "string" &&
+        approveTx.startsWith("0x")
+      ) {
         setApprovalHash(approveTx as `0x${string}`);
-        
-        // Wait for approval transaction to complete
-        const { isSuccess: isApprovalSuccess } = await useTransaction({
-          hash: approveTx as `0x${string}`,
-        });
-
-        if (isApprovalSuccess) {
-          setIsApproved(true);
-          console.log("Approval successful");
-        } else {
-          throw new Error("Approval failed");
-        }
+        console.log("Approval transaction submitted:", approveTx);
       } else {
         throw new Error("Failed to get approval transaction hash");
       }
     } catch (error: any) {
-      // console.error("Approval failed:", error);
+      console.error("Approval failed:", error);
       if (error.code === 4001) {
         setErrorMessage("Approval cancelled by user.");
       } else {
-        setErrorMessage("Approval failed. Please try again.");
+        setErrorMessage(error.message || "Approval transaction failed");
       }
-    } finally {
       setIsApproving(false);
     }
   };
@@ -371,7 +473,8 @@ const PortfolioSubpage: React.FC = () => {
 
       const solverAddress = selectedStrategy.solverAddress as Address;
       const vaultAddress = selectedStrategy.boringVaultAddress as Address;
-      const assetOutAddress = "0x820C137fa70C8691f0e44Dc420a5e53c168921Dc" as Address;
+      const assetOutAddress =
+        "0x820C137fa70C8691f0e44Dc420a5e53c168921Dc" as Address;
 
       const client = createPublicClient({
         transport: http(selectedStrategy.rpc),
@@ -411,26 +514,21 @@ const PortfolioSubpage: React.FC = () => {
           assetOut: assetOutAddress,
           amountOfShares: amountOfShares.toString(),
           discount: discount.toString(),
-          secondsToDeadline: secondsToDeadline.toString()
+          secondsToDeadline: secondsToDeadline.toString(),
         },
         types: {
           assetOut: typeof assetOutAddress,
           amountOfShares: typeof amountOfShares,
           discount: typeof discount,
-          secondsToDeadline: typeof secondsToDeadline
-        }
+          secondsToDeadline: typeof secondsToDeadline,
+        },
       });
 
       const tx = await writeContract({
         address: solverAddress,
         abi: SOLVER_ABI,
         functionName: "requestOnChainWithdraw",
-        args: [
-          assetOutAddress,
-          amountOfShares,
-          discount,
-          secondsToDeadline
-        ],
+        args: [assetOutAddress, amountOfShares, discount, secondsToDeadline],
         chainId: 8453,
         account: address,
       });
@@ -442,7 +540,6 @@ const PortfolioSubpage: React.FC = () => {
         throw new Error("Failed to get transaction hash");
       }
     } catch (error: any) {
-      // console.error("Contract call failed:", error);
       if (error.code === 4001) {
         setErrorMessage("Withdrawal cancelled by user.");
       } else {
@@ -477,6 +574,142 @@ const PortfolioSubpage: React.FC = () => {
       setWithdrawAmount(selectedStrategy.balance.toString());
     }
   };
+
+  const getDepositedChainsViem = async ({
+    userAddress,
+    strategy,
+    chainConfigs,
+  }: {
+    userAddress: Address;
+    strategy: any;
+    chainConfigs: Record<
+      string,
+      {
+        rpc: string;
+        chainId: number;
+        image: string;
+        chainObject: any;
+      }
+    >;
+  }): Promise<string[]> => {
+    const depositedChains: string[] = [];
+
+    for (const [chainKey, chain] of Object.entries(chainConfigs)) {
+      try {
+        const client = createPublicClient({
+          transport: http(chain.rpc),
+          chain: chain.chainObject,
+        });
+
+        const decimals = strategy.shareAddress_token_decimal ?? 18;
+
+        const balance = await client.readContract({
+          address: strategy.shareAddress as Address,
+          abi: ERC20_ABI,
+          functionName: "balanceOf",
+          args: [userAddress],
+        });
+
+        const formatted = Number(formatUnits(balance as bigint, decimals));
+
+        console.log(`[${chainKey}] Balance: ${formatted}`);
+
+        if (formatted > 0) {
+          depositedChains.push(chainKey);
+        }
+      } catch (err) {
+        console.error(`Error on ${chainKey}:`, err);
+      }
+    }
+
+    return depositedChains;
+  };
+
+  useEffect(() => {
+    const fetchDeposits = async () => {
+      if (!address || !strategy || !chainConfigs) {
+        console.log("Missing required data:", {
+          address,
+          strategy,
+          chainConfigs,
+        });
+        return;
+      }
+      console.log("Fetching deposits with:", {
+        address,
+        strategy,
+        chainConfigs,
+      });
+
+      const depositedOn = await getDepositedChainsViem({
+        userAddress: address as Address,
+        strategy,
+        chainConfigs,
+      });
+
+      setDepositedChains(depositedOn);
+      console.log("Deposited on:", depositedOn);
+    };
+    fetchDeposits();
+  }, [address, strategy, chainConfigs]);
+
+  useEffect(() => {
+    const fetchAmountOut = async () => {
+      if (!selectedStrategy || !withdrawAmount) return;
+
+      try {
+        const solverAddress = selectedStrategy.solverAddress as Address;
+        const vaultAddress = selectedStrategy.boringVaultAddress as Address;
+        const selectedAssetAddress = getAddress(
+          assetOptions[selectedAssetIdx].contract
+        );
+
+        const client = createPublicClient({
+          transport: http(selectedStrategy.rpc),
+          chain: {
+            id: 8453,
+            name: "Base",
+            network: "base",
+            nativeCurrency: {
+              decimals: 18,
+              name: "Ether",
+              symbol: "ETH",
+            },
+            rpcUrls: {
+              default: { http: ["https://mainnet.base.org"] },
+              public: { http: ["https://mainnet.base.org"] },
+            },
+          },
+        });
+
+        //Get decimals of the vault
+        const decimals = (await client.readContract({
+          address: vaultAddress as Address,
+          abi: ERC20_ABI,
+          functionName: "decimals",
+        })) as number;
+
+        //Convert withdrawAmount to uint128 (BigInt)
+        const shares = parseUnits(withdrawAmount, decimals);
+        const discount = 0;
+
+        //Call the previewAssetsOut
+        const result = await client.readContract({
+          address: solverAddress as Address,
+          abi: SOLVER_ABI,
+          functionName: "previewAssetsOut",
+          args: [selectedAssetAddress, shares, discount],
+        });
+
+        setAmountOut(result.toString());
+      } catch (err) {
+        console.error("Error reading previewAssetsOut:", err);
+        setAmountOut(null);
+      }
+    };
+
+    fetchAmountOut();
+  }, [selectedStrategy, withdrawAmount]);
 
   return (
     <div className="flex flex-col min-h-screen text-white">
@@ -572,11 +805,24 @@ const PortfolioSubpage: React.FC = () => {
           </div>
 
           {/* Column Headers */}
-          <div className="grid grid-cols-12 pl-4 pr-6 py-2 border-b border-[rgba(255,255,255,0.15)]">
-            <div className="text-[#9C9DA2]   text-[14px] font-medium col-span-4">
+          <div className="grid grid-cols-5 pl-4 pr-6 py-2 border-b border-[rgba(255,255,255,0.15)]">
+            <div className="flex justify-start text-[#9C9DA2] text-[14px] font-medium">
               Available Yields
             </div>
-            <div className="text-[#9C9DA2]   text-[14px] font-medium flex items-center col-span-3">
+            <div className="flex justify-end text-[#9C9DA2]   text-[14px] font-medium  items-center">
+              Deposited on
+              <svg
+                className="ml-1"
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
+              </svg>
+            </div>
+            <div className="flex justify-center text-[#9C9DA2]   text-[14px] font-medium items-center">
               Expiry
               <svg
                 className="ml-1"
@@ -589,7 +835,7 @@ const PortfolioSubpage: React.FC = () => {
                 <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
               </svg>
             </div>
-            <div className="text-[#9C9DA2]   text-[14px] font-medium flex items-center col-span-2">
+            <div className="flex justify-center text-[#9C9DA2] text-[14px] font-medium items-center">
               Base APY
               <svg
                 className="ml-1"
@@ -602,7 +848,7 @@ const PortfolioSubpage: React.FC = () => {
                 <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
               </svg>
             </div>
-            <div className="text-[#9C9DA2]   text-[14px] font-medium flex items-center justify-end col-span-3">
+            <div className="flex justify-end text-[#9C9DA2]   text-[14px] font-medium items-center">
               Current Balance
               <svg
                 className="ml-1"
@@ -635,7 +881,7 @@ const PortfolioSubpage: React.FC = () => {
               strategiesWithBalance.map((strategy, index) => (
                 <div
                   key={`${strategy.asset}-${strategy.duration}-${strategy.type}`}
-                  className={`grid grid-cols-12 items-center py-4 pl-4 pr-6 relative ${
+                  className={`grid grid-cols-5 items-center py-4 pl-4 pr-6 relative ${
                     index % 2 === 0
                       ? "bg-transparent"
                       : strategy.type === "stable"
@@ -659,21 +905,18 @@ const PortfolioSubpage: React.FC = () => {
                     }`}
                   ></div>
                   {/* Strategy Name */}
-                  <div className="flex items-center gap-4 col-span-4">
+                  <div className="flex items-center gap-4">
                     <Image
                       src={`/images/icons/${strategy.asset.toLowerCase()}-${
                         strategy.type === "stable" ? "stable" : "incentive"
                       }.svg`}
                       alt={strategy.asset}
-                      
                       width={32}
                       height={32}
                     />
                     <div>
                       <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
-                        {strategy.type === "stable"
-                          ? "Base Yield"
-                          : "Incentive Maxi"}{" "}
+                        {strategy.type === "stable" ? "sy" : "Incentive Maxi"}
                         {strategy.asset}
                       </div>
                       <div className="text-[#00D1A0]   text-[12px] font-normal">
@@ -688,8 +931,45 @@ const PortfolioSubpage: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Deposited On */}
+                  {depositedChains.length === 0 ? (
+                    <div className="flex flex-col items-center justify-end">
+                      <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
+                        -
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="relative h-[24px] cursor-pointer group">
+                      {depositedChains.map((chainKey, index) => {
+                        const chain = chainIconMap[chainKey];
+                        if (!chain) return null;
+                        console.log("chain", chain);
+
+                        return (
+                          <TooltipProvider key={chainKey}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="absolute left-16 z-10 transition-transform duration-300 hover:scale-110">
+                                  <Image
+                                    src={chain.src}
+                                    alt={chain.label}
+                                    width={24}
+                                    height={24}
+                                  />
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent className="text-xs" side="top">
+                                {chain.label}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   {/* Expiry */}
-                  <div className="flex flex-col col-span-3">
+                  <div className="flex flex-col items-center justify-end">
                     <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
                       {strategy.duration === "PERPETUAL_DURATION"
                         ? "No Expiry"
@@ -703,12 +983,12 @@ const PortfolioSubpage: React.FC = () => {
                   </div>
 
                   {/* APY */}
-                  <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal col-span-2 flex items-center justify-center">
+                  <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal flex items-center justify-center">
                     {strategy.apy}
                   </div>
 
                   {/* Balance */}
-                  <div className="flex flex-col items-end col-span-3">
+                  <div className="flex flex-col items-end">
                     <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
                       ${strategy.balance.toFixed(2)}
                     </div>
@@ -743,206 +1023,469 @@ const PortfolioSubpage: React.FC = () => {
         <div className="w-1/2 p-8">
           {selectedStrategy ? (
             <div className="flex flex-col h-full rounded-lg p-6">
-              <h1 className="text-[#D7E3EF]   text-[20px] font-semibold leading-normal mb-4">
-                Withdraw
-              </h1>
-
-              <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
-                {/* Header with strategy info and balance */}
-                <div className="flex items-center justify-between p-4  bg-[rgba(255,255,255,0.02)] mb-6 border-b border-[rgba(255,255,255,0.15)]">
-                  <div className="flex items-center gap-4">
-                    <Image
-                      src={`/images/icons/${selectedStrategy.asset.toLowerCase()}-${
-                        selectedStrategy.type === "stable"
-                          ? "stable"
-                          : "incentive"
-                      }.svg`}
-                      alt={selectedStrategy.asset}
-                      width={40}
-                      height={40}
-                    />
-                    <div>
-                      <div className="text-white font-semibold">
-                        {selectedStrategy.type === "stable"
-                          ? "Base Yield"
-                          : "Incentive Maxi"}{" "}
-                        {selectedStrategy.asset}
-                      </div>
-                      <div className="text-[#00D1A0] text-[14px]">
-                        +0.00 in 1 year
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-[#9C9DA2] text-right   text-[12px] font-normal leading-normal">
-                    Balance:{" "}
-                    <span className="text-[#D7E3EF]   text-[12px] font-semibold leading-normal">
-                      {selectedStrategy.balance.toFixed(4)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Input field and percentage buttons in same row */}
-                <div className="flex items-center gap-4 mb-6">
-                  {/* Input field on the left with no borders */}
-                  <div className="flex-grow ">
-                    <div>
-                      <input
-                        type="text"
-                        className="bg-transparent w-full border-none text-[20px] text-white font-medium outline-none"
-                        value={withdrawAmount}
-                        onChange={handleAmountChange}
-                        placeholder="0.00"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Percentage buttons on the right */}
-                  <div className="flex gap-2">
-                    <button
-                      className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2]   text-[12px] font-normal"
-                      onClick={() => handlePercentageClick(0.25)}
-                    >
-                      25%
-                    </button>
-                    <button
-                      className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2]   text-[12px] font-normal"
-                      onClick={() => handlePercentageClick(0.5)}
-                    >
-                      50%
-                    </button>
-                    <button
-                      className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2]   text-[12px] font-normal"
-                      onClick={() => handlePercentageClick(0.75)}
-                    >
-                      75%
-                    </button>
-                    <button
-                      className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2]   text-[12px] font-normal"
-                      onClick={handleMaxClick}
-                    >
-                      MAX
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex justify-between py-4 mb-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] px-6 items-center">
-                  <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
-                    You Will Receive
-                  </div>
-                  <div className="text-[#EDF2F8]   text-[16px] font-medium leading-normal">
-                    {parseFloat(withdrawAmount || "0").toFixed(2)}{" "}
-                    {selectedStrategy.asset}
-                  </div>
-                </div>
-
+              <div className="flex gap-4 mb-6 border-b border-[rgba(255,255,255,0.15)]">
                 <button
-                  className={`w-full py-4 rounded-[4px] border border-[rgba(255,255,255,0.30)] flex justify-center items-center gap-[10px] text-center text-[16px] font-semibold ${
-                    isWithdrawing || isApproving
-                      ? "bg-[#2D2F3D] text-[#9C9DA2] cursor-not-allowed"
-                      : "bg-[#B88AF8] text-[#080B17] hover:bg-[#9F6EE9] transition-colors"
+                  onClick={() => setActiveTab("withdraw")}
+                  className={`px-4 py-2 text-[14px] font-semibold transition-colors ${
+                    activeTab === "withdraw"
+                      ? "text-white border-b-2 border-[#B88AF8]"
+                      : "text-[#9C9DA2]"
                   }`}
-                  onClick={isApproved ? handleWithdraw : handleApprove}
-                  disabled={
-                    isWithdrawing ||
-                    isApproving ||
-                    !withdrawAmount ||
-                    parseFloat(withdrawAmount) <= 0 ||
-                    parseFloat(withdrawAmount) > selectedStrategy.balance
-                  }
                 >
-                  {isApproving ? (
-                    <>
-                      <svg
-                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#9C9DA2]"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      Approving...
-                    </>
-                  ) : isWithdrawing ? (
-                    <>
-                      <svg
-                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#9C9DA2]"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      Transaction in Progress
-                    </>
-                  ) : isApproved ? (
-                    "Withdraw"
-                  ) : (
-                    "Approve"
-                  )}
+                  Withdraw
                 </button>
-                {errorMessage && (
-                  <div className="flex justify-between items-center mt-4 bg-[rgba(239,68,68,0.1)] rounded-[4px] p-4">
-                    <div className="text-[#EF4444]   text-[14px]">
-                      Transaction Failed
-                    </div>
-                    <div className="text-[#EF4444]   text-[14px] underline">
-                      #
-                      {withdrawTxHash
-                        ? withdrawTxHash.substring(0, 8) + "..."
-                        : ""}
-                    </div>
-                  </div>
-                )}
-                {!errorMessage && withdrawTxHash && isWithdrawSuccess && (
-                  <div className="flex justify-between items-center mt-4 bg-[rgba(0,209,160,0.1)] rounded-[4px] p-4">
-                    <div className="text-[#00D1A0]   text-[14px]">
-                      Transaction Successful
-                    </div>
-                    <a
-                      href={`https://sonicscan.org/tx/${withdrawTxHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[#00D1A0]   text-[14px] underline hover:text-[#00D1A0]/80"
-                    >
-                      #{withdrawTxHash.substring(0, 8)}...
-                    </a>
-                  </div>
-                )}
+                <button
+                  onClick={() => setActiveTab("request")}
+                  className={`px-4 py-2 text-[14px] font-semibold transition-colors ${
+                    activeTab === "request"
+                      ? "text-white border-b-2 border-[#B88AF8]"
+                      : "text-[#9C9DA2]"
+                  }`}
+                >
+                  Request
+                </button>
               </div>
+              {activeTab === "withdraw" && (
+                <>
+                  <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
+                    {/* Header with strategy info and balance */}
+                    <div className="flex items-center justify-between p-4  bg-[rgba(255,255,255,0.02)] mb-6 border-b border-[rgba(255,255,255,0.15)]">
+                      <div className="flex items-center gap-4">
+                        <Image
+                          src={`/images/icons/${selectedStrategy.asset.toLowerCase()}-${
+                            selectedStrategy.type === "stable"
+                              ? "stable"
+                              : "incentive"
+                          }.svg`}
+                          alt={selectedStrategy.asset}
+                          width={40}
+                          height={40}
+                        />
+                        <div>
+                          <div className="text-white font-semibold">
+                            {selectedStrategy.type === "stable"
+                              ? "Base Yield"
+                              : "Incentive Maxi"}{" "}
+                            {selectedStrategy.asset}
+                          </div>
+                          <div className="text-[#00D1A0] text-[14px]">
+                            +0.00 in 1 year
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-[#9C9DA2] text-right   text-[12px] font-normal leading-normal">
+                        Balance:{" "}
+                        <span className="text-[#D7E3EF] text-[12px] font-semibold leading-normal">
+                          {selectedStrategy.balance.toFixed(4)}
+                        </span>
+                      </div>
+                    </div>
 
-              <div className="mt-2">
-                <div className="text-[#D7E3EF] text-[14px] rounded-[4px] bg-[rgba(255,255,255,0.02)] p-[24px]">
-                  <strong>Note:</strong> By withdrawing, your vault shares will
-                  be converted into the underlying asset, subject to the current
-                  market rates. Withdrawal amounts are calculated based on the
-                  latest market rates and may vary slightly due to price
-                  fluctuations.
+                    {/* Input field and percentage buttons in same row */}
+                    <div className="flex items-center gap-4 mb-6">
+                      {/* Input field on the left with no borders */}
+                      <div className="flex-grow ">
+                        <div>
+                          <input
+                            type="text"
+                            className="bg-transparent w-full border-none text-[20px] text-white font-medium outline-none"
+                            value={withdrawAmount}
+                            onChange={handleAmountChange}
+                            placeholder="0.00"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Percentage buttons on the right */}
+                      <div className="flex gap-2">
+                        <button
+                          className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2]   text-[12px] font-normal"
+                          onClick={() => handlePercentageClick(0.25)}
+                        >
+                          25%
+                        </button>
+                        <button
+                          className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2]   text-[12px] font-normal"
+                          onClick={() => handlePercentageClick(0.5)}
+                        >
+                          50%
+                        </button>
+                        <button
+                          className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2]   text-[12px] font-normal"
+                          onClick={() => handlePercentageClick(0.75)}
+                        >
+                          75%
+                        </button>
+                        <button
+                          className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2]   text-[12px] font-normal"
+                          onClick={handleMaxClick}
+                        >
+                          MAX
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between py-4 mb-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] px-6 items-center">
+                      <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
+                        You Will Receive
+                      </div>
+                      <div className="flex justify-end items-center gap-4">
+                        <div className="text-[#EDF2F8] text-[16px] font-medium leading-normal">
+                          {formatUnits(
+                            amountOut ? BigInt(amountOut) : BigInt(0),
+                            6
+                          )}{" "}
+                        </div>
+                        {assetOptions.length > 1 && (
+                          <div className="">
+                            <div className="relative w-full">
+                              <button
+                                onClick={() =>
+                                  setIsAssetDropdownOpen(!isAssetDropdownOpen)
+                                }
+                                className="flex items-center justify-between w-full bg-[#0D101C] text-[#EDF2F8] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] border border-[rgba(255,255,255,0.19)]"
+                              >
+                                <div className="flex items-center gap-2">
+                                  {assetOptions[selectedAssetIdx]?.image && (
+                                    <img
+                                      src={assetOptions[selectedAssetIdx].image}
+                                      alt={assetOptions[selectedAssetIdx].name}
+                                      className="w-5 h-5 rounded-full"
+                                    />
+                                  )}
+                                  <span>
+                                    {assetOptions[selectedAssetIdx].name}
+                                  </span>
+                                </div>
+                                <svg
+                                  className={`w-4 h-4 transform transition-transform duration-200 ${
+                                    isAssetDropdownOpen
+                                      ? "rotate-180"
+                                      : "rotate-0"
+                                  }`}
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="2"
+                                    d="M19 9l-7 7-7-7"
+                                  ></path>
+                                </svg>
+                              </button>
+
+                              {isAssetDropdownOpen && (
+                                <div className="absolute z-10 w-full mt-2 bg-[#1F202D] rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                  {assetOptions.map((opt, idx) => (
+                                    <button
+                                      key={opt.contract}
+                                      onClick={() => {
+                                        setSelectedAssetIdx(idx);
+                                        setIsAssetDropdownOpen(false);
+                                      }}
+                                      className="flex items-center w-full px-4 py-2 text-sm text-[#EDF2F8] hover:bg-[#1A1B1E]"
+                                    >
+                                      {opt.image && (
+                                        <img
+                                          src={opt.image}
+                                          alt={opt.name}
+                                          className="w-5 h-5 mr-2 rounded-full"
+                                        />
+                                      )}
+                                      {opt.name}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <button
+                      className={`w-full py-4 rounded-[4px] border border-[rgba(255,255,255,0.30)] flex justify-center items-center gap-[10px] text-center text-[16px] font-semibold ${
+                        isWithdrawing || isApproving
+                          ? "bg-[#2D2F3D] text-[#9C9DA2] cursor-not-allowed"
+                          : "bg-[#B88AF8] text-[#080B17] hover:bg-[#9F6EE9] transition-colors"
+                      }
+                      ${
+                        isBase
+                          ? ""
+                          : "bg-[#383941] text-[#9C9DA2] cursor-not-allowed hover:!bg-[#383941]"
+                      }
+                  }`}
+                      onClick={isApproved ? handleWithdraw : handleApprove}
+                      disabled={
+                        isWithdrawing ||
+                        isApproving ||
+                        !withdrawAmount ||
+                        parseFloat(withdrawAmount) <= 0 ||
+                        parseFloat(withdrawAmount) > selectedStrategy.balance
+                      }
+                    >
+                      {isApproving ? (
+                        <>
+                          <svg
+                            className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#9C9DA2]"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                          Approving...
+                        </>
+                      ) : isWithdrawing ? (
+                        <>
+                          <svg
+                            className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#9C9DA2]"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                          Transaction in Progress
+                        </>
+                      ) : isWithdrawSuccess ? (
+                        "Request Another Withdraw"
+                      ) : isApproved ? (
+                        "Approved - Click to Withdraw"
+                      ) : !isBase ? (
+                        "Switch Network to Base"
+                      ) : (
+                        "Request Withdraw"
+                      )}
+                    </button>
+                    {errorMessage && (
+                      <div className="flex justify-between items-center mt-4 bg-[rgba(239,68,68,0.1)] rounded-[4px] p-4">
+                        <div className="text-[#EF4444]   text-[14px]">
+                          {errorMessage}
+                        </div>
+                        <div className="text-[#EF4444]   text-[14px] underline">
+                          #
+                          {withdrawTxHash
+                            ? withdrawTxHash.substring(0, 8) + "..."
+                            : ""}
+                        </div>
+                      </div>
+                    )}
+                    {!errorMessage && withdrawTxHash && isWithdrawSuccess && (
+                      <div className="flex justify-between items-center mt-4 bg-[rgba(0,209,160,0.1)] rounded-[4px] p-4">
+                        <div className="text-[#00D1A0]   text-[14px]">
+                          Transaction Successful
+                        </div>
+                        <a
+                          href={`https://sonicscan.org/tx/${withdrawTxHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#00D1A0]   text-[14px] underline hover:text-[#00D1A0]/80"
+                        >
+                          #{withdrawTxHash.substring(0, 8)}...
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-2">
+                    <div className="text-[#D7E3EF] text-[14px] rounded-[4px] bg-[rgba(255,255,255,0.02)] p-[24px]">
+                      <strong>Note:</strong> By initiating a withdrawal, your
+                      vault shares ({strategy.name}) will be converted into the underlying
+                      asset based on the latest market rates, which may
+                      fluctuate slightly; once the request is submitted, please
+                      allow up to 24 hours for the funds to be received, as
+                      processing times can vary depending on network
+                      conditions—there's no need to panic if the assets don't
+                      arrive immediately.
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {activeTab === "request" && (
+                <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
+                  {/* Tabs */}
+                  <div className="mb-4 flex gap-6 border-b border-[#1A1B1E]">
+                    <button
+                      className={`py-2 text-[14px] font-medium ${
+                        requestTab === "pending"
+                          ? "text-white border-b-2 border-[#B88AF8]"
+                          : "text-[#9C9DA2]"
+                      }`}
+                      onClick={() => setRequestTab("pending")}
+                    >
+                      Pending
+                    </button>
+                    <button
+                      className={`py-2 text-[14px] font-medium ${
+                        requestTab === "completed"
+                          ? "text-white border-b-2 border-[#B88AF8]"
+                          : "text-[#9C9DA2]"
+                      }`}
+                      onClick={() => setRequestTab("completed")}
+                    >
+                      Completed
+                    </button>
+                  </div>
+
+                  {/* Requests List */}
+                  {requestTab === "pending" && (
+                    <div className="space-y-4">
+                      {requests.map((req, idx) => (
+                        <div
+                          key={idx}
+                          className="bg-[rgba(255,255,255,0.02)] rounded-lg p-4 flex justify-between items-center"
+                        >
+                          <div className="flex items-center gap-4">
+                            {/* Calendar Icon + Date */}
+                            <div className="flex items-center text-[#9C9DA2] text-[13px] gap-1">
+                              <button className="text-[#9C9DA2] hover:text-white transition-colors">
+                                <ExternalLinkIcon />
+                              </button>
+                              {req.date}
+                            </div>
+
+                            {/* Amounts */}
+                            <div className="flex items-center gap-2 ml-6">
+                              {/* From Amount */}
+                              <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                                <Image
+                                  src={`/images/icons/${selectedStrategy.asset.toLowerCase()}-${
+                                    selectedStrategy.type === "stable"
+                                      ? "stable"
+                                      : "incentive"
+                                  }.svg`}
+                                  alt={selectedStrategy.asset}
+                                  width={32}
+                                  height={32}
+                                />
+                                <span className="text-white text-sm font-medium">
+                                  {req.fromAmount}
+                                </span>
+                              </div>
+
+                              {/* Arrow */}
+                              <span className="text-[#9C9DA2] text-sm">→</span>
+
+                              {/* To Amount */}
+                              <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                                <span className="text-white text-sm font-medium">
+                                  {req.toAmount}
+                                </span>
+                                <Image
+                                  src={`/images/icons/${selectedStrategy.asset.toLowerCase()}-${
+                                    selectedStrategy.type === "stable"
+                                      ? "stable"
+                                      : "incentive"
+                                  }.svg`}
+                                  alt={selectedStrategy.asset}
+                                  width={32}
+                                  height={32}
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Cancel Button */}
+                          {req.canCancel && (
+                            <button className="text-[#F87171] text-[13px] font-medium hover:underline">
+                              Cancel Request
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {requestTab === "completed" && (
+                    <div className="space-y-4">
+                      {requests.map((req, idx) => (
+                        <div
+                          key={idx}
+                          className="bg-[rgba(255,255,255,0.02)] rounded-lg p-4 flex justify-between items-center"
+                        >
+                          <div className="flex items-center justify-between gap-4 w-full">
+                            {/* Calendar Icon + Date */}
+                            <div className="flex items-center text-[#9C9DA2] text-[13px] gap-1">
+                              <button className="text-[#9C9DA2] hover:text-white transition-colors">
+                                <ExternalLinkIcon />
+                              </button>
+                              {req.date}
+                            </div>
+
+                            {/* Amounts */}
+                            <div className="flex items-center gap-2 ml-6">
+                              {/* From Amount */}
+                              <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                                <Image
+                                  src={`/images/icons/${selectedStrategy.asset.toLowerCase()}-${
+                                    selectedStrategy.type === "stable"
+                                      ? "stable"
+                                      : "incentive"
+                                  }.svg`}
+                                  alt={selectedStrategy.asset}
+                                  width={32}
+                                  height={32}
+                                />
+                                <span className="text-white text-sm font-medium">
+                                  {req.fromAmount}
+                                </span>
+                              </div>
+
+                              {/* Arrow */}
+                              <span className="text-[#9C9DA2] text-sm">→</span>
+
+                              {/* To Amount */}
+                              <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                                <span className="text-white text-sm font-medium">
+                                  {req.toAmount}
+                                </span>
+                                <Image
+                                  src={`/images/icons/${selectedStrategy.asset.toLowerCase()}-${
+                                    selectedStrategy.type === "stable"
+                                      ? "stable"
+                                      : "incentive"
+                                  }.svg`}
+                                  alt={selectedStrategy.asset}
+                                  width={32}
+                                  height={32}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
             </div>
           ) : (
             <div className="flex items-center justify-center h-full">
