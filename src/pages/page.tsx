@@ -30,8 +30,8 @@ export default function Page() {
 
   // Check if user is already verified from localStorage
   useEffect(() => {
-    const verified = localStorage.getItem('isVerified');
-    if (verified === 'true') {
+    const verified = localStorage.getItem("isVerified");
+    if (verified === "true") {
       setIsVerified(true);
       setIsCodePopupOpen(false);
     }
@@ -39,10 +39,10 @@ export default function Page() {
 
   const handleVerifyCode = async (code: string) => {
     try {
-      const response = await fetch('/api/verify-code', {
-        method: 'POST',
+      const response = await fetch("/api/verify-code", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ accessCode: code }),
       });
@@ -51,10 +51,12 @@ export default function Page() {
         setIsVerified(true);
         setIsCodePopupOpen(false);
         setVerificationError("");
-        localStorage.setItem('isVerified', 'true');
+        localStorage.setItem("isVerified", "true");
       } else {
         const data = await response.json();
-        setVerificationError(data.message || "Incorrect code. Please try again.");
+        setVerificationError(
+          data.message || "Incorrect code. Please try again."
+        );
         setIsVerified(false);
         setIsCodePopupOpen(true);
       }
@@ -106,7 +108,7 @@ export default function Page() {
             <div
               className="cursor-pointer"
               onClick={() => {
-                window.location.href = 'https://lucidly.finance';
+                window.location.href = "https://lucidly.finance";
               }}
             >
               <Image
@@ -168,6 +170,20 @@ export default function Page() {
                 {selectedSubPage === SubPage.Portfolio && (
                   <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#B88AF8]"></div>
                 )}
+              </button>
+              <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
+
+              <button
+                className={`px-6 py-4 text-sm transition-colors relative `}
+                onClick={() => {
+                  window.open(
+                    "https://docs.lucidly.finance",
+                    "_blank",
+                    "noopener,noreferrer"
+                  );
+                }}
+              >
+                Docs
               </button>
             </div>
           </nav>
