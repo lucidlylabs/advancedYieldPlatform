@@ -1515,7 +1515,11 @@ const DepositView: React.FC<DepositViewProps> = ({
                     balance &&
                     Number(amount) > Number(balance);
 
-                  const buttonText = connected
+                    const shouldDisable =
+                    connected &&
+                    (isLoading || isLoadingBalance || hasInsufficientFunds || !amount || Number(amount) === 0);
+
+                    const buttonText = connected
                     ? !amount || Number(amount) === 0
                       ? "Enter Amount"
                       : hasInsufficientFunds
@@ -1527,29 +1531,27 @@ const DepositView: React.FC<DepositViewProps> = ({
                           : "Deposit"
                     : "Connect Wallet";
 
+                    const isInactiveState =
+                    (connected &&
+                      (hasInsufficientFunds || !amount || Number(amount) === 0)) ||
+                    shouldDisable;
+
                   return (
                     <button
-                      onClick={
-                        connected && !hasInsufficientFunds
-                          ? handleDeposit
-                          : openConnectModal
-                      }
-                      disabled={
-                        !!isLoading ||
-                        !!isLoadingBalance ||
-                        !!hasInsufficientFunds
-                      }
-                      className={`w-full py-4 mt-6 rounded font-semibold transition-all duration-200 ${
-                        connected && hasInsufficientFunds
-                          ? "bg-gray-500 text-white opacity-50 cursor-not-allowed"
-                          : "bg-[#B88AF8] text-[#1A1B1E] hover:opacity-90"
-                      } ${
-                        (!amount || Number(amount) === 0) &&
-                        "bg-gray-500 text-white opacity-50 cursor-not-allowed"
-                      }`}
-                    >
-                      {buttonText}
-                    </button>
+                    onClick={
+                      connected && !hasInsufficientFunds && amount && Number(amount) > 0
+                        ? handleDeposit
+                        : openConnectModal
+                    }
+                    disabled={shouldDisable}
+                    className={`w-full py-4 mt-6 rounded font-semibold transition-all duration-200 ${
+                      isInactiveState
+                        ? "bg-gray-500 text-white opacity-50 cursor-not-allowed"
+                        : "bg-[#B88AF8] text-[#1A1B1E] hover:opacity-90"
+                    }`}
+                  >
+                    {buttonText}
+                  </button>
                   );
                 }}
               </ConnectButton.Custom>
