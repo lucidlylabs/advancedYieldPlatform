@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { MarketsTable } from "@/components/ui/markets-table";
 import { YieldDetailsView } from "@/components/yield-details-view";
@@ -94,6 +94,7 @@ const MarketsSubpage: React.FC = () => {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [selectedItem, setSelectedItem] = useState<MarketItem | null>(null);
   const [showDepositView, setShowDepositView] = useState(false);
+  const [usdTvl, setUsdTvl] = useState<string | null>(null);
   
   // Market data
   const marketData: Record<AssetType, MarketItem[]> = {
@@ -107,7 +108,7 @@ const MarketsSubpage: React.FC = () => {
         type: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.type,
         baseYield: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.apy,
         incentives: [USD_STRATEGIES.PERPETUAL_DURATION.STABLE.incentives],
-        tvl: `$${USD_STRATEGIES.PERPETUAL_DURATION.STABLE.tvl}`,
+        tvl: usdTvl ? usdTvl : USD_STRATEGIES.PERPETUAL_DURATION.STABLE.tvl,
         description: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.description,
         riskLevel: "Very Low",
         network: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.network,
@@ -118,6 +119,28 @@ const MarketsSubpage: React.FC = () => {
 
     // Fill the "ALL" category
     marketData.ALL = [...marketData.ETH, ...marketData.BTC, ...marketData.USD];
+
+    // Fetch TVL for USD strategy if it's a URL
+    useEffect(() => {
+        const tvlUrl = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.tvl;
+        if (typeof tvlUrl === "string" && tvlUrl.startsWith("http")) {
+            fetch(tvlUrl)
+                .then(res => res.json())
+                .then(data => {
+                    if (typeof data.result === "number") {
+                        setUsdTvl(
+                            data.result.toLocaleString("en-US", {
+                                style: "currency",
+                                currency: "USD",
+                                maximumFractionDigits: 0,
+                                minimumFractionDigits: 0,
+                            })
+                        );
+                    }
+                })
+                .catch(() => setUsdTvl(null));
+        }
+    }, []);
 
     // Handler for sorting
     const handleSort = (column: string) => {

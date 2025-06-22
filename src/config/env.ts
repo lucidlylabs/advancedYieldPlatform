@@ -116,12 +116,12 @@ export const USD_STRATEGIES = {
       },
 
             description: "Perpetual syUSD strategy on base network",
-            apy: "4.5%",
+            apy: "---",
             incentives: "None",
             cap_limit: "1,000,000",
             filled_cap: "800,000",
             show_cap: true,
-            tvl: "5000000",
+            tvl: "https://api.lucidly.finance/services/aum_data?vaultName=syUSD",
             rpc: "https://base.llamarpc.com",
         },
         INCENTIVE: {
