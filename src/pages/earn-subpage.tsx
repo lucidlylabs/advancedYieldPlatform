@@ -376,7 +376,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
       ) : (
         <div className="flex flex-col gap-6 items-center pt-[8vh]">
           <h1 className="text-[40px] font-bold  ">
-            Select a asset you want yield on
+            Select an asset you want yield on
           </h1>
           <div className="flex gap-6 justify-center items-center">
             <CustomCard
