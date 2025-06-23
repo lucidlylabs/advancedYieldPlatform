@@ -122,6 +122,7 @@ export const USD_STRATEGIES = {
             filled_cap: "800,000",
             show_cap: true,
             tvl: "https://api.lucidly.finance/services/aum_data?vaultName=syUSD",
+            withdraw_request: "https://api.lucidly.finance/services/queueData?vaultAddress=0x279CAD277447965AF3d24a78197aad1B02a2c589&userAddress=",
             rpc: "https://base.llamarpc.com",
         },
         INCENTIVE: {

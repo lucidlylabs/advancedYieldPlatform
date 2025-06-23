@@ -176,6 +176,8 @@ const PortfolioSubpage: React.FC = () => {
   // Add state for custom dropdown
   const [isAssetDropdownOpen, setIsAssetDropdownOpen] = useState(false);
   const [depositedChains, setDepositedChains] = useState<string[]>([]);
+  const [withdrawRequests, setWithdrawRequests] = useState<any[]>([]);
+  const [isLoadingRequests, setIsLoadingRequests] = useState(false);
 
   const chainId = useChainId();
   const isBase = chainId === 8453;
@@ -711,6 +713,33 @@ const PortfolioSubpage: React.FC = () => {
     fetchAmountOut();
   }, [selectedStrategy, withdrawAmount]);
 
+  const fetchWithdrawRequests = async (vaultAddress: string, userAddress: string) => {
+    setIsLoadingRequests(true);
+    try {
+      const response = await fetch(
+        `https://api.lucidly.finance/services/queueData?vaultAddress=0x279CAD277447965AF3d24a78197aad1B02a2c589&userAddress=${userAddress}`
+      );
+      const data = await response.json();
+      setWithdrawRequests(data.result?.requests || []);
+      console.log('Withdraw requests:');
+      console.log('API response:', data);
+    } catch (error) {
+      setWithdrawRequests([]);
+    } finally {
+      setIsLoadingRequests(false);
+    }
+  };
+
+  useEffect(() => {
+    if (address) {
+      fetchWithdrawRequests("", address);
+    }
+  }, [address]);
+
+  useEffect(() => {
+    console.log('Fetched withdraw requests:', withdrawRequests);
+  }, [withdrawRequests]);
+
   return (
     <div className="flex flex-col min-h-screen text-white">
       {/* Top Section - Portfolio Value, PNL, and Wallet */}
@@ -719,7 +748,7 @@ const PortfolioSubpage: React.FC = () => {
           <div className="flex gap-32">
             <div className="flex flex-col">
               <div className="text-[#9C9DA2]   text-[14px] font-normal leading-[16px]">
-                Portfolio
+                Portfolio 
               </div>
               <div className="text-[#D7E3EF]   text-[24px] font-semibold leading-normal mt-1">
                 {isRefreshingBalance ? (
