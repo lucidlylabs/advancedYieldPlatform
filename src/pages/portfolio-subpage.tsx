@@ -476,8 +476,7 @@ const PortfolioSubpage: React.FC = () => {
 
       const solverAddress = selectedStrategy.solverAddress as Address;
       const vaultAddress = selectedStrategy.boringVaultAddress as Address;
-      const assetOutAddress =
-        "0x820C137fa70C8691f0e44Dc420a5e53c168921Dc" as Address;
+      const assetOutAddress = assetOptions[selectedAssetIdx].contract as Address;
 
       const client = createPublicClient({
         transport: http(selectedStrategy.rpc),
