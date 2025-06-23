@@ -1415,55 +1415,72 @@ const PortfolioSubpage: React.FC = () => {
                               <div className="flex items-center gap-4">
                                 {/* Calendar Icon + Date */}
                                 <div className="flex items-center text-[#9C9DA2] text-[13px] gap-1">
-                                  <button className="text-[#9C9DA2] hover:text-white transition-colors">
+                                  <button
+                                    className="text-[#9C9DA2] hover:text-white transition-colors cursor-pointer"
+                                    onClick={() => {
+                                      if (req.transaction_hash) {
+                                        window.open(
+                                          `https://basescan.org/tx/${req.transaction_hash}`,
+                                          "_blank",
+                                          "noopener,noreferrer"
+                                        );
+                                      }
+                                    }}
+                                    type="button"
+                                  >
                                     <ExternalLinkIcon />
                                   </button>
                                   {req.creation_time
-                                    ? new Date(
-                                        req.creation_time * 1000
-                                      ).toLocaleDateString()
+                                    ? new Date(req.creation_time * 1000).toLocaleDateString()
                                     : "-"}
                                 </div>
 
-                                {/* Amounts */}
-                                <div className="flex items-center gap-2 ml-6">
-                                  {/* Amount of Shares (always syUSD image) */}
-                                  <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
-                                    <Image
-                                      src="/images/icons/syUSD.svg"
-                                      alt="Shares"
-                                      width={32}
-                                      height={32}
-                                    />
+                                {/* Amounts row (same as completed) */}
+                                <div className="flex items-center gap-2">
+                                  {/* Shares pill */}
+                                  <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                                    <a
+                                      href={
+                                        req.transaction_hash
+                                          ? `https://basescan.org/tx/${req.transaction_hash}`
+                                          : undefined
+                                      }
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      tabIndex={req.transaction_hash ? 0 : -1}
+                                      style={{
+                                        pointerEvents: req.transaction_hash ? "auto" : "none",
+                                      }}
+                                    >
+                                      <Image
+                                        src="/images/icons/syUSD.svg"
+                                        alt="Shares"
+                                        width={32}
+                                        height={32}
+                                        className="cursor-pointer"
+                                      />
+                                    </a>
                                     <span className="text-white text-sm font-medium">
-                                      {(
-                                        Number(req.amount_of_shares) / 1e6
-                                      ).toFixed(2)}
+                                      Share
                                     </span>
                                   </div>
-
                                   {/* Arrow */}
-                                  <span className="text-[#9C9DA2] text-sm">
-                                    →
-                                  </span>
-
-                                  {/* Amount of Assets */}
-                                  <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                                  <span className="text-[#9C9DA2] text-sm">→</span>
+                                  {/* Assets pill */}
+                                  <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
                                     <span className="text-white text-sm font-medium">
-                                      {(
-                                        Number(req.amount_of_assets) / 1e18
-                                      ).toFixed(2)}
+                                      {(Number(req.amount_of_assets) / 1e18).toFixed(2)}
                                     </span>
                                     <Image
                                       src={assetImage}
                                       alt="Assets"
                                       width={32}
                                       height={32}
+                                      className="cursor-pointer"
                                     />
                                   </div>
                                 </div>
                               </div>
-
                               {/* Cancel Button */}
                               <button className="text-[#F87171] text-[13px] font-medium hover:underline">
                                 Cancel Request
@@ -1499,48 +1516,68 @@ const PortfolioSubpage: React.FC = () => {
                               <div className="flex items-center gap-4">
                                 {/* Calendar Icon + Date */}
                                 <div className="flex items-center text-[#9C9DA2] text-[13px] gap-1">
-                                  <button className="text-[#9C9DA2] hover:text-white transition-colors">
+                                  <button
+                                    className="text-[#9C9DA2] hover:text-white transition-colors cursor-pointer"
+                                    onClick={() => {
+                                      if (req.transaction_hash) {
+                                        window.open(
+                                          `https://basescan.org/tx/${req.transaction_hash}`,
+                                          "_blank",
+                                          "noopener,noreferrer"
+                                        );
+                                      }
+                                    }}
+                                    type="button"
+                                  >
                                     <ExternalLinkIcon />
                                   </button>
                                   {req.creation_time
-                                    ? new Date(
-                                        req.creation_time * 1000
-                                      ).toLocaleDateString()
+                                    ? new Date(req.creation_time * 1000).toLocaleDateString()
                                     : "-"}
                                 </div>
 
-                                {/* Amounts */}
-                                <div className="flex items-center gap-2 ml-6">
-                                  {/* Amount of Shares (always syUSD image, hardcoded label) */}
-                                  <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
-                                    <Image
-                                      src="/images/icons/syUSD.svg"
-                                      alt="Shares"
-                                      width={32}
-                                      height={32}
-                                    />
+                                {/* Amounts row (same as completed) */}
+                                <div className="flex items-center gap-2">
+                                  {/* Shares pill */}
+                                  <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                                    <a
+                                      href={
+                                        req.transaction_hash
+                                          ? `https://basescan.org/tx/${req.transaction_hash}`
+                                          : undefined
+                                      }
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      tabIndex={req.transaction_hash ? 0 : -1}
+                                      style={{
+                                        pointerEvents: req.transaction_hash ? "auto" : "none",
+                                      }}
+                                    >
+                                      <Image
+                                        src="/images/icons/syUSD.svg"
+                                        alt="Shares"
+                                        width={32}
+                                        height={32}
+                                        className="cursor-pointer"
+                                      />
+                                    </a>
                                     <span className="text-white text-sm font-medium">
                                       Share
                                     </span>
                                   </div>
-
                                   {/* Arrow */}
-                                  <span className="text-[#9C9DA2] text-sm">
-                                    →
-                                  </span>
-
-                                  {/* Amount of Assets */}
-                                  <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                                  <span className="text-[#9C9DA2] text-sm">→</span>
+                                  {/* Assets pill */}
+                                  <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
                                     <span className="text-white text-sm font-medium">
-                                      {(
-                                        Number(req.amount_of_assets) / 1e18
-                                      ).toFixed(2)}
+                                      {(Number(req.amount_of_assets) / 1e18).toFixed(2)}
                                     </span>
                                     <Image
                                       src={assetImage}
                                       alt="Assets"
                                       width={32}
                                       height={32}
+                                      className="cursor-pointer"
                                     />
                                   </div>
                                 </div>
