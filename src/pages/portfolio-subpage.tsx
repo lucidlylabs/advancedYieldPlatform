@@ -1461,7 +1461,7 @@ const PortfolioSubpage: React.FC = () => {
                                       />
                                     </a>
                                     <span className="text-white text-sm font-medium">
-                                      Share
+                                    {(Number(req.amount_of_shares) / 1e6).toFixed(2)}
                                     </span>
                                   </div>
                                   {/* Arrow */}
@@ -1562,7 +1562,7 @@ const PortfolioSubpage: React.FC = () => {
                                       />
                                     </a>
                                     <span className="text-white text-sm font-medium">
-                                      Share
+                                    {(Number(req.amount_of_shares) / 1e6).toFixed(2)}
                                     </span>
                                   </div>
                                   {/* Arrow */}
