@@ -177,6 +177,7 @@ const PortfolioSubpage: React.FC = () => {
   const [isAssetDropdownOpen, setIsAssetDropdownOpen] = useState(false);
   const [depositedChains, setDepositedChains] = useState<string[]>([]);
   const [withdrawRequests, setWithdrawRequests] = useState<any[]>([]);
+  const [completedRequests, setCompletedRequests] = useState<any[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
 
   const chainId = useChainId();
@@ -720,11 +721,13 @@ const PortfolioSubpage: React.FC = () => {
         `https://api.lucidly.finance/services/queueData?vaultAddress=0x279CAD277447965AF3d24a78197aad1B02a2c589&userAddress=${userAddress}`
       );
       const data = await response.json();
-      setWithdrawRequests(data.result?.requests || []);
+      setWithdrawRequests(data.result?.PENDING || []);
+      setCompletedRequests(data.result?.FULFILLED || []);
       console.log('Withdraw requests:');
       console.log('API response:', data);
     } catch (error) {
       setWithdrawRequests([]);
+      setCompletedRequests([]);
     } finally {
       setIsLoadingRequests(false);
     }
@@ -1387,130 +1390,133 @@ const PortfolioSubpage: React.FC = () => {
                   {/* Requests List */}
                   {requestTab === "pending" && (
                     <div className="space-y-4">
-                      {requests.map((req, idx) => (
-                        <div
-                          key={idx}
-                          className="bg-[rgba(255,255,255,0.02)] rounded-lg p-4 flex justify-between items-center"
-                        >
-                          <div className="flex items-center gap-4">
-                            {/* Calendar Icon + Date */}
-                            <div className="flex items-center text-[#9C9DA2] text-[13px] gap-1">
-                              <button className="text-[#9C9DA2] hover:text-white transition-colors">
-                                <ExternalLinkIcon />
+                      {isLoadingRequests ? (
+                        <div>Loading...</div>
+                      ) : withdrawRequests.length === 0 ? (
+                        <div>No pending requests found.</div>
+                      ) : (
+                        withdrawRequests.map((req, idx) => {
+                          // Find asset option by withdraw_asset_address
+                          const assetOption = assetOptions.find(opt => opt.contract.toLowerCase() === (req.withdraw_asset_address || '').toLowerCase());
+                          const assetImage = assetOption ? assetOption.image : "/images/icons/susd-stable.svg";
+                          return (
+                            <div
+                              key={req.request_id || idx}
+                              className="bg-[rgba(255,255,255,0.02)] rounded-lg p-4 flex justify-between items-center"
+                            >
+                              <div className="flex items-center gap-4">
+                                {/* Calendar Icon + Date */}
+                                <div className="flex items-center text-[#9C9DA2] text-[13px] gap-1">
+                                  <button className="text-[#9C9DA2] hover:text-white transition-colors">
+                                    <ExternalLinkIcon />
+                                  </button>
+                                  {req.creation_time ? new Date(req.creation_time * 1000).toLocaleDateString() : "-"}
+                                </div>
+
+                                {/* Amounts */}
+                                <div className="flex items-center gap-2 ml-6">
+                                  {/* Amount of Shares */}
+                                  <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                                    <Image
+                                      src={assetImage}
+                                      alt="Shares"
+                                      width={32}
+                                      height={32}
+                                    />
+                                    <span className="text-white text-sm font-medium">
+                                      {(Number(req.amount_of_shares) / 1e6).toFixed(2)}
+                                    </span>
+                                  </div>
+
+                                  {/* Arrow */}
+                                  <span className="text-[#9C9DA2] text-sm">→</span>
+
+                                  {/* Amount of Assets */}
+                                  <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                                    <span className="text-white text-sm font-medium">
+                                      {(Number(req.amount_of_assets) / 1e18).toFixed(2)}
+                                    </span>
+                                    <Image
+                                      src={assetImage}
+                                      alt="Assets"
+                                      width={32}
+                                      height={32}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Cancel Button */}
+                              <button className="text-[#F87171] text-[13px] font-medium hover:underline">
+                                Cancel Request
                               </button>
-                              {req.date}
                             </div>
-
-                            {/* Amounts */}
-                            <div className="flex items-center gap-2 ml-6">
-                              {/* From Amount */}
-                              <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
-                                <Image
-                                  src={`/images/icons/${selectedStrategy.asset.toLowerCase()}-${
-                                    selectedStrategy.type === "stable"
-                                      ? "stable"
-                                      : "incentive"
-                                  }.svg`}
-                                  alt={selectedStrategy.asset}
-                                  width={32}
-                                  height={32}
-                                />
-                                <span className="text-white text-sm font-medium">
-                                  {req.fromAmount}
-                                </span>
-                              </div>
-
-                              {/* Arrow */}
-                              <span className="text-[#9C9DA2] text-sm">→</span>
-
-                              {/* To Amount */}
-                              <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
-                                <span className="text-white text-sm font-medium">
-                                  {req.toAmount}
-                                </span>
-                                <Image
-                                  src={`/images/icons/${selectedStrategy.asset.toLowerCase()}-${
-                                    selectedStrategy.type === "stable"
-                                      ? "stable"
-                                      : "incentive"
-                                  }.svg`}
-                                  alt={selectedStrategy.asset}
-                                  width={32}
-                                  height={32}
-                                />
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Cancel Button */}
-                          {req.canCancel && (
-                            <button className="text-[#F87171] text-[13px] font-medium hover:underline">
-                              Cancel Request
-                            </button>
-                          )}
-                        </div>
-                      ))}
+                          );
+                        })
+                      )}
                     </div>
                   )}
 
                   {requestTab === "completed" && (
                     <div className="space-y-4">
-                      {requests.map((req, idx) => (
-                        <div
-                          key={idx}
-                          className="bg-[rgba(255,255,255,0.02)] rounded-lg p-4 flex justify-between items-center"
-                        >
-                          <div className="flex items-center justify-between gap-4 w-full">
-                            {/* Calendar Icon + Date */}
-                            <div className="flex items-center text-[#9C9DA2] text-[13px] gap-1">
-                              <button className="text-[#9C9DA2] hover:text-white transition-colors">
-                                <ExternalLinkIcon />
-                              </button>
-                              {req.date}
-                            </div>
+                      {isLoadingRequests ? (
+                        <div>Loading...</div>
+                      ) : completedRequests.length === 0 ? (
+                        <div>No completed requests found.</div>
+                      ) : (
+                        completedRequests.map((req, idx) => {
+                          const assetOption = assetOptions.find(opt => opt.contract.toLowerCase() === (req.withdraw_asset_address || '').toLowerCase());
+                          const assetImage = assetOption ? assetOption.image : "/images/icons/susd-stable.svg";
+                          return (
+                            <div
+                              key={req.request_id || idx}
+                              className="bg-[rgba(255,255,255,0.02)] rounded-lg p-4 flex justify-between items-center"
+                            >
+                              <div className="flex items-center gap-4">
+                                {/* Calendar Icon + Date */}
+                                <div className="flex items-center text-[#9C9DA2] text-[13px] gap-1">
+                                  <button className="text-[#9C9DA2] hover:text-white transition-colors">
+                                    <ExternalLinkIcon />
+                                  </button>
+                                  {req.creation_time ? new Date(req.creation_time * 1000).toLocaleDateString() : "-"}
+                                </div>
 
-                            {/* Amounts */}
-                            <div className="flex items-center gap-2 ml-6">
-                              {/* From Amount */}
-                              <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
-                                <Image
-                                  src={`/images/icons/${selectedStrategy.asset.toLowerCase()}-${
-                                    selectedStrategy.type === "stable"
-                                      ? "stable"
-                                      : "incentive"
-                                  }.svg`}
-                                  alt={selectedStrategy.asset}
-                                  width={32}
-                                  height={32}
-                                />
-                                <span className="text-white text-sm font-medium">
-                                  {req.fromAmount}
-                                </span>
+                                {/* Amounts */}
+                                <div className="flex items-center gap-2 ml-6">
+                                  {/* Amount of Shares (hardcoded to 'Share' for syUSD) */}
+                                  <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                                    <Image
+                                      src={assetImage}
+                                      alt="Shares"
+                                      width={32}
+                                      height={32}
+                                    />
+                                    <span className="text-white text-sm font-medium">
+                                      Share
+                                    </span>
+                                  </div>
+
+                                  {/* Arrow */}
+                                  <span className="text-[#9C9DA2] text-sm">→</span>
+
+                                  {/* Amount of Assets */}
+                                  <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                                    <span className="text-white text-sm font-medium">
+                                      {(Number(req.amount_of_assets) / 1e18).toFixed(2)}
+                                    </span>
+                                    <Image
+                                      src={assetImage}
+                                      alt="Assets"
+                                      width={32}
+                                      height={32}
+                                    />
+                                  </div>
+                                </div>
                               </div>
-
-                              {/* Arrow */}
-                              <span className="text-[#9C9DA2] text-sm">→</span>
-
-                              {/* To Amount */}
-                              <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
-                                <span className="text-white text-sm font-medium">
-                                  {req.toAmount}
-                                </span>
-                                <Image
-                                  src={`/images/icons/${selectedStrategy.asset.toLowerCase()}-${
-                                    selectedStrategy.type === "stable"
-                                      ? "stable"
-                                      : "incentive"
-                                  }.svg`}
-                                  alt={selectedStrategy.asset}
-                                  width={32}
-                                  height={32}
-                                />
-                              </div>
                             </div>
-                          </div>
-                        </div>
-                      ))}
+                          );
+                        })
+                      )}
                     </div>
                   )}
                 </div>
