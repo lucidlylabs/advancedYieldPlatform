@@ -125,16 +125,19 @@ const assetOptions = [
     name: "USDC",
     contract: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
     image: "/images/icons/usdc.svg",
+    decimal: 6,
   },
   {
     name: "USDS",
     contract: "0x820C137fa70C8691f0e44Dc420a5e53c168921Dc",
     image: "/images/icons/usds.svg",
+    decimal: 18,
   },
   {
     name: "sUSDS",
     contract: "0x5875eEE11Cf8398102FdAd704C9E96607675467a",
     image: "/images/icons/sUSDS.svg",
+    decimal: 18,
   },
 ];
 
@@ -1422,6 +1425,7 @@ const PortfolioSubpage: React.FC = () => {
                           const assetImage = assetOption
                             ? assetOption.image
                             : "/images/icons/susd-stable.svg";
+                          const assetDecimals = assetOption ? assetOption.decimal : 18;
                           return (
                             <div
                               key={req.request_id || idx}
@@ -1484,7 +1488,7 @@ const PortfolioSubpage: React.FC = () => {
                                   {/* Assets pill */}
                                   <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
                                     <span className="text-white text-sm font-medium">
-                                      {(Number(req.amount_of_assets) / 1e18).toFixed(2)}
+                                      {(Number(req.amount_of_assets) / Math.pow(10, assetDecimals)).toFixed(2)}
                                     </span>
                                     <Image
                                       src={assetImage}
@@ -1523,6 +1527,7 @@ const PortfolioSubpage: React.FC = () => {
                           const assetImage = assetOption
                             ? assetOption.image
                             : "/images/icons/susd-stable.svg";
+                          const assetDecimals = assetOption ? assetOption.decimal : 18;
                           return (
                             <div
                               key={req.request_id || idx}
@@ -1585,7 +1590,7 @@ const PortfolioSubpage: React.FC = () => {
                                   {/* Assets pill */}
                                   <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
                                     <span className="text-white text-sm font-medium">
-                                      {(Number(req.amount_of_assets) / 1e18).toFixed(2)}
+                                      {(Number(req.amount_of_assets) / Math.pow(10, assetDecimals)).toFixed(2)}
                                     </span>
                                     <Image
                                       src={assetImage}
