@@ -10,6 +10,7 @@ export const USD_STRATEGIES = {
             shareAddress: "0x279CAD277447965AF3d24a78197aad1B02a2c589",
             shareAddress_token_decimal: 6,
             rateProvider: "0x03D9a9cE13D16C7cFCE564f41bd7E85E5cde8Da6",
+            image: "/images/icons/syUSD.svg",
 
       base: {
         image: "/images/logo/base.svg",

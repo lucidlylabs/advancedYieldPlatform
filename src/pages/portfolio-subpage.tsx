@@ -714,7 +714,10 @@ const PortfolioSubpage: React.FC = () => {
     fetchAmountOut();
   }, [selectedStrategy, withdrawAmount]);
 
-  const fetchWithdrawRequests = async (vaultAddress: string, userAddress: string) => {
+  const fetchWithdrawRequests = async (
+    vaultAddress: string,
+    userAddress: string
+  ) => {
     setIsLoadingRequests(true);
     try {
       const response = await fetch(
@@ -723,8 +726,8 @@ const PortfolioSubpage: React.FC = () => {
       const data = await response.json();
       setWithdrawRequests(data.result?.PENDING || []);
       setCompletedRequests(data.result?.FULFILLED || []);
-      console.log('Withdraw requests:');
-      console.log('API response:', data);
+      console.log("Withdraw requests:");
+      console.log("API response:", data);
     } catch (error) {
       setWithdrawRequests([]);
       setCompletedRequests([]);
@@ -740,7 +743,7 @@ const PortfolioSubpage: React.FC = () => {
   }, [address]);
 
   useEffect(() => {
-    console.log('Fetched withdraw requests:', withdrawRequests);
+    console.log("Fetched withdraw requests:", withdrawRequests);
   }, [withdrawRequests]);
 
   return (
@@ -751,7 +754,7 @@ const PortfolioSubpage: React.FC = () => {
           <div className="flex gap-32">
             <div className="flex flex-col">
               <div className="text-[#9C9DA2]   text-[14px] font-normal leading-[16px]">
-                Portfolio 
+                Portfolio
               </div>
               <div className="text-[#D7E3EF]   text-[24px] font-semibold leading-normal mt-1">
                 {isRefreshingBalance ? (
@@ -1349,11 +1352,11 @@ const PortfolioSubpage: React.FC = () => {
                   <div className="mt-2">
                     <div className="text-[#D7E3EF] text-[14px] rounded-[4px] bg-[rgba(255,255,255,0.02)] p-[24px]">
                       <strong>Note:</strong> By initiating a withdrawal, your
-                      vault shares ({strategy.name}) will be converted into the underlying
-                      asset based on the latest market rates, which may
-                      fluctuate slightly; once the request is submitted, please
-                      allow up to 24 hours for the funds to be received, as
-                      processing times can vary depending on network
+                      vault shares ({strategy.name}) will be converted into the
+                      underlying asset based on the latest market rates, which
+                      may fluctuate slightly; once the request is submitted,
+                      please allow up to 24 hours for the funds to be received,
+                      as processing times can vary depending on network
                       conditions—there's no need to panic if the assets don't
                       arrive immediately.
                     </div>
@@ -1396,9 +1399,14 @@ const PortfolioSubpage: React.FC = () => {
                         <div>No pending requests found.</div>
                       ) : (
                         withdrawRequests.map((req, idx) => {
-                          // Find asset option by withdraw_asset_address
-                          const assetOption = assetOptions.find(opt => opt.contract.toLowerCase() === (req.withdraw_asset_address || '').toLowerCase());
-                          const assetImage = assetOption ? assetOption.image : "/images/icons/susd-stable.svg";
+                          const assetOption = assetOptions.find(
+                            (opt) =>
+                              opt.contract.toLowerCase() ===
+                              (req.withdraw_asset_address || "").toLowerCase()
+                          );
+                          const assetImage = assetOption
+                            ? assetOption.image
+                            : "/images/icons/susd-stable.svg";
                           return (
                             <div
                               key={req.request_id || idx}
@@ -1410,31 +1418,41 @@ const PortfolioSubpage: React.FC = () => {
                                   <button className="text-[#9C9DA2] hover:text-white transition-colors">
                                     <ExternalLinkIcon />
                                   </button>
-                                  {req.creation_time ? new Date(req.creation_time * 1000).toLocaleDateString() : "-"}
+                                  {req.creation_time
+                                    ? new Date(
+                                        req.creation_time * 1000
+                                      ).toLocaleDateString()
+                                    : "-"}
                                 </div>
 
                                 {/* Amounts */}
                                 <div className="flex items-center gap-2 ml-6">
-                                  {/* Amount of Shares */}
+                                  {/* Amount of Shares (always syUSD image) */}
                                   <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
                                     <Image
-                                      src={assetImage}
+                                      src="/images/icons/syUSD.svg"
                                       alt="Shares"
                                       width={32}
                                       height={32}
                                     />
                                     <span className="text-white text-sm font-medium">
-                                      {(Number(req.amount_of_shares) / 1e6).toFixed(2)}
+                                      {(
+                                        Number(req.amount_of_shares) / 1e6
+                                      ).toFixed(2)}
                                     </span>
                                   </div>
 
                                   {/* Arrow */}
-                                  <span className="text-[#9C9DA2] text-sm">→</span>
+                                  <span className="text-[#9C9DA2] text-sm">
+                                    →
+                                  </span>
 
                                   {/* Amount of Assets */}
                                   <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
                                     <span className="text-white text-sm font-medium">
-                                      {(Number(req.amount_of_assets) / 1e18).toFixed(2)}
+                                      {(
+                                        Number(req.amount_of_assets) / 1e18
+                                      ).toFixed(2)}
                                     </span>
                                     <Image
                                       src={assetImage}
@@ -1465,8 +1483,14 @@ const PortfolioSubpage: React.FC = () => {
                         <div>No completed requests found.</div>
                       ) : (
                         completedRequests.map((req, idx) => {
-                          const assetOption = assetOptions.find(opt => opt.contract.toLowerCase() === (req.withdraw_asset_address || '').toLowerCase());
-                          const assetImage = assetOption ? assetOption.image : "/images/icons/susd-stable.svg";
+                          const assetOption = assetOptions.find(
+                            (opt) =>
+                              opt.contract.toLowerCase() ===
+                              (req.withdraw_asset_address || "").toLowerCase()
+                          );
+                          const assetImage = assetOption
+                            ? assetOption.image
+                            : "/images/icons/susd-stable.svg";
                           return (
                             <div
                               key={req.request_id || idx}
@@ -1478,15 +1502,19 @@ const PortfolioSubpage: React.FC = () => {
                                   <button className="text-[#9C9DA2] hover:text-white transition-colors">
                                     <ExternalLinkIcon />
                                   </button>
-                                  {req.creation_time ? new Date(req.creation_time * 1000).toLocaleDateString() : "-"}
+                                  {req.creation_time
+                                    ? new Date(
+                                        req.creation_time * 1000
+                                      ).toLocaleDateString()
+                                    : "-"}
                                 </div>
 
                                 {/* Amounts */}
                                 <div className="flex items-center gap-2 ml-6">
-                                  {/* Amount of Shares (hardcoded to 'Share' for syUSD) */}
+                                  {/* Amount of Shares (always syUSD image, hardcoded label) */}
                                   <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
                                     <Image
-                                      src={assetImage}
+                                      src="/images/icons/syUSD.svg"
                                       alt="Shares"
                                       width={32}
                                       height={32}
@@ -1497,12 +1525,16 @@ const PortfolioSubpage: React.FC = () => {
                                   </div>
 
                                   {/* Arrow */}
-                                  <span className="text-[#9C9DA2] text-sm">→</span>
+                                  <span className="text-[#9C9DA2] text-sm">
+                                    →
+                                  </span>
 
                                   {/* Amount of Assets */}
                                   <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
                                     <span className="text-white text-sm font-medium">
-                                      {(Number(req.amount_of_assets) / 1e18).toFixed(2)}
+                                      {(
+                                        Number(req.amount_of_assets) / 1e18
+                                      ).toFixed(2)}
                                     </span>
                                     <Image
                                       src={assetImage}
