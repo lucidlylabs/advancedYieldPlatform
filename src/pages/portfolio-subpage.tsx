@@ -1482,9 +1482,9 @@ const PortfolioSubpage: React.FC = () => {
                                 </div>
                               </div>
                               {/* Cancel Button */}
-                              <button className="text-[#F87171] text-[13px] font-medium hover:underline">
+                              {/* <button className="text-[#F87171] text-[13px] font-medium hover:underline">
                                 Cancel Request
-                              </button>
+                              </button> */}
                             </div>
                           );
                         })
