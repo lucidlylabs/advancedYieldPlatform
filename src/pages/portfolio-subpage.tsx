@@ -745,6 +745,22 @@ const PortfolioSubpage: React.FC = () => {
     console.log("Fetched withdraw requests:", withdrawRequests);
   }, [withdrawRequests]);
 
+  // Call cacheQueueData API when withdrawal is successful
+  useEffect(() => {
+    if (isWithdrawSuccess && withdrawTxHash && address) {
+      const vaultAddress = "0x279CAD277447965AF3d24a78197aad1B02a2c589";
+      const apiUrl = `https://api.lucidly.finance/services/cacheQueueData?vaultAddress=${vaultAddress}&userAddress=${address}`;
+      fetch(apiUrl, { method: "GET" })
+        .then((res) => res.json())
+        .then((data) => {
+          console.log("cacheQueueData API called after withdraw success:", data);
+        })
+        .catch((err) => {
+          console.error("Error calling cacheQueueData API:", err);
+        });
+    }
+  }, [isWithdrawSuccess, withdrawTxHash, address]);
+
   return (
     <div className="flex flex-col min-h-screen text-white">
       {/* Top Section - Portfolio Value, PNL, and Wallet */}
@@ -1338,7 +1354,7 @@ const PortfolioSubpage: React.FC = () => {
                           Transaction Successful
                         </div>
                         <a
-                          href={`https://sonicscan.org/tx/${withdrawTxHash}`}
+                          href={`https://basescan.org/tx/${withdrawTxHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-[#00D1A0]   text-[14px] underline hover:text-[#00D1A0]/80"
