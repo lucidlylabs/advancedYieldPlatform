@@ -265,10 +265,7 @@ const DepositView: React.FC<DepositViewProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isWaitingForSignature, setIsWaitingForSignature] = useState(false);
   const [status, setStatus] = useState<
-    | "loading"
-    | "waitingForSignature"
-    | "approved"
-    | "idle"
+    "loading" | "waitingForSignature" | "approved" | "idle"
   >("idle");
   const [isMultiChain, setIsMultiChain] = useState<boolean>(false);
   const [bridgeFee, setBridgeFee] = useState<string>("0");
@@ -415,7 +412,11 @@ const DepositView: React.FC<DepositViewProps> = ({
   });
 
   // Approve token for vault
-  const { writeContractAsync: approve, data: approveData, isPending: approveIsPending } = useWriteContract();
+  const {
+    writeContractAsync: approve,
+    data: approveData,
+    isPending: approveIsPending,
+  } = useWriteContract();
 
   // Check allowance against vault contract
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
@@ -449,7 +450,11 @@ const DepositView: React.FC<DepositViewProps> = ({
     });
 
   // Deposit into vault
-  const { writeContractAsync: deposit, data: depositData, isPending: depositIsPending } = useWriteContract();
+  const {
+    writeContractAsync: deposit,
+    data: depositData,
+    isPending: depositIsPending,
+  } = useWriteContract();
 
   // Watch deposit transaction
   const {
@@ -556,7 +561,13 @@ const DepositView: React.FC<DepositViewProps> = ({
   useEffect(() => {
     if (isLoadingBalance) {
       setStatus("loading");
-    } else if (isWaitingForSignature || approveIsPending || depositIsPending || isWaitingForApproval || isWaitingForDeposit) {
+    } else if (
+      isWaitingForSignature ||
+      approveIsPending ||
+      depositIsPending ||
+      isWaitingForApproval ||
+      isWaitingForDeposit
+    ) {
       setStatus("waitingForSignature");
     } else if (isApproved && !depositIsPending && !isWaitingForDeposit) {
       setStatus("approved");
@@ -873,7 +884,9 @@ const DepositView: React.FC<DepositViewProps> = ({
         }
       } else if (approveIsPending) {
         console.log("Approval is pending, waiting for it to complete.");
-        setErrorMessage("Approval is pending. Please complete the approval first.");
+        setErrorMessage(
+          "Approval is pending. Please complete the approval first."
+        );
         setIsWaitingForSignature(true);
       } else {
         console.log("Insufficient allowance, approval needed first");
@@ -1236,7 +1249,7 @@ const DepositView: React.FC<DepositViewProps> = ({
               <div className="w-[280px] bg-[#121420] rounded-t-md p-4 border-l border-r border-t border-[rgba(255,255,255,0.05)]">
                 <div className="flex items-center justify-between gap-2">
                   <label className="text-[#9C9DA2] font-inter text-[12px] whitespace-nowrap flex items-center gap-1">
-                  Destination Network
+                    Destination Network
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -1490,6 +1503,15 @@ const DepositView: React.FC<DepositViewProps> = ({
             )} */}
 
               {/* Dynamic Connect/Deposit Button */}
+              {targetChain !== strategyConfig.network.toLowerCase() && (
+                <div className="w-full mt-4 mb-2 p-4 rounded bg-[#2B2320] border border-[#B88AF8]/20 text-[#FFD580] text-sm">
+                  <b>Note: </b>
+                  In the Portfolio section, deposits from non-
+                  <b>{strategyConfig.network}</b> networks may take 5–60 minutes
+                  to appear. Delay is due to bridge processing and network
+                  congestion.
+                </div>
+              )}
               <ConnectButton.Custom>
                 {({
                   account,
@@ -1507,7 +1529,10 @@ const DepositView: React.FC<DepositViewProps> = ({
                       authenticationStatus === "authenticated");
 
                   const isLoading =
-                    approveIsPending || depositIsPending || isWaitingForApproval || isWaitingForDeposit;
+                    approveIsPending ||
+                    depositIsPending ||
+                    isWaitingForApproval ||
+                    isWaitingForDeposit;
 
                   const hasInsufficientFunds =
                     connected &&
@@ -1515,43 +1540,52 @@ const DepositView: React.FC<DepositViewProps> = ({
                     balance &&
                     Number(amount) > Number(balance);
 
-                    const shouldDisable =
+                  const shouldDisable =
                     connected &&
-                    (isLoading || isLoadingBalance || hasInsufficientFunds || !amount || Number(amount) === 0);
+                    (isLoading ||
+                      isLoadingBalance ||
+                      hasInsufficientFunds ||
+                      !amount ||
+                      Number(amount) === 0);
 
-                    const buttonText = connected
+                  const buttonText = connected
                     ? !amount || Number(amount) === 0
                       ? "Enter Amount"
                       : hasInsufficientFunds
                       ? "Insufficient Funds"
                       : isWaitingForSignature
-                        ? "Waiting for Signature..."
-                        : isApproved && !isLoading
-                          ? "Approval Done - Click to Deposit"
-                          : "Deposit"
+                      ? "Waiting for Signature..."
+                      : isApproved && !isLoading
+                      ? "Approval Done - Click to Deposit"
+                      : "Deposit"
                     : "Connect Wallet";
 
-                    const isInactiveState =
+                  const isInactiveState =
                     (connected &&
-                      (hasInsufficientFunds || !amount || Number(amount) === 0)) ||
+                      (hasInsufficientFunds ||
+                        !amount ||
+                        Number(amount) === 0)) ||
                     shouldDisable;
 
                   return (
                     <button
-                    onClick={
-                      connected && !hasInsufficientFunds && amount && Number(amount) > 0
-                        ? handleDeposit
-                        : openConnectModal
-                    }
-                    disabled={shouldDisable}
-                    className={`w-full py-4 mt-6 rounded font-semibold transition-all duration-200 ${
-                      isInactiveState
-                        ? "bg-gray-500 text-white opacity-50 cursor-not-allowed"
-                        : "bg-[#B88AF8] text-[#1A1B1E] hover:opacity-90"
-                    }`}
-                  >
-                    {buttonText}
-                  </button>
+                      onClick={
+                        connected &&
+                        !hasInsufficientFunds &&
+                        amount &&
+                        Number(amount) > 0
+                          ? handleDeposit
+                          : openConnectModal
+                      }
+                      disabled={shouldDisable}
+                      className={`w-full py-4 mt-6 rounded font-semibold transition-all duration-200 ${
+                        isInactiveState
+                          ? "bg-gray-500 text-white opacity-50 cursor-not-allowed"
+                          : "bg-[#B88AF8] text-[#1A1B1E] hover:opacity-90"
+                      }`}
+                    >
+                      {buttonText}
+                    </button>
                   );
                 }}
               </ConnectButton.Custom>
