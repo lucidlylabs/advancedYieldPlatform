@@ -11,6 +11,7 @@ export const USD_STRATEGIES = {
       shareAddress_token_decimal: 6,
       rateProvider: "0x03D9a9cE13D16C7cFCE564f41bd7E85E5cde8Da6",
       image: "/images/icons/syUSD.svg",
+      daily_deposits: "http://localhost:3001/api/syUSD/daily-deposits",
 
       base: {
         image: "/images/logo/base.svg",
