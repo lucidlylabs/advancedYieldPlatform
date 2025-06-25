@@ -1180,7 +1180,7 @@ const PortfolioSubpage: React.FC = () => {
 
                     <div className="flex justify-between py-4 mb-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] px-6 items-center">
                       <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
-                        You Will Receive
+                        You Will Receive 
                       </div>
                       <div className="flex justify-end items-center gap-4">
                         <div className="text-[#EDF2F8] text-[16px] font-medium leading-normal">
