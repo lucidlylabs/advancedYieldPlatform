@@ -349,7 +349,7 @@ const PortfolioSubpage: React.FC = () => {
   const chainId = useChainId();
   const isBase = chainId === 8453;
 
-  const router = useRouter();
+  const router = useRouter() as any;
 
   const strategyConfigs = {
     USD: USD_STRATEGIES,
