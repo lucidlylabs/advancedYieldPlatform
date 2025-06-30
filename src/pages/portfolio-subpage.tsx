@@ -714,7 +714,7 @@ const PortfolioSubpage: React.FC = () => {
     };
 
     fetchAmountOut();
-  }, [selectedStrategy, withdrawAmount, selectedAssetIdx]);
+  }, [selectedStrategy, withdrawAmount]);
 
   const fetchWithdrawRequests = async (
     vaultAddress: string,
@@ -1184,12 +1184,10 @@ const PortfolioSubpage: React.FC = () => {
                       </div>
                       <div className="flex justify-end items-center gap-4">
                         <div className="text-[#EDF2F8] text-[16px] font-medium leading-normal">
-                          {Number(
-                            formatUnits(
-                              amountOut ? BigInt(amountOut) : BigInt(0),
-                              assetOptions[selectedAssetIdx]?.decimal || 18
-                            )
-                          ).toFixed(4)}{" "}
+                          {formatUnits(
+                            amountOut ? BigInt(amountOut) : BigInt(0),
+                            6
+                          )}{" "}
                         </div>
                         {assetOptions.length > 1 && (
                           <div className="">
