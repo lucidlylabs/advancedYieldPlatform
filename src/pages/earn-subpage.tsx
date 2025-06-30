@@ -97,10 +97,10 @@ interface YieldSubpageProps {
 
 const getStrategyInfo = (duration: DurationType): StrategyData => {
   const getAssetStrategies = (asset: AssetType) => {
-    const strategies: Record<AssetType, Record<DurationType, StrategyDuration>> = {
-      USD: USD_STRATEGIES as Record<DurationType, StrategyDuration>,
-      BTC: BTC_STRATEGIES as Record<DurationType, StrategyDuration>,
-      ETH: ETH_STRATEGIES as Record<DurationType, StrategyDuration>,
+    const strategies: Record<AssetType, Partial<Record<DurationType, StrategyDuration>>> = {
+      USD: USD_STRATEGIES as unknown as Partial<Record<DurationType, StrategyDuration>>,
+      BTC: BTC_STRATEGIES as unknown as Partial<Record<DurationType, StrategyDuration>>,
+      ETH: ETH_STRATEGIES as unknown as Partial<Record<DurationType, StrategyDuration>>,
     };
 
     const strategy = strategies[asset][duration];

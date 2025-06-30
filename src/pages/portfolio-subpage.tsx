@@ -280,7 +280,7 @@ const PortfolioSubpage: React.FC = () => {
     try {
       setIsRefreshingBalance(true);
       const allStrategies = [
-        ...Object.entries(USD_STRATEGIES as StrategyAsset).flatMap(([duration, strategies]) =>
+        ...Object.entries(USD_STRATEGIES as unknown as StrategyAsset).flatMap(([duration, strategies]) =>
           Object.entries(strategies as StrategyDuration).map(([type, strategy]) => ({
             ...strategy,
             duration,
@@ -288,7 +288,7 @@ const PortfolioSubpage: React.FC = () => {
             asset: "USD"
           }))
         ),
-        ...Object.entries(BTC_STRATEGIES as StrategyAsset).flatMap(([duration, strategies]) =>
+        ...Object.entries(BTC_STRATEGIES as unknown as StrategyAsset).flatMap(([duration, strategies]) =>
           Object.entries(strategies as StrategyDuration).map(([type, strategy]) => ({
             ...strategy,
             duration,
@@ -296,7 +296,7 @@ const PortfolioSubpage: React.FC = () => {
             asset: "BTC"
           }))
         ),
-        ...Object.entries(ETH_STRATEGIES as StrategyAsset).flatMap(([duration, strategies]) =>
+        ...Object.entries(ETH_STRATEGIES as unknown as StrategyAsset).flatMap(([duration, strategies]) =>
           Object.entries(strategies as StrategyDuration).map(([type, strategy]) => ({
             ...strategy,
             duration,

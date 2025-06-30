@@ -53,7 +53,7 @@ export async function calculateTotalBalanceInUSD(
   provider: ethers.Provider
 ): Promise<number> {
   const balances: TokenBalance[] = [];
-  const strategy = USD_STRATEGIES.PERPETUAL_DURATION.STABLE as StrategyConfig;
+  const strategy = USD_STRATEGIES.PERPETUAL_DURATION.STABLE as unknown as StrategyConfig;
 
   // Check each chain configuration
   const chains = ['base', 'ethereum', 'arbitrum'] as const;
