@@ -95,6 +95,7 @@ const MarketsSubpage: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<MarketItem | null>(null);
   const [showDepositView, setShowDepositView] = useState(false);
   const [usdTvl, setUsdTvl] = useState<string | null>(null);
+  const [usdApy, setUsdApy] = useState<string | null>(null);
   
   // Market data
   const marketData: Record<AssetType, MarketItem[]> = {
@@ -106,7 +107,7 @@ const MarketsSubpage: React.FC = () => {
         id: 5,
         name: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.name,
         type: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.type,
-        baseYield: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.apy,
+        baseYield: usdApy ? usdApy : USD_STRATEGIES.PERPETUAL_DURATION.STABLE.apy,
         incentives: [USD_STRATEGIES.PERPETUAL_DURATION.STABLE.incentives],
         tvl: usdTvl ? usdTvl : USD_STRATEGIES.PERPETUAL_DURATION.STABLE.tvl,
         description: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.description,
@@ -141,6 +142,21 @@ const MarketsSubpage: React.FC = () => {
                 .catch(() => setUsdTvl(null));
         }
     }, []);
+
+    useEffect(() => {
+        const apyUrl = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.apy;
+        if (typeof apyUrl === "string" && apyUrl.startsWith("http")) {
+          fetch(apyUrl)
+            .then(res => res.json())
+            .then(data => {
+              const trailingApy = data?.result?.trailing_total_APY;
+              if (typeof trailingApy === "number") {
+                setUsdApy(`${trailingApy.toFixed(2)}%`);
+              }
+            })
+            .catch(() => setUsdApy(null));
+        }
+      }, []);
 
     // Handler for sorting
     const handleSort = (column: string) => {

@@ -182,6 +182,7 @@ const PortfolioSubpage: React.FC = () => {
   const [withdrawRequests, setWithdrawRequests] = useState<any[]>([]);
   const [completedRequests, setCompletedRequests] = useState<any[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
+  const [usdApy, setUsdApy] = useState<string | null>(null);
 
   const chainId = useChainId();
   const isBase = chainId === 8453;
@@ -191,6 +192,21 @@ const PortfolioSubpage: React.FC = () => {
     useTransaction({
       hash: transactionHash || undefined,
     });
+
+  useEffect(() => {
+      const apyUrl = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.apy;
+      if (typeof apyUrl === "string" && apyUrl.startsWith("http")) {
+        fetch(apyUrl)
+          .then(res => res.json())
+          .then(data => {
+            const trailingApy = data?.result?.trailing_total_APY;
+            if (typeof trailingApy === "number") {
+              setUsdApy(`${trailingApy.toFixed(2)}%`);
+            }
+          })
+          .catch(() => setUsdApy(null));
+      }
+    }, []);
 
   // Watch for deposit completion
   useEffect(() => {
@@ -726,9 +742,9 @@ const PortfolioSubpage: React.FC = () => {
         `https://api.lucidly.finance/services/queueData?vaultAddress=0x279CAD277447965AF3d24a78197aad1B02a2c589&userAddress=${userAddress}`
       );
       const data = await response.json();
+      console.log("response:" ,response)
       setWithdrawRequests(data.result?.PENDING || []);
       setCompletedRequests(data.result?.FULFILLED || []);
-      console.log("Withdraw requests:");
       console.log("API response:", data);
     } catch (error) {
       setWithdrawRequests([]);
@@ -740,6 +756,7 @@ const PortfolioSubpage: React.FC = () => {
 
   useEffect(() => {
     if (address) {
+      console.log("withdrwaimg")
       fetchWithdrawRequests("", address);
     }
   }, [address]);
@@ -976,7 +993,7 @@ const PortfolioSubpage: React.FC = () => {
                         +
                         {(
                           (strategy.balance *
-                            parseFloat(strategy.apy?.replace("%", "") || "0")) /
+                            parseFloat(usdApy?.replace("%", "") || "0")) /
                           100
                         ).toFixed(2)}{" "}
                         in 1 year
@@ -996,7 +1013,6 @@ const PortfolioSubpage: React.FC = () => {
                       {depositedChains.map((chainKey, index) => {
                         const chain = chainIconMap[chainKey];
                         if (!chain) return null;
-                        console.log("chain", chain);
 
                         return (
                           <TooltipProvider key={chainKey}>
@@ -1037,7 +1053,7 @@ const PortfolioSubpage: React.FC = () => {
 
                   {/* APY */}
                   <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal flex items-center justify-center">
-                    {strategy.apy}
+                    {usdApy}
                   </div>
 
                   {/* Balance */}
@@ -1047,7 +1063,7 @@ const PortfolioSubpage: React.FC = () => {
                     </div>
                     <div
                       className={`${
-                        parseFloat(strategy.apy?.replace("%", "") || "0") >= 0
+                        parseFloat(usdApy?.replace("%", "") || "0") >= 0
                           ? "text-[#00D1A0]"
                           : "text-[#EF4444]"
                       }   text-[12px] font-normal leading-normal`}
@@ -1055,10 +1071,10 @@ const PortfolioSubpage: React.FC = () => {
                       $
                       {(
                         (strategy.balance *
-                          parseFloat(strategy.apy?.replace("%", "") || "0")) /
+                          parseFloat(usdApy?.replace("%", "") || "0")) /
                         100
                       ).toFixed(2)}{" "}
-                      ({strategy.apy})
+                      ({usdApy})
                     </div>
                   </div>
                 </div>

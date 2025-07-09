@@ -174,8 +174,24 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
   const [selectedStrategy, setSelectedStrategy] = useState<SelectedStrategy | null>(
     null
   );
+  const [usdApy, setUsdApy] = useState<string | null>(null);
 
   const router = useRouter();
+
+  useEffect(() => {
+    const apyUrl = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.apy;
+    if (typeof apyUrl === "string" && apyUrl.startsWith("http")) {
+      fetch(apyUrl)
+        .then(res => res.json())
+        .then(data => {
+          const trailingApy = data?.result?.trailing_total_APY;
+          if (typeof trailingApy === "number") {
+            setUsdApy(`${trailingApy.toFixed(2)}%`);
+          }
+        })
+        .catch(() => setUsdApy(null));
+    }
+  }, []);
 
   useEffect(() => {
     if (depositParams) {
@@ -242,7 +258,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
           selectedAsset={selectedStrategy.asset}
           duration={selectedStrategy.duration}
           strategy={selectedStrategy.type}
-          apy={selectedStrategy.apy}
+          apy={usdApy || "--"}
           onBack={() => setSelectedStrategy(null)}
           onReset={handleReset}
         />
@@ -312,11 +328,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                       selectedAsset.asset as AssetType
                     ].description
                   }
-                  apy={
-                    getStrategyInfo(selectedAsset.duration).stable[
-                      selectedAsset.asset as AssetType
-                    ].apy
-                  }
+                  apy={{ value: usdApy || "--", info: "-" }}
                   isStrategyCard={true}
                   selectedDuration={selectedAsset.duration}
                   onReset={handleReset}
