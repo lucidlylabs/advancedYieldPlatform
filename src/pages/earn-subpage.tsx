@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { CustomCard } from "@/components/ui/card";
 import DepositView from "@/components/deposit-view";
 import { USD_STRATEGIES, BTC_STRATEGIES, ETH_STRATEGIES } from "../config/env";
+import { useRouter } from "next/router";
 
 type DurationType = "30_DAYS" | "60_DAYS" | "180_DAYS" | "PERPETUAL_DURATION";
 type StrategyType = "STABLE" | "INCENTIVE";
@@ -14,7 +15,13 @@ interface TokenConfig {
 }
 
 interface NetworkConfig {
-  tokens: TokenConfig[];
+  tokens: Array<{
+    name: string;
+    contract: string;
+    decimal: number;
+    image: string;
+  }>;
+  rpc: string;
 }
 
 interface BaseStrategyConfig {
@@ -24,6 +31,7 @@ interface BaseStrategyConfig {
   solverAddress: string;
   shareAddress: string;
   shareAddress_token_decimal: number;
+  rateProvider: string;
   base: NetworkConfig;
   ethereum: NetworkConfig;
   arbitrum: NetworkConfig;
@@ -103,12 +111,12 @@ const getStrategyInfo = (duration: DurationType): StrategyData => {
       ETH: ETH_STRATEGIES as unknown as Partial<Record<DurationType, StrategyDuration>>,
     };
 
-    const strategy = strategies[asset][duration];
+    const strategy = strategies[asset][duration]; 
 
     if (!strategy) {
-      console.error(
-        `No strategy found for ${asset} with duration ${duration}`
-      );
+      // console.error(
+      //   `No strategy found for ${asset} with duration ${duration}`
+      // );
       return {
         stable: {
           description: "Strategy not available",
@@ -166,6 +174,24 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
   const [selectedStrategy, setSelectedStrategy] = useState<SelectedStrategy | null>(
     null
   );
+  const [usdApy, setUsdApy] = useState<string | null>(null);
+
+  const router = useRouter();
+
+  useEffect(() => {
+    const apyUrl = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.apy;
+    if (typeof apyUrl === "string" && apyUrl.startsWith("http")) {
+      fetch(apyUrl)
+        .then(res => res.json())
+        .then(data => {
+          const trailingApy = data?.result?.trailing_total_APY;
+          if (typeof trailingApy === "number") {
+            setUsdApy(`${trailingApy.toFixed(2)}%`);
+          }
+        })
+        .catch(() => setUsdApy(null));
+    }
+  }, []);
 
   useEffect(() => {
     if (depositParams) {
@@ -213,6 +239,8 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
     setSelectedStrategy(null);
   };
 
+  console.log("Selected Strategy:", selectedStrategy);
+
   // Always render the main content, assuming verification is handled by parent
   return (
     <div
@@ -230,7 +258,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
           selectedAsset={selectedStrategy.asset}
           duration={selectedStrategy.duration}
           strategy={selectedStrategy.type}
-          apy={selectedStrategy.apy}
+          apy={usdApy || "--"}
           onBack={() => setSelectedStrategy(null)}
           onReset={handleReset}
         />
@@ -266,7 +294,11 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                 className="cursor-pointer"
               >
                 <CustomCard
-                  heading={`Stable ${selectedAsset.asset}`}
+                  heading={
+                    selectedAsset.asset === "USD" 
+                      ? USD_STRATEGIES.PERPETUAL_DURATION.STABLE.name
+                      : `${selectedAsset.asset} Strategy`
+                  }
                   imageSrc={`/images/icons/${(
                     selectedAsset.asset as AssetType
                   ).toLowerCase()}-stable.svg`}
@@ -275,12 +307,10 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                       selectedAsset.asset as AssetType
                     ].description
                   }
-                  apy={
-                    getStrategyInfo(selectedAsset.duration).stable[
-                      selectedAsset.asset as AssetType
-                    ].apy
-                  }
+                  apy={{ value: usdApy || "--", info: "-" }}
                   isStrategyCard={true}
+                  selectedDuration={selectedAsset.duration}
+                  onReset={handleReset}
                   disableHover={true}
                 />
               </div>
@@ -322,6 +352,8 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                   }
                   isStrategyCard={true}
                   disableHover={true}
+                  onReset={handleReset}
+                  selectedDuration={selectedAsset.duration}
                   isComingSoon={
                     getStrategyInfo(selectedAsset.duration).incentives[
                       selectedAsset.asset as AssetType
@@ -330,7 +362,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                 />
               </div>
             </div>
-          </div>
+        </div>
         </div>
       ) : (
         <div className="flex flex-col gap-6 items-center pt-[8vh]">
@@ -348,7 +380,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
               availableDurations={["PERPETUAL_DURATION"]}
             />
             <CustomCard
-              heading="Ethereum"
+              heading="ETH"
               imageSrc="/images/icons/card-eth.svg"
               imageAlt="Ethereum semi-circle"
               hoverColor="#627EEA"
@@ -359,7 +391,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
               isComingSoon={true}
             />
             <CustomCard
-              heading="Bitcoin"
+              heading="BTC"
               imageSrc="/images/icons/card-btc.svg"
               imageAlt="Bitcoin semi-circle"
               hoverColor="#F7931A"

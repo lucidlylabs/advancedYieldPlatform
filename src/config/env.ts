@@ -1,16 +1,31 @@
 export const USD_STRATEGIES = {
-  PERPETUAL_DURATION: {
-    STABLE: {
-      network: "base",
-      contract: "0xaefc11908fF97c335D16bdf9F2Bf720817423825",
-      boringVaultAddress: "0x279CAD277447965AF3d24a78197aad1B02a2c589",
-      solverAddress: "0xF632c10b19f2a0451cD4A653fC9ca0c15eA1040b",
-      shareAddress: "0x279CAD277447965AF3d24a78197aad1B02a2c589",
-      shareAddress_token_decimal: 6,
-      rateProvider: "0x03D9a9cE13D16C7cFCE564f41bd7E85E5cde8Da6",
+    PERPETUAL_DURATION: {
+        STABLE: {
+            name: "syUSD",
+            type: "usd",
+            network: "Base",
+            contract: "0xaefc11908fF97c335D16bdf9F2Bf720817423825",
+            boringVaultAddress: "0x279CAD277447965AF3d24a78197aad1B02a2c589",
+            solverAddress: "0xF632c10b19f2a0451cD4A653fC9ca0c15eA1040b",
+            shareAddress: "0x279CAD277447965AF3d24a78197aad1B02a2c589",
+            shareAddress_token_decimal: 6,
+            rateProvider: "0x03D9a9cE13D16C7cFCE564f41bd7E85E5cde8Da6",
+            image: "/images/icons/syUSD.svg",
 
-      // Base Network Configuration
       base: {
+        image: "/images/logo/base.svg",
+        rpc: "https://base.llamarpc.com",
+        chainId: 8453,
+        chainObject: {
+          id: 8453,
+          name: "Base",
+          network: "base",
+          nativeCurrency: { decimals: 18, name: "Ethereum", symbol: "ETH" },
+          rpcUrls: {
+            default: { http: ["https://base.llamarpc.com"] },
+            public: { http: ["https://base.llamarpc.com"] },
+          },
+        },
         tokens: [
           {
             name: "USDC",
@@ -35,6 +50,19 @@ export const USD_STRATEGIES = {
 
       // Ethereum Mainnet Configuration
       ethereum: {
+        image: "/images/icons/eth-stable.svg",
+        rpc: "https://eth.llamarpc.com",
+        chainId: 1,
+        chainObject: {
+          id: 1,
+          name: "Ethereum",
+          network: "ethereum",
+          nativeCurrency: { decimals: 18, name: "Ether", symbol: "ETH" },
+          rpcUrls: {
+            default: { http: ["https://eth.llamarpc.com"] },
+            public: { http: ["https://eth.llamarpc.com"] },
+          },
+        },
         tokens: [
           {
             name: "USDC",
@@ -50,7 +78,7 @@ export const USD_STRATEGIES = {
           },
           {
             name: "USDS",
-            contract: "0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD",
+            contract: "0xdC035D45d973E3EC169d2276DDab16f1e407384F",
             decimal: 18,
             image: "/images/icons/usds.svg",
           },
@@ -59,6 +87,19 @@ export const USD_STRATEGIES = {
 
       // Arbitrum Configuration
       arbitrum: {
+        image: "/images/logo/arb.svg",
+        rpc: "https://arbitrum.drpc.org",
+        chainId: 42161,
+        chainObject: {
+          id: 42161,
+          name: "Arbitrum",
+          network: "arbitrum",
+          nativeCurrency: { decimals: 18, name: "Ether", symbol: "ETH" },
+          rpcUrls: {
+            default: { http: ["https://arbitrum.drpc.org"] },
+            public: { http: ["https://arbitrum.drpc.org"] },
+          },
+        },
         tokens: [
           {
             name: "USDC",
@@ -75,28 +116,29 @@ export const USD_STRATEGIES = {
         ],
       },
 
-      description: "Perpetual stable USD strategy on Sonic network",
-      apy: "4.5%",
-      incentives: "None",
-      cap_limit: "1,000,000",
-      filled_cap: "800,000",
-      show_cap: true,
-      tvl: "5000000",
-      rpc: "https://base.llamarpc.com",
+            description: "Perpetual syUSD strategy on base network",
+            apy: "https://api.lucidly.finance/services/getAPY?units=7d&poolAddress=0x279CAD277447965AF3d24a78197aad1B02a2c589",
+            incentives: "None",
+            cap_limit: "1,000,000",
+            filled_cap: "800,000",
+            show_cap: true,
+            tvl: "https://api.lucidly.finance/services/aum_data?vaultName=syUSD",
+            withdraw_request: "https://api.lucidly.finance/services/queueData?vaultAddress=0x279CAD277447965AF3d24a78197aad1B02a2c589&userAddress=",
+            rpc: "https://base.llamarpc.com",
+        },
+        INCENTIVE: {
+            network: "",
+            comingSoon: true,
+            contract: "",
+            deposit_token: "",
+            deposit_token_contract: "",
+            tvl: "",
+            rpc: "",
+            description: "",
+            apy: "",
+            incentives: "",
+        },
     },
-    INCENTIVE: {
-      network: "",
-      comingSoon: true,
-      contract: "",
-      deposit_token: "",
-      deposit_token_contract: "",
-      tvl: "",
-      rpc: "",
-      description: "",
-      apy: "",
-      incentives: "",
-    },
-  },
 };
 
 export const BTC_STRATEGIES = {};

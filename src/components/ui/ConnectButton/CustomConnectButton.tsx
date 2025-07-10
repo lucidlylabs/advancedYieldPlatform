@@ -2,6 +2,7 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import React from 'react';
 import styles from './CustomConnectButton.module.css';
 
+
 export const CustomConnectButton: React.FC = () => {
   return (
     <ConnectButton.Custom>

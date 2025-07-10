@@ -29,37 +29,21 @@ export default function Page() {
   const [verificationError, setVerificationError] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Function to check for an existing session (will need a backend API to read the cookie)
-  const checkSession = async () => {
-    try {
-      const response = await fetch('/api/check-session'); // We will need to create this API route
-      if (response.ok) {
-        const data = await response.json();
-        if (data.isValid) {
-          setIsVerified(true);
-          setIsCodePopupOpen(false);
-          return true;
-        }
-      }
-    } catch (error) {
-      console.error("Error checking session:", error);
-    }
-    setIsVerified(false);
-    setIsCodePopupOpen(true);
-    return false;
-  };
-
-  // useEffect to check session on component mount
+  // Check if user is already verified from localStorage
   useEffect(() => {
-    checkSession();
-  }, []); // Run only once on mount
+    const verified = localStorage.getItem("isVerified");
+    if (verified === "true") {
+      setIsVerified(true);
+      setIsCodePopupOpen(false);
+    }
+  }, []);
 
   const handleVerifyCode = async (code: string) => {
     try {
-      const response = await fetch('/api/verify-code', {
-        method: 'POST',
+      const response = await fetch("/api/verify-code", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ accessCode: code }),
       });
@@ -67,15 +51,18 @@ export default function Page() {
       if (response.ok) {
         setIsVerified(true);
         setIsCodePopupOpen(false);
-        setVerificationError(""); // Clear any previous errors
+        setVerificationError("");
+        localStorage.setItem("isVerified", "true");
       } else {
         const data = await response.json();
-        setVerificationError(data.message || "Incorrect code. Please try again.");
+        setVerificationError(
+          data.message || "Incorrect code. Please try again."
+        );
         setIsVerified(false);
         setIsCodePopupOpen(true);
       }
     } catch (error) {
-      console.error("Error verifying code:", error);
+      // console.error("Error verifying code:", error);
       setVerificationError("An error occurred during verification.");
       setIsVerified(false);
       setIsCodePopupOpen(true);
@@ -117,79 +104,92 @@ export default function Page() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header onNavigateToDeposit={handleNavigateToDeposit}>
-        <div className="flex items-center justify-between w-full py-2">
-          <div className="flex items-stretch h-full">
-            <div className="flex items-center pl-3">
-              <div
-                className="cursor-pointer"
+        <div className="flex items-stretch h-full">
+          <div className="flex items-center">
+            <div
+              className="cursor-pointer"
+              onClick={() => {
+                window.location.href = "https://lucidly.finance";
+              }}
+            >
+              <Image
+                src="/images/logo/logo-desktop.svg"
+                alt="Lucidity Logo"
+                width={80}
+                height={16}
+                priority
+              />
+            </div>
+          </div>
+          <div className="w-[1px] bg-[rgba(255,255,255,0.1)] mx-4"></div>
+          <nav className="hidden md:flex">
+            <div className="relative flex">
+              <button
+                className={`px-6 py-4 text-sm transition-colors relative ${
+                  selectedSubPage === SubPage.Yield
+                    ? "text-[#B88AF8]"
+                    : "text-white hover:text-gray-300"
+                }`}
                 onClick={() => {
                   setSelectedSubPage(SubPage.Yield);
                   setDepositParams(null);
                 }}
               >
-                <Image
-                  src="/images/logo/logo-desktop.svg"
-                  alt="Lucidity Logo"
-                  width={80}
-                  height={16}
-                  priority
-                />
-              </div>
+                Earn
+                {selectedSubPage === SubPage.Yield && (
+                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#B88AF8]"></div>
+                )}
+              </button>
+
+              <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
+
+              <button
+                className={`px-6 py-4 text-sm transition-colors relative ${
+                  selectedSubPage === SubPage.Markets
+                    ? "text-[#B88AF8]"
+                    : "text-white hover:text-gray-300"
+                }`}
+                onClick={() => setSelectedSubPage(SubPage.Markets)}
+              >
+                Yields
+                {selectedSubPage === SubPage.Markets && (
+                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#B88AF8]"></div>
+                )}
+              </button>
+
+              <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
+
+              <button
+                className={`px-6 py-4 text-sm transition-colors relative ${
+                  selectedSubPage === SubPage.Portfolio
+                    ? "text-[#B88AF8]"
+                    : "text-white hover:text-gray-300"
+                }`}
+                onClick={() => setSelectedSubPage(SubPage.Portfolio)}
+              >
+                Portfolio
+                {selectedSubPage === SubPage.Portfolio && (
+                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#B88AF8]"></div>
+                )}
+              </button>
+              <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
+
+              <button
+                className={`px-6 py-4 text-sm transition-colors relative `}
+                onClick={() => {
+                  window.open(
+                    "https://docs.lucidly.finance",
+                    "_blank",
+                    "noopener,noreferrer"
+                  );
+                }}
+              >
+                Docs
+              </button>
             </div>
-            <div className="w-[1px] bg-[rgba(255,255,255,0.1)] mx-4"></div>
-            <nav className="hidden md:flex">
-              <div className="relative flex">
-                <button
-                  className={`px-6 py-4 text-sm transition-colors relative ${
-                    selectedSubPage === SubPage.Yield
-                      ? "text-[#B88AF8]"
-                      : "text-white hover:text-gray-300"
-                  }`}
-                  onClick={() => {
-                    setSelectedSubPage(SubPage.Yield);
-                    setDepositParams(null);
-                  }}
-                >
-                  Earn
-                  {selectedSubPage === SubPage.Yield && (
-                    <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#B88AF8]"></div>
-                  )}
-                </button>
+          </nav>
+          <div className="w-[1px] bg-[rgba(255,255,255,0.1)] mx-4"></div>
 
-                <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
-
-                <button
-                  className={`px-6 py-4 text-sm transition-colors relative ${
-                    selectedSubPage === SubPage.Markets
-                      ? "text-[#B88AF8]"
-                      : "text-white hover:text-gray-300"
-                  }`}
-                  onClick={() => setSelectedSubPage(SubPage.Markets)}
-                >
-                  Yields
-                  {selectedSubPage === SubPage.Markets && (
-                    <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#B88AF8]"></div>
-                  )}
-                </button>
-
-                <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
-
-                <button
-                  className={`px-6 py-4 text-sm transition-colors relative ${
-                    selectedSubPage === SubPage.Portfolio
-                      ? "text-[#B88AF8]"
-                      : "text-white hover:text-gray-300"
-                  }`}
-                  onClick={() => setSelectedSubPage(SubPage.Portfolio)}
-                >
-                  Portfolio
-                  {selectedSubPage === SubPage.Portfolio && (
-                    <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#B88AF8]"></div>
-                  )}
-                </button>
-              </div>
-            </nav>
-          </div>
           <div className="flex flex-row gap-2">
             <CustomConnectButton />
             <button

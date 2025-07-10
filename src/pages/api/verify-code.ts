@@ -1,34 +1,36 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import jwt from 'jsonwebtoken';
+import type { NextApiRequest, NextApiResponse } from 'next';
 
-// Replace with a strong, unique secret key stored securely in environment variables
-const JWT_SECRET = process.env.JWT_SECRET || 'YOUR_DEFAULT_SECRET'; // Use a secure secret!
+type ResponseData = {
+  success?: boolean;
+  message?: string;
+};
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<ResponseData>
+) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method Not Allowed' });
+    return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  const { accessCode } = req.body;
+  try {
+    const { accessCode } = req.body;
+    
+    // Get the access code from environment variables
+    const validAccessCode = process.env.NEXT_PUBLIC_SERVER_SECRET_ACCESS_CODE;
+    
+    if (!validAccessCode) {
+      console.error('NEXT_PUBLIC_SERVER_SECRET_ACCESS_CODE environment variable is not set');
+      return res.status(500).json({ message: 'Server configuration error' });
+    }
 
-  // Replace with your actual server-side secret access code env variable
-  const SERVER_SECRET_ACCESS_CODE = process.env.SERVER_SECRET_ACCESS_CODE;
-
-  if (!SERVER_SECRET_ACCESS_CODE) {
-    console.error("SERVER_SECRET_ACCESS_CODE is not defined!");
-    return res.status(500).json({ message: 'Server configuration error' });
-  }
-
-  if (accessCode === SERVER_SECRET_ACCESS_CODE) {
-    // Code is correct, generate JWT
-    const token = jwt.sign({ verified: true }, JWT_SECRET, { expiresIn: '1h' }); // Token expires in 1 hour
-
-    // Set JWT as an HTTP-only cookie
-    res.setHeader('Set-Cookie', `auth_token=${token}; HttpOnly; Path=/; Max-Age=${6 * 60 * 60}`); // Max-Age in seconds (6 hours)
-
-    return res.status(200).json({ message: 'Verification successful' });
-  } else {
-    // Code is incorrect
+    if (accessCode === validAccessCode) {
+      return res.status(200).json({ success: true });
+    }
+    
     return res.status(401).json({ message: 'Invalid access code' });
+  } catch (error) {
+    console.error('Error in verify-code route:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 }

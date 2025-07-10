@@ -1,5 +1,5 @@
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+export default {
     content: [
       "./src/pages/**/*.{js,ts,jsx,tsx}",
       "./src/components/**/*.{js,ts,jsx,tsx}",
@@ -64,10 +64,10 @@ module.exports = {
     			sm: 'calc(var(--radius) - 4px)'
     		},
     		fontFamily: {
-    			inter: ['Inter', 'sans-serif'],
+    			inter: ["var(--font-inter)"],
     		},
     	}
     },
     darkMode: ['media', "class"], // or 'class' if you want manual control
     plugins: [require("tailwindcss-animate")],
-  }
+}																																																																																							

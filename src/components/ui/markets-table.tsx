@@ -1,146 +1,146 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
 } from "@/components/ui/tooltip";
 import Image from "next/image";
 
 interface MarketItem {
-  id: number;
-  name: string;
-  type: string;
-  baseYield: string;
-  incentives: string[];
-  tvl: string;
+    id: number;
+    name: string;
+    type: string;
+    baseYield: string;
+    incentives: string[];
+    tvl: string;
 }
 
 interface MarketsTableProps {
-  data: MarketItem[];
-  sortColumn: string | null;
-  sortDirection: "asc" | "desc";
-  onSort: (column: string) => void;
-  onRowClick?: (item: MarketItem) => void;
-  selectedItemId?: number | null;
+    data: MarketItem[];
+    sortColumn: string | null;
+    sortDirection: "asc" | "desc";
+    onSort: (column: string) => void;
+    onRowClick?: (item: MarketItem) => void;
+    selectedItemId?: number | null;
 }
 
 const InfoIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      d="M12 16V12M12 8H12.01M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
+    <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+    >
+        <path
+            d="M12 16V12M12 8H12.01M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+    </svg>
 );
 
 const MarketsTable: React.FC<MarketsTableProps> = ({
-  data,
-  sortColumn,
-  sortDirection,
-  onSort,
-  onRowClick,
-  selectedItemId,
+    data,
+    sortColumn,
+    sortDirection,
+    onSort,
+    onRowClick,
+    selectedItemId,
 }) => {
-  // Function to get icon based on asset type
-  const getAssetIcon = (type: string) => {
-    switch (type) {
-      case "eth":
-        return (
-          <div className="w-8 h-8 flex items-center justify-center mr-3">
-            <Image
-              src="/images/icons/eth-stable.svg"
-              alt="ETH"
-              width={32}
-              height={32}
-              className="object-contain"
-            />
-          </div>
-        );
-      case "btc":
-        return (
-          <div className="w-8 h-8 flex items-center justify-center mr-3">
-            <Image
-              src="/images/icons/btc-stable.svg"
-              alt="BTC"
-              width={32}
-              height={32}
-              className="object-contain"
-            />
-          </div>
-        );
-      case "usd":
-        return (
-          <div className="w-8 h-8 flex items-center justify-center mr-3">
-            <Image
-              src="/images/icons/usd-stable.svg"
-              alt="USD"
-              width={32}
-              height={32}
-              className="object-contain"
-            />
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
+    // Function to get icon based on asset type
+    const getAssetIcon = (type: string) => {
+        switch (type) {
+            case "eth":
+                return (
+                    <div className="w-8 h-8 flex items-center justify-center mr-3">
+                        <Image
+                            src="/images/icons/eth-stable.svg"
+                            alt="ETH"
+                            width={32}
+                            height={32}
+                            className="object-contain"
+                        />
+                    </div>
+                );
+            case "btc":
+                return (
+                    <div className="w-8 h-8 flex items-center justify-center mr-3">
+                        <Image
+                            src="/images/icons/btc-stable.svg"
+                            alt="BTC"
+                            width={32}
+                            height={32}
+                            className="object-contain"
+                        />
+                    </div>
+                );
+            case "usd":
+                return (
+                    <div className="w-8 h-8 flex items-center justify-center mr-3">
+                        <Image
+                            src="/images/icons/usd-stable.svg"
+                            alt="USD"
+                            width={32}
+                            height={32}
+                            className="object-contain"
+                        />
+                    </div>
+                );
+            default:
+                return null;
+        }
+    };
 
-  // Incentive icon component
-  const IncentiveIcon = ({ type }: { type: string }) => {
-    const baseStyle = "w-4 h-4 flex items-center justify-center";
+    // Incentive icon component
+    const IncentiveIcon = ({ type }: { type: string }) => {
+        const baseStyle = "w-4 h-4 flex items-center justify-center";
 
-    switch (type) {
-      case "eth":
-        return (
-          <div className={baseStyle}>
-            <Image
-              src="/images/icons/eth-incentive.svg"
-              alt="ETH Incentive"
-              width={16}
-              height={16}
-              className="object-contain"
-            />
-          </div>
-        );
-      case "btc":
-        return (
-          <div className={baseStyle}>
-            <Image
-              src="/images/icons/btc-incentive.svg"
-              alt="BTC Incentive"
-              width={16}
-              height={16}
-              className="object-contain"
-            />
-          </div>
-        );
-      case "usdc":
-        return (
-          <div className={baseStyle}>
-            <Image
-              src="/images/icons/incentives-usd.svg"
-              alt="USD Incentive"
-              width={16}
-              height={16}
-              className="object-contain"
-            />
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
+        switch (type) {
+            case "eth":
+                return (
+                    <div className={baseStyle}>
+                        <Image
+                            src="/images/icons/eth-incentive.svg"
+                            alt="ETH Incentive"
+                            width={16}
+                            height={16}
+                            className="object-contain"
+                        />
+                    </div>
+                );
+            case "btc":
+                return (
+                    <div className={baseStyle}>
+                        <Image
+                            src="/images/icons/btc-incentive.svg"
+                            alt="BTC Incentive"
+                            width={16}
+                            height={16}
+                            className="object-contain"
+                        />
+                    </div>
+                );
+            case "usdc":
+                return (
+                    <div className={baseStyle}>
+                        <Image
+                            src="/images/icons/incentives-usd.svg"
+                            alt="USD Incentive"
+                            width={16}
+                            height={16}
+                            className="object-contain"
+                        />
+                    </div>
+                );
+            default:
+                return null;
+        }
+    };
 
   return (
     <div className="w-full">

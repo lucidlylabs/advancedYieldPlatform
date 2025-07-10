@@ -1,42 +1,40 @@
 import React, { useState } from "react";
 
 interface HeaderProps {
-  className?: string;
-  children?: React.ReactNode;
-  currentDeposit?: number; // in thousands (e.g., 800 for 800k)
-  maxDeposit?: number; // in thousands (e.g., 1000 for 1M)
-  onDepositClick?: () => void; // Callback for deposit button click
-  onNavigateToDeposit?: (params: { asset: string; duration: string; strategy: string }) => void;
+    className?: string;
+    children?: React.ReactNode;
+    currentDeposit?: number; // in thousands (e.g., 800 for 800k)
+    maxDeposit?: number; // in thousands (e.g., 1000 for 1M)
+    onDepositClick?: () => void; // Callback for deposit button click
+    onNavigateToDeposit?: (params: { asset: string; duration: string; strategy: string }) => void;
 }
 
 export function Header({
-  className,
-  children,
-  currentDeposit = 100,
-  maxDeposit = 1000,
-  onDepositClick,
-  onNavigateToDeposit,
-  ...props
+    className,
+    children,
+    currentDeposit = 100,
+    maxDeposit = 1000,
+    onDepositClick,
+    onNavigateToDeposit,
+    ...props
 }: HeaderProps) {
-  const [shouldShowBanner, setShouldShowBanner] = useState(true);
+    const [shouldShowBanner, setShouldShowBanner] = useState(false);
 
-  const handleDepositClick = () => {
-    if (onNavigateToDeposit) {
-      onNavigateToDeposit({
-        asset: "USD",
-        duration: "PERPETUAL_DURATION",
-        strategy: "stable"
-      });
-    }
-  };
+    const handleDepositClick = () => {
+        if (onNavigateToDeposit) {
+            onNavigateToDeposit({
+                asset: "USD",
+                duration: "PERPETUAL_DURATION",
+                strategy: "stable"
+            });
+        }
+    };
 
-  // Format number to k or M
-  const formatNumber = (num: number) => {
-    return num >= 1000 ? `${num / 1000}M` : `${num}k`;
-  };
+    const formatNumber = (num: number) => {
+        return num >= 1000 ? `${num / 1000}M` : `${num}k`;
+    };
 
-  // Calculate progress percentage
-  const progressPercentage = Math.min((currentDeposit / maxDeposit) * 100, 100);
+    const progressPercentage = Math.min((currentDeposit / maxDeposit) * 100, 100);
 
   return (
     <div className={`flex flex-col w-full ${className}`} {...props}>
@@ -112,7 +110,7 @@ export function Header({
         </div>
       )}
 
-      <div className="flex flex-col items-center justify-between py-0 bg-[#080B17] text-white border-b border-[rgba(255,255,255,0.1)] backdrop-blur-sm">
+      <div className="flex items-center justify-between py-0 px-6 bg-[#080B17] text-white border-b border-[rgba(255,255,255,0.1)] backdrop-blur-sm">
         {children}
       </div>
     </div>

@@ -12,10 +12,14 @@
     "@radix-ui/react-slot": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.1.8",
     "@rainbow-me/rainbowkit": "^2.2.8",
+    "@rainbow-me/rainbowkit": "^2.2.8",
     "@tanstack/react-query": "^5.55.3",
+    "@wagmi/core": "^2.17.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "cookie": "^1.0.2",
+    "cookie": "^1.0.2",    
+    "axios": "^1.10.0",
+    "socket.io-client": "^4.8.1",
     "ethers": "^6.13.5",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.484.0",
@@ -27,8 +31,8 @@
     "recharts": "^2.15.3",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
-    "viem": "2.23.3",
-    "wagmi": "^2.14.11"
+    "viem": "^2.31.3",
+    "wagmi": "^2.15.6"
   },
   "devDependencies": {
     "@shadcn/ui": "^0.0.4",
