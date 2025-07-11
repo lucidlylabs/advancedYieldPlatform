@@ -110,7 +110,7 @@ export function Header({
         </div>
       )}
 
-      <div className="flex items-center justify-between py-0 px-6 bg-[#080B17] text-white border-b border-[rgba(255,255,255,0.1)] backdrop-blur-sm">
+      <div className="flex items-center justify-between py-2 sm:py-0 px-6 bg-[#080B17] text-white border-b border-[rgba(255,255,255,0.1)] backdrop-blur-sm">
         {children}
       </div>
     </div>

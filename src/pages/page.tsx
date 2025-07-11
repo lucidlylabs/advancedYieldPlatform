@@ -104,6 +104,7 @@ export default function Page() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header onNavigateToDeposit={handleNavigateToDeposit}>
+      <div className="flex items-center justify-between w-full">
         <div className="flex items-stretch h-full">
           <div className="flex items-center">
             <div
@@ -188,12 +189,11 @@ export default function Page() {
               </button>
             </div>
           </nav>
-          <div className="w-[1px] bg-[rgba(255,255,255,0.1)] mx-4"></div>
-
-          <div className="flex flex-row gap-2">
+        </div>
+        <div className="flex flex-row gap-2">
             <CustomConnectButton />
             <button
-              className="md:hidden ml-auto pr-4 text-white"
+              className="sm:hidden text-white"
               onClick={() => setIsMobileMenuOpen((prev) => !prev)}
             >
               {isMobileMenuOpen ? (
@@ -218,47 +218,42 @@ export default function Page() {
                 </svg>
               )}
             </button>
-          </div>
         </div>
-
-        <div>
-        {isMobileMenuOpen && (
-          <div className="inset-0 flex flex-col pb-2 items-center justify-center space-y-4 text-white">
-            <button
-              className="text-xl"
-              onClick={() => {
-                setSelectedSubPage(SubPage.Yield);
-                setDepositParams(null);
-                setIsMobileMenuOpen(false);
-              }}
-            >
-              Earn
-            </button>
-
-            <button
-              className="text-xl"
-              onClick={() => {
-                setSelectedSubPage(SubPage.Markets);
-                setIsMobileMenuOpen(false);
-              }}
-            >
-              Yields
-            </button>
-
-            <button
-              className="text-xl"
-              onClick={() => {
-                setSelectedSubPage(SubPage.Portfolio);
-                setIsMobileMenuOpen(false);
-              }}
-            >
-              Portfolio
-            </button>
-          </div>
-        )}
         </div>
-
       </Header>
+
+      {isMobileMenuOpen && (
+      <div className="md:hidden bg-[#0D101C] py-4 flex flex-col items-center gap-4 border-b border-[rgba(255,255,255,0.1)]">
+        <button
+          className="text-white text-lg"
+          onClick={() => {
+            setSelectedSubPage(SubPage.Yield);
+            setDepositParams(null);
+            setIsMobileMenuOpen(false);
+          }}
+        >
+          Earn
+        </button>
+        <button
+          className="text-white text-lg"
+          onClick={() => {
+            setSelectedSubPage(SubPage.Markets);
+            setIsMobileMenuOpen(false);
+          }}
+        >
+          Yields
+        </button>
+        <button
+          className="text-white text-lg"
+          onClick={() => {
+            setSelectedSubPage(SubPage.Portfolio);
+            setIsMobileMenuOpen(false);
+          }}
+        >
+          Portfolio
+        </button>
+      </div>
+    )}
 
       <main className="flex-1">{renderSubPage()}</main>
     </div>

@@ -668,7 +668,7 @@ const PortfolioSubpage: React.FC = () => {
             duration: strategy.duration,
             type: strategy.type,
             apy: strategy.apy,
-            SolverAddress: strategy.solverAddress,
+            solverAddress: strategy.solverAddress,
             boringVaultAddress: strategy.boringVaultAddress,
             // tvl: strategy.tvl,
             // baseApy: strategy.baseYield,
@@ -803,6 +803,9 @@ const PortfolioSubpage: React.FC = () => {
         const selectedAssetAddress = getAddress(
           assetOptions[selectedAssetIdx].contract
         );
+        console.log("rpc", selectedStrategy.rpc);
+        console.log("solverAddress", solverAddress);
+        console.log("vaultAddress", vaultAddress);
 
         const client = createPublicClient({
           transport: http(selectedStrategy.rpc),
@@ -1029,8 +1032,8 @@ const PortfolioSubpage: React.FC = () => {
             </ResponsiveContainer>
           </div> */}
                 
-          {/* Column Headers */}
-          <div className="grid grid-cols-5 pl-4 pr-6 py-2 border-b border-[rgba(255,255,255,0.15)]">
+{/* Column Headers */}
+<div className="grid grid-cols-5 sm:pl-4 sm:pr-6 py-2 border-b border-[rgba(255,255,255,0.15)]">
             <div className="flex justify-start text-[#9C9DA2] text-[14px] font-medium">
               Available Yields
             </div>
@@ -1060,7 +1063,7 @@ const PortfolioSubpage: React.FC = () => {
                 <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
               </svg>
             </div>
-            <div className="flex items-center col-span-3 sm:col-span-3 text-[#9C9DA2] font-inter text-[14px] font-medium">
+            <div className="flex justify-center text-[#9C9DA2] text-[14px] font-medium items-center">
               Base APY
               <svg
                 className="ml-1"
@@ -1073,13 +1076,13 @@ const PortfolioSubpage: React.FC = () => {
                 <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
               </svg>
             </div>
-            <div className="flex items-center justify-start col-span-3 sm:col-span-3 text-[#9C9DA2] font-inter text-[14px] font-medium">
+            <div className="flex justify-end text-[#9C9DA2]   text-[14px] font-medium items-center">
               Current Balance
               <svg
                 className="ml-1"
                 width="16"
                 height="16"
-                viewBox="0 0 12 12"
+                viewBox="0 0 16 16"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
               >
@@ -1130,7 +1133,7 @@ const PortfolioSubpage: React.FC = () => {
                     }`}
                   ></div>
                   {/* Strategy Name */}
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <Image
                       src={`/images/icons/${strategy.asset.toLowerCase()}-${
                         strategy.type === "stable" ? "stable" : "incentive"
@@ -1140,11 +1143,11 @@ const PortfolioSubpage: React.FC = () => {
                       height={32}
                     />
                     <div>
-                      <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
+                      <div className="text-[#EDF2F8] text-[12px] font-normal leading-normal">
                         {strategy.type === "stable" ? "sy" : "Incentive Maxi"}
                         {strategy.asset}
                       </div>
-                      <div className="text-[#00D1A0]   text-[12px] font-normal">
+                      <div className="text-[#00D1A0] text-[12px] font-normal">
                         +
                         {(
                           (strategy.balance *
@@ -1159,13 +1162,11 @@ const PortfolioSubpage: React.FC = () => {
                   {/* Deposited On */}
                   {depositedChains.length === 0 ? (
                     <div className="flex flex-col items-center justify-end">
-                      <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
-                        -
-                      </div>
+                      <div className="text-[#EDF2F8] text-[12px] font-normal leading-normal">-</div>
                     </div>
                   ) : (
-                    <div className="relative h-[24px] cursor-pointer group">
-                      {depositedChains.map((chainKey, index) => {
+                    <div className="flex items-center justify-center gap-2 flex-wrap">
+                      {depositedChains.map((chainKey) => {
                         const chain = chainIconMap[chainKey];
                         if (!chain) return null;
 
@@ -1173,7 +1174,7 @@ const PortfolioSubpage: React.FC = () => {
                           <TooltipProvider key={chainKey}>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <div className="absolute left-16 z-10 transition-transform duration-300 hover:scale-110">
+                                <div className="transition-transform duration-300 hover:scale-110">
                                   <Image
                                     src={chain.src}
                                     alt={chain.label}
@@ -1212,7 +1213,7 @@ const PortfolioSubpage: React.FC = () => {
                   </div>
 
                   {/* Balance */}
-                  <div className="flex flex-col items-end">
+                  <div className="flex flex-col text-right">
                     <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
                       ${strategy.balance.toFixed(2)}
                     </div>
