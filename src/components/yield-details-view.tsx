@@ -310,7 +310,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
             onReset={() => setShowDepositView(false)}
             />
         ):( */}
-              <div className="w-full pl-4 mt-10">
+          <div className="w-full pl-0 sm:pl-4 mt-2 sm:mt-10">
             <div className="flex justify-between items-center mb-2">
                 <div className="flex items-center pl-0">
                     <div className="inline-flex items-center gap-[6px] pl-0">
@@ -319,32 +319,41 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                         </h1>
                     </div>
                 </div>
-                <div className="flex items-center gap-3 mr-8">
+                <div className="flex items-center gap-3">
                     <button className="bg-[#B88AF8] hover:bg-[#9F6EE9] text-[#080B17] flex items-center gap-[8px] px-[16px] py-[6px] rounded-[4px] transition-colors  text-[14px] font-normal leading-normal" onClick={onOpenDepositView}>
                         Deposit
                     </button>
                 </div>
             </div>
 
-            {/* Stats */}
-            <div className="flex items-center border-b border-gray-700 pb-2">
-                <div className="w-[100px] flex flex-col pl-0 pr-6 relative after:content-[''] after:absolute after:right-0 after:top-[4px] after:w-[1px] after:h-[calc(100%-4px)] after:bg-[#2D2F3D]">
-                    <div className="text-[#9C9DA2]  text-[14px] font-normal leading-normal">TVL</div>
-                    <div className="text-white  text-[14px] font-semibold leading-normal mt-[8px] text-left">{tvl}</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-y-4 border-b border-gray-700 pb-4 text-sm text-white">
+              {/* TVL */}
+              <div className="flex flex-col items-center sm:border-block border-r border-gray-700">
+                <div className="text-[#9C9DA2]">TVL</div>
+                <div className="mt-1 font-semibold">{tvl}</div>
+              </div>
+
+              {/* Base APY */}
+              <div className="flex flex-col items-center sm:border-r border-gray-700">
+                <div className="text-[#9C9DA2]">Base APY</div>
+                <div className="mt-1 font-semibold">---</div>
+              </div>
+
+              {/* Contract Address */}
+              <div className="flex flex-col border-r items-center border-gray-700">
+                <div className="text-[#9C9DA2]">Contract Address</div>
+                <div className="mt-1 font-semibold flex items-center gap-1">
+                  {contractAddress ? `${contractAddress.slice(0, 6)}...${contractAddress.slice(-4)}` : "N/A"}
+                  <a
+                    href={`https://basescan.org/address/${contractAddress}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#9C9DA2] hover:text-white transition-colors"
+                  >
+                    <ExternalLinkIcon />
+                  </a>
                 </div>
-                <div className="flex flex-col px-6 relative after:content-[''] after:absolute after:right-0 after:top-[4px] after:w-[1px] after:h-[calc(100%-4px)] after:bg-[#2D2F3D]">
-                    <div className="text-[#9C9DA2]  text-[14px] font-normal leading-normal flex items-center gap-1">Base APY</div>
-                    <div className="text-white  text-[14px] font-semibold leading-normal mt-[8px]">---</div>
-                </div>
-                <div className="flex flex-col px-6 relative after:content-[''] after:absolute after:right-0 after:top-[4px] after:w-[1px] after:h-[calc(100%-4px)] after:bg-[#2D2F3D]">
-                    <div className="text-[#9C9DA2]  text-[14px] font-normal leading-normal">Contract Address</div>
-                    <div className="text-white text-[14px] font-semibold leading-normal flex items-center gap-1 mt-[8px]">
-                        {contractAddress ? `${contractAddress.slice(0, 6)}...${contractAddress.slice(-4)}` : "N/A"}
-                        <a href={`https://basescan.org/address/${contractAddress}`} target="_blank" rel="noopener noreferrer" className="text-[#9C9DA2] hover:text-white transition-colors">
-                            <ExternalLinkIcon />
-                        </a>
-                    </div>
-                </div>
+
                 <div className="flex flex-col px-6 relative">
                     <div className="text-[#9C9DA2] text-[14px] font-normal leading-normal">Network</div>
                     <div className="relative mt-2 flex items-center cursor-pointer group">
@@ -375,7 +384,9 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                                 </TooltipProvider>
                             ))}
                     </div>
+            
                 </div>
+              </div>
             </div>
 
             <div className="flex border-b border-gray-700 pl-0">
@@ -426,7 +437,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                 {activeTab === "baseApy" && renderBaseApyTab()}
                 {activeTab === "incentives" && renderIncentivesTab()}
             </div>
-              </div>
+          </div>
             {/* )} */}
         </>
     );
