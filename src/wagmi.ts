@@ -33,7 +33,7 @@ const connectors = connectorsForWallets(
 );
 
 // Katana custom chain definition
-export const katana: Chain = {
+export const katana = {
   id: 747474,
   name: "Katana",
   nativeCurrency: {
@@ -49,9 +49,8 @@ export const katana: Chain = {
     default: { name: "Katana Explorer", url: "https://explorer.katanarpc.com/" },
   },
   testnet: false,
-  iconUrl: "/images/logo/katana.svg", // <-- Add this line
-  iconBackground: "#fff",             // <-- Optional: set a background color
-};
+  iconUrl: "/images/logo/katana.svg",
+} as const as any; // <-- Add this cast
 
 export const config = createConfig({
   connectors,

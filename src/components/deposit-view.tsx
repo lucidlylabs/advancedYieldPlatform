@@ -340,6 +340,16 @@ const DepositView: React.FC<DepositViewProps> = ({
           image: stablePerpetualConfig.arbitrum.image,
         });
       }
+      if (
+        stablePerpetualConfig.katana &&
+        stablePerpetualConfig.katana.image
+      ) {
+        uniqueChains.set("katana", {
+          name: "Katana",
+          network: "katana",
+          image: stablePerpetualConfig.katana.image,
+        });
+      }
     }
 
     // Optionally, you can add other durations if they also define chain images
