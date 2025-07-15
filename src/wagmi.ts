@@ -49,7 +49,8 @@ export const katana: Chain = {
     default: { name: "Katana Explorer", url: "https://explorer.katanarpc.com/" },
   },
   testnet: false,
-  iconUrl: "/images/networks/katana.svg",
+  iconUrl: "/images/logo/katana.svg", // <-- Add this line
+  iconBackground: "#fff",             // <-- Optional: set a background color
 };
 
 export const config = createConfig({
