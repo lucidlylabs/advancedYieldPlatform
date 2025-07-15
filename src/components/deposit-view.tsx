@@ -1018,6 +1018,11 @@ const DepositView: React.FC<DepositViewProps> = ({
         }
       );
       setBalance(formattedBalance);
+      console.log("Fetching balance for", {
+        token: selectedAssetOption.name,
+        contract: tokenContractAddress,
+        wallet: address,
+      });
     } catch (error) {
       console.error("Error fetching balance:", error);
       setBalance("0.00");

@@ -145,7 +145,7 @@ export const USD_STRATEGIES = {
           {
             name: "vbUSDT",
             contract: "0x2DCa96907fde857dd3D816880A0df407eeB2D2F2", // Native ETH (use zero address)
-            decimal: 18,
+            decimal: 6,
             image: "/images/icons/usdt.svg",
           },
         ],
