@@ -66,6 +66,7 @@ interface StrategyConfig {
   base: ChainConfig;
   ethereum: ChainConfig;
   arbitrum: ChainConfig;
+  katana: ChainConfig; // <-- Add this line
   description: string;
   apy: string;
   incentives: string;
@@ -369,6 +370,8 @@ const DepositView: React.FC<DepositViewProps> = ({
         return strategyConfig.arbitrum.tokens;
       case "ethereum":
         return strategyConfig.ethereum.tokens;
+      case "katana":
+        return strategyConfig.katana.tokens;
       case "base":
       default:
         return strategyConfig.base.tokens;
@@ -928,6 +931,9 @@ const DepositView: React.FC<DepositViewProps> = ({
       case "ethereum":
         chainData = strategyConfig.ethereum;
         break;
+      case "katana":
+        chainData = strategyConfig.katana;
+        break;
       case "base":
       default:
         chainData = strategyConfig.base;
@@ -972,6 +978,8 @@ const DepositView: React.FC<DepositViewProps> = ({
         return `https://etherscan.io/tx/${txHash}`;
       case "arbitrum":
         return `https://arbiscan.io/tx/${txHash}`;
+      case "katana":
+        return `https://explorer.katanarpc.com//tx/${txHash}`;
       case "base":
       default:
         return `https://basescan.org/tx/${txHash}`;
