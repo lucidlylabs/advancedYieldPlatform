@@ -115,6 +115,41 @@ export const USD_STRATEGIES = {
           },
         ],
       },
+      katana: {
+        image: "/images/logo/katana.svg",
+        rpc: "https://rpc.katana.network",
+        chainId: 747474,
+        chainObject: {
+          id: 747474,
+          name: "Katana",
+          network: "katana",
+          nativeCurrency: { decimals: 18, name: "ETH", symbol: "ETH" },
+          rpcUrls: {
+            default: { http: ["https://rpc.katana.network"] },
+            public: { http: ["https://rpc.katana.network"] },
+          },
+        },
+        tokens: [
+          {
+            name: "vbUSDC",
+            contract: "0x203A662b0BD271A6ed5a60EdFbd04bFce608FD36", // TODO: Replace with real address
+            decimal: 6,
+            image: "/images/icons/usdc.svg",
+          },
+          {
+            name: "vbUSDS",
+            contract: "0x62D6A123E8D19d06d68cf0d2294F9A3A0362c6b3", // TODO: Replace with real address
+            decimal: 18,
+            image: "/images/icons/USDS.svg",
+          },
+          {
+            name: "vbUSDT",
+            contract: "0x2DCa96907fde857dd3D816880A0df407eeB2D2F2", // Native ETH (use zero address)
+            decimal: 6,
+            image: "/images/icons/usdt.svg",
+          },
+        ],
+      },
 
             description: "Perpetual syUSD strategy on base network",
             apy: "https://api.lucidly.finance/services/getAPY?units=7d&poolAddress=0x279CAD277447965AF3d24a78197aad1B02a2c589",

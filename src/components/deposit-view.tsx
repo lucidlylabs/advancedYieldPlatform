@@ -66,6 +66,7 @@ interface StrategyConfig {
   base: ChainConfig;
   ethereum: ChainConfig;
   arbitrum: ChainConfig;
+  katana: ChainConfig; // <-- Add this line
   description: string;
   apy: string;
   incentives: string;
@@ -340,6 +341,16 @@ const DepositView: React.FC<DepositViewProps> = ({
           image: stablePerpetualConfig.arbitrum.image,
         });
       }
+      if (
+        stablePerpetualConfig.katana &&
+        stablePerpetualConfig.katana.image
+      ) {
+        uniqueChains.set("katana", {
+          name: "Katana",
+          network: "katana",
+          image: stablePerpetualConfig.katana.image,
+        });
+      }
     }
 
     // Optionally, you can add other durations if they also define chain images
@@ -359,6 +370,8 @@ const DepositView: React.FC<DepositViewProps> = ({
         return strategyConfig.arbitrum.tokens;
       case "ethereum":
         return strategyConfig.ethereum.tokens;
+      case "katana":
+        return strategyConfig.katana.tokens;
       case "base":
       default:
         return strategyConfig.base.tokens;
@@ -918,6 +931,9 @@ const DepositView: React.FC<DepositViewProps> = ({
       case "ethereum":
         chainData = strategyConfig.ethereum;
         break;
+      case "katana":
+        chainData = strategyConfig.katana;
+        break;
       case "base":
       default:
         chainData = strategyConfig.base;
@@ -962,6 +978,8 @@ const DepositView: React.FC<DepositViewProps> = ({
         return `https://etherscan.io/tx/${txHash}`;
       case "arbitrum":
         return `https://arbiscan.io/tx/${txHash}`;
+      case "katana":
+        return `https://explorer.katanarpc.com//tx/${txHash}`;
       case "base":
       default:
         return `https://basescan.org/tx/${txHash}`;
@@ -1000,6 +1018,11 @@ const DepositView: React.FC<DepositViewProps> = ({
         }
       );
       setBalance(formattedBalance);
+      console.log("Fetching balance for", {
+        token: selectedAssetOption.name,
+        contract: tokenContractAddress,
+        wallet: address,
+      });
     } catch (error) {
       console.error("Error fetching balance:", error);
       setBalance("0.00");
