@@ -352,6 +352,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                             USD_STRATEGIES.PERPETUAL_DURATION.STABLE.base,
                             USD_STRATEGIES.PERPETUAL_DURATION.STABLE.ethereum,
                             USD_STRATEGIES.PERPETUAL_DURATION.STABLE.arbitrum,
+                            USD_STRATEGIES.PERPETUAL_DURATION.STABLE.katana,
                         ] as const)
                             .filter(Boolean)
                             .map((networkConfig, index) => (
