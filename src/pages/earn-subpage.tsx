@@ -265,25 +265,27 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
       ) : selectedAsset ? (
         <div className="flex flex-col gap-6 items-center pt-[8vh]">
           <h1 className="text-[20px] sm:text-[40px] font-bold">Select a Yield Source</h1>
-          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-            <CustomCard
-              heading={selectedAsset.asset as AssetType}
-              imageSrc={`/images/icons/card-${(
-                selectedAsset.asset as AssetType
-              ).toLowerCase()}.svg`}
-              hoverColor={
-                selectedAsset.asset === "USD"
-                  ? "#B88AF8"
-                  : selectedAsset.asset === "ETH"
-                  ? "#627EEA"
-                  : "#F7931A"
-              }
-              selectedDuration={selectedAsset.duration}
-              onReset={handleReset}
-              disableHover={true}
-              className="h-[311px] w-full"
-            />
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] w-full p-6">
+          <div className="flex flex-col sm:flex-row gap-6 justify-center items-stretch">
+            <div className="flex-shrink-0 w-[264px]">
+              <CustomCard
+                heading={selectedAsset.asset as AssetType}
+                imageSrc={`/images/icons/card-${(
+                  selectedAsset.asset as AssetType
+                ).toLowerCase()}.svg`}
+                hoverColor={
+                  selectedAsset.asset === "USD"
+                    ? "#B88AF8"
+                    : selectedAsset.asset === "ETH"
+                    ? "#627EEA"
+                    : "#F7931A"
+                }
+                selectedDuration={selectedAsset.duration}
+                onReset={handleReset}
+                disableHover={true}
+                className="w-[300px] h-[311px]"
+              />
+            </div>
+            <div className="flex-1 flex flex-col sm:flex-row items-center justify-center gap-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
               <div
                 onClick={() =>
                   handleStrategySelect(
@@ -378,6 +380,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                 handleDurationSelect("USD", duration)
               }
               availableDurations={["PERPETUAL_DURATION"]}
+              className="w-[300px] h-[311px]"
             />
             <CustomCard
               heading="ETH"
@@ -387,8 +390,8 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
               onDurationSelect={(duration: DurationType) =>
                 handleDurationSelect("ETH", duration)
               }
-              className="overflow-hidden"
               isComingSoon={true}
+              className="w-[300px] h-[311px]"
             />
             <CustomCard
               heading="BTC"
@@ -399,7 +402,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                 handleDurationSelect("BTC", duration)
               }
               isComingSoon={true}
-              className="overflow-hidden"
+              className="w-[300px] h-[311px]"
             />
           </div>
         </div>
