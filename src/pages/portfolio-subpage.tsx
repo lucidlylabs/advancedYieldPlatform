@@ -1274,7 +1274,7 @@ const PortfolioSubpage: React.FC = () => {
                 <>
                   <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
                     {/* Header with strategy info and balance */}
-                    <div className="flex items-center justify-between p-4  bg-[rgba(255,255,255,0.02)] mb-6 border-b border-[rgba(255,255,255,0.15)]">
+                    <div className="flex items-end justify-between p-4  bg-[rgba(255,255,255,0.02)] mb-6 border-b border-[rgba(255,255,255,0.15)]">
                       <div className="flex items-center gap-4">
                         <Image
                           src={`/images/icons/${selectedStrategy.asset.toLowerCase()}-${
