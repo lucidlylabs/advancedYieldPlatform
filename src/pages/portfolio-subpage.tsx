@@ -18,11 +18,12 @@ import {
   getAddress,
 } from "viem";
 import {
-  Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
+  Tooltip,
 } from "@/components/ui/tooltip";
+import PortfolioChart from "@/components/ui/portfolioChart";
 
 interface NetworkConfig {
   tokens: Array<{
@@ -849,226 +850,229 @@ const PortfolioSubpage: React.FC = () => {
 
       {/* Main Content - Split View */}
       <div className="flex flex-1">
-        {/* Left Side - Assets Table */}
+        {/* Left Side - Assets Table */}  
         <div className="w-1/2 border-r border-[rgba(255,255,255,0.1)] pt-8 pl-8">
-          <div className="mb-6">
-            <div className="text-[rgba(255,255,255,0.70)]   text-[16px] font-bold uppercase">
-              Total Portfolio Value
-            </div>
-          </div>
-
-          {/* Column Headers */}
-          <div className="grid grid-cols-5 pl-4 pr-6 py-2 border-b border-[rgba(255,255,255,0.15)]">
-            <div className="flex justify-start text-[#9C9DA2] text-[14px] font-medium">
-              Available Yields
-            </div>
-            <div className="flex justify-end text-[#9C9DA2]   text-[14px] font-medium  items-center">
-              Deposited on
-              <svg
-                className="ml-1"
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
-              </svg>
-            </div>
-            <div className="flex justify-center text-[#9C9DA2]   text-[14px] font-medium items-center">
-              Expiry
-              <svg
-                className="ml-1"
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
-              </svg>
-            </div>
-            <div className="flex justify-center text-[#9C9DA2] text-[14px] font-medium items-center">
-              Base APY
-              <svg
-                className="ml-1"
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
-              </svg>
-            </div>
-            <div className="flex justify-end text-[#9C9DA2]   text-[14px] font-medium items-center">
-              Current Balance
-              <svg
-                className="ml-1"
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
-              </svg>
-            </div>
-          </div>
-
-          {/* Strategy Rows */}
-          <div className="flex flex-col max-h-[calc(100vh-280px)] overflow-y-auto">
-            {isRefreshingBalance ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <Image
-                  src="/images/background/loader.gif"
-                  alt="Loading..."
-                  width={200}
-                  height={200}
-                />
-                <div className="text-[#9C9DA2] mt-4">
-                  Loading your portfolio...
-                </div>
+        <PortfolioChart />
+          <div>      
+            <div className="mb-6">
+              <div className="text-[rgba(255,255,255,0.70)]   text-[16px] font-bold uppercase">
+                Total Portfolio Value
               </div>
-            ) : strategiesWithBalance.length > 0 ? (
-              strategiesWithBalance.map((strategy, index) => (
-                <div
-                  key={`${strategy.asset}-${strategy.duration}-${strategy.type}`}
-                  className={`grid grid-cols-5 items-center py-4 pl-4 pr-6 relative ${
-                    index % 2 === 0
-                      ? "bg-transparent"
-                      : strategy.type === "stable"
-                      ? "bg-[#0D101C]"
-                      : "bg-[#090C17]"
-                  } cursor-pointer transition-colors group`}
-                  onClick={() => handleStrategySelect(strategy)}
+            </div>
+
+            {/* Column Headers */}
+            <div className="grid grid-cols-5 pl-4 pr-6 py-2 border-b border-[rgba(255,255,255,0.15)]">
+              <div className="flex justify-start text-[#9C9DA2] text-[14px] font-medium">
+                Available Yields
+              </div>
+              <div className="flex justify-end text-[#9C9DA2]   text-[14px] font-medium  items-center">
+                Deposited on
+                <svg
+                  className="ml-1"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
+                  <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
+                </svg>
+              </div>
+              <div className="flex justify-center text-[#9C9DA2]   text-[14px] font-medium items-center">
+                Expiry
+                <svg
+                  className="ml-1"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
+                </svg>
+              </div>
+              <div className="flex justify-center text-[#9C9DA2] text-[14px] font-medium items-center">
+                Base APY
+                <svg
+                  className="ml-1"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
+                </svg>
+              </div>
+              <div className="flex justify-end text-[#9C9DA2]   text-[14px] font-medium items-center">
+                Current Balance
+                <svg
+                  className="ml-1"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Strategy Rows */}
+            <div className="flex flex-col max-h-[calc(100vh-280px)] overflow-y-auto">
+              {isRefreshingBalance ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Image
+                    src="/images/background/loader.gif"
+                    alt="Loading..."
+                    width={200}
+                    height={200}
+                  />
+                  <div className="text-[#9C9DA2] mt-4">
+                    Loading your portfolio...
+                  </div>
+                </div>
+              ) : strategiesWithBalance.length > 0 ? (
+                strategiesWithBalance.map((strategy, index) => (
                   <div
-                    className={`absolute left-0 top-0 h-full w-[15%] bg-gradient-to-r from-[rgba(0,209,160,0.15)] to-[rgba(153,153,153,0)] opacity-0 group-hover:opacity-100 ${
-                      selectedStrategy?.contract === strategy.contract
-                        ? "opacity-100"
-                        : ""
-                    }`}
-                  ></div>
-                  <div
-                    className={`absolute right-0 top-0 h-full w-[15%] bg-gradient-to-l from-[rgba(0,209,160,0.15)] to-[rgba(153,153,153,0)] opacity-0 group-hover:opacity-100 ${
-                      selectedStrategy?.contract === strategy.contract
-                        ? "opacity-100"
-                        : ""
-                    }`}
-                  ></div>
-                  {/* Strategy Name */}
-                  <div className="flex items-center gap-4">
-                    <Image
-                      src={`/images/icons/${strategy.asset.toLowerCase()}-${
-                        strategy.type === "stable" ? "stable" : "incentive"
-                      }.svg`}
-                      alt={strategy.asset}
-                      width={32}
-                      height={32}
-                    />
-                    <div>
-                      <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
-                        {strategy.type === "stable" ? "sy" : "Incentive Maxi"}
-                        {strategy.asset}
+                    key={`${strategy.asset}-${strategy.duration}-${strategy.type}`}
+                    className={`grid grid-cols-5 items-center py-4 pl-4 pr-6 relative ${
+                      index % 2 === 0
+                        ? "bg-transparent"
+                        : strategy.type === "stable"
+                        ? "bg-[#0D101C]"
+                        : "bg-[#090C17]"
+                    } cursor-pointer transition-colors group`}
+                    onClick={() => handleStrategySelect(strategy)}
+                  >
+                    <div
+                      className={`absolute left-0 top-0 h-full w-[15%] bg-gradient-to-r from-[rgba(0,209,160,0.15)] to-[rgba(153,153,153,0)] opacity-0 group-hover:opacity-100 ${
+                        selectedStrategy?.contract === strategy.contract
+                          ? "opacity-100"
+                          : ""
+                      }`}
+                    ></div>
+                    <div
+                      className={`absolute right-0 top-0 h-full w-[15%] bg-gradient-to-l from-[rgba(0,209,160,0.15)] to-[rgba(153,153,153,0)] opacity-0 group-hover:opacity-100 ${
+                        selectedStrategy?.contract === strategy.contract
+                          ? "opacity-100"
+                          : ""
+                      }`}
+                    ></div>
+                    {/* Strategy Name */}
+                    <div className="flex items-center gap-4">
+                      <Image
+                        src={`/images/icons/${strategy.asset.toLowerCase()}-${
+                          strategy.type === "stable" ? "stable" : "incentive"
+                        }.svg`}
+                        alt={strategy.asset}
+                        width={32}
+                        height={32}
+                      />
+                      <div>
+                        <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
+                          {strategy.type === "stable" ? "sy" : "Incentive Maxi"}
+                          {strategy.asset}
+                        </div>
+                        <div className="text-[#00D1A0]   text-[12px] font-normal">
+                          +
+                          {(
+                            (strategy.balance *
+                              parseFloat(strategy.apy?.replace("%", "") || "0")) /
+                            100
+                          ).toFixed(2)}{" "}
+                          in 1 year
+                        </div>
                       </div>
-                      <div className="text-[#00D1A0]   text-[12px] font-normal">
-                        +
+                    </div>
+
+                    {/* Deposited On */}
+                    {depositedChains.length === 0 ? (
+                      <div className="flex flex-col items-center justify-end">
+                        <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
+                          -
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="relative h-[24px] cursor-pointer group">
+                        {depositedChains.map((chainKey, index) => {
+                          const chain = chainIconMap[chainKey];
+                          if (!chain) return null;
+                          console.log("chain", chain);
+
+                          return (
+                            <TooltipProvider key={chainKey}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="absolute left-16 z-10 transition-transform duration-300 hover:scale-110">
+                                    <Image
+                                      src={chain.src}
+                                      alt={chain.label}
+                                      width={24}
+                                      height={24}
+                                    />
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent className="text-xs" side="top">
+                                  {chain.label}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Expiry */}
+                    <div className="flex flex-col items-center justify-end">
+                      <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
+                        {strategy.duration === "PERPETUAL_DURATION"
+                          ? "No Expiry"
+                          : "29th March 2025"}
+                      </div>
+                      <div className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
+                        {strategy.duration === "PERPETUAL_DURATION"
+                          ? "Perpetual"
+                          : "20 days to Expire"}
+                      </div>
+                    </div>
+
+                    {/* APY */}
+                    <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal flex items-center justify-center">
+                      {strategy.apy}
+                    </div>
+
+                    {/* Balance */}
+                    <div className="flex flex-col items-end">
+                      <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
+                        ${strategy.balance.toFixed(2)}
+                      </div>
+                      <div
+                        className={`${
+                          parseFloat(strategy.apy?.replace("%", "") || "0") >= 0
+                            ? "text-[#00D1A0]"
+                            : "text-[#EF4444]"
+                        }   text-[12px] font-normal leading-normal`}
+                      >
+                        $
                         {(
                           (strategy.balance *
                             parseFloat(strategy.apy?.replace("%", "") || "0")) /
                           100
                         ).toFixed(2)}{" "}
-                        in 1 year
+                        ({strategy.apy})
                       </div>
                     </div>
                   </div>
-
-                  {/* Deposited On */}
-                  {depositedChains.length === 0 ? (
-                    <div className="flex flex-col items-center justify-end">
-                      <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
-                        -
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="relative h-[24px] cursor-pointer group">
-                      {depositedChains.map((chainKey, index) => {
-                        const chain = chainIconMap[chainKey];
-                        if (!chain) return null;
-                        console.log("chain", chain);
-
-                        return (
-                          <TooltipProvider key={chainKey}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className="absolute left-16 z-10 transition-transform duration-300 hover:scale-110">
-                                  <Image
-                                    src={chain.src}
-                                    alt={chain.label}
-                                    width={24}
-                                    height={24}
-                                  />
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent className="text-xs" side="top">
-                                {chain.label}
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Expiry */}
-                  <div className="flex flex-col items-center justify-end">
-                    <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
-                      {strategy.duration === "PERPETUAL_DURATION"
-                        ? "No Expiry"
-                        : "29th March 2025"}
-                    </div>
-                    <div className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
-                      {strategy.duration === "PERPETUAL_DURATION"
-                        ? "Perpetual"
-                        : "20 days to Expire"}
-                    </div>
-                  </div>
-
-                  {/* APY */}
-                  <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal flex items-center justify-center">
-                    {strategy.apy}
-                  </div>
-
-                  {/* Balance */}
-                  <div className="flex flex-col items-end">
-                    <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
-                      ${strategy.balance.toFixed(2)}
-                    </div>
-                    <div
-                      className={`${
-                        parseFloat(strategy.apy?.replace("%", "") || "0") >= 0
-                          ? "text-[#00D1A0]"
-                          : "text-[#EF4444]"
-                      }   text-[12px] font-normal leading-normal`}
-                    >
-                      $
-                      {(
-                        (strategy.balance *
-                          parseFloat(strategy.apy?.replace("%", "") || "0")) /
-                        100
-                      ).toFixed(2)}{" "}
-                      ({strategy.apy})
-                    </div>
-                  </div>
+                ))
+              ) : (
+                <div className="text-center py-12 text-[#9C9DA2]">
+                  No assets found in your portfolio. Deposit assets to get
+                  started.
                 </div>
-              ))
-            ) : (
-              <div className="text-center py-12 text-[#9C9DA2]">
-                No assets found in your portfolio. Deposit assets to get
-                started.
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
 
