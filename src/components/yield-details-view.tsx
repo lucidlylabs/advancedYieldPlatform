@@ -9,6 +9,7 @@ import {
 import Image from "next/image";
 import DepositView from "./deposit-view";
 import { USD_STRATEGIES } from "../config/env";
+import DepositBarChart from "./ui/depositChart";
 
 interface MarketItem {
   id: number;
@@ -126,76 +127,23 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
   // Sub-components for each tab
   const renderDepositsTab = () => (
-    // <div>
-    //     <div className="flex justify-between items-center mb-6">
-    //         <h2 className="text-[rgba(255,255,255,0.70)]  text-[16px] font-bold">
-    //             TOTAL DEPOSITS IN {name}
-    //         </h2>
+    <div>
+        <div className="flex justify-between items-center mb-6">
+            <h2 className="text-[rgba(255,255,255,0.70)]  text-[16px] font-bold">
+                TOTAL DEPOSITS IN {name}
+            </h2>
 
-    //         {/* Toggle buttons */}
-    //         <div className="inline-flex overflow-hidden border border-gray-700 rounded-md">
-    //             <button className="text-[#D7E3EF]  text-[12px] font-normal leading-[16px] px-4 py-2 rounded-[6px_0px_0px_6px] border border-[rgba(184,138,248,0.50)] bg-[rgba(184,138,248,0.15)]">
-    //                 Total Deposits
-    //             </button>
-    //             <button className="text-[#D7E3EF]  text-[12px] font-normal leading-[16px] px-4 py-2 hover:text-white transition-colors">
-    //                 Allocation
-    //             </button>
-    //         </div>
-    //     </div>
-
-    //     {/* Chart */}
-    //     <div className="w-full h-64 relative">
-    //         {/* Y-axis labels */}
-    //         <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-between text-right text-xs text-gray-400">
-    //             <span>$100M</span>
-    //             <span>$80M</span>
-    //             <span>$60M</span>
-    //             <span>$40M</span>
-    //             <span>$20M</span>
-    //             <span>$0</span>
-    //         </div>
-
-    //         {/* Chart bars */}
-    //         <div className="flex justify-between items-end h-full pr-12">
-    //             {chartData.map((month, index) => (
-    //                 <div key={index} className="flex-1 flex flex-col items-center">
-    //                     <div
-    //                         className="w-4/5 bg-blue-500 mb-1"
-    //                         style={{ height: `${month.value * 2}px` }}
-    //                     ></div>
-    //                     <div
-    //                         className="w-4/5 bg-teal-300 mb-1"
-    //                         style={{ height: `${month.value * 1.5}px` }}
-    //                     ></div>
-    //                     <div
-    //                         className="w-4/5 bg-yellow-300 mb-1"
-    //                         style={{ height: `${month.value}px` }}
-    //                     ></div>
-    //                 </div>
-    //             ))}
-    //         </div>
-
-    //         {/* X-axis labels */}
-    //         <div className="flex justify-between pr-12 mt-2 text-xs text-gray-400">
-    //             {chartData.map((month, index) => (
-    //                 <div key={index} className="flex-1 text-center">
-    //                     {month.month}
-    //                 </div>
-    //             ))}
-    //         </div>
-    //     </div>
-    // </div>
-    <div className="relative w-full mb-6">
-      <h2 className="absolute top-48 left-1/2 -translate-x-1/2 text-lg text-white z-10">
-        Collecting data...
-      </h2>
-      <Image
-        src="/images/background/yields-blurred.jpg"
-        alt="Deposits Chart"
-        width={600}
-        height={300}
-        className="w-full h-auto"
-      />
+            {/* Toggle buttons */}
+            <div className="inline-flex overflow-hidden border border-gray-700 rounded-md">
+                <button className="text-[#D7E3EF]  text-[12px] font-normal leading-[16px] px-4 py-2 rounded-[6px_0px_0px_6px] border border-[rgba(184,138,248,0.50)] bg-[rgba(184,138,248,0.15)]">
+                    Total Deposits
+                </button>
+                <button className="text-[#D7E3EF]  text-[12px] font-normal leading-[16px] px-4 py-2 hover:text-white transition-colors">
+                    Allocation
+                </button>
+            </div>
+        </div>
+    <DepositBarChart/>
     </div>
   );
 
