@@ -1540,8 +1540,8 @@ const PortfolioSubpage: React.FC = () => {
                     )}
                   </div>
                   <div className="mt-2">
-                    <div className="text-[#D7E3EF] text-[14px] rounded-[4px] bg-[rgba(255,255,255,0.02)] p-[24px]">
-                      <strong>Note:</strong> By initiating a withdrawal, your
+                    <div className="text-[#9C9DA2] text-[14px] rounded-[4px] bg-[rgba(255,255,255,0.02)] p-[24px]">
+                      <strong className="text-white">Note:</strong> By initiating a withdrawal, your
                       vault shares ({strategy.name}) will be converted into the
                       underlying asset based on the latest market rates, which
                       may fluctuate slightly; once the request is submitted,
