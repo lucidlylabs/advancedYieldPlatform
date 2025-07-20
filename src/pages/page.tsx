@@ -102,7 +102,7 @@ export default function Page() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col pt-[72px]">
       <Header onNavigateToDeposit={handleNavigateToDeposit}>
       <div className="flex items-center justify-between w-full">
         <div className="flex items-stretch h-full">
@@ -223,7 +223,7 @@ export default function Page() {
       </Header>
 
       {isMobileMenuOpen && (
-      <div className="md:hidden bg-[#0D101C] py-4 flex flex-col items-center gap-4 border-b border-[rgba(255,255,255,0.1)]">
+      <div className="fixed top-[72px] left-0 right-0 z-40 md:hidden bg-[#0D101C] py-4 flex flex-col items-center gap-4 border-b border-[rgba(255,255,255,0.1)]">
         <button
           className="text-white text-lg"
           onClick={() => {
@@ -255,7 +255,7 @@ export default function Page() {
       </div>
     )}
 
-      <main className="flex-1">{renderSubPage()}</main>
+      <main className={`flex-1 ${isMobileMenuOpen ? 'pt-[200px]' : ''}`}>{renderSubPage()}</main>
     </div>
   );
 }

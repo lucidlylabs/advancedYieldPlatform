@@ -37,7 +37,7 @@ export function Header({
     const progressPercentage = Math.min((currentDeposit / maxDeposit) * 100, 100);
 
   return (
-    <div className={`flex flex-col w-full ${className}`} {...props}>
+    <div className={`fixed top-0 left-0 right-0 z-50 flex flex-col w-full ${className}`} {...props}>
       {shouldShowBanner && (
         <div
           className="w-full h-[40px] flex-shrink-0 bg-[rgba(53,22,95,0.10)] text-amber-100 px-4 relative flex items-center"
