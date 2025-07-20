@@ -10,6 +10,7 @@ import Image from "next/image";
 import DepositView from "./deposit-view";
 import { USD_STRATEGIES } from "../config/env";
 import DepositBarChart from "./ui/depositChart";
+import AllocationChart from "./ui/allocationsChart";
 
 interface MarketItem {
   id: number;
@@ -107,43 +108,47 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   const [activeTab, setActiveTab] = useState<
     "deposits" | "baseApy" | "incentives"
   >("deposits");
-  const [showDepositView, setShowDepositView] = useState<boolean>(false);
-
-  // Mock data for the chart - This data will only be used if hasRealData is true
-  const chartData = [
-    { month: "FEB 24", value: 20 },
-    { month: "MAR 24", value: 15 },
-    { month: "APR 24", value: 25 },
-    { month: "MAY 24", value: 30 },
-    { month: "JUN 24", value: 28 },
-    { month: "JUL 24", value: 18 },
-    { month: "AUG 24", value: 32 },
-    { month: "SEP 24", value: 24 },
-    { month: "OCT 24", value: 26 },
-    { month: "NOV 24", value: 30 },
-    { month: "DEC 24", value: 24 },
-    { month: "JAN 24", value: 28 },
-  ];
+  const [activeDepositTab, setActiveDepositTab] = useState<"deposits" | "allocation">("deposits");
 
   // Sub-components for each tab
   const renderDepositsTab = () => (
-    <div>
-        <div className="flex justify-between items-center mb-6">
-            <h2 className="text-[rgba(255,255,255,0.70)]  text-[16px] font-bold">
-                TOTAL DEPOSITS IN {name}
-            </h2>
+    <div className="w-full">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-[rgba(255,255,255,0.70)] text-[16px] font-bold">
+          TOTAL DEPOSITS IN {name}
+        </h2>
+  
+        {/* Toggle buttons */}
+        <div className="flex overflow-hidden border border-[rgba(184,138,248,0.3)] rounded-md">
+        <button
+          className={`px-4 py-2 w-32 text-sm transition-colors duration-150 bg-[rgba(184,138,248,0.15)] ${
+            activeDepositTab === 'deposits'
+              ? 'deposits text-white border rounded-l-md border-purple-500'
+              : 'bg-transparent text-purple-300'
+          }`}
+          onClick={() => setActiveDepositTab('deposits')}
+        >
+          Total Deposits
+        </button>
+        <button
+          className={`px-4 py-2 w-32 text-sm transition-colors duration-150 ${
+            activeDepositTab === 'allocation'
+              ? 'bg-[rgba(184,138,248,0.15)] text-white border rounded-r-md border-purple-500'
+              : 'bg-transparent text-purple-300'
+          }`}
+          onClick={() => setActiveDepositTab('allocation')}
+        >
+          Allocation
+        </button>
+      </div>
 
-            {/* Toggle buttons */}
-            <div className="inline-flex overflow-hidden border border-gray-700 rounded-md">
-                <button className="text-[#D7E3EF]  text-[12px] font-normal leading-[16px] px-4 py-2 rounded-[6px_0px_0px_6px] border border-[rgba(184,138,248,0.50)] bg-[rgba(184,138,248,0.15)]">
-                    Total Deposits
-                </button>
-                <button className="text-[#D7E3EF]  text-[12px] font-normal leading-[16px] px-4 py-2 hover:text-white transition-colors">
-                    Allocation
-                </button>
-            </div>
-        </div>
-    <DepositBarChart/>
+      </div>
+  
+      {activeDepositTab === "deposits" && <DepositBarChart />}
+
+      {activeDepositTab === "allocation" && (
+        <AllocationChart />
+      )}
     </div>
   );
 
