@@ -244,10 +244,10 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
   // Always render the main content, assuming verification is handled by parent
   return (
     <div
-      className="min-h-screen[calc(100vh-98px)] w-full relative"
+      className="min-h-[calc(100vh)] relative w-full"
       style={{
         backgroundImage: "url('/images/background/earn-page-bg.svg')",
-        backgroundPosition: "bottom",
+        backgroundPosition: "center bottom -50px",
         backgroundRepeat: "no-repeat",
         backgroundSize: "100% auto",
         backgroundAttachment: "fixed",
