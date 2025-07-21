@@ -1034,62 +1034,70 @@ const PortfolioSubpage: React.FC = () => {
                 
 {/* Column Headers */}
 <div className="grid grid-cols-5 sm:pl-4 sm:pr-6 py-2 border-b border-[rgba(255,255,255,0.15)]">
-            <div className="flex justify-start text-[#9C9DA2] text-[14px] font-medium">
-              Available Yields
-            </div>
-            <div className="flex justify-end text-[#9C9DA2]   text-[14px] font-medium  items-center">
-              Deposited on
-              <svg
-                className="ml-1"
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
-              </svg>
-            </div>
-            <div className="flex justify-center text-[#9C9DA2]   text-[14px] font-medium items-center">
-              Expiry
-              <svg
-                className="ml-1"
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
-              </svg>
-            </div>
-            <div className="flex justify-center text-[#9C9DA2] text-[14px] font-medium items-center">
-              Base APY
-              <svg
-                className="ml-1"
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
-              </svg>
-            </div>
-            <div className="flex justify-end text-[#9C9DA2]   text-[14px] font-medium items-center">
-              Current Balance
-              <svg
-                className="ml-1"
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
-              </svg>
-            </div>
-          </div>
+  <div className="flex justify-start text-[#9C9DA2] text-[14px] font-medium">
+    Available Yields
+  </div>
+  <div className="flex justify-end text-[#9C9DA2]   text-[14px] font-medium  items-center">
+    Deposited on
+    <svg
+      className="ml-1"
+      width="14"
+      height="14"
+      viewBox="0 0 14 14"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <g opacity="0.6">
+        <path d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992" stroke="white" strokeLinecap="round" strokeLinejoin="round"/>
+      </g>
+    </svg>
+  </div>
+  <div className="flex justify-center text-[#9C9DA2]   text-[14px] font-medium items-center">
+    Expiry
+    <svg
+      className="ml-1"
+      width="14"
+      height="14"
+      viewBox="0 0 14 14"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <g opacity="0.6">
+        <path d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992" stroke="white" strokeLinecap="round" strokeLinejoin="round"/>
+      </g>
+    </svg>
+  </div>
+  <div className="flex justify-center text-[#9C9DA2] text-[14px] font-medium items-center">
+    Base APY
+    <svg
+      className="ml-1"
+      width="14"
+      height="14"
+      viewBox="0 0 14 14"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <g opacity="0.6">
+        <path d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992" stroke="white" strokeLinecap="round" strokeLinejoin="round"/>
+      </g>
+    </svg>
+  </div>
+  <div className="flex justify-end text-[#9C9DA2]   text-[14px] font-medium items-center">
+    Current Balance
+    <svg
+      className="ml-1"
+      width="14"
+      height="14"
+      viewBox="0 0 14 14"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <g opacity="0.6">
+        <path d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992" stroke="white" strokeLinecap="round" strokeLinejoin="round"/>
+      </g>
+    </svg>
+  </div>
+</div>
 
           {/* Strategy Rows */}
           <div className="flex flex-col max-h-[calc(100vh-280px)] overflow-y-auto">
