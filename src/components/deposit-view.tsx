@@ -276,6 +276,7 @@ const DepositView: React.FC<DepositViewProps> = ({
   const [isAssetDropdownOpen, setIsAssetDropdownOpen] = useState(false);
   const [selectedAssetIdx, setSelectedAssetIdx] = useState(0);
   const [rawBalance, setRawBalance] = useState<string>("0"); // New state for unformatted balance
+  const [sharesToReceive, setSharesToReceive] = useState<string>("0"); // New state for shares calculation
 
   // Add state for custom dropdown
   const [isChainDropdownOpen, setIsChainDropdownOpen] = useState(false);
@@ -285,6 +286,8 @@ const DepositView: React.FC<DepositViewProps> = ({
 
   // receiveChain will mirror targetChain
   const router = useRouter();
+
+
 
   // Get strategy config based on asset type
   const strategyConfigs = {
@@ -388,6 +391,97 @@ const DepositView: React.FC<DepositViewProps> = ({
   // Update token contract address and decimals
   const tokenContractAddress = selectedAssetOption.contract;
   const depositTokenDecimals = selectedAssetOption.decimal;
+
+  // Function to calculate shares the user will receive
+  const calculateSharesToReceive = async (depositAmount: string) => {
+    if (!depositAmount || parseFloat(depositAmount) <= 0) {
+      setSharesToReceive("0");
+      return;
+    }
+
+    try {
+      const { rpcUrl, chain: clientChain } = getChainConfig(targetChain);
+      const client = createPublicClient({
+        transport: http(rpcUrl),
+        chain: clientChain,
+      });
+
+      // Get rate provider address from strategy config
+      const rateProviderAddress = strategyConfig.rateProvider;
+      const depositTokenAddress = selectedAssetOption.contract;
+
+      // Call getRateInQuoteSafe to get the cost of 1 share in terms of deposit token
+      const rateInQuote = await client.readContract({
+        address: rateProviderAddress as Address,
+        abi: RATE_PROVIDER_ABI,
+        functionName: "getRateInQuoteSafe",
+        args: [depositTokenAddress as Address],
+      });
+
+      console.log("Rate calculation details:", {
+        depositAmount,
+        rateInQuote: rateInQuote.toString(),
+        depositTokenDecimals,
+        rateProviderAddress,
+        depositTokenAddress,
+      });
+
+      // Convert deposit amount to wei
+      const amountInWei = parseUnits(depositAmount, depositTokenDecimals);
+      
+      // Calculate shares: user input / (rate / 10^depositTokenDecimals)
+      // The rate is in 18 decimals, so we need to account for deposit token decimals
+      // For USDC use 10^6, for others (USDS, sUSDS) use 10^18
+      let shares;
+      if (selectedAssetOption.name === "USDC") {
+        // For USDC, use 10^6
+        const scaleMultiplier = BigInt(10 ** 6);
+        shares = (amountInWei * scaleMultiplier) / BigInt(rateInQuote.toString());
+      } else {
+        // For USDS, sUSDS, use 10^18
+        const scaleMultiplier = BigInt(10 ** 18);
+        shares = (amountInWei * scaleMultiplier) / BigInt(rateInQuote.toString());
+      }
+      
+      // Convert shares back to human readable format based on token decimals
+      // For USDC use 6 decimals, for others (USDS, sUSDS) use 18 decimals
+      let sharesFormatted;
+      if (selectedAssetOption.name === "USDC") {
+        sharesFormatted = formatUnits(shares, 6);
+      } else {
+        sharesFormatted = formatUnits(shares, 18);
+      }
+      
+      // Format shares to be more readable with proper number formatting
+      const sharesNumber = parseFloat(sharesFormatted);
+      const formattedShares = sharesNumber.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 6,
+      });
+      
+      setSharesToReceive(formattedShares);
+      
+      console.log("Shares calculation:", {
+        amountInWei: amountInWei.toString(),
+        rateInQuote: rateInQuote.toString(),
+        shares: shares.toString(),
+        sharesFormatted,
+      });
+
+    } catch (error) {
+      console.error("Error calculating shares:", error);
+      setSharesToReceive("0");
+    }
+  };
+
+  // Effect to recalculate shares when amount or selected asset changes
+  useEffect(() => {
+    if (amount && parseFloat(amount) > 0) {
+      calculateSharesToReceive(amount);
+    } else {
+      setSharesToReceive("0");
+    }
+  }, [amount, selectedAssetIdx, targetChain, strategyConfig]);
 
   // Calculate deposit cap values from env config
   const showDepositCap = strategyConfig.show_cap;
@@ -1468,6 +1562,9 @@ const DepositView: React.FC<DepositViewProps> = ({
                             </div>
                           </div>
                         </div>
+                      </div>
+                      <div className="text-[#9C9DA2] text-[12px] font-normal leading-normal">
+                        Shares: {sharesToReceive}
                       </div>
                 </div>
               </div> 
