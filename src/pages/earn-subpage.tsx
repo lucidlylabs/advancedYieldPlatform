@@ -105,13 +105,22 @@ interface YieldSubpageProps {
 
 const getStrategyInfo = (duration: DurationType): StrategyData => {
   const getAssetStrategies = (asset: AssetType) => {
-    const strategies: Record<AssetType, Partial<Record<DurationType, StrategyDuration>>> = {
-      USD: USD_STRATEGIES as unknown as Partial<Record<DurationType, StrategyDuration>>,
-      BTC: BTC_STRATEGIES as unknown as Partial<Record<DurationType, StrategyDuration>>,
-      ETH: ETH_STRATEGIES as unknown as Partial<Record<DurationType, StrategyDuration>>,
+    const strategies: Record<
+      AssetType,
+      Partial<Record<DurationType, StrategyDuration>>
+    > = {
+      USD: USD_STRATEGIES as unknown as Partial<
+        Record<DurationType, StrategyDuration>
+      >,
+      BTC: BTC_STRATEGIES as unknown as Partial<
+        Record<DurationType, StrategyDuration>
+      >,
+      ETH: ETH_STRATEGIES as unknown as Partial<
+        Record<DurationType, StrategyDuration>
+      >,
     };
 
-    const strategy = strategies[asset][duration]; 
+    const strategy = strategies[asset][duration];
 
     if (!strategy) {
       // console.error(
@@ -170,10 +179,11 @@ const getStrategyInfo = (duration: DurationType): StrategyData => {
 };
 
 const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
-  const [selectedAsset, setSelectedAsset] = useState<SelectedAsset | null>(null);
-  const [selectedStrategy, setSelectedStrategy] = useState<SelectedStrategy | null>(
+  const [selectedAsset, setSelectedAsset] = useState<SelectedAsset | null>(
     null
   );
+  const [selectedStrategy, setSelectedStrategy] =
+    useState<SelectedStrategy | null>(null);
   const [usdApy, setUsdApy] = useState<string | null>(null);
 
   const router = useRouter();
@@ -182,8 +192,8 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
     const apyUrl = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.apy;
     if (typeof apyUrl === "string" && apyUrl.startsWith("http")) {
       fetch(apyUrl)
-        .then(res => res.json())
-        .then(data => {
+        .then((res) => res.json())
+        .then((data) => {
           const trailingApy = data?.result?.trailing_total_APY;
           if (typeof trailingApy === "number") {
             setUsdApy(`${trailingApy.toFixed(2)}%`);
@@ -195,10 +205,9 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
 
   useEffect(() => {
     if (depositParams) {
-      const apy =
-        getStrategyInfo(depositParams.duration as DurationType)[
-          depositParams.strategy === "stable" ? "stable" : "incentives"
-        ][depositParams.asset as AssetType].apy.value;
+      const apy = getStrategyInfo(depositParams.duration as DurationType)[
+        depositParams.strategy === "stable" ? "stable" : "incentives"
+      ][depositParams.asset as AssetType].apy.value;
 
       setSelectedAsset({
         asset: depositParams.asset,
@@ -264,107 +273,117 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
         />
       ) : selectedAsset ? (
         <div className="flex flex-col gap-6 items-center pt-[8vh]">
-          <h1 className="text-[20px] sm:text-[40px] font-bold">Select a Yield Source</h1>
-          <div className="flex flex-col sm:flex-row gap-6 justify-center items-stretch">
-            <div className="flex-shrink-0 w-[264px]">
-              <CustomCard
-                heading={selectedAsset.asset as AssetType}
-                imageSrc={`/images/icons/card-${(
-                  selectedAsset.asset as AssetType
-                ).toLowerCase()}.svg`}
-                hoverColor={
-                  selectedAsset.asset === "USD"
-                    ? "#B88AF8"
-                    : selectedAsset.asset === "ETH"
-                    ? "#627EEA"
-                    : "#F7931A"
-                }
-                selectedDuration={selectedAsset.duration}
-                onReset={handleReset}
-                disableHover={true}
-                className="w-[300px] h-[311px]"
-              />
-            </div>
-            <div className="flex-1 flex flex-col sm:flex-row items-center justify-center gap-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
-              <div
-                onClick={() =>
-                  handleStrategySelect(
-                    "stable",
-                    selectedAsset.asset as AssetType
-                  )
-                }
-                className="cursor-pointer"
-              >
+          <h1 className="text-[20px] sm:text-[40px] font-bold">
+            Select a Yield Source
+          </h1>
+          <div className="flex flex-col items-center">
+            <div className="flex flex-col sm:flex-row gap-6 justify-center items-stretch">
+              <div className="flex-shrink-0 w-[264px]">
                 <CustomCard
-                  heading={
-                    selectedAsset.asset === "USD" 
-                      ? USD_STRATEGIES.PERPETUAL_DURATION.STABLE.name
-                      : `${selectedAsset.asset} Strategy`
-                  }
-                  imageSrc={`/images/icons/${(
+                  heading={selectedAsset.asset as AssetType}
+                  imageSrc={`/images/icons/card-${(
                     selectedAsset.asset as AssetType
-                  ).toLowerCase()}-stable.svg`}
-                  info={
-                    getStrategyInfo(selectedAsset.duration).stable[
-                      selectedAsset.asset as AssetType
-                    ].description
+                  ).toLowerCase()}.svg`}
+                  hoverColor={
+                    selectedAsset.asset === "USD"
+                      ? "#B88AF8"
+                      : selectedAsset.asset === "ETH"
+                      ? "#627EEA"
+                      : "#F7931A"
                   }
-                  apy={{ value: usdApy || "--", info: "-" }}
-                  isStrategyCard={true}
                   selectedDuration={selectedAsset.duration}
                   onReset={handleReset}
                   disableHover={true}
+                  className="w-[300px] h-[311px]"
                 />
               </div>
-              <div
-                {...(getStrategyInfo(selectedAsset.duration).incentives[
-                  selectedAsset.asset as AssetType
-                ].comingSoon
-                  ? {}
-                  : {
-                      onClick: () =>
-                        handleStrategySelect(
-                          "incentive",
-                          selectedAsset.asset as AssetType
-                        ),
-                    })}
-                className={
-                  "group " +
-                  (getStrategyInfo(selectedAsset.duration).incentives[
+              <div className="flex-1 flex flex-col sm:flex-row items-center justify-center gap-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
+                <div
+                  onClick={() =>
+                    handleStrategySelect(
+                      "stable",
+                      selectedAsset.asset as AssetType
+                    )
+                  }
+                  className="cursor-pointer"
+                >
+                  <CustomCard
+                    heading={
+                      selectedAsset.asset === "USD"
+                        ? USD_STRATEGIES.PERPETUAL_DURATION.STABLE.name
+                        : `${selectedAsset.asset} Strategy`
+                    }
+                    imageSrc={`/images/icons/${(
+                      selectedAsset.asset as AssetType
+                    ).toLowerCase()}-stable.svg`}
+                    info={
+                      getStrategyInfo(selectedAsset.duration).stable[
+                        selectedAsset.asset as AssetType
+                      ].description
+                    }
+                    apy={{ value: usdApy || "--", info: "-" }}
+                    isStrategyCard={true}
+                    selectedDuration={selectedAsset.duration}
+                    onReset={handleReset}
+                    disableHover={true}
+                  />
+                </div>
+                <div
+                  {...(getStrategyInfo(selectedAsset.duration).incentives[
                     selectedAsset.asset as AssetType
                   ].comingSoon
-                    ? "pointer-events-none opacity-60"
-                    : "cursor-pointer")
-                }
-              >
-                <CustomCard
-                  heading={`Incentives ${selectedAsset.asset}`}
-                  imageSrc={`/images/icons/${(
-                    selectedAsset.asset as AssetType
-                  ).toLowerCase()}-incentive.svg`}
-                  info={
-                    getStrategyInfo(selectedAsset.duration).incentives[
+                    ? {}
+                    : {
+                        onClick: () =>
+                          handleStrategySelect(
+                            "incentive",
+                            selectedAsset.asset as AssetType
+                          ),
+                      })}
+                  className={
+                    "group " +
+                    (getStrategyInfo(selectedAsset.duration).incentives[
                       selectedAsset.asset as AssetType
-                    ].description
+                    ].comingSoon
+                      ? "pointer-events-none opacity-60"
+                      : "cursor-pointer")
                   }
-                  apy={
-                    getStrategyInfo(selectedAsset.duration).incentives[
+                >
+                  <CustomCard
+                    heading={`Incentives ${selectedAsset.asset}`}
+                    imageSrc={`/images/icons/${(
                       selectedAsset.asset as AssetType
-                    ].apy
-                  }
-                  isStrategyCard={true}
-                  disableHover={true}
-                  onReset={handleReset}
-                  selectedDuration={selectedAsset.duration}
-                  isComingSoon={
-                    getStrategyInfo(selectedAsset.duration).incentives[
-                      selectedAsset.asset as AssetType
-                    ].comingSoon === true
-                  }
-                />
+                    ).toLowerCase()}-incentive.svg`}
+                    info={
+                      getStrategyInfo(selectedAsset.duration).incentives[
+                        selectedAsset.asset as AssetType
+                      ].description
+                    }
+                    apy={
+                      getStrategyInfo(selectedAsset.duration).incentives[
+                        selectedAsset.asset as AssetType
+                      ].apy
+                    }
+                    isStrategyCard={true}
+                    disableHover={true}
+                    onReset={handleReset}
+                    selectedDuration={selectedAsset.duration}
+                    isComingSoon={
+                      getStrategyInfo(selectedAsset.duration).incentives[
+                        selectedAsset.asset as AssetType
+                      ].comingSoon === true
+                    }
+                  />
+                </div>
               </div>
             </div>
-        </div>
+            <button
+              onClick={() => setSelectedAsset(null)}
+              className="px-4 py-2 bg-[rgba(255,255,255,0.02)] text-[#B8B8BC] rounded-lg hover:bg-[rgba(255,255,255,0.05)] transition-colors mt-2.5 self-start"
+            >
+              Previous
+            </button>
+          </div>
         </div>
       ) : (
         <div className="flex flex-col gap-6 items-center pt-[8vh]">
