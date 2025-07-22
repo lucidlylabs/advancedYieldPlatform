@@ -646,11 +646,14 @@ const DepositView: React.FC<DepositViewProps> = ({
 
   useEffect(() => {
     if (!isWaitingForDeposit) {
-      setIsApproved(false);
+      // Only reset approval state if deposit was successful or failed
+      if (isDepositSuccess || transactionHash) {
+        setIsApproved(false);
+      }
       fetchBalance();
       setIsWaitingForSignature(false);
     }
-  }, [isWaitingForDeposit]);
+  }, [isWaitingForDeposit, isDepositSuccess, transactionHash]);
 
   // Watch for deposit success
   useEffect(() => {
@@ -1655,7 +1658,8 @@ const DepositView: React.FC<DepositViewProps> = ({
                     approveIsPending ||
                     depositIsPending ||
                     isWaitingForApproval ||
-                    isWaitingForDeposit;
+                    isWaitingForDeposit ||
+                    (isLoadingBalance && !isApproved); // Only include balance loading if not approved
 
                   const hasInsufficientFunds =
                     connected &&
