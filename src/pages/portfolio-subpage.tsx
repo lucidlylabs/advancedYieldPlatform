@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import {
   useAccount,
@@ -18,6 +18,24 @@ import {
   getAddress,
 } from "viem";
 import { useRouter } from "next/router";
+
+const InfoIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M12 16V12M12 8H12.01M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
 
 const isMobile = () => typeof window !== "undefined" && window.innerWidth < 640;
 // import {
@@ -43,6 +61,54 @@ interface NetworkConfig {
     decimal: number;
     image: string;
   }>;
+}
+
+interface TokenConfig {
+  name: string;
+  contract: string;
+  decimal: number;
+  image: string;
+}
+
+interface ChainConfig {
+  tokens: TokenConfig[];
+  image?: string; // Add optional image property for chain
+  rpc: string;
+  chainId: number;
+  chainObject: {
+    id: number;
+    name: string;
+    network: string;
+    nativeCurrency: {
+      decimals: number;
+      name: string;
+      symbol: string;
+    };
+    rpcUrls: {
+      default: { http: string[] };
+      public: { http: string[] };
+    };
+  };
+}
+
+interface StrategyConfig {
+  network: string;
+  contract: string;
+  base: ChainConfig;
+  ethereum: ChainConfig;
+  arbitrum: ChainConfig;
+  katana: ChainConfig; // <-- Add this line
+  description: string;
+  apy: string;
+  incentives: string;
+  tvl: string;
+  rpc?: string;
+  show_cap: boolean;
+  filled_cap: string;
+  cap_limit: string;
+  boringVaultAddress?: string;
+  rateProvider: string;
+  shareAddress: string;
 }
 
 interface BaseStrategyConfig {
@@ -231,7 +297,7 @@ const chainConfigs = {
 };
 
 const PortfolioSubpage: React.FC = () => {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, chain } = useAccount();
   const [depositSuccess, setDepositSuccess] = useState(false);
   const [transactionHash, setTransactionHash] = useState<`0x${string}` | null>(
     null
@@ -265,11 +331,78 @@ const PortfolioSubpage: React.FC = () => {
   const [completedRequests, setCompletedRequests] = useState<any[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
   const [usdApy, setUsdApy] = useState<string | null>(null);
+  const [isChainDropdownOpen, setIsChainDropdownOpen] = useState(false);
+  const [targetChain, setTargetChain] = useState<string>(
+    chain?.name.toLowerCase() || "base"
+  );
 
   const chainId = useChainId();
   const isBase = chainId === 8453;
 
   const router = useRouter();
+
+  const strategyConfigs = {
+    USD: USD_STRATEGIES,
+    BTC: BTC_STRATEGIES,
+    ETH: ETH_STRATEGIES,
+  };
+
+  const getUniqueChainConfigs = useMemo(() => {
+    const uniqueChains = new Map<
+      string,
+      { name: string; network: string; image: string }
+    >();
+
+    // Directly access the STABLE strategy within PERPETUAL_DURATION
+    const stablePerpetualConfig = USD_STRATEGIES.PERPETUAL_DURATION
+      .STABLE as StrategyConfig;
+
+    if (stablePerpetualConfig) {
+      if (stablePerpetualConfig.base && stablePerpetualConfig.base.image) {
+        uniqueChains.set("base", {
+          name: "Base",
+          network: "base",
+          image: stablePerpetualConfig.base.image,
+        });
+      }
+      if (
+        stablePerpetualConfig.ethereum &&
+        stablePerpetualConfig.ethereum.image
+      ) {
+        uniqueChains.set("ethereum", {
+          name: "Ethereum",
+          network: "ethereum",
+          image: stablePerpetualConfig.ethereum.image,
+        });
+      }
+      if (
+        stablePerpetualConfig.arbitrum &&
+        stablePerpetualConfig.arbitrum.image
+      ) {
+        uniqueChains.set("arbitrum", {
+          name: "Arbitrum",
+          network: "arbitrum",
+          image: stablePerpetualConfig.arbitrum.image,
+        });
+      }
+      if (stablePerpetualConfig.katana && stablePerpetualConfig.katana.image) {
+        uniqueChains.set("katana", {
+          name: "Katana",
+          network: "katana",
+          image: stablePerpetualConfig.katana.image,
+        });
+      }
+    }
+
+    // Optionally, you can add other durations if they also define chain images
+    // For example:
+    // const stable30DaysConfig = USD_STRATEGIES["30_DAYS"].STABLE as StrategyConfig;
+    // if (stable30DaysConfig && stable30DaysConfig.base && stable30DaysConfig.base.image) {
+    //   uniqueChains.set("base", { name: "Base", network: "base", image: stable30DaysConfig.base.image });
+    // }
+
+    return Array.from(uniqueChains.values());
+  }, [USD_STRATEGIES]);
 
   // Watch deposit transaction
   const { isLoading: isWaitingForDeposit, isSuccess: isDepositSuccess } =
@@ -1281,6 +1414,83 @@ const PortfolioSubpage: React.FC = () => {
               {activeTab === "withdraw" && (
                 <>
                   <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
+                    {/* Withdrawing assets from dropdown */}
+                    <div className="flex flex-row justify-between items-center bg-[#121420] rounded-sm p-2 border border-[rgba(255,255,255,0.05)] mb-4">
+                      {/* Label */}
+                      <label className="text-[#9C9DA2] font-inter text-[12px] block pl-2">
+                        Withdrawing assets from
+                      </label>
+
+                      {/* Dropdown */}
+                      <div className="relative">
+                        <button
+                          onClick={() => setIsChainDropdownOpen(!isChainDropdownOpen)}
+                          className="flex items-center justify-between w-full bg-[#1e202c] text-[#EDF2F8] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8]"
+                        >
+                          <div className="flex items-center gap-2">
+                            {targetChain && (
+                              <img
+                                src={
+                                  getUniqueChainConfigs.find((c) => c.network === targetChain)?.image || ""
+                                }
+                                alt={targetChain}
+                                className="w-5 h-5 rounded-full"
+                              />
+                            )}
+                            <span className="capitalize text-[12px]">{targetChain}</span>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="ml-1">
+                                    <InfoIcon />
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent className="text-xs max-w-[240px]" side="top">
+                                To reduce bridging risks and ensure accurate yield tracking, deposits and withdrawals are limited to the Base network.
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                          {/* Dropdown arrow */}
+                          {/* <svg
+                            className={`w-4 h-4 transform transition-transform duration-200 ${
+                              isChainDropdownOpen ? "rotate-180" : "rotate-0"
+                            }`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                          </svg> */}
+                        </button>
+
+                        {/* Dropdown options */}
+                        {/* {isChainDropdownOpen && (
+                          <div className="absolute z-10 w-full mt-2 bg-[#1F202D] rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 focus:outline-none">
+                            {getUniqueChainConfigs.map((chainOption) => (
+                              <button
+                                key={chainOption.network}
+                                onClick={() => {
+                                  setTargetChain(chainOption.network);
+                                  setIsChainDropdownOpen(false);
+                                }}
+                                className="flex items-center w-full px-4 py-2 text-sm text-[#EDF2F8] hover:bg-[#1A1B1E]"
+                              >
+                                <img
+                                  src={chainOption.image}
+                                  alt={chainOption.name}
+                                  className="w-5 h-5 mr-2 rounded-full"
+                                />
+                                {chainOption.name}
+                              </button>
+                            ))}
+                          </div>
+                        )} */}
+                      </div>
+                    </div>
+
+
                     {/* Header with strategy info and balance */}
                     <div className="flex items-end justify-between p-4  bg-[rgba(255,255,255,0.02)] mb-6 border-b border-[rgba(255,255,255,0.15)]">
                       <div className="flex items-center gap-4">
