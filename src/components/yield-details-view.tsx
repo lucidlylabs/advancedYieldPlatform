@@ -339,19 +339,19 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-y-4 border-b border-gray-700 pb-4 text-sm text-white">
           {/* TVL */}
-          <div className="flex flex-col items-center sm:border-block border-r border-gray-700">
+          <div className="flex flex-col items-start sm:border-block border-r border-gray-700 pr-6">
             <div className="text-[#9C9DA2]">TVL</div>
             <div className="mt-1 font-semibold">{tvl}</div>
           </div>
 
           {/* Base APY */}
-          <div className="flex flex-col items-center sm:border-r border-gray-700">
+          <div className="flex flex-col items-start sm:border-r border-gray-700 pl-6">
             <div className="text-[#9C9DA2]">Base APY</div>
             <div className="mt-1 font-semibold">---</div>
           </div>
 
           {/* Contract Address */}
-          <div className="flex flex-col border-r items-center border-gray-700">
+          <div className="flex flex-col border-r items-start border-gray-700 pl-6">
             <div className="text-[#9C9DA2]">Contract Address</div>
             <div className="mt-1 font-semibold flex items-center gap-1">
               {contractAddress
@@ -371,7 +371,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
           </div>
 
           {/* Network */}
-          <div className="flex flex-col items-center  border-gray-700">
+          <div className="flex flex-col items-start  border-gray-700 pl-6">
             <div className="text-[#9C9DA2] text-[14px] font-normal leading-normal">
               Network
             </div>
