@@ -579,7 +579,8 @@ const PortfolioSubpage: React.FC = () => {
 
       const solverAddress = selectedStrategy.solverAddress as Address;
       const vaultAddress = selectedStrategy.boringVaultAddress as Address;
-      const assetOutAddress = assetOptions[selectedAssetIdx].contract as Address;
+      const assetOutAddress = assetOptions[selectedAssetIdx]
+        .contract as Address;
 
       const client = createPublicClient({
         transport: http(selectedStrategy.rpc),
@@ -609,8 +610,8 @@ const PortfolioSubpage: React.FC = () => {
       const sharesAmount = parseUnits(withdrawAmount, decimals);
       // Convert to uint128
       const amountOfShares = BigInt(sharesAmount.toString());
-      const discount = 100; // uint16 - hardcoded
-      const secondsToDeadline = 3600; // uint24 - hardcoded (1 hour)
+      const discount = 0; // uint16 - hardcoded
+      const secondsToDeadline = 432000; // uint24 - hardcoded (5 days)
 
       console.log("Debug - Contract call parameters:", {
         functionName: "requestOnChainWithdraw",
@@ -895,7 +896,10 @@ const PortfolioSubpage: React.FC = () => {
       fetch(apiUrl, { method: "GET" })
         .then((res) => res.json())
         .then((data) => {
-          console.log("cacheQueueData API called after withdraw success:", data);
+          console.log(
+            "cacheQueueData API called after withdraw success:",
+            data
+          );
         })
         .catch((err) => {
           console.error("Error calling cacheQueueData API:", err);
@@ -1597,7 +1601,9 @@ const PortfolioSubpage: React.FC = () => {
                           const assetImage = assetOption
                             ? assetOption.image
                             : "/images/icons/susd-stable.svg";
-                          const assetDecimals = assetOption ? assetOption.decimal : 18;
+                          const assetDecimals = assetOption
+                            ? assetOption.decimal
+                            : 18;
                           return (
                             <div
                               key={req.request_id || idx}
@@ -1622,7 +1628,9 @@ const PortfolioSubpage: React.FC = () => {
                                     <ExternalLinkIcon />
                                   </button>
                                   {req.creation_time
-                                    ? new Date(req.creation_time * 1000).toLocaleDateString()
+                                    ? new Date(
+                                        req.creation_time * 1000
+                                      ).toLocaleDateString()
                                     : "-"}
                                 </div>
 
@@ -1640,7 +1648,9 @@ const PortfolioSubpage: React.FC = () => {
                                       rel="noopener noreferrer"
                                       tabIndex={req.transaction_hash ? 0 : -1}
                                       style={{
-                                        pointerEvents: req.transaction_hash ? "auto" : "none",
+                                        pointerEvents: req.transaction_hash
+                                          ? "auto"
+                                          : "none",
                                       }}
                                     >
                                       <Image
@@ -1652,15 +1662,22 @@ const PortfolioSubpage: React.FC = () => {
                                       />
                                     </a>
                                     <span className="text-white text-sm font-medium">
-                                    {(Number(req.amount_of_shares) / 1e6).toFixed(2)}
+                                      {(
+                                        Number(req.amount_of_shares) / 1e6
+                                      ).toFixed(2)}
                                     </span>
                                   </div>
                                   {/* Arrow */}
-                                  <span className="text-[#9C9DA2] text-sm">→</span>
+                                  <span className="text-[#9C9DA2] text-sm">
+                                    →
+                                  </span>
                                   {/* Assets pill */}
                                   <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
                                     <span className="text-white text-sm font-medium">
-                                      {(Number(req.amount_of_assets) / Math.pow(10, assetDecimals)).toFixed(2)}
+                                      {(
+                                        Number(req.amount_of_assets) /
+                                        Math.pow(10, assetDecimals)
+                                      ).toFixed(2)}
                                     </span>
                                     <Image
                                       src={assetImage}
@@ -1699,7 +1716,9 @@ const PortfolioSubpage: React.FC = () => {
                           const assetImage = assetOption
                             ? assetOption.image
                             : "/images/icons/susd-stable.svg";
-                          const assetDecimals = assetOption ? assetOption.decimal : 18;
+                          const assetDecimals = assetOption
+                            ? assetOption.decimal
+                            : 18;
                           return (
                             <div
                               key={req.request_id || idx}
@@ -1724,7 +1743,9 @@ const PortfolioSubpage: React.FC = () => {
                                     <ExternalLinkIcon />
                                   </button>
                                   {req.creation_time
-                                    ? new Date(req.creation_time * 1000).toLocaleDateString()
+                                    ? new Date(
+                                        req.creation_time * 1000
+                                      ).toLocaleDateString()
                                     : "-"}
                                 </div>
 
@@ -1742,7 +1763,9 @@ const PortfolioSubpage: React.FC = () => {
                                       rel="noopener noreferrer"
                                       tabIndex={req.transaction_hash ? 0 : -1}
                                       style={{
-                                        pointerEvents: req.transaction_hash ? "auto" : "none",
+                                        pointerEvents: req.transaction_hash
+                                          ? "auto"
+                                          : "none",
                                       }}
                                     >
                                       <Image
@@ -1754,15 +1777,22 @@ const PortfolioSubpage: React.FC = () => {
                                       />
                                     </a>
                                     <span className="text-white text-sm font-medium">
-                                    {(Number(req.amount_of_shares) / 1e6).toFixed(2)}
+                                      {(
+                                        Number(req.amount_of_shares) / 1e6
+                                      ).toFixed(2)}
                                     </span>
                                   </div>
                                   {/* Arrow */}
-                                  <span className="text-[#9C9DA2] text-sm">→</span>
+                                  <span className="text-[#9C9DA2] text-sm">
+                                    →
+                                  </span>
                                   {/* Assets pill */}
                                   <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
                                     <span className="text-white text-sm font-medium">
-                                      {(Number(req.amount_of_assets) / Math.pow(10, assetDecimals)).toFixed(2)}
+                                      {(
+                                        Number(req.amount_of_assets) /
+                                        Math.pow(10, assetDecimals)
+                                      ).toFixed(2)}
                                     </span>
                                     <Image
                                       src={assetImage}
