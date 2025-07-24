@@ -24,13 +24,15 @@ export default function PortfolioChart() {
   const [portfolioData, setPortfolioData] = useState<{ date: string; usd: number; shares: number }[]>([]);
 
   const fetchHoldingsFromGraphQL = async () => {
-    const res = await axios.post("http://localhost:4200/graphql", {
+    const res = await axios.post("http://localhost:42069/graphql", {
       query: `
         query {
-          userHoldings(id: "user:0x7eD7540d32cf63D5a4C29A4E3467dcd86F9b765E") {
+          dailyBalances(id: "2025-07-21-base") {
             id
-            amount
-            timestamp
+            date
+            chain
+            netChange
+            cumulative
           }
         }
       `,
