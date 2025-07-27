@@ -1891,28 +1891,30 @@ const PortfolioSubpage: React.FC = () => {
 
               {activeTab === "request" && (
                 <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
-                  {/* Tabs */}
-                  <div className="mb-4 flex gap-6 border-b border-[#1A1B1E]">
-                    <button
-                      className={`py-2 text-[14px] font-medium ${
-                        requestTab === "pending"
-                          ? "text-white border-b-2 border-[#B88AF8]"
-                          : "text-[#9C9DA2]"
-                      }`}
-                      onClick={() => setRequestTab("pending")}
-                    >
-                      Pending
-                    </button>
-                    <button
-                      className={`py-2 text-[14px] font-medium ${
-                        requestTab === "completed"
-                          ? "text-white border-b-2 border-[#B88AF8]"
-                          : "text-[#9C9DA2]"
-                      }`}
-                      onClick={() => setRequestTab("completed")}
-                    >
-                      Completed
-                    </button>
+                  {/* Segmented Control Tabs */}
+                  <div className="mb-4 flex justify-start">
+                    <div className="relative bg-transparent border border-[rgba(255,255,255,0.2)] rounded-[6px] flex w-[158px]">
+                      <button
+                        className={`w-[71px] px-3 py-1.5 text-[12px] font-normal leading-[16px] transition-all duration-200 border rounded-l-[6px] rounded-r-[0px] flex items-center justify-center ${
+                          requestTab === "pending"
+                            ? "bg-[rgba(184,138,248,0.15)] text-[#D7E3EF] shadow-sm border-[rgba(184,138,248,0.5)]"
+                            : "text-[#9C9DA2] hover:text-[#D7E3EF] border-transparent"
+                        }`}
+                        onClick={() => setRequestTab("pending")}
+                      >
+                        Pending
+                      </button>
+                      <button
+                        className={`w-[87px] px-3 py-1.5 text-[12px] font-normal leading-[16px] transition-all duration-200 border rounded-l-[0px] rounded-r-[6px] flex items-center justify-center ${
+                          requestTab === "completed"
+                            ? "bg-[rgba(184,138,248,0.15)] text-[#D7E3EF] shadow-sm border-[rgba(184,138,248,0.5)]"
+                            : "text-[#9C9DA2] hover:text-[#D7E3EF] border-transparent"
+                        }`}
+                        onClick={() => setRequestTab("completed")}
+                      >
+                        Completed
+                      </button>
+                    </div>
                   </div>
 
                   {/* Requests List */}
