@@ -374,7 +374,7 @@ const CustomCard: React.FC<CustomCardProps> = ({
                 </p>
               </div>
               <div className="w-full flex justify-center mt-auto">
-                <div className="relative w-[200px] h-[100px]">
+                <div className="relative w-[200px] h-[125px]">
                   <img
                     src={imageSrc}
                     alt={imageAlt}
@@ -387,14 +387,14 @@ const CustomCard: React.FC<CustomCardProps> = ({
 
           {!isComingSoon && (
             <div className="w-full flex justify-center mt-auto">
-              <div className="relative w-[200px] h-[100px]">
+              <div className="relative w-[200px] h-[78px]">
                 <img
                   src={imageSrc}
                   alt={imageAlt}
                   className={cn(
                     "absolute w-full h-[200px] object-contain transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
                     selectedDuration
-                      ? "bottom-[-30%] translate-y-[30%]"
+                      ? "bottom-[-18%] translate-y-[30%]"
                       : "bottom-0 group-hover:translate-y-[-20px] group-hover:opacity-0"
                   )}
                 />
