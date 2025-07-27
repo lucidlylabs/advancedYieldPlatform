@@ -322,9 +322,25 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
         <div className="flex justify-between items-center mb-2">
           <div className="flex items-center pl-0">
             <div className="inline-flex items-center gap-[6px] pl-0">
-              <h1 className="text-[20px] font-semibold text-[#D7E3EF]  leading-normal inline-flex items-center pl-0">
-                {name}
-              </h1>
+              <div className="flex items-baseline gap-2">
+                <h1 className="text-[20px] font-semibold text-[#D7E3EF] leading-normal">
+                  {name}
+                </h1>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-baseline">
+                        <svg width="14" height="13" viewBox="0 0 14 13" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M6.99935 8.83341V6.50008M6.99935 4.16675H7.00518M12.8327 6.50008C12.8327 9.72174 10.221 12.3334 6.99935 12.3334C3.77769 12.3334 1.16602 9.72174 1.16602 6.50008C1.16602 3.27842 3.77769 0.666748 6.99935 0.666748C10.221 0.666748 12.8327 3.27842 12.8327 6.50008Z" stroke="#9C9DA2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent className="text-xs" side="top">
+                      syUSD is a synthetic USD stablecoin that provides yield through various DeFi strategies
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -337,23 +353,25 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-y-4 border-b border-gray-700 pb-4 text-sm text-white">
+        <div className="flex flex-wrap gap-x-8 gap-y-4 border-b border-gray-700 pb-4 text-sm text-white">
           {/* TVL */}
-          <div className="flex flex-col items-center sm:border-block border-r border-gray-700">
-            <div className="text-[#9C9DA2]">TVL</div>
-            <div className="mt-1 font-semibold">{tvl}</div>
+          <div className="flex flex-col justify-center items-start relative pr-6 h-[35px] gap-[10px] after:content-[''] after:absolute after:right-0 after:top-1/2 after:-translate-y-1/2 after:w-px after:h-[35px] after:bg-gray-700">
+            <div className="text-[#9C9DA2] text-xs leading-none">TVL</div>
+            <div className="font-semibold text-sm leading-none">{tvl}</div>
           </div>
 
           {/* Base APY */}
-          <div className="flex flex-col items-center sm:border-r border-gray-700">
-            <div className="text-[#9C9DA2]">Base APY</div>
-            <div className="mt-1 font-semibold">---</div>
+          <div className="flex flex-col justify-center items-start relative pr-6 h-[35px] gap-[10px] after:content-[''] after:absolute after:right-0 after:top-1/2 after:-translate-y-1/2 after:w-px after:h-[35px] after:bg-gray-700">
+            <div className="text-[#9C9DA2] text-xs leading-none">Base APY</div>
+            <div className="font-semibold text-sm leading-none">---</div>
           </div>
 
           {/* Contract Address */}
-          <div className="flex flex-col border-r items-center border-gray-700">
-            <div className="text-[#9C9DA2]">Contract Address</div>
-            <div className="mt-1 font-semibold flex items-center gap-1">
+          <div className="flex flex-col justify-center items-start relative pr-6 h-[35px] gap-[10px] after:content-[''] after:absolute after:right-0 after:top-1/2 after:-translate-y-1/2 after:w-px after:h-[35px] after:bg-gray-700">
+            <div className="text-[#9C9DA2] text-xs leading-none">
+              Contract Address
+            </div>
+            <div className="font-semibold text-sm leading-none flex items-center gap-1">
               {contractAddress
                 ? `${contractAddress.slice(0, 6)}...${contractAddress.slice(
                     -4
@@ -371,11 +389,9 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
           </div>
 
           {/* Network */}
-          <div className="flex flex-col items-center  border-gray-700">
-            <div className="text-[#9C9DA2] text-[14px] font-normal leading-normal">
-              Network
-            </div>
-            <div className="relative mt-2 flex items-center cursor-pointer group">
+          <div className="flex flex-col justify-center items-start h-[35px] gap-[5px]">
+            <div className="text-[#9C9DA2] text-xs leading-none">Network</div>
+            <div className="relative mt-0 text-[14px] flex items-center cursor-pointer group">
               {(
                 [
                   USD_STRATEGIES.PERPETUAL_DURATION.STABLE.base,

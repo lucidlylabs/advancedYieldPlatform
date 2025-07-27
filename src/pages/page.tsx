@@ -102,7 +102,7 @@ export default function Page() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col pt-[72px]">
+    <div className="min-h-screen flex flex-col pt-[52px]">
       <Header onNavigateToDeposit={handleNavigateToDeposit}>
       <div className="flex items-center justify-between w-full">
         <div className="flex items-stretch h-full">
