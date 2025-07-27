@@ -53,6 +53,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { setNonce } from "viem/actions";
 
 interface NetworkConfig {
   tokens: Array<{
@@ -314,6 +315,7 @@ const PortfolioSubpage: React.FC = () => {
   const [withdrawTxHash, setWithdrawTxHash] = useState<`0x${string}` | null>(
     null
   );
+  const [isCancelling, setIsCancelling] = useState(false);
   const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"withdraw" | "request">(
@@ -335,6 +337,7 @@ const PortfolioSubpage: React.FC = () => {
   const [targetChain, setTargetChain] = useState<string>(
     chain?.name.toLowerCase() || "base"
   );
+  const [cancelStatusMap, setCancelStatusMap] = useState<{ [key: string]: "idle" | "cancelling" | "cancelled" }>({});
 
   const chainId = useChainId();
   const isBase = chainId === 8453;
@@ -786,6 +789,120 @@ const PortfolioSubpage: React.FC = () => {
     } finally {
       setIsWithdrawing(false);
     }
+  };
+
+  const handleCancel = async (requestId : string) => {
+    if (!selectedStrategy || !address) return;
+    console.log("Cancelling request with ID:", requestId);
+  
+    try {
+      setIsCancelling(true);
+      setErrorMessage(null);
+      setCancelStatusMap(prev => ({ ...prev, [requestId]: "cancelling" })); 
+  
+      const solverAddress = selectedStrategy.solverAddress as Address;
+
+      console.log("Cancel details:", {
+        solverAddress,
+        requestId,
+        address,
+      });
+  
+      const client = createPublicClient({
+        transport: http(selectedStrategy.rpc),
+        chain: {
+          id: 8453,
+          name: "Base",
+          network: "base",
+          nativeCurrency: {
+            decimals: 18,
+            name: "Ether",
+            symbol: "ETH",
+          },
+          rpcUrls: {
+            default: { http: ["https://mainnet.base.org"] },
+            public: { http: ["https://mainnet.base.org"] },
+          },
+        },
+      });
+
+      // Find the complete request data from withdrawRequests using request_id
+      const requestToCancel = withdrawRequests.find(
+        (req) => req.request_id === requestId
+      );
+
+      if (!requestToCancel) {
+        throw new Error("Request not found in pending requests");
+      }
+  
+      console.log("Found request to cancel:", requestToCancel);
+
+      const assetOption = assetOptions.find(
+        (opt) =>
+          opt.contract.toLowerCase() ===
+          (requestToCancel.withdraw_asset_address || "").toLowerCase()
+      );
+
+      if (!assetOption) {
+        throw new Error("Asset not found for this request");
+      }
+
+    const request = {
+      nonce: requestToCancel.nonce || 0, // uint64
+      user: address as `0x${string}`, // address
+      assetOut: requestToCancel.withdraw_asset_address as `0x${string}`, // address
+      amountOfShares: BigInt(requestToCancel.amount_of_shares || 0), // uint128
+      amountOfAssets: BigInt(requestToCancel.amount_of_assets || 0), // uint128
+      creationTime: Number(requestToCancel.creation_time || 0), // uint40
+      secondsToMaturity: requestToCancel.seconds_to_maturity || 60, // uint24 - might need to be fetched from contract
+      secondsToDeadline: 3600, // uint24 - might need to be fetched from contract
+    };
+      
+      console.log("Debug - Cancel contract call parameters:", {
+        functionName: "cancelOnChainWithdraw",
+        contractAddress: solverAddress,
+        request: {
+          nonce: request.nonce.toString(),
+          user: request.user,
+          assetOut: request.assetOut,
+          amountOfShares: request.amountOfShares.toString(),
+          amountOfAssets: request.amountOfAssets.toString(),
+          creationTime: request.creationTime,
+          secondsToMaturity: request.secondsToMaturity,
+          secondsToDeadline: request.secondsToDeadline,
+        },
+      });
+          const cancelTx = await writeContract({
+            address: solverAddress,
+            abi: SOLVER_ABI,
+            functionName: "cancelOnChainWithdraw",
+            args: [request],
+            chainId: 8453,
+            account: address,
+          });
+
+          if (cancelTx && typeof cancelTx === "string" && cancelTx.startsWith("0x")) {
+            console.log("Cancel transaction submitted:", cancelTx);
+            setCancelStatusMap(prev => ({ ...prev, [requestId]: "cancelled" }));
+
+            // Refresh the requests after successful cancellation
+            setTimeout(() => {
+              fetchWithdrawRequests("", address);
+            }, 2000);
+          } else {
+            throw new Error("Failed to get cancel transaction hash");
+          }
+        } catch (error: any) {
+          console.error("Cancel failed:", error);
+          setCancelStatusMap(prev => ({ ...prev, [requestId]: "idle" }));
+          if (error.code === 4001) {
+            setErrorMessage("Cancel cancelled by user.");
+          } else {
+            setErrorMessage(error.message || "Cancel transaction failed");
+          }
+        } finally {
+          setIsCancelling(false);
+        }
   };
 
   // Handler for row clicks
@@ -1891,9 +2008,18 @@ const PortfolioSubpage: React.FC = () => {
                                 </div>
                               </div>
                               {/* Cancel Button */}
-                              {/* <button className="text-[#F87171] text-[13px] font-medium hover:underline">
-                                Cancel Request
-                              </button> */}
+                              {cancelStatusMap[req.request_id] === "cancelling" ? (
+                                <span className="text-gray-400 text-[13px] font-medium">Cancelling...</span>
+                              ) : cancelStatusMap[req.request_id] === "cancelled" ? (
+                                <span className="text-green-500 text-[13px] font-medium">Request Cancelled</span>
+                              ) : (
+                                <button
+                                  onClick={() => handleCancel(req.request_id)}
+                                  className="text-[#F87171] text-[13px] font-medium hover:underline"
+                                >
+                                  Cancel Request
+                                </button>
+                              )}
                             </div>
                           );
                         })
