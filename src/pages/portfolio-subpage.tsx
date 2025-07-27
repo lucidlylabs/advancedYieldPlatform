@@ -1938,13 +1938,13 @@ const PortfolioSubpage: React.FC = () => {
                           return (
                             <div
                               key={req.request_id || idx}
-                              className="bg-[rgba(255,255,255,0.02)] rounded-lg p-4 flex justify-between items-center"
+                              className="bg-[rgba(255,255,255,0.02)] rounded-[4px] py-4 px-6 flex justify-between items-center"
                             >
-                              <div className="flex items-center gap-4">
+                              <div className="flex items-center justify-between w-full">
                                 {/* Calendar Icon + Date */}
-                                <div className="flex items-center text-[#9C9DA2] text-[13px] gap-1">
+                                <div className="flex items-center text-[#D7E3EF] text-[12px] gap-1">
                                   <button
-                                    className="text-[#9C9DA2] hover:text-white transition-colors cursor-pointer"
+                                    className="text-[#D7E3EF] hover:text-white transition-colors cursor-pointer"
                                     onClick={() => {
                                       if (req.transaction_hash) {
                                         window.open(
@@ -1964,9 +1964,12 @@ const PortfolioSubpage: React.FC = () => {
                                 </div>
 
                                 {/* Amounts row (same as completed) */}
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center justify-center gap-2 flex-1">
                                   {/* Shares pill */}
-                                  <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                                  <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1 w-[104px]">
+                                    <span className="text-[#D7E3EF] text-[12px] font-normal">
+                                    {(Number(req.amount_of_shares) / 1e6).toFixed(2)}
+                                    </span>
                                     <a
                                       href={
                                         req.transaction_hash
@@ -1983,27 +1986,26 @@ const PortfolioSubpage: React.FC = () => {
                                       <Image
                                         src="/images/icons/syUSD.svg"
                                         alt="Shares"
-                                        width={32}
-                                        height={32}
+                                        width={24}
+                                        height={24}
                                         className="cursor-pointer"
                                       />
                                     </a>
-                                    <span className="text-white text-sm font-medium">
-                                    {(Number(req.amount_of_shares) / 1e6).toFixed(2)}
-                                    </span>
                                   </div>
                                   {/* Arrow */}
-                                  <span className="text-[#9C9DA2] text-sm">→</span>
+                                  <svg width="15" height="12" viewBox="0 0 15 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M0.832031 6H14.1654M14.1654 6L9.16536 1M14.1654 6L9.16536 11" stroke="#9C9DA2" stroke-linecap="round" stroke-linejoin="round"/>
+                                  </svg>
                                   {/* Assets pill */}
-                                  <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
-                                    <span className="text-white text-sm font-medium">
+                                  <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1 w-[104px]">
+                                    <span className="text-white text-[12px] font-normal">
                                       {(Number(req.amount_of_assets) / Math.pow(10, assetDecimals)).toFixed(2)}
                                     </span>
                                     <Image
                                       src={assetImage}
                                       alt="Assets"
-                                      width={32}
-                                      height={32}
+                                      width={24}
+                                      height={24}
                                       className="cursor-pointer"
                                     />
                                   </div>
@@ -2017,7 +2019,7 @@ const PortfolioSubpage: React.FC = () => {
                               ) : (
                                 <button
                                   onClick={() => handleCancel(req.request_id)}
-                                  className="text-[#F87171] text-[13px] font-medium hover:underline"
+                                  className="text-[#F87171] text-[12px] font-medium hover:underline whitespace-nowrap"
                                 >
                                   Cancel Request
                                 </button>
@@ -2049,13 +2051,13 @@ const PortfolioSubpage: React.FC = () => {
                           return (
                             <div
                               key={req.request_id || idx}
-                              className="bg-[rgba(255,255,255,0.02)] rounded-lg p-4 flex justify-between items-center"
+                              className="bg-[rgba(255,255,255,0.02)] rounded-[4px] py-4 px-6 flex justify-between items-center"
                             >
-                              <div className="flex items-center gap-4">
+                              <div className="flex items-center justify-between w-full">
                                 {/* Calendar Icon + Date */}
-                                <div className="flex items-center text-[#9C9DA2] text-[13px] gap-1">
+                                <div className="flex items-center text-[#D7E3EF] text-[12px] gap-1">
                                   <button
-                                    className="text-[#9C9DA2] hover:text-white transition-colors cursor-pointer"
+                                    className="text-[#D7E3EF] hover:text-white transition-colors cursor-pointer"
                                     onClick={() => {
                                       if (req.transaction_hash) {
                                         window.open(
@@ -2075,9 +2077,12 @@ const PortfolioSubpage: React.FC = () => {
                                 </div>
 
                                 {/* Amounts row (same as completed) */}
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center justify-center gap-2 flex-1">
                                   {/* Shares pill */}
-                                  <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                                  <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1 w-[104px]">
+                                    <span className="text-[#D7E3EF] text-[12px] font-normal">
+                                    {(Number(req.amount_of_shares) / 1e6).toFixed(2)}
+                                    </span>
                                     <a
                                       href={
                                         req.transaction_hash
@@ -2094,27 +2099,26 @@ const PortfolioSubpage: React.FC = () => {
                                       <Image
                                         src="/images/icons/syUSD.svg"
                                         alt="Shares"
-                                        width={32}
-                                        height={32}
+                                        width={24}
+                                        height={24}
                                         className="cursor-pointer"
                                       />
                                     </a>
-                                    <span className="text-white text-sm font-medium">
-                                    {(Number(req.amount_of_shares) / 1e6).toFixed(2)}
-                                    </span>
                                   </div>
                                   {/* Arrow */}
-                                  <span className="text-[#9C9DA2] text-sm">→</span>
+                                  <svg width="15" height="12" viewBox="0 0 15 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M0.832031 6H14.1654M14.1654 6L9.16536 1M14.1654 6L9.16536 11" stroke="#9C9DA2" stroke-linecap="round" stroke-linejoin="round"/>
+                                  </svg>
                                   {/* Assets pill */}
-                                  <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
-                                    <span className="text-white text-sm font-medium">
+                                  <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1 w-[104px]">
+                                    <span className="text-white text-[12px] font-normal">
                                       {(Number(req.amount_of_assets) / Math.pow(10, assetDecimals)).toFixed(2)}
                                     </span>
                                     <Image
                                       src={assetImage}
                                       alt="Assets"
-                                      width={32}
-                                      height={32}
+                                      width={24}
+                                      height={24}
                                       className="cursor-pointer"
                                     />
                                   </div>
