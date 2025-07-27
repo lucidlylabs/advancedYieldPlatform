@@ -135,33 +135,27 @@ const CustomCard: React.FC<CustomCardProps> = ({
           {apy && (
             <div className="mt-auto px-6 pb-8 text-white text-center">
               <div className="flex items-center justify-center gap-2 mb-2">
-                <span className="opacity-60 flex items-center gap-1">
+                <span className="flex items-center gap-1 text-[#9C9DA2]">
                   {isStrategyCard && heading.includes("Incentives")
                     ? "Incentive"
                     : "APY"}
                   {/* Inline SVG icon */}
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M8.49967 10.6666V7.99992M8.49967 5.33325H8.50634M15.1663 7.99992C15.1663 11.6818 12.1816 14.6666 8.49967 14.6666C4.81778 14.6666 1.83301 11.6818 1.83301 7.99992C1.83301 4.31802 4.81778 1.33325 8.49967 1.33325C12.1816 1.33325 15.1663 4.31802 15.1663 7.99992Z" stroke="#9C9DA2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </span>
-                <TooltipProvider>
-                  <Tooltip delayDuration={0}>
-                    <TooltipTrigger asChild>
-                      {/* <button
+                  <TooltipProvider>
+                    <Tooltip delayDuration={0}>
+                      <TooltipTrigger asChild>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="cursor-pointer">
+                          <path d="M8.49967 10.6666V7.99992M8.49967 5.33325H8.50634M15.1663 7.99992C15.1663 11.6818 12.1816 14.6666 8.49967 14.6666C4.81778 14.6666 1.83301 11.6818 1.83301 7.99992C1.83301 4.31802 4.81778 1.33325 8.49967 1.33325C12.1816 1.33325 15.1663 4.31802 15.1663 7.99992Z" stroke="#9C9DA2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                      </TooltipTrigger>
+                      <TooltipContent
                         onClick={handleTooltipClick}
-                        className="text-white opacity-60 hover:opacity-100 transition-all duration-200"
+                        className="bg-[#1A1B1E] text-white p-2 rounded-md border border-[rgba(255,255,255,0.1)]"
                       >
-                        <InfoIcon />
-                      </button> */}
-                    </TooltipTrigger>
-                    <TooltipContent
-                      onClick={handleTooltipClick}
-                      className="bg-[#1A1B1E] text-white p-2 rounded-md border border-[rgba(255,255,255,0.1)]"
-                    >
-                      <p>{apy.info}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                        <p>Base APY (7D Trailing)</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </span>
               </div>
               <TooltipProvider>
                 <Tooltip delayDuration={0}>
