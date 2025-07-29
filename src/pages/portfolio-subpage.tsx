@@ -848,13 +848,13 @@ const PortfolioSubpage: React.FC = () => {
       }
 
     const request = {
-      nonce: requestToCancel.nonce || 0, // uint64
+      nonce: BigInt("46"), // uint64
       user: address as `0x${string}`, // address
       assetOut: requestToCancel.withdraw_asset_address as `0x${string}`, // address
       amountOfShares: BigInt(requestToCancel.amount_of_shares || 0), // uint128
       amountOfAssets: BigInt(requestToCancel.amount_of_assets || 0), // uint128
       creationTime: Number(requestToCancel.creation_time || 0), // uint40
-      secondsToMaturity: requestToCancel.seconds_to_maturity || 60, // uint24 - might need to be fetched from contract
+      secondsToMaturity: Number(requestToCancel.seconds_to_maturity || 60), // uint24 - might need to be fetched from contract
       secondsToDeadline: 3600, // uint24 - might need to be fetched from contract
     };
       
