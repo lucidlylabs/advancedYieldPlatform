@@ -1966,7 +1966,7 @@ const PortfolioSubpage: React.FC = () => {
                                 {/* Amounts row (same as completed) */}
                                 <div className="flex items-center justify-center gap-2 flex-1">
                                   {/* Shares pill */}
-                                  <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1 w-[104px]">
+                                  <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1">
                                     <span className="text-[#D7E3EF] text-[12px] font-normal">
                                     {(Number(req.amount_of_shares) / 1e6).toFixed(2)}
                                     </span>
@@ -1997,7 +1997,7 @@ const PortfolioSubpage: React.FC = () => {
                                     <path d="M0.832031 6H14.1654M14.1654 6L9.16536 1M14.1654 6L9.16536 11" stroke="#9C9DA2" stroke-linecap="round" stroke-linejoin="round"/>
                                   </svg>
                                   {/* Assets pill */}
-                                  <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1 w-[104px]">
+                                  <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1">
                                     <span className="text-white text-[12px] font-normal">
                                       {(Number(req.amount_of_assets) / Math.pow(10, assetDecimals)).toFixed(2)}
                                     </span>
@@ -2076,10 +2076,10 @@ const PortfolioSubpage: React.FC = () => {
                                     : "-"}
                                 </div>
 
-                                {/* Amounts row (same as completed) */}
-                                <div className="flex items-center justify-center gap-2 flex-1">
+                                {/* Amounts row (aligned to the right) */}
+                                <div className="flex items-center justify-end gap-2">
                                   {/* Shares pill */}
-                                  <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1 w-[104px]">
+                                  <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1">
                                     <span className="text-[#D7E3EF] text-[12px] font-normal">
                                     {(Number(req.amount_of_shares) / 1e6).toFixed(2)}
                                     </span>
@@ -2110,7 +2110,7 @@ const PortfolioSubpage: React.FC = () => {
                                     <path d="M0.832031 6H14.1654M14.1654 6L9.16536 1M14.1654 6L9.16536 11" stroke="#9C9DA2" stroke-linecap="round" stroke-linejoin="round"/>
                                   </svg>
                                   {/* Assets pill */}
-                                  <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1 w-[104px]">
+                                  <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1">
                                     <span className="text-white text-[12px] font-normal">
                                       {(Number(req.amount_of_assets) / Math.pow(10, assetDecimals)).toFixed(2)}
                                     </span>
