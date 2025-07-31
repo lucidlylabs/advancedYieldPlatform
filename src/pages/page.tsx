@@ -122,7 +122,7 @@ export default function Page() {
               />
             </div>
           </div>
-          <div className="w-[1px] bg-[rgba(255,255,255,0.1)] mx-4"></div>
+          <div className="w-[1px] bg-[rgba(255,255,255,0.1)] ml-4"></div>
           <nav className="hidden md:flex">
             <div className="relative flex">
               <button
