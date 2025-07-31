@@ -105,7 +105,7 @@ const CustomCard: React.FC<CustomCardProps> = ({
           {/* Heading */}
           <div className="px-6 pt-6 text-center">
             <div className="flex items-center justify-center gap-2">
-              <h3 className="text-white   text-base font-semibold leading-5">
+              <h3 className="text-[#D7E3EF] text-base font-semibold leading-6">
                 {heading}
               </h3>
               {info && (
