@@ -215,57 +215,45 @@ const CustomCard: React.FC<CustomCardProps> = ({
           </div>
 
           {!selectedDuration && onDurationSelect && !isComingSoon && (
-              <div className="p-6 pt-0 flex-1 relative z-10 opacity-0 translate-y-full group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]">
-                <p className="text-white flex items-center justify-center gap-2 mb-4 mt-5 w-full">
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M12 8V12L15 15M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
-                      stroke="white"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  Select Duration
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {/* 30 Days Button */}
-                  <TooltipProvider>
-                    <Tooltip delayDuration={0}>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={() => isDurationAvailable("30_DAYS") ? handleDurationClick("30_DAYS") : undefined}
-                          className={cn(
-                            "w-[calc(50%-4px)] px-4 py-2 rounded-[4px] border text-white bg-transparent transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
-                            isDurationAvailable("30_DAYS") ? "hover:cursor-pointer border-[rgba(184,138,248,0.30)]" : "cursor-not-allowed opacity-50 border-gray-600",
-                            !disableHover && isDurationAvailable("30_DAYS") && `hover:text-[#1A1B1E]`
-                          )}
-                          onMouseEnter={(e) => {
-                            if (!disableHover && isDurationAvailable("30_DAYS"))
-                              e.currentTarget.style.backgroundColor = hoverColor;
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!disableHover && isDurationAvailable("30_DAYS"))
-                              e.currentTarget.style.backgroundColor = "";
-                          }}
-                          disabled={!isDurationAvailable("30_DAYS")}
-                        >
-                          {formatDuration("30_DAYS")}
-                        </button>
-                      </TooltipTrigger>
-                      {!isDurationAvailable("30_DAYS") && (
-                        <TooltipContent className="bg-[#1A1B1E] text-white p-2 rounded-md border border-[rgba(255,255,255,0.1)]">
-                          <p>Coming Soon</p>
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
-                  </TooltipProvider>
+            <div className="p-6 pt-0 flex-1 relative z-10 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]">
+                              <p className="text-[#D7E3EF] opacity-80 font-medium text-xs flex items-center justify-center gap-1 mb-4 mt-5 w-full">
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M7.00033 3.50008V7.00008L9.33366 8.16675M12.8337 7.00008C12.8337 10.2217 10.222 12.8334 7.00033 12.8334C3.77866 12.8334 1.16699 10.2217 1.16699 7.00008C1.16699 3.77842 3.77866 1.16675 7.00033 1.16675C10.222 1.16675 12.8337 3.77842 12.8337 7.00008Z" stroke="#D7E3EF" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+                Select Duration
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {/* 30 Days Button */}
+                <TooltipProvider>
+                  <Tooltip delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => isDurationAvailable("30_DAYS") ? handleDurationClick("30_DAYS") : undefined}
+                        className={cn(
+                          "w-[calc(50%-4px)] px-4 py-2 rounded-[4px] border text-white bg-transparent transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                          isDurationAvailable("30_DAYS") ? "hover:cursor-pointer border-[rgba(184,138,248,0.30)]" : "cursor-not-allowed opacity-50 border-gray-600",
+                          !disableHover && isDurationAvailable("30_DAYS") && `hover:text-[#1A1B1E]`
+                        )}
+                        onMouseEnter={(e) => {
+                          if (!disableHover && isDurationAvailable("30_DAYS"))
+                            e.currentTarget.style.backgroundColor = hoverColor;
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!disableHover && isDurationAvailable("30_DAYS"))
+                            e.currentTarget.style.backgroundColor = "";
+                        }}
+                        disabled={!isDurationAvailable("30_DAYS")}
+                      >
+                        {formatDuration("30_DAYS")}
+                      </button>
+                    </TooltipTrigger>
+                    {!isDurationAvailable("30_DAYS") && (
+                      <TooltipContent className="bg-[#1A1B1E] text-white p-2 rounded-md border border-[rgba(255,255,255,0.1)]">
+                        <p>Coming Soon</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
 
                   {/* 60 Days Button */}
                   <TooltipProvider>
