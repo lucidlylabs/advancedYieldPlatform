@@ -402,7 +402,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
               className="w-[300px] h-[311px]"
             />
             <CustomCard
-              heading="ETH"
+              heading="Ethereum"
               imageSrc="/images/icons/card-eth.svg"
               imageAlt="Ethereum semi-circle"
               hoverColor="#627EEA"
@@ -413,7 +413,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
               className="w-[300px] h-[311px]"
             />
             <CustomCard
-              heading="BTC"
+              heading="Bitcoin"
               imageSrc="/images/icons/card-btc.svg"
               imageAlt="Bitcoin semi-circle"
               hoverColor="#F7931A"
