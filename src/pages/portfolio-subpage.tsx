@@ -1891,28 +1891,30 @@ const PortfolioSubpage: React.FC = () => {
 
               {activeTab === "request" && (
                 <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
-                  {/* Tabs */}
-                  <div className="mb-4 flex gap-6 border-b border-[#1A1B1E]">
-                    <button
-                      className={`py-2 text-[14px] font-medium ${
-                        requestTab === "pending"
-                          ? "text-white border-b-2 border-[#B88AF8]"
-                          : "text-[#9C9DA2]"
-                      }`}
-                      onClick={() => setRequestTab("pending")}
-                    >
-                      Pending
-                    </button>
-                    <button
-                      className={`py-2 text-[14px] font-medium ${
-                        requestTab === "completed"
-                          ? "text-white border-b-2 border-[#B88AF8]"
-                          : "text-[#9C9DA2]"
-                      }`}
-                      onClick={() => setRequestTab("completed")}
-                    >
-                      Completed
-                    </button>
+                  {/* Segmented Control Tabs */}
+                  <div className="mb-4 flex justify-start">
+                    <div className="relative bg-transparent border border-[rgba(255,255,255,0.2)] rounded-[6px] flex w-[158px]">
+                      <button
+                        className={`w-[71px] px-3 py-1.5 text-[12px] font-normal leading-[16px] transition-all duration-200 border rounded-l-[6px] rounded-r-[0px] flex items-center justify-center ${
+                          requestTab === "pending"
+                            ? "bg-[rgba(184,138,248,0.15)] text-[#D7E3EF] shadow-sm border-[rgba(184,138,248,0.5)]"
+                            : "text-[#9C9DA2] hover:text-[#D7E3EF] border-transparent"
+                        }`}
+                        onClick={() => setRequestTab("pending")}
+                      >
+                        Pending
+                      </button>
+                      <button
+                        className={`w-[87px] px-3 py-1.5 text-[12px] font-normal leading-[16px] transition-all duration-200 border rounded-l-[0px] rounded-r-[6px] flex items-center justify-center ${
+                          requestTab === "completed"
+                            ? "bg-[rgba(184,138,248,0.15)] text-[#D7E3EF] shadow-sm border-[rgba(184,138,248,0.5)]"
+                            : "text-[#9C9DA2] hover:text-[#D7E3EF] border-transparent"
+                        }`}
+                        onClick={() => setRequestTab("completed")}
+                      >
+                        Completed
+                      </button>
+                    </div>
                   </div>
 
                   {/* Requests List */}
@@ -1936,13 +1938,13 @@ const PortfolioSubpage: React.FC = () => {
                           return (
                             <div
                               key={req.request_id || idx}
-                              className="bg-[rgba(255,255,255,0.02)] rounded-lg p-4 flex justify-between items-center"
+                              className="bg-[rgba(255,255,255,0.02)] rounded-[4px] py-4 px-6 flex justify-between items-center"
                             >
-                              <div className="flex items-center gap-4">
+                              <div className="flex items-center justify-between w-full">
                                 {/* Calendar Icon + Date */}
-                                <div className="flex items-center text-[#9C9DA2] text-[13px] gap-1">
+                                <div className="flex items-center text-[#D7E3EF] text-[12px] gap-1">
                                   <button
-                                    className="text-[#9C9DA2] hover:text-white transition-colors cursor-pointer"
+                                    className="text-[#D7E3EF] hover:text-white transition-colors cursor-pointer"
                                     onClick={() => {
                                       if (req.transaction_hash) {
                                         window.open(
@@ -1962,9 +1964,12 @@ const PortfolioSubpage: React.FC = () => {
                                 </div>
 
                                 {/* Amounts row (same as completed) */}
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center justify-center gap-2 flex-1">
                                   {/* Shares pill */}
-                                  <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                                  <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1">
+                                    <span className="text-[#D7E3EF] text-[12px] font-normal">
+                                    {(Number(req.amount_of_shares) / 1e6).toFixed(2)}
+                                    </span>
                                     <a
                                       href={
                                         req.transaction_hash
@@ -1981,27 +1986,26 @@ const PortfolioSubpage: React.FC = () => {
                                       <Image
                                         src="/images/icons/syUSD.svg"
                                         alt="Shares"
-                                        width={32}
-                                        height={32}
+                                        width={24}
+                                        height={24}
                                         className="cursor-pointer"
                                       />
                                     </a>
-                                    <span className="text-white text-sm font-medium">
-                                    {(Number(req.amount_of_shares) / 1e6).toFixed(2)}
-                                    </span>
                                   </div>
                                   {/* Arrow */}
-                                  <span className="text-[#9C9DA2] text-sm">→</span>
+                                  <svg width="15" height="12" viewBox="0 0 15 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M0.832031 6H14.1654M14.1654 6L9.16536 1M14.1654 6L9.16536 11" stroke="#9C9DA2" stroke-linecap="round" stroke-linejoin="round"/>
+                                  </svg>
                                   {/* Assets pill */}
-                                  <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
-                                    <span className="text-white text-sm font-medium">
+                                  <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1">
+                                    <span className="text-white text-[12px] font-normal">
                                       {(Number(req.amount_of_assets) / Math.pow(10, assetDecimals)).toFixed(2)}
                                     </span>
                                     <Image
                                       src={assetImage}
                                       alt="Assets"
-                                      width={32}
-                                      height={32}
+                                      width={24}
+                                      height={24}
                                       className="cursor-pointer"
                                     />
                                   </div>
@@ -2015,7 +2019,7 @@ const PortfolioSubpage: React.FC = () => {
                               ) : (
                                 <button
                                   onClick={() => handleCancel(req.request_id)}
-                                  className="text-[#F87171] text-[13px] font-medium hover:underline"
+                                  className="text-[#F87171] text-[12px] font-medium hover:underline whitespace-nowrap"
                                 >
                                   Cancel Request
                                 </button>
@@ -2047,13 +2051,13 @@ const PortfolioSubpage: React.FC = () => {
                           return (
                             <div
                               key={req.request_id || idx}
-                              className="bg-[rgba(255,255,255,0.02)] rounded-lg p-4 flex justify-between items-center"
+                              className="bg-[rgba(255,255,255,0.02)] rounded-[4px] py-4 px-6 flex justify-between items-center"
                             >
-                              <div className="flex items-center gap-4">
+                              <div className="flex items-center justify-between w-full">
                                 {/* Calendar Icon + Date */}
-                                <div className="flex items-center text-[#9C9DA2] text-[13px] gap-1">
+                                <div className="flex items-center text-[#D7E3EF] text-[12px] gap-1">
                                   <button
-                                    className="text-[#9C9DA2] hover:text-white transition-colors cursor-pointer"
+                                    className="text-[#D7E3EF] hover:text-white transition-colors cursor-pointer"
                                     onClick={() => {
                                       if (req.transaction_hash) {
                                         window.open(
@@ -2072,10 +2076,13 @@ const PortfolioSubpage: React.FC = () => {
                                     : "-"}
                                 </div>
 
-                                {/* Amounts row (same as completed) */}
-                                <div className="flex items-center gap-2">
+                                {/* Amounts row (aligned to the right) */}
+                                <div className="flex items-center justify-end gap-2">
                                   {/* Shares pill */}
-                                  <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                                  <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1">
+                                    <span className="text-[#D7E3EF] text-[12px] font-normal">
+                                    {(Number(req.amount_of_shares) / 1e6).toFixed(2)}
+                                    </span>
                                     <a
                                       href={
                                         req.transaction_hash
@@ -2092,27 +2099,26 @@ const PortfolioSubpage: React.FC = () => {
                                       <Image
                                         src="/images/icons/syUSD.svg"
                                         alt="Shares"
-                                        width={32}
-                                        height={32}
+                                        width={24}
+                                        height={24}
                                         className="cursor-pointer"
                                       />
                                     </a>
-                                    <span className="text-white text-sm font-medium">
-                                    {(Number(req.amount_of_shares) / 1e6).toFixed(2)}
-                                    </span>
                                   </div>
                                   {/* Arrow */}
-                                  <span className="text-[#9C9DA2] text-sm">→</span>
+                                  <svg width="15" height="12" viewBox="0 0 15 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M0.832031 6H14.1654M14.1654 6L9.16536 1M14.1654 6L9.16536 11" stroke="#9C9DA2" stroke-linecap="round" stroke-linejoin="round"/>
+                                  </svg>
                                   {/* Assets pill */}
-                                  <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
-                                    <span className="text-white text-sm font-medium">
+                                  <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1">
+                                    <span className="text-white text-[12px] font-normal">
                                       {(Number(req.amount_of_assets) / Math.pow(10, assetDecimals)).toFixed(2)}
                                     </span>
                                     <Image
                                       src={assetImage}
                                       alt="Assets"
-                                      width={32}
-                                      height={32}
+                                      width={24}
+                                      height={24}
                                       className="cursor-pointer"
                                     />
                                   </div>
