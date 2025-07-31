@@ -84,6 +84,13 @@ const CustomCard: React.FC<CustomCardProps> = ({
       )}
       {...props}
     >
+      {/* Subtle radial white gradient overlay at the top - only on hover */}
+      <div 
+        className="absolute top-0 left-0 right-0 h-20 pointer-events-none z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+        style={{
+          background: 'radial-gradient(ellipse at center top, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.08) 50%, transparent 100%)'
+        }}
+      />
 
       {isStrategyCard ? (
         <div className="flex flex-col h-full relative">
