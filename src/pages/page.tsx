@@ -126,7 +126,7 @@ export default function Page() {
           <nav className="hidden md:flex">
             <div className="relative flex">
               <button
-                className={`px-6 py-4 text-sm transition-colors relative ${
+                className={`px-8 py-[18px] text-sm transition-colors relative ${
                   selectedSubPage === SubPage.Yield
                     ? "text-white"
                     : "text-[#9C9DA2] hover:text-gray-300"
@@ -145,7 +145,7 @@ export default function Page() {
               <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
 
               <button
-                className={`px-6 py-4 text-sm transition-colors relative ${
+                className={`px-8 py-[18px] text-sm transition-colors relative ${
                   selectedSubPage === SubPage.Markets
                     ? "text-white"
                     : "text-[#9C9DA2] hover:text-gray-300"
@@ -161,7 +161,7 @@ export default function Page() {
               <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
 
               <button
-                className={`px-6 py-4 text-sm transition-colors relative ${
+                className={`px-8 py-[18px] text-sm transition-colors relative ${
                   selectedSubPage === SubPage.Portfolio
                     ? "text-white"
                     : "text-[#9C9DA2] hover:text-gray-300"
@@ -176,7 +176,7 @@ export default function Page() {
               <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
 
               <button
-                className={`px-6 py-4 text-sm transition-colors relative text-[#9C9DA2] hover:text-gray-300`}
+                className={`px-8 py-[18px] text-sm transition-colors relative text-[#9C9DA2] hover:text-gray-300`}
                 onClick={() => {
                   window.open(
                     "https://docs.lucidly.finance",
