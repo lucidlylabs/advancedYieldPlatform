@@ -105,7 +105,7 @@ const CustomCard: React.FC<CustomCardProps> = ({
             <img
               src={imageSrc}
               alt={imageAlt}
-              className="w-[56px] h-[56px] object-contain"
+              className="w-[56px] h-[56px] object-contain contrast-150"
             />
           </div>
 
