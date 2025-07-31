@@ -400,6 +400,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
               }
               availableDurations={["PERPETUAL_DURATION"]}
               className="w-[300px] h-[311px]"
+              showRadialGradient={true}
             />
             <CustomCard
               heading="Ethereum"
@@ -411,6 +412,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
               }
               isComingSoon={true}
               className="w-[300px] h-[311px]"
+              showRadialGradient={true}
             />
             <CustomCard
               heading="Bitcoin"
@@ -422,6 +424,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
               }
               isComingSoon={true}
               className="w-[300px] h-[311px]"
+              showRadialGradient={true}
             />
           </div>
         </div>
