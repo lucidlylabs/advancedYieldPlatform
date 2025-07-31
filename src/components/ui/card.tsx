@@ -112,7 +112,7 @@ const CustomCard: React.FC<CustomCardProps> = ({
           {/* Heading */}
           <div className="px-6 pt-6 text-center">
             <div className="flex items-center justify-center gap-2">
-              <h3 className="text-[#D7E3EF] text-base font-semibold leading-6">
+              <h3 className="text-white text-base font-semibold leading-6">
                 {heading}
               </h3>
               {info && (
@@ -121,9 +121,11 @@ const CustomCard: React.FC<CustomCardProps> = ({
                     <TooltipTrigger asChild>
                       <button
                         onClick={handleTooltipClick}
-                        className="text-white opacity-60 hover:opacity-100 transition-all duration-200"
+                        className="transition-all duration-200"
                       >
-                        <InfoIcon />
+                        <svg width="15" height="16" viewBox="0 0 15 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M7.49967 10.6666V7.99992M7.49967 5.33325H7.50634M14.1663 7.99992C14.1663 11.6818 11.1816 14.6666 7.49967 14.6666C3.81778 14.6666 0.833008 11.6818 0.833008 7.99992C0.833008 4.31802 3.81778 1.33325 7.49967 1.33325C11.1816 1.33325 14.1663 4.31802 14.1663 7.99992Z" stroke="#9C9DA2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
                       </button>
                     </TooltipTrigger>
                     <TooltipContent
