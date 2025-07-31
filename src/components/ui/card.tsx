@@ -175,13 +175,13 @@ const CustomCard: React.FC<CustomCardProps> = ({
       ) : (
         <>
           <div className="relative">
-            <div
-              className={cn(
-                "absolute inset-0 opacity-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-                !disableHover && "group-hover:opacity-100"
-              )}
-              style={{ backgroundColor: hoverColor }}
-            />
+          <div
+            className={cn(
+              "absolute inset-0 origin-top scale-y-0 transition-transform duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]",
+              !disableHover && "group-hover:scale-y-100"
+            )}
+            style={{ backgroundColor: hoverColor }}
+          />
             <div className="p-6 relative z-10">
               <div className="flex items-center gap-2">
                 <h3
@@ -215,156 +215,158 @@ const CustomCard: React.FC<CustomCardProps> = ({
           </div>
 
           {!selectedDuration && onDurationSelect && !isComingSoon && (
-            <div className="p-6 pt-0 flex-1 relative z-10 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]">
-              <p className="text-white flex items-center justify-center gap-2 mb-4 mt-5 w-full">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M12 8V12L15 15M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
-                    stroke="white"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                Select Duration
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {/* 30 Days Button */}
-                <TooltipProvider>
-                  <Tooltip delayDuration={0}>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={() => isDurationAvailable("30_DAYS") ? handleDurationClick("30_DAYS") : undefined}
-                        className={cn(
-                          "w-[calc(50%-4px)] px-4 py-2 rounded-[4px] border text-white bg-transparent transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
-                          isDurationAvailable("30_DAYS") ? "hover:cursor-pointer border-[rgba(184,138,248,0.30)]" : "cursor-not-allowed opacity-50 border-gray-600",
-                          !disableHover && isDurationAvailable("30_DAYS") && `hover:text-[#1A1B1E]`
-                        )}
-                        onMouseEnter={(e) => {
-                          if (!disableHover && isDurationAvailable("30_DAYS"))
-                            e.currentTarget.style.backgroundColor = hoverColor;
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!disableHover && isDurationAvailable("30_DAYS"))
-                            e.currentTarget.style.backgroundColor = "";
-                        }}
-                        disabled={!isDurationAvailable("30_DAYS")}
-                      >
-                        {formatDuration("30_DAYS")}
-                      </button>
-                    </TooltipTrigger>
-                    {!isDurationAvailable("30_DAYS") && (
-                      <TooltipContent className="bg-[#1A1B1E] text-white p-2 rounded-md border border-[rgba(255,255,255,0.1)]">
-                        <p>Coming Soon</p>
-                      </TooltipContent>
-                    )}
-                  </Tooltip>
-                </TooltipProvider>
+              <div className="p-6 pt-0 flex-1 relative z-10 opacity-0 translate-y-full group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]">
+                <p className="text-white flex items-center justify-center gap-2 mb-4 mt-5 w-full">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M12 8V12L15 15M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+                      stroke="white"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  Select Duration
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {/* 30 Days Button */}
+                  <TooltipProvider>
+                    <Tooltip delayDuration={0}>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => isDurationAvailable("30_DAYS") ? handleDurationClick("30_DAYS") : undefined}
+                          className={cn(
+                            "w-[calc(50%-4px)] px-4 py-2 rounded-[4px] border text-white bg-transparent transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                            isDurationAvailable("30_DAYS") ? "hover:cursor-pointer border-[rgba(184,138,248,0.30)]" : "cursor-not-allowed opacity-50 border-gray-600",
+                            !disableHover && isDurationAvailable("30_DAYS") && `hover:text-[#1A1B1E]`
+                          )}
+                          onMouseEnter={(e) => {
+                            if (!disableHover && isDurationAvailable("30_DAYS"))
+                              e.currentTarget.style.backgroundColor = hoverColor;
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!disableHover && isDurationAvailable("30_DAYS"))
+                              e.currentTarget.style.backgroundColor = "";
+                          }}
+                          disabled={!isDurationAvailable("30_DAYS")}
+                        >
+                          {formatDuration("30_DAYS")}
+                        </button>
+                      </TooltipTrigger>
+                      {!isDurationAvailable("30_DAYS") && (
+                        <TooltipContent className="bg-[#1A1B1E] text-white p-2 rounded-md border border-[rgba(255,255,255,0.1)]">
+                          <p>Coming Soon</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
 
-                {/* 60 Days Button */}
-                <TooltipProvider>
-                  <Tooltip delayDuration={0}>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={() => isDurationAvailable("60_DAYS") ? handleDurationClick("60_DAYS") : undefined}
-                        className={cn(
-                          "w-[calc(50%-4px)] px-4 py-2 rounded-[4px] border text-white bg-transparent transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
-                          isDurationAvailable("60_DAYS") ? "hover:cursor-pointer border-[rgba(184,138,248,0.30)]" : "cursor-not-allowed opacity-50 border-gray-600",
-                          !disableHover && isDurationAvailable("60_DAYS") && `hover:text-[#1A1B1E]`
-                        )}
-                        onMouseEnter={(e) => {
-                          if (!disableHover && isDurationAvailable("60_DAYS"))
-                            e.currentTarget.style.backgroundColor = hoverColor;
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!disableHover && isDurationAvailable("60_DAYS"))
-                            e.currentTarget.style.backgroundColor = "";
-                        }}
-                         disabled={!isDurationAvailable("60_DAYS")}
-                      >
-                        {formatDuration("60_DAYS")}
-                      </button>
-                    </TooltipTrigger>
-                     {!isDurationAvailable("60_DAYS") && (
-                      <TooltipContent className="bg-[#1A1B1E] text-white p-2 rounded-md border border-[rgba(255,255,255,0.1)]">
-                        <p>Coming Soon</p>
-                      </TooltipContent>
-                    )}
-                  </Tooltip>
-                </TooltipProvider>
+                  {/* 60 Days Button */}
+                  <TooltipProvider>
+                    <Tooltip delayDuration={0}>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => isDurationAvailable("60_DAYS") ? handleDurationClick("60_DAYS") : undefined}
+                          className={cn(
+                            "w-[calc(50%-4px)] px-4 py-2 rounded-[4px] border text-white bg-transparent transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                            isDurationAvailable("60_DAYS") ? "hover:cursor-pointer border-[rgba(184,138,248,0.30)]" : "cursor-not-allowed opacity-50 border-gray-600",
+                            !disableHover && isDurationAvailable("60_DAYS") && `hover:text-[#1A1B1E]`
+                          )}
+                          onMouseEnter={(e) => {
+                            if (!disableHover && isDurationAvailable("60_DAYS"))
+                              e.currentTarget.style.backgroundColor = hoverColor;
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!disableHover && isDurationAvailable("60_DAYS"))
+                              e.currentTarget.style.backgroundColor = "";
+                          }}
+                          disabled={!isDurationAvailable("60_DAYS")}
+                        >
+                          {formatDuration("60_DAYS")}
+                        </button>
+                      </TooltipTrigger>
+                      {!isDurationAvailable("60_DAYS") && (
+                        <TooltipContent className="bg-[#1A1B1E] text-white p-2 rounded-md border border-[rgba(255,255,255,0.1)]">
+                          <p>Coming Soon</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
 
-                {/* 180 Days Button */}
-                 <TooltipProvider>
-                  <Tooltip delayDuration={0}>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={() => isDurationAvailable("180_DAYS") ? handleDurationClick("180_DAYS") : undefined}
-                        className={cn(
-                          "w-full px-4 py-2 rounded-[4px] border text-white bg-transparent transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
-                          isDurationAvailable("180_DAYS") ? "hover:cursor-pointer border-[rgba(184,138,248,0.30)]" : "cursor-not-allowed opacity-50 border-gray-600",
-                          !disableHover && isDurationAvailable("180_DAYS") && `hover:text-[#1A1B1E]`
-                        )}
-                        onMouseEnter={(e) => {
-                          if (!disableHover && isDurationAvailable("180_DAYS"))
-                            e.currentTarget.style.backgroundColor = hoverColor;
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!disableHover && isDurationAvailable("180_DAYS"))
-                            e.currentTarget.style.backgroundColor = "";
-                        }}
-                         disabled={!isDurationAvailable("180_DAYS")}
-                      >
-                        {formatDuration("180_DAYS")}
-                      </button>
-                    </TooltipTrigger>
-                     {!isDurationAvailable("180_DAYS") && (
-                      <TooltipContent className="bg-[#1A1B1E] text-white p-2 rounded-md border border-[rgba(255,255,255,0.1)]">
-                        <p>Coming Soon</p>
-                      </TooltipContent>
-                    )}
-                  </Tooltip>
-                </TooltipProvider>
+                  {/* 180 Days Button */}
+                  <TooltipProvider>
+                    <Tooltip delayDuration={0}>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => isDurationAvailable("180_DAYS") ? handleDurationClick("180_DAYS") : undefined}
+                          className={cn(
+                            "w-full px-4 py-2 rounded-[4px] border text-white bg-transparent transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                            isDurationAvailable("180_DAYS") ? "hover:cursor-pointer border-[rgba(184,138,248,0.30)]" : "cursor-not-allowed opacity-50 border-gray-600",
+                            !disableHover && isDurationAvailable("180_DAYS") && `hover:text-[#1A1B1E]`
+                          )}
+                          onMouseEnter={(e) => {
+                            if (!disableHover && isDurationAvailable("180_DAYS"))
+                              e.currentTarget.style.backgroundColor = hoverColor;
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!disableHover && isDurationAvailable("180_DAYS"))
+                              e.currentTarget.style.backgroundColor = "";
+                          }}
+                          disabled={!isDurationAvailable("180_DAYS")}
+                        >
+                          {formatDuration("180_DAYS")}
+                        </button>
+                      </TooltipTrigger>
+                      {!isDurationAvailable("180_DAYS") && (
+                        <TooltipContent className="bg-[#1A1B1E] text-white p-2 rounded-md border border-[rgba(255,255,255,0.1)]">
+                          <p>Coming Soon</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
 
-                {/* Perpetual Button */}
-                 <TooltipProvider>
-                  <Tooltip delayDuration={0}>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={() => isDurationAvailable("PERPETUAL_DURATION") ? handleDurationClick("PERPETUAL_DURATION") : undefined}
-                        className={cn(
-                          "w-full px-4 py-2 rounded-[4px] border text-white bg-transparent transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
-                          isDurationAvailable("PERPETUAL_DURATION") ? "hover:cursor-pointer border-[rgba(184,138,248,0.30)]" : "cursor-not-allowed opacity-50 border-gray-600",
-                          !disableHover && isDurationAvailable("PERPETUAL_DURATION") && `hover:text-[#1A1B1E]`
-                        )}
-                        onMouseEnter={(e) => {
-                          if (!disableHover && isDurationAvailable("PERPETUAL_DURATION"))
-                            e.currentTarget.style.backgroundColor = hoverColor;
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!disableHover && isDurationAvailable("PERPETUAL_DURATION"))
-                            e.currentTarget.style.backgroundColor = "";
-                        }}
-                         disabled={!isDurationAvailable("PERPETUAL_DURATION")}
-                      >
-                        {formatDuration("PERPETUAL_DURATION")}
-                      </button>
-                     </TooltipTrigger>
-                     {!isDurationAvailable("PERPETUAL_DURATION") && (
-                      <TooltipContent className="bg-[#1A1B1E] text-white p-2 rounded-md border border-[rgba(255,255,255,0.1)]">
-                        <p>Coming Soon</p>
-                      </TooltipContent>
-                    )}
-                  </Tooltip>
-                </TooltipProvider>
+                  {/* Perpetual Button */}
+                  <TooltipProvider>
+                    <Tooltip delayDuration={0}>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => isDurationAvailable("PERPETUAL_DURATION") ? handleDurationClick("PERPETUAL_DURATION") : undefined}
+                          className={cn(
+                            "w-full px-4 py-2 rounded-[4px] border text-white bg-transparent transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                            isDurationAvailable("PERPETUAL_DURATION") ? "hover:cursor-pointer border-[rgba(184,138,248,0.30)]" : "cursor-not-allowed opacity-50 border-gray-600",
+                            !disableHover && isDurationAvailable("PERPETUAL_DURATION") && `hover:text-[#1A1B1E]`
+                          )}
+                          onMouseEnter={(e) => {
+                            if (!disableHover && isDurationAvailable("PERPETUAL_DURATION"))
+                              e.currentTarget.style.backgroundColor = hoverColor;
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!disableHover && isDurationAvailable("PERPETUAL_DURATION"))
+                              e.currentTarget.style.backgroundColor = "";
+                          }}
+                          disabled={!isDurationAvailable("PERPETUAL_DURATION")}
+                        >
+                          {formatDuration("PERPETUAL_DURATION")}
+                        </button>
+                      </TooltipTrigger>
+                      {!isDurationAvailable("PERPETUAL_DURATION") && (
+                        <TooltipContent className="bg-[#1A1B1E] text-white p-2 rounded-md border border-[rgba(255,255,255,0.1)]">
+                          <p>Coming Soon</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
               </div>
-            </div>
           )}
+
+          {/* Coming Soon Overlay */}
 
           {isComingSoon && (
             <>
