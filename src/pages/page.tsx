@@ -128,8 +128,8 @@ export default function Page() {
               <button
                 className={`px-6 py-4 text-sm transition-colors relative ${
                   selectedSubPage === SubPage.Yield
-                    ? "text-[#B88AF8]"
-                    : "text-white hover:text-gray-300"
+                    ? "text-white"
+                    : "text-[#9C9DA2] hover:text-gray-300"
                 }`}
                 onClick={() => {
                   setSelectedSubPage(SubPage.Yield);
@@ -138,7 +138,7 @@ export default function Page() {
               >
                 Earn
                 {selectedSubPage === SubPage.Yield && (
-                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#B88AF8]"></div>
+                  <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#B88AF8]"></div>
                 )}
               </button>
 
@@ -147,14 +147,14 @@ export default function Page() {
               <button
                 className={`px-6 py-4 text-sm transition-colors relative ${
                   selectedSubPage === SubPage.Markets
-                    ? "text-[#B88AF8]"
-                    : "text-white hover:text-gray-300"
+                    ? "text-white"
+                    : "text-[#9C9DA2] hover:text-gray-300"
                 }`}
                 onClick={() => setSelectedSubPage(SubPage.Markets)}
               >
                 Yields
                 {selectedSubPage === SubPage.Markets && (
-                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#B88AF8]"></div>
+                  <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#B88AF8]"></div>
                 )}
               </button>
 
@@ -163,20 +163,20 @@ export default function Page() {
               <button
                 className={`px-6 py-4 text-sm transition-colors relative ${
                   selectedSubPage === SubPage.Portfolio
-                    ? "text-[#B88AF8]"
-                    : "text-white hover:text-gray-300"
+                    ? "text-white"
+                    : "text-[#9C9DA2] hover:text-gray-300"
                 }`}
                 onClick={() => setSelectedSubPage(SubPage.Portfolio)}
               >
                 Portfolio
                 {selectedSubPage === SubPage.Portfolio && (
-                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#B88AF8]"></div>
+                  <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#B88AF8]"></div>
                 )}
               </button>
               <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
 
               <button
-                className={`px-6 py-4 text-sm transition-colors relative `}
+                className={`px-6 py-4 text-sm transition-colors relative text-[#9C9DA2] hover:text-gray-300`}
                 onClick={() => {
                   window.open(
                     "https://docs.lucidly.finance",
