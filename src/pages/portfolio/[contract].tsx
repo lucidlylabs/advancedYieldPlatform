@@ -773,9 +773,9 @@ const PortfolioDetailedPage = () => {
                 You Will Receive
               </div>
               <div className="flex justify-end items-center gap-4">
-                <div className="text-[#EDF2F8] text-[16px] font-medium leading-normal">
-                  {formatUnits(amountOut ? BigInt(amountOut) : BigInt(0), 6)}{" "}
-                </div>
+                                        <div className="text-[#EDF2F8] text-[16px] font-medium leading-normal">
+                          {Number(formatUnits(amountOut ? BigInt(amountOut) : BigInt(0), 6)).toFixed(2)}{" "}
+                        </div>
                 {assetOptions.length > 1 && (
                   <div className="">
                     <div className="relative w-full">

@@ -1663,7 +1663,7 @@ const PortfolioSubpage: React.FC = () => {
                       <div className="text-[#9C9DA2] text-right   text-[12px] font-normal leading-normal">
                         Balance:{" "}
                         <span className="text-[#D7E3EF] text-[12px] font-semibold leading-normal">
-                          {selectedStrategy.balance.toFixed(4)}
+                          {selectedStrategy.balance.toFixed(2)}
                         </span>
                       </div>
                     </div>
@@ -1718,10 +1718,10 @@ const PortfolioSubpage: React.FC = () => {
                       </div>
                       <div className="flex justify-end items-center gap-4">
                         <div className="text-[#EDF2F8] text-[16px] font-medium leading-normal">
-                          {formatUnits(
+                          {Number(formatUnits(
                             amountOut ? BigInt(amountOut) : BigInt(0),
                             6
-                          )}{" "}
+                          )).toFixed(2)}{" "}
                         </div>
                         {assetOptions.length > 1 && (
                           <div className="">
