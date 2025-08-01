@@ -251,6 +251,12 @@ const DepositView: React.FC<DepositViewProps> = ({
   onBack,
   onReset,
 }) => {
+  // Format duration for display
+  const formatDuration = (duration: string) => {
+    if (duration === "PERPETUAL_DURATION") return "Liquid";
+    const [number, period] = duration.split("_");
+    return `${number} ${period.toLowerCase()}`;
+  };
   const [amount, setAmount] = useState<string>("");
   const [slippage, setSlippage] = useState<string>("0.03");
   const [balance, setBalance] = useState<string>("0.00");
@@ -389,7 +395,8 @@ const DepositView: React.FC<DepositViewProps> = ({
     return getNetworkTokens();
   }, [strategyConfig, targetChain]);
 
-  const selectedAssetOption = selectedAssetIdx >= 0 ? assetOptions[selectedAssetIdx] : null;
+  const selectedAssetOption =
+    selectedAssetIdx >= 0 ? assetOptions[selectedAssetIdx] : null;
 
   // Update token contract address and decimals
   const tokenContractAddress = selectedAssetOption?.contract;
@@ -397,7 +404,11 @@ const DepositView: React.FC<DepositViewProps> = ({
 
   // Function to calculate shares the user will receive
   const calculateSharesToReceive = async (depositAmount: string) => {
-    if (!depositAmount || parseFloat(depositAmount) <= 0 || !selectedAssetOption) {
+    if (
+      !depositAmount ||
+      parseFloat(depositAmount) <= 0 ||
+      !selectedAssetOption
+    ) {
       setSharesToReceive("0");
       return;
     }
@@ -543,7 +554,9 @@ const DepositView: React.FC<DepositViewProps> = ({
     boringVault: strategyConfig.boringVaultAddress,
     allowance: allowance?.toString(),
     hasAllowance: !!allowance,
-    amount: amount ? parseUnits(amount, depositTokenDecimals || 18).toString() : "0",
+    amount: amount
+      ? parseUnits(amount, depositTokenDecimals || 18).toString()
+      : "0",
     needsApproval: amount
       ? BigInt(allowance?.toString() || "0") <
         parseUnits(amount, depositTokenDecimals || 18)
@@ -1265,10 +1278,26 @@ const DepositView: React.FC<DepositViewProps> = ({
           <div className="flex flex-col items-center justify-center h-full pt-12">
             <div className="w-[580px] bg-[#0D101C] rounded-lg p-8 text-center">
               <div className="flex justify-center mb-6">
-                <svg width="88" height="88" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path fill-rule="evenodd" clip-rule="evenodd" d="M19.0009 18.9998H69.0009V68.9998H19.0009V18.9998Z" fill="white"/>
-<path fill-rule="evenodd" clip-rule="evenodd" d="M44.0198 0.275391C68.1782 0.275391 87.7701 19.8673 87.7701 44.0257C87.7701 68.184 68.1782 87.7759 44.0198 87.7759C19.8614 87.7759 0.269531 68.184 0.269531 44.0257C0.269531 19.8673 19.8614 0.275391 44.0198 0.275391ZM34.9345 58.2361L24.2234 47.5161C22.3986 45.6902 22.3982 42.7127 24.2234 40.8872C26.0489 39.062 29.0397 39.0734 30.852 40.8872L38.4033 48.4444L57.1883 29.6593C59.0139 27.8337 61.9917 27.8337 63.8169 29.6593C65.6425 31.4845 65.6398 34.4649 63.8169 36.2879L41.7122 58.3926C39.8892 60.2155 36.9088 60.2182 35.0836 58.3926C35.0323 58.3413 34.9828 58.2892 34.9345 58.2361Z" fill="#00BA00"/>
-</svg>
+                <svg
+                  width="88"
+                  height="88"
+                  viewBox="0 0 88 88"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    clip-rule="evenodd"
+                    d="M19.0009 18.9998H69.0009V68.9998H19.0009V18.9998Z"
+                    fill="white"
+                  />
+                  <path
+                    fill-rule="evenodd"
+                    clip-rule="evenodd"
+                    d="M44.0198 0.275391C68.1782 0.275391 87.7701 19.8673 87.7701 44.0257C87.7701 68.184 68.1782 87.7759 44.0198 87.7759C19.8614 87.7759 0.269531 68.184 0.269531 44.0257C0.269531 19.8673 19.8614 0.275391 44.0198 0.275391ZM34.9345 58.2361L24.2234 47.5161C22.3986 45.6902 22.3982 42.7127 24.2234 40.8872C26.0489 39.062 29.0397 39.0734 30.852 40.8872L38.4033 48.4444L57.1883 29.6593C59.0139 27.8337 61.9917 27.8337 63.8169 29.6593C65.6425 31.4845 65.6398 34.4649 63.8169 36.2879L41.7122 58.3926C39.8892 60.2155 36.9088 60.2182 35.0836 58.3926C35.0323 58.3413 34.9828 58.2892 34.9345 58.2361Z"
+                    fill="#00BA00"
+                  />
+                </svg>
               </div>
               <h2 className="text-[#D7E3EF] text-2xl font-bold mb-2">
                 Deposit Success
@@ -1280,11 +1309,16 @@ const DepositView: React.FC<DepositViewProps> = ({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <img
-                      src={`/images/icons/${selectedAssetOption?.name?.toLowerCase() || "default_assest"}.svg`}
+                      src={`/images/icons/${
+                        selectedAssetOption?.name?.toLowerCase() ||
+                        "default_assest"
+                      }.svg`}
                       alt={selectedAssetOption?.name || "Asset"}
                       className="w-6 h-6 rounded-full"
                     />
-                    <span className="text-[#EDF2F8] text-base font-semibold">{selectedAssetOption?.name || "Amount"}</span>
+                    <span className="text-[#EDF2F8] text-base font-semibold">
+                      {selectedAssetOption?.name || "Amount"}
+                    </span>
                   </div>
                   <span className="text-[#EDF2F8] text-base font-semibold">
                     {amount} {selectedAssetOption?.name || "Unknown"}
@@ -1292,7 +1326,9 @@ const DepositView: React.FC<DepositViewProps> = ({
                 </div>
               </div>
               <div className="flex items-center justify-between mb-3">
-                <span className="text-[#9C9DA2] ml-6 text-sm font-normal">Transaction Hash</span>
+                <span className="text-[#9C9DA2] ml-6 text-sm font-normal">
+                  Transaction Hash
+                </span>
                 <div className="flex items-center gap-3 mr-6">
                   <a
                     href={getExplorerUrl(targetChain, transactionHash || "")}
@@ -1334,14 +1370,14 @@ const DepositView: React.FC<DepositViewProps> = ({
                       6
                     )}...${transactionHash?.slice(-4)}`}
                   </a>
-                  <svg 
-                    width="16" 
-                    height="16" 
-                    viewBox="0 0 16 16" 
-                    fill="none" 
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
                     xmlns="http://www.w3.org/2000/svg"
                     className={`cursor-pointer hover:opacity-80 transition-all duration-200 ${
-                      isCopied ? 'opacity-100' : 'opacity-60'
+                      isCopied ? "opacity-100" : "opacity-60"
                     }`}
                     onClick={async () => {
                       if (transactionHash) {
@@ -1352,12 +1388,17 @@ const DepositView: React.FC<DepositViewProps> = ({
                             setIsCopied(false);
                           }, 2000);
                         } catch (err) {
-                          console.error('Failed to copy: ', err);
+                          console.error("Failed to copy: ", err);
                         }
                       }
                     }}
                   >
-                    <path d="M10.6673 10.1666V12.0333C10.6673 12.78 10.6673 13.1534 10.522 13.4386C10.3942 13.6895 10.1902 13.8934 9.93931 14.0213C9.65409 14.1666 9.28072 14.1666 8.53398 14.1666H3.46732C2.72058 14.1666 2.34721 14.1666 2.062 14.0213C1.81111 13.8934 1.60714 13.6895 1.47931 13.4386C1.33398 13.1534 1.33398 12.78 1.33398 12.0333V6.96659C1.33398 6.21985 1.33398 5.84648 1.47931 5.56126C1.60714 5.31038 1.81111 5.10641 2.062 4.97858C2.34721 4.83325 2.72058 4.83325 3.46732 4.83325H5.33398M7.46732 10.1666H12.534C13.2807 10.1666 13.6541 10.1666 13.9393 10.0213C14.1902 9.89343 14.3942 9.68946 14.522 9.43857C14.6673 9.15336 14.6673 8.77999 14.6673 8.03325V2.96659C14.6673 2.21985 14.6673 1.84648 14.522 1.56126C14.3942 1.31038 14.1902 1.10641 13.9393 0.978577C13.6541 0.833252 13.2807 0.833252 12.534 0.833252H7.46732C6.72058 0.833252 6.34721 0.833252 6.062 0.978577C5.81111 1.10641 5.60714 1.31038 5.47931 1.56126C5.33398 1.84648 5.33398 2.21985 5.33398 2.96659V8.03325C5.33398 8.77999 5.33398 9.15336 5.47931 9.43857C5.60714 9.68946 5.81111 9.89343 6.062 10.0213C6.34721 10.1666 6.72058 10.1666 7.46732 10.1666Z" stroke={isCopied ? "#00D1A0" : "#9C9DA2"} stroke-linecap="round" stroke-linejoin="round"/>
+                    <path
+                      d="M10.6673 10.1666V12.0333C10.6673 12.78 10.6673 13.1534 10.522 13.4386C10.3942 13.6895 10.1902 13.8934 9.93931 14.0213C9.65409 14.1666 9.28072 14.1666 8.53398 14.1666H3.46732C2.72058 14.1666 2.34721 14.1666 2.062 14.0213C1.81111 13.8934 1.60714 13.6895 1.47931 13.4386C1.33398 13.1534 1.33398 12.78 1.33398 12.0333V6.96659C1.33398 6.21985 1.33398 5.84648 1.47931 5.56126C1.60714 5.31038 1.81111 5.10641 2.062 4.97858C2.34721 4.83325 2.72058 4.83325 3.46732 4.83325H5.33398M7.46732 10.1666H12.534C13.2807 10.1666 13.6541 10.1666 13.9393 10.0213C14.1902 9.89343 14.3942 9.68946 14.522 9.43857C14.6673 9.15336 14.6673 8.77999 14.6673 8.03325V2.96659C14.6673 2.21985 14.6673 1.84648 14.522 1.56126C14.3942 1.31038 14.1902 1.10641 13.9393 0.978577C13.6541 0.833252 13.2807 0.833252 12.534 0.833252H7.46732C6.72058 0.833252 6.34721 0.833252 6.062 0.978577C5.81111 1.10641 5.60714 1.31038 5.47931 1.56126C5.33398 1.84648 5.33398 2.21985 5.33398 2.96659V8.03325C5.33398 8.77999 5.33398 9.15336 5.47931 9.43857C5.60714 9.68946 5.81111 9.89343 6.062 10.0213C6.34721 10.1666 6.72058 10.1666 7.46732 10.1666Z"
+                      stroke={isCopied ? "#00D1A0" : "#9C9DA2"}
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
                   </svg>
                 </div>
               </div>
@@ -1481,17 +1522,22 @@ const DepositView: React.FC<DepositViewProps> = ({
 
                     {/* Left Card - Deposit Input */}
                     <div className="w-[280px] h-[311px] bg-[#0D101C] border-l border-r border-b border-[rgba(255,255,255,0.05)] p-6 flex flex-col">
-                                                                      <div className="flex items-center justify-center">
-                          <div className="flex flex-col items-center mt-[8px]">
-                                                          <img
-                                src={selectedAssetOption?.image || "/images/icons/default_assest.svg"}
-                                alt={selectedAssetOption?.name || "Default Asset"}
-                                className={`w-[56px] h-[56px] ${!selectedAssetOption ? 'opacity-15' : ''}`}
-                              />
-                            <button
-                              onClick={() => setIsAssetPopupOpen(true)}
-                              className="text-[#EDF2F8] text-center text-[14px] font-semibold leading-normal mt-[8px] hover:text-[#B88AF8] transition-all duration-200 cursor-pointer flex items-center justify-center gap-2"
-                            >
+                      <div className="flex items-center justify-center">
+                        <div className="flex flex-col items-center mt-[8px]">
+                          <img
+                            src={
+                              selectedAssetOption?.image ||
+                              "/images/icons/default_assest.svg"
+                            }
+                            alt={selectedAssetOption?.name || "Default Asset"}
+                            className={`w-[56px] h-[56px] ${
+                              !selectedAssetOption ? "opacity-15" : ""
+                            }`}
+                          />
+                          <button
+                            onClick={() => setIsAssetPopupOpen(true)}
+                            className="text-[#EDF2F8] text-center text-[14px] font-semibold leading-normal mt-[8px] hover:text-[#B88AF8] transition-all duration-200 cursor-pointer flex items-center justify-center gap-2"
+                          >
                             {selectedAssetOption
                               ? `Deposit ${selectedAssetOption.name}`
                               : "Choose Asset to Deposit"}
@@ -1587,56 +1633,25 @@ const DepositView: React.FC<DepositViewProps> = ({
                         </div>
                       </div>
                     )} */}
-                      {/* --- End Asset Dropdown & Multi-chain Toggle --- */}
-                      <div className="mt-auto flex flex-col gap-[1px]">
-                        <div className="relative flex items-center">
+                      {/* Input Section */}
+                      <div className="mt-auto">
+                        <div className="relative mb-2">
                           <input
                             type="text"
                             value={amount}
                             onChange={handleAmountChange}
                             placeholder="0.00"
-                            className="w-[calc(100%-70px)] bg-transparent text-[#EDF2F8]   text-[24px] font-bold leading-normal outline-none focus:ring-0 border-0 border-b border-[rgba(255,255,255,0.19)]"
+                            className="w-full bg-transparent text-[#EDF2F8] text-[24px] font-bold leading-normal outline-none focus:ring-0 border-0"
                           />
                           <button
                             onClick={handleMaxClick}
-                            className="absolute right-0 flex justify-center items-center px-[8px] py-[4px] gap-[10px] rounded-[4px] border border-[rgba(255,255,255,0.30)] bg-transparent hover:opacity-80 transition-all duration-200"
+                            className="absolute right-0 top-1/2 -translate-y-1/2 text-[#9C9DA2] text-[12px] font-normal hover:text-[#B88AF8] transition-all duration-200"
                           >
-                            <span className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
-                              MAX
-                            </span>
+                            MAX
                           </button>
                         </div>
-                        <div className="relative mt-[12px] w-full text-left">
-                          <span className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
-                            Balance:{" "}
-                            {isLoadingBalance ? (
-                              <span className="inline-flex items-center gap-1">
-                                <svg
-                                  className="animate-spin h-3 w-3 text-white"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <circle
-                                    className="opacity-25"
-                                    cx="12"
-                                    cy="12"
-                                    r="10"
-                                    stroke="currentColor"
-                                    strokeWidth="4"
-                                  ></circle>
-                                  <path
-                                    className="opacity-75"
-                                    fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                  ></path>
-                                </svg>
-                                <span className="text-white">Loading...</span>
-                              </span>
-                            ) : (
-                              <span className="text-white">{balance}</span>
-                            )}
-                          </span>
+                        <div className="text-[#9C9DA2] text-[12px] font-normal">
+                          Balance: {isLoadingBalance ? "Loading..." : balance}
                         </div>
                       </div>
                     </div>
@@ -1701,30 +1716,55 @@ const DepositView: React.FC<DepositViewProps> = ({
                       </div> */}
 
                       {/* Strategy Info - Positioned at bottom */}
-                      <div className="mt-auto w-full p-3 bg-[#121521] border-l border-r border-b border-[rgba(255,255,255,0.05)]">
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={`/images/icons/${selectedAsset.toLowerCase()}-${strategy}.svg`}
-                            alt={strategy}
-                            className="w-[32px] h-[32px] ml-[4px] mr-[12px] my-auto cursor-pointer hover:opacity-80 transition-all duration-200"
-                            onClick={onReset}
-                          />
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between">
-                              <div className="text-white font-semibold capitalize">
-                                {strategy} {selectedAsset}
-                              </div>
+
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={`/images/icons/${selectedAsset.toLowerCase()}-${strategy}.svg`}
+                          alt={strategy}
+                          className="w-[32px] h-[32px] ml-[4px] mr-[12px] my-auto cursor-pointer hover:opacity-80 transition-all duration-200"
+                          onClick={onReset}
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <div className="text-white font-semibold capitalize">
+                              {strategy} {selectedAsset}
                             </div>
-                            <div className="flex items-center gap-4 mt-[4px]">
-                              <span className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
-                                APY {apy}
-                              </span>
-                            </div>
+                            <button
+                              onClick={onBack}
+                              className="text-[#9C9DA2] hover:text-[#B88AF8] transition-all duration-200 cursor-pointer"
+                            >
+                              <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M10 12L6 8L10 4"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                          <div className="flex items-center gap-4 mt-[4px]">
+                            <span className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
+                              {formatDuration(duration)}
+                            </span>
+                            <span className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
+                              APY {apy}
+                            </span>
+                          </div>
+                          <div className="text-[#9C9DA2] text-[12px] font-normal leading-normal">
+                            Shares: {sharesToReceive}
+                          </div>
+                          <div className="text-[#9C9DA2] text-[12px] font-normal leading-normal">
+                            $: {sharesToReceive}
                           </div>
                         </div>
-                      </div>
-                      <div className="text-[#9C9DA2] text-[12px] font-normal leading-normal">
-                        Shares: {sharesToReceive}
                       </div>
                     </div>
                   </div>
