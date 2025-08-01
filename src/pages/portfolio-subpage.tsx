@@ -342,7 +342,9 @@ const PortfolioSubpage: React.FC = () => {
   const [targetChain, setTargetChain] = useState<string>(
     chain?.name.toLowerCase() || "base"
   );
-  const [cancelStatusMap, setCancelStatusMap] = useState<{ [key: string]: "idle" | "cancelling" | "cancelled" }>({});
+  const [cancelStatusMap, setCancelStatusMap] = useState<{
+    [key: string]: "idle" | "cancelling" | "cancelled";
+  }>({});
 
   const chainId = useChainId();
   const isBase = chainId === 8453;
@@ -419,19 +421,19 @@ const PortfolioSubpage: React.FC = () => {
     });
 
   useEffect(() => {
-      const apyUrl = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.apy;
-      if (typeof apyUrl === "string" && apyUrl.startsWith("http")) {
-        fetch(apyUrl)
-          .then(res => res.json())
-          .then(data => {
-            const trailingApy = data?.result?.trailing_total_APY;
-            if (typeof trailingApy === "number") {
-              setUsdApy(`${trailingApy.toFixed(2)}%`);
-            }
-          })
-          .catch(() => setUsdApy(null));
-      }
-    }, []);
+    const apyUrl = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.apy;
+    if (typeof apyUrl === "string" && apyUrl.startsWith("http")) {
+      fetch(apyUrl)
+        .then((res) => res.json())
+        .then((data) => {
+          const trailingApy = data?.result?.trailing_total_APY;
+          if (typeof trailingApy === "number") {
+            setUsdApy(`${trailingApy.toFixed(2)}%`);
+          }
+        })
+        .catch(() => setUsdApy(null));
+    }
+  }, []);
 
   // Watch for deposit completion
   useEffect(() => {
@@ -720,7 +722,8 @@ const PortfolioSubpage: React.FC = () => {
 
       const solverAddress = selectedStrategy.solverAddress as Address;
       const vaultAddress = selectedStrategy.boringVaultAddress as Address;
-      const assetOutAddress = assetOptions[selectedAssetIdx].contract as Address;
+      const assetOutAddress = assetOptions[selectedAssetIdx]
+        .contract as Address;
 
       const client = createPublicClient({
         transport: http(selectedStrategy.rpc),
@@ -796,15 +799,15 @@ const PortfolioSubpage: React.FC = () => {
     }
   };
 
-  const handleCancel = async (requestId : string) => {
+  const handleCancel = async (requestId: string) => {
     if (!selectedStrategy || !address) return;
     console.log("Cancelling request with ID:", requestId);
-  
+
     try {
       setIsCancelling(true);
       setErrorMessage(null);
-      setCancelStatusMap(prev => ({ ...prev, [requestId]: "cancelling" })); 
-  
+      setCancelStatusMap((prev) => ({ ...prev, [requestId]: "cancelling" }));
+
       const solverAddress = selectedStrategy.solverAddress as Address;
 
       console.log("Cancel details:", {
@@ -812,7 +815,7 @@ const PortfolioSubpage: React.FC = () => {
         requestId,
         address,
       });
-  
+
       const client = createPublicClient({
         transport: http(selectedStrategy.rpc),
         chain: {
@@ -839,7 +842,7 @@ const PortfolioSubpage: React.FC = () => {
       if (!requestToCancel) {
         throw new Error("Request not found in pending requests");
       }
-  
+
       console.log("Found request to cancel:", requestToCancel);
 
       const assetOption = assetOptions.find(
@@ -852,17 +855,17 @@ const PortfolioSubpage: React.FC = () => {
         throw new Error("Asset not found for this request");
       }
 
-    const request = {
-      nonce: BigInt("46"), // uint64
-      user: address as `0x${string}`, // address
-      assetOut: requestToCancel.withdraw_asset_address as `0x${string}`, // address
-      amountOfShares: BigInt(requestToCancel.amount_of_shares || 0), // uint128
-      amountOfAssets: BigInt(requestToCancel.amount_of_assets || 0), // uint128
-      creationTime: Number(requestToCancel.creation_time || 0), // uint40
-      secondsToMaturity: Number(requestToCancel.seconds_to_maturity || 60), // uint24 - might need to be fetched from contract
-      secondsToDeadline: 3600, // uint24 - might need to be fetched from contract
-    };
-      
+      const request = {
+        nonce: BigInt("46"), // uint64
+        user: address as `0x${string}`, // address
+        assetOut: requestToCancel.withdraw_asset_address as `0x${string}`, // address
+        amountOfShares: BigInt(requestToCancel.amount_of_shares || 0), // uint128
+        amountOfAssets: BigInt(requestToCancel.amount_of_assets || 0), // uint128
+        creationTime: Number(requestToCancel.creation_time || 0), // uint40
+        secondsToMaturity: Number(requestToCancel.seconds_to_maturity || 60), // uint24 - might need to be fetched from contract
+        secondsToDeadline: 3600, // uint24 - might need to be fetched from contract
+      };
+
       console.log("Debug - Cancel contract call parameters:", {
         functionName: "cancelOnChainWithdraw",
         contractAddress: solverAddress,
@@ -877,63 +880,67 @@ const PortfolioSubpage: React.FC = () => {
           secondsToDeadline: request.secondsToDeadline,
         },
       });
-          const cancelTx = await writeContract({
-            address: solverAddress,
-            abi: SOLVER_ABI,
-            functionName: "cancelOnChainWithdraw",
-            args: [request],
-            chainId: 8453,
-            account: address,
-          });
+      const cancelTx = await writeContract({
+        address: solverAddress,
+        abi: SOLVER_ABI,
+        functionName: "cancelOnChainWithdraw",
+        args: [request],
+        chainId: 8453,
+        account: address,
+      });
 
-          if (cancelTx && typeof cancelTx === "string" && cancelTx.startsWith("0x")) {
-            console.log("Cancel transaction submitted:", cancelTx);
-            setCancelStatusMap(prev => ({ ...prev, [requestId]: "cancelled" }));
+      if (
+        cancelTx &&
+        typeof cancelTx === "string" &&
+        cancelTx.startsWith("0x")
+      ) {
+        console.log("Cancel transaction submitted:", cancelTx);
+        setCancelStatusMap((prev) => ({ ...prev, [requestId]: "cancelled" }));
 
-            // Refresh the requests after successful cancellation
-            setTimeout(() => {
-              fetchWithdrawRequests("", address);
-            }, 2000);
-          } else {
-            throw new Error("Failed to get cancel transaction hash");
-          }
-        } catch (error: any) {
-          console.error("Cancel failed:", error);
-          setCancelStatusMap(prev => ({ ...prev, [requestId]: "idle" }));
-          if (error.code === 4001) {
-            setErrorMessage("Cancel cancelled by user.");
-          } else {
-            setErrorMessage(error.message || "Cancel transaction failed");
-          }
-        } finally {
-          setIsCancelling(false);
-        }
+        // Refresh the requests after successful cancellation
+        setTimeout(() => {
+          fetchWithdrawRequests("", address);
+        }, 2000);
+      } else {
+        throw new Error("Failed to get cancel transaction hash");
+      }
+    } catch (error: any) {
+      console.error("Cancel failed:", error);
+      setCancelStatusMap((prev) => ({ ...prev, [requestId]: "idle" }));
+      if (error.code === 4001) {
+        setErrorMessage("Cancel cancelled by user.");
+      } else {
+        setErrorMessage(error.message || "Cancel transaction failed");
+      }
+    } finally {
+      setIsCancelling(false);
+    }
   };
 
   // Handler for row clicks
   const handleStrategySelect = (strategy: any) => {
-    console.log("strategy",strategy)
+    console.log("strategy", strategy);
     if (isMobile()) {
-        router.push({
-          pathname: `/portfolio/${strategy.contract}`,
-          query: { 
-            strategy: strategy.contract,
-            asset: strategy.asset,
-            balance: strategy.balance,
-            duration: strategy.duration,
-            type: strategy.type,
-            apy: strategy.apy,
-            solverAddress: strategy.solverAddress,
-            boringVaultAddress: strategy.boringVaultAddress,
-            // tvl: strategy.tvl,
-            // baseApy: strategy.baseYield,
-            // contractAddress: strategy.contractAddress || "",
-            // network: strategy.network || ""
-          },
-        });
+      router.push({
+        pathname: `/portfolio/${strategy.contract}`,
+        query: {
+          strategy: strategy.contract,
+          asset: strategy.asset,
+          balance: strategy.balance,
+          duration: strategy.duration,
+          type: strategy.type,
+          apy: strategy.apy,
+          solverAddress: strategy.solverAddress,
+          boringVaultAddress: strategy.boringVaultAddress,
+          // tvl: strategy.tvl,
+          // baseApy: strategy.baseYield,
+          // contractAddress: strategy.contractAddress || "",
+          // network: strategy.network || ""
+        },
+      });
     } else {
-        setSelectedStrategy(strategy);
-        setWithdrawAmount(strategy.balance.toString());
+      setSelectedStrategy(strategy);
+      setWithdrawAmount(strategy.balance.toString());
     }
   };
 
@@ -960,9 +967,9 @@ const PortfolioSubpage: React.FC = () => {
   // const CustomXAxisTick = ({ x, y, payload, index, data }) => {
   //   const currentLabel = payload.value;
   //   const prevLabel = index > 0 ? data[index - 1]?.date : null;
-  
+
   //   const showLabel = currentLabel !== prevLabel;
-  
+
   //   return showLabel ? (
   //     <text x={x} y={y + 15} fill="#9C9DA2" fontSize={6}>
   //       {currentLabel}
@@ -1119,7 +1126,7 @@ const PortfolioSubpage: React.FC = () => {
         `https://api.lucidly.finance/services/queueData?vaultAddress=0x279CAD277447965AF3d24a78197aad1B02a2c589&userAddress=${userAddress}`
       );
       const data = await response.json();
-      console.log("response:" ,response)
+      console.log("response:", response);
       setWithdrawRequests(data.result?.PENDING || []);
       setCompletedRequests(data.result?.FULFILLED || []);
       console.log("API response:", data);
@@ -1133,7 +1140,7 @@ const PortfolioSubpage: React.FC = () => {
 
   useEffect(() => {
     if (address) {
-      console.log("withdrwaimg")
+      console.log("withdrwaimg");
       fetchWithdrawRequests("", address);
     }
   }, [address]);
@@ -1150,7 +1157,10 @@ const PortfolioSubpage: React.FC = () => {
       fetch(apiUrl, { method: "GET" })
         .then((res) => res.json())
         .then((data) => {
-          console.log("cacheQueueData API called after withdraw success:", data);
+          console.log(
+            "cacheQueueData API called after withdraw success:",
+            data
+          );
         })
         .catch((err) => {
           console.error("Error calling cacheQueueData API:", err);
@@ -1288,92 +1298,117 @@ const PortfolioSubpage: React.FC = () => {
               </BarChart>
             </ResponsiveContainer>
           </div> */}
-                
-{/* Column Headers */}
-<div className="grid grid-cols-5 sm:pl-4 sm:pr-6 py-2 border-b border-[rgba(255,255,255,0.15)]">
-  <div className="flex justify-start text-[#9C9DA2] text-[12px] font-normal">
-    Available Yields
-  </div>
-  <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
-    Deposited on
-    <svg
-      className="ml-1"
-      width="14"
-      height="14"
-      viewBox="0 0 14 14"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <g opacity="0.6">
-        <path d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992" stroke="white" strokeLinecap="round" strokeLinejoin="round"/>
-      </g>
-    </svg>
-  </div>
-  <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
-    Expiry
-    <svg
-      className="ml-1"
-      width="14"
-      height="14"
-      viewBox="0 0 14 14"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <g opacity="0.6">
-        <path d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992" stroke="white" strokeLinecap="round" strokeLinejoin="round"/>
-      </g>
-    </svg>
-  </div>
-  <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
-    Base APY
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <svg
-            className="ml-1 cursor-pointer"
-            width="12"
-            height="12"
-            viewBox="0 0 10 10"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path d="M4.9987 6.66659V4.99992M4.9987 3.33325H5.00286M9.16536 4.99992C9.16536 7.30111 7.29988 9.16659 4.9987 9.16659C2.69751 9.16659 0.832031 7.30111 0.832031 4.99992C0.832031 2.69873 2.69751 0.833252 4.9987 0.833252C7.29988 0.833252 9.16536 2.69873 9.16536 4.99992Z" stroke="#9C9DA2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </TooltipTrigger>
-        <TooltipContent className="text-xs" side="top">
-          7 Day trailing
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-    <svg
-      className="ml-1"
-      width="14"
-      height="14"
-      viewBox="0 0 14 14"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <g opacity="0.6">
-        <path d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992" stroke="white" strokeLinecap="round" strokeLinejoin="round"/>
-      </g>
-    </svg>
-  </div>
-  <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
-    Current Balance
-    <svg
-      className="ml-1"
-      width="14"
-      height="14"
-      viewBox="0 0 14 14"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <g opacity="0.6">
-        <path d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992" stroke="white" strokeLinecap="round" strokeLinejoin="round"/>
-      </g>
-    </svg>
-  </div>
-</div>
+
+          {/* Column Headers */}
+          <div className="grid grid-cols-5 sm:pl-4 sm:pr-6 py-2 border-b border-[rgba(255,255,255,0.15)]">
+            <div className="flex justify-start text-[#9C9DA2] text-[12px] font-normal">
+              Available Yields
+            </div>
+            <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
+              Deposited on
+              <svg
+                className="ml-1"
+                width="14"
+                height="14"
+                viewBox="0 0 14 14"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <g opacity="0.6">
+                  <path
+                    d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992"
+                    stroke="white"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </g>
+              </svg>
+            </div>
+            <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
+              Expiry
+              <svg
+                className="ml-1"
+                width="14"
+                height="14"
+                viewBox="0 0 14 14"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <g opacity="0.6">
+                  <path
+                    d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992"
+                    stroke="white"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </g>
+              </svg>
+            </div>
+            <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
+              Base APY
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <svg
+                      className="ml-1 cursor-pointer"
+                      width="12"
+                      height="12"
+                      viewBox="0 0 10 10"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M4.9987 6.66659V4.99992M4.9987 3.33325H5.00286M9.16536 4.99992C9.16536 7.30111 7.29988 9.16659 4.9987 9.16659C2.69751 9.16659 0.832031 7.30111 0.832031 4.99992C0.832031 2.69873 2.69751 0.833252 4.9987 0.833252C7.29988 0.833252 9.16536 2.69873 9.16536 4.99992Z"
+                        stroke="#9C9DA2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </TooltipTrigger>
+                  <TooltipContent className="text-xs" side="top">
+                    7 Day trailing
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <svg
+                className="ml-1"
+                width="14"
+                height="14"
+                viewBox="0 0 14 14"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <g opacity="0.6">
+                  <path
+                    d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992"
+                    stroke="white"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </g>
+              </svg>
+            </div>
+            <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
+              Current Balance
+              <svg
+                className="ml-1"
+                width="14"
+                height="14"
+                viewBox="0 0 14 14"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <g opacity="0.6">
+                  <path
+                    d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992"
+                    stroke="white"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </g>
+              </svg>
+            </div>
+          </div>
 
           {/* Strategy Rows */}
           <div className="flex flex-col max-h-[calc(100vh-280px)] overflow-y-auto">
@@ -1446,7 +1481,9 @@ const PortfolioSubpage: React.FC = () => {
                   {/* Deposited On */}
                   {depositedChains.length === 0 ? (
                     <div className="flex flex-col items-end justify-end">
-                      <div className="text-[#EDF2F8] text-[12px] font-normal leading-normal">-</div>
+                      <div className="text-[#EDF2F8] text-[12px] font-normal leading-normal">
+                        -
+                      </div>
                     </div>
                   ) : (
                     <div className="flex items-center justify-end gap-0 flex-wrap -space-x-2">
@@ -1536,9 +1573,7 @@ const PortfolioSubpage: React.FC = () => {
                 <button
                   onClick={() => setActiveTab("withdraw")}
                   className={`px-2 py-2 pb-4 text-[12px] font-normal leading-[16px] transition-colors relative ${
-                    activeTab === "withdraw"
-                      ? "text-white"
-                      : "text-[#9C9DA2]"
+                    activeTab === "withdraw" ? "text-white" : "text-[#9C9DA2]"
                   }`}
                 >
                   Withdraw
@@ -1549,9 +1584,7 @@ const PortfolioSubpage: React.FC = () => {
                 <button
                   onClick={() => setActiveTab("request")}
                   className={`px-2 py-2 pb-4 text-[12px] font-normal leading-[16px] transition-colors relative ${
-                    activeTab === "request"
-                      ? "text-white"
-                      : "text-[#9C9DA2]"
+                    activeTab === "request" ? "text-white" : "text-[#9C9DA2]"
                   }`}
                 >
                   Requests
@@ -1573,20 +1606,26 @@ const PortfolioSubpage: React.FC = () => {
                       {/* Dropdown */}
                       <div className="relative">
                         <button
-                          onClick={() => setIsChainDropdownOpen(!isChainDropdownOpen)}
+                          onClick={() =>
+                            setIsChainDropdownOpen(!isChainDropdownOpen)
+                          }
                           className="flex items-center justify-between w-full text-[#EDF2F8] rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] border border-[rgba(255,255,255,0.05)]"
                         >
                           <div className="flex items-center gap-2">
                             {targetChain && (
                               <img
                                 src={
-                                  getUniqueChainConfigs.find((c) => c.network === targetChain)?.image || ""
+                                  getUniqueChainConfigs.find(
+                                    (c) => c.network === targetChain
+                                  )?.image || ""
                                 }
                                 alt={targetChain}
                                 className="w-5 h-5 rounded-full"
                               />
                             )}
-                            <span className="capitalize text-[12px]">{targetChain}</span>
+                            <span className="capitalize text-[12px]">
+                              {targetChain}
+                            </span>
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -1594,8 +1633,13 @@ const PortfolioSubpage: React.FC = () => {
                                     <InfoIcon />
                                   </div>
                                 </TooltipTrigger>
-                                <TooltipContent className="text-xs max-w-[240px]" side="top">
-                                To reduce bridging risks and ensure accurate yield tracking, deposits and withdrawals are limited to the Base network.
+                                <TooltipContent
+                                  className="text-xs max-w-[240px]"
+                                  side="top"
+                                >
+                                  To reduce bridging risks and ensure accurate
+                                  yield tracking, deposits and withdrawals are
+                                  limited to the Base network.
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
@@ -1638,7 +1682,6 @@ const PortfolioSubpage: React.FC = () => {
                         )} */}
                       </div>
                     </div>
-
 
                     {/* Header with strategy info and balance */}
                     <div className="flex items-end justify-between p-4  bg-[rgba(255,255,255,0.02)] mb-6 border-b border-[rgba(255,255,255,0.15)]">
@@ -1721,7 +1764,7 @@ const PortfolioSubpage: React.FC = () => {
                     </div>
 
                     <div className="flex justify-between py-4 mb-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] px-6 items-center">
-                      <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
+                      <div className="text-[#EDF2F8] text-[12px] font-normal leading-normal ml-4">
                         You Will Receive
                       </div>
                       <div className="flex justify-end items-center gap-4">
@@ -1738,7 +1781,7 @@ const PortfolioSubpage: React.FC = () => {
                                 onClick={() =>
                                   setIsAssetDropdownOpen(!isAssetDropdownOpen)
                                 }
-                                className="flex items-center justify-between w-full bg-[#0D101C] text-[#EDF2F8] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] border border-[rgba(255,255,255,0.19)]"
+                                className="flex items-center justify-between w-full bg-[#131520] text-[#EDF2F8] rounded px-3 py-2 text-sm focus:outline-none border border-[rgba(255,255,255,0.19)]"
                               >
                                 <div className="flex items-center gap-2">
                                   {assetOptions[selectedAssetIdx]?.image && (
@@ -1748,12 +1791,12 @@ const PortfolioSubpage: React.FC = () => {
                                       className="w-5 h-5 rounded-full"
                                     />
                                   )}
-                                  <span>
+                                  <span className="text-[12px] font-semibold">
                                     {assetOptions[selectedAssetIdx].name}
                                   </span>
                                 </div>
                                 <svg
-                                  className={`w-4 h-4 transform transition-transform duration-200 ${
+                                  className={`w-4 h-4 transform transition-transform duration-200 ml-1 ${
                                     isAssetDropdownOpen
                                       ? "rotate-180"
                                       : "rotate-0"
@@ -1787,7 +1830,7 @@ const PortfolioSubpage: React.FC = () => {
                                         <img
                                           src={opt.image}
                                           alt={opt.name}
-                                          className="w-5 h-5 mr-2 rounded-full"
+                                          className="w-5 h-5 mr-2 ml-2 rounded-full"
                                         />
                                       )}
                                       {opt.name}
@@ -1910,13 +1953,14 @@ const PortfolioSubpage: React.FC = () => {
                     )}
                   </div>
                   <div className="mt-2">
-                    <div className="text-[#9C9DA2] text-[14px] rounded-[4px] bg-[rgba(255,255,255,0.02)] p-[24px]">
-                      <strong className="text-white">Note:</strong> By initiating a withdrawal, your
-                      vault shares ({strategy.name}) will be converted into the
-                      underlying asset based on the latest market rates, which
-                      may fluctuate slightly; once the request is submitted,
-                      please allow up to 24 hours for the funds to be received,
-                      as processing times can vary depending on network
+                    <div className="text-[#9C9DA2] text-[12px] rounded-[4px] bg-[rgba(255,255,255,0.02)] p-[24px]">
+                      <strong className="text-white">Note:</strong> By
+                      initiating a withdrawal, your vault shares (
+                      {strategy.name}) will be converted into the underlying
+                      asset based on the latest market rates, which may
+                      fluctuate slightly; once the request is submitted, please
+                      allow up to 24 hours for the funds to be received, as
+                      processing times can vary depending on network
                       conditions—there's no need to panic if the assets don't
                       arrive immediately.
                     </div>
@@ -1969,7 +2013,9 @@ const PortfolioSubpage: React.FC = () => {
                           const assetImage = assetOption
                             ? assetOption.image
                             : "/images/icons/susd-stable.svg";
-                          const assetDecimals = assetOption ? assetOption.decimal : 18;
+                          const assetDecimals = assetOption
+                            ? assetOption.decimal
+                            : 18;
                           return (
                             <div
                               key={req.request_id || idx}
@@ -1994,7 +2040,9 @@ const PortfolioSubpage: React.FC = () => {
                                     <ExternalLinkIcon />
                                   </button>
                                   {req.creation_time
-                                    ? new Date(req.creation_time * 1000).toLocaleDateString()
+                                    ? new Date(
+                                        req.creation_time * 1000
+                                      ).toLocaleDateString()
                                     : "-"}
                                 </div>
 
@@ -2003,7 +2051,9 @@ const PortfolioSubpage: React.FC = () => {
                                   {/* Shares pill */}
                                   <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1">
                                     <span className="text-[#D7E3EF] text-[12px] font-normal">
-                                    {(Number(req.amount_of_shares) / 1e6).toFixed(2)}
+                                      {(
+                                        Number(req.amount_of_shares) / 1e6
+                                      ).toFixed(2)}
                                     </span>
                                     <a
                                       href={
@@ -2015,7 +2065,9 @@ const PortfolioSubpage: React.FC = () => {
                                       rel="noopener noreferrer"
                                       tabIndex={req.transaction_hash ? 0 : -1}
                                       style={{
-                                        pointerEvents: req.transaction_hash ? "auto" : "none",
+                                        pointerEvents: req.transaction_hash
+                                          ? "auto"
+                                          : "none",
                                       }}
                                     >
                                       <Image
@@ -2028,13 +2080,27 @@ const PortfolioSubpage: React.FC = () => {
                                     </a>
                                   </div>
                                   {/* Arrow */}
-                                  <svg width="15" height="12" viewBox="0 0 15 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M0.832031 6H14.1654M14.1654 6L9.16536 1M14.1654 6L9.16536 11" stroke="#9C9DA2" stroke-linecap="round" stroke-linejoin="round"/>
+                                  <svg
+                                    width="15"
+                                    height="12"
+                                    viewBox="0 0 15 12"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <path
+                                      d="M0.832031 6H14.1654M14.1654 6L9.16536 1M14.1654 6L9.16536 11"
+                                      stroke="#9C9DA2"
+                                      stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                    />
                                   </svg>
                                   {/* Assets pill */}
                                   <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1">
                                     <span className="text-white text-[12px] font-normal">
-                                      {(Number(req.amount_of_assets) / Math.pow(10, assetDecimals)).toFixed(2)}
+                                      {(
+                                        Number(req.amount_of_assets) /
+                                        Math.pow(10, assetDecimals)
+                                      ).toFixed(2)}
                                     </span>
                                     <Image
                                       src={assetImage}
@@ -2047,10 +2113,16 @@ const PortfolioSubpage: React.FC = () => {
                                 </div>
                               </div>
                               {/* Cancel Button */}
-                              {cancelStatusMap[req.request_id] === "cancelling" ? (
-                                <span className="text-gray-400 text-[13px] font-medium">Cancelling...</span>
-                              ) : cancelStatusMap[req.request_id] === "cancelled" ? (
-                                <span className="text-green-500 text-[13px] font-medium">Request Cancelled</span>
+                              {cancelStatusMap[req.request_id] ===
+                              "cancelling" ? (
+                                <span className="text-gray-400 text-[13px] font-medium">
+                                  Cancelling...
+                                </span>
+                              ) : cancelStatusMap[req.request_id] ===
+                                "cancelled" ? (
+                                <span className="text-green-500 text-[13px] font-medium">
+                                  Request Cancelled
+                                </span>
                               ) : (
                                 <button
                                   onClick={() => handleCancel(req.request_id)}
@@ -2082,7 +2154,9 @@ const PortfolioSubpage: React.FC = () => {
                           const assetImage = assetOption
                             ? assetOption.image
                             : "/images/icons/susd-stable.svg";
-                          const assetDecimals = assetOption ? assetOption.decimal : 18;
+                          const assetDecimals = assetOption
+                            ? assetOption.decimal
+                            : 18;
                           return (
                             <div
                               key={req.request_id || idx}
@@ -2107,7 +2181,9 @@ const PortfolioSubpage: React.FC = () => {
                                     <ExternalLinkIcon />
                                   </button>
                                   {req.creation_time
-                                    ? new Date(req.creation_time * 1000).toLocaleDateString()
+                                    ? new Date(
+                                        req.creation_time * 1000
+                                      ).toLocaleDateString()
                                     : "-"}
                                 </div>
 
@@ -2116,7 +2192,9 @@ const PortfolioSubpage: React.FC = () => {
                                   {/* Shares pill */}
                                   <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1">
                                     <span className="text-[#D7E3EF] text-[12px] font-normal">
-                                    {(Number(req.amount_of_shares) / 1e6).toFixed(2)}
+                                      {(
+                                        Number(req.amount_of_shares) / 1e6
+                                      ).toFixed(2)}
                                     </span>
                                     <a
                                       href={
@@ -2128,7 +2206,9 @@ const PortfolioSubpage: React.FC = () => {
                                       rel="noopener noreferrer"
                                       tabIndex={req.transaction_hash ? 0 : -1}
                                       style={{
-                                        pointerEvents: req.transaction_hash ? "auto" : "none",
+                                        pointerEvents: req.transaction_hash
+                                          ? "auto"
+                                          : "none",
                                       }}
                                     >
                                       <Image
@@ -2141,13 +2221,27 @@ const PortfolioSubpage: React.FC = () => {
                                     </a>
                                   </div>
                                   {/* Arrow */}
-                                  <svg width="15" height="12" viewBox="0 0 15 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M0.832031 6H14.1654M14.1654 6L9.16536 1M14.1654 6L9.16536 11" stroke="#9C9DA2" stroke-linecap="round" stroke-linejoin="round"/>
+                                  <svg
+                                    width="15"
+                                    height="12"
+                                    viewBox="0 0 15 12"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <path
+                                      d="M0.832031 6H14.1654M14.1654 6L9.16536 1M14.1654 6L9.16536 11"
+                                      stroke="#9C9DA2"
+                                      stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                    />
                                   </svg>
                                   {/* Assets pill */}
                                   <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1">
                                     <span className="text-white text-[12px] font-normal">
-                                      {(Number(req.amount_of_assets) / Math.pow(10, assetDecimals)).toFixed(2)}
+                                      {(
+                                        Number(req.amount_of_assets) /
+                                        Math.pow(10, assetDecimals)
+                                      ).toFixed(2)}
                                     </span>
                                     <Image
                                       src={assetImage}
