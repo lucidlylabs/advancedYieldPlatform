@@ -1686,25 +1686,25 @@ const PortfolioSubpage: React.FC = () => {
                       {/* Percentage buttons on the right */}
                       <div className="flex gap-2">
                         <button
-                          className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2]   text-[12px] font-normal"
+                          className="bg-[#121521] rounded-[4px] border border-[rgba(156,157,162,0.3)] py-0.5 px-1.5 text-[#9C9DA2] text-[12px] font-normal w-[41px]"
                           onClick={() => handlePercentageClick(0.25)}
                         >
                           25%
                         </button>
                         <button
-                          className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2]   text-[12px] font-normal"
+                          className="bg-[#121521] rounded-[4px] border border-[rgba(156,157,162,0.3)] py-0.5 px-1.5 text-[#9C9DA2] text-[12px] font-normal w-[41px]"
                           onClick={() => handlePercentageClick(0.5)}
                         >
                           50%
                         </button>
                         <button
-                          className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2]   text-[12px] font-normal"
+                          className="bg-[#121521] rounded-[4px] border border-[rgba(156,157,162,0.3)] py-0.5 px-1.5 text-[#9C9DA2] text-[12px] font-normal w-[41px]"
                           onClick={() => handlePercentageClick(0.75)}
                         >
                           75%
                         </button>
                         <button
-                          className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2]   text-[12px] font-normal"
+                          className="bg-[#121521] rounded-[4px] border border-[rgba(156,157,162,0.3)] py-0.5 px-1.5 text-[#9C9DA2] text-[12px] font-normal w-[41px]"
                           onClick={handleMaxClick}
                         >
                           MAX
