@@ -1569,7 +1569,7 @@ const PortfolioSubpage: React.FC = () => {
                       <div className="relative">
                         <button
                           onClick={() => setIsChainDropdownOpen(!isChainDropdownOpen)}
-                          className="flex items-center justify-between w-full bg-[#1e202c] text-[#EDF2F8] rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] border border-[rgba(255,255,255,0.05)]"
+                          className="flex items-center justify-between w-full text-[#EDF2F8] rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] border border-[rgba(255,255,255,0.05)]"
                         >
                           <div className="flex items-center gap-2">
                             {targetChain && (
