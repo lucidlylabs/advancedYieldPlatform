@@ -1423,7 +1423,7 @@ const PortfolioSubpage: React.FC = () => {
                       <div className="text-[#EDF2F8] text-[12px] font-normal leading-normal">-</div>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-center gap-2 flex-wrap">
+                    <div className="flex items-center justify-center gap-0 flex-wrap -space-x-2">
                       {depositedChains.map((chainKey) => {
                         const chain = chainIconMap[chainKey];
                         if (!chain) return null;
