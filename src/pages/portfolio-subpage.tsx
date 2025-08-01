@@ -1553,9 +1553,9 @@ const PortfolioSubpage: React.FC = () => {
                 <>
                   <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
                     {/* Withdrawing assets from dropdown */}
-                    <div className="flex flex-row justify-between items-center bg-[#121420] rounded-sm p-2 border border-[rgba(255,255,255,0.05)] mb-4">
+                    <div className="flex flex-row justify-between items-center bg-[#121420] rounded-sm p-[6px] mb-4">
                       {/* Label */}
-                      <label className="text-[#9C9DA2] font-inter text-[12px] block pl-2">
+                      <label className="text-[#9C9DA2] font-inter text-[12px] block pl-2 pt-1">
                         Withdrawing assets from
                       </label>
 
@@ -1563,7 +1563,7 @@ const PortfolioSubpage: React.FC = () => {
                       <div className="relative">
                         <button
                           onClick={() => setIsChainDropdownOpen(!isChainDropdownOpen)}
-                          className="flex items-center justify-between w-full bg-[#1e202c] text-[#EDF2F8] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8]"
+                          className="flex items-center justify-between w-full bg-[#1e202c] text-[#EDF2F8] rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] border border-[rgba(255,255,255,0.05)]"
                         >
                           <div className="flex items-center gap-2">
                             {targetChain && (
