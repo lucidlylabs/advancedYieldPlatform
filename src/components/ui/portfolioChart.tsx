@@ -55,7 +55,15 @@ export default function PortfolioChart({ userAddress }: { userAddress: string })
         <BarChart data={data} margin={{ top: 20, right: 60, left: 20, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="timestamp" />
-          <YAxis orientation="right" domain={[0, 'auto']} />
+          <YAxis
+              orientation="right"
+              domain={[0, 'auto']}
+              tickFormatter={(value) => {
+                const normalized = value / 1e6;
+                return `$${(normalized / 1_000_000).toFixed(2)}`;
+              }}
+            />
+          <Legend />
           <Tooltip />
           <Bar dataKey="value" fill="#00E5FF" />
         </BarChart>
