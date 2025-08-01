@@ -282,7 +282,8 @@ const DepositView: React.FC<DepositViewProps> = ({
   const [isAssetDropdownOpen, setIsAssetDropdownOpen] = useState(false);
   const [selectedAssetIdx, setSelectedAssetIdx] = useState(-1);
   const [rawBalance, setRawBalance] = useState<string>("0"); // New state for unformatted balance
-  const [sharesToReceive, setSharesToReceive] = useState<string>("0"); // New state for shares calculation
+  const [sharesToReceive, setSharesToReceive] = useState<string>("0");
+  const [usdValue, setUsdValue] = useState<string>("0.00"); // New state for shares calculation
 
   // Add state for custom dropdown
   const [isChainDropdownOpen, setIsChainDropdownOpen] = useState(false);
@@ -477,15 +478,24 @@ const DepositView: React.FC<DepositViewProps> = ({
 
       setSharesToReceive(formattedShares);
 
+      // Calculate USD value: shares * exchange rate
+      const sharesForUsd = parseFloat(sharesFormatted);
+      const rateNumber = parseFloat(formatUnits(rateInQuote, 18)); // Rate is in 18 decimals
+      const usdValueCalculated = sharesForUsd * rateNumber;
+      const formattedUsdValue = usdValueCalculated.toFixed(2);
+      setUsdValue(formattedUsdValue);
+
       console.log("Shares calculation:", {
         amountInWei: amountInWei.toString(),
         rateInQuote: rateInQuote.toString(),
         shares: shares.toString(),
         sharesFormatted,
+        usdValue: formattedUsdValue,
       });
     } catch (error) {
       console.error("Error calculating shares:", error);
       setSharesToReceive("0");
+      setUsdValue("0.00");
     }
   };
 
@@ -495,6 +505,7 @@ const DepositView: React.FC<DepositViewProps> = ({
       calculateSharesToReceive(amount);
     } else {
       setSharesToReceive("0");
+      setUsdValue("0.00");
     }
   }, [amount, selectedAssetIdx, targetChain, strategyConfig]);
 
@@ -1717,52 +1728,74 @@ const DepositView: React.FC<DepositViewProps> = ({
 
                       {/* Strategy Info - Positioned at bottom */}
 
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-col items-center text-center h-full">
                         <img
                           src={`/images/icons/${selectedAsset.toLowerCase()}-${strategy}.svg`}
                           alt={strategy}
-                          className="w-[32px] h-[32px] ml-[4px] mr-[12px] my-auto cursor-pointer hover:opacity-80 transition-all duration-200"
+                          className="w-[56px] h-[56px] cursor-pointer hover:opacity-80 transition-all duration-200 mb-3"
                           onClick={onReset}
                         />
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <div className="text-white font-semibold capitalize">
-                              {strategy} {selectedAsset}
+                        <div className="flex flex-col items-center flex-1 justify-between">
+                          <div className="flex flex-col items-center">
+                            <div className="flex items-center justify-center">
+                              <div className="text-white font-semibold capitalize flex items-center gap-[10px]">
+                                {strategy} {selectedAsset}
+                                <button
+                                  onClick={onBack}
+                                  className="text-[#9C9DA2] hover:text-[#B88AF8] transition-all duration-200 cursor-pointer"
+                                >
+                                  <svg
+                                    width="5"
+                                    height="10"
+                                    viewBox="0 0 5 10"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <path
+                                      d="M0.5 9L4.5 5L0.5 1"
+                                      stroke="#9C9DA2"
+                                      stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                    />
+                                  </svg>
+                                </button>
+                              </div>
                             </div>
-                            <button
-                              onClick={onBack}
-                              className="text-[#9C9DA2] hover:text-[#B88AF8] transition-all duration-200 cursor-pointer"
-                            >
+                            <div className="flex items-center gap-4 mt-[4px] justify-center">
+                              <span className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
+                                {formatDuration(duration)}
+                              </span>
                               <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 16 16"
+                                width="4"
+                                height="3"
+                                viewBox="0 0 4 3"
                                 fill="none"
                                 xmlns="http://www.w3.org/2000/svg"
                               >
-                                <path
-                                  d="M10 12L6 8L10 4"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
+                                <rect
+                                  x="0.5"
+                                  width="3"
+                                  height="3"
+                                  rx="1.5"
+                                  fill="white"
+                                  fill-opacity="0.5"
                                 />
                               </svg>
-                            </button>
+
+                              <span className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
+                                APY {apy}
+                              </span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-4 mt-[4px]">
-                            <span className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
-                              {formatDuration(duration)}
-                            </span>
-                            <span className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
-                              APY {apy}
-                            </span>
-                          </div>
-                          <div className="text-[#9C9DA2] text-[12px] font-normal leading-normal">
-                            Shares: {sharesToReceive}
-                          </div>
-                          <div className="text-[#9C9DA2] text-[12px] font-normal leading-normal">
-                            $: {sharesToReceive}
+                          <div>
+                            <div className="text-[#D7E3EF] text-[24px] font-bold leading-normal">
+                              {sharesToReceive
+                                ? Number(sharesToReceive).toFixed(2)
+                                : "0.00"}
+                            </div>
+                            <div className="text-[#9C9DA2] text-[12px] font-normal leading-normal">
+                              (${usdValue} USD)
+                            </div>
                           </div>
                         </div>
                       </div>
