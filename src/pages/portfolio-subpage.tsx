@@ -1156,9 +1156,9 @@ const PortfolioSubpage: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen text-white">
       {/* Top Section - Portfolio Value, PNL, and Wallet */}
-      <div className="flex flex-col sm:flex-row w-full py-4 items-center justify-between px-8 bg-[#0D101C] border-b border-[rgba(255,255,255,0.1)]">
+      <div className="flex flex-col sm:flex-row w-full py-10 items-center justify-between px-8 bg-[#0D101C] border-b border-[rgba(255,255,255,0.1)]">
         <div>
-          <div className="flex gap-32">
+          <div className="flex items-center">
             <div className="flex flex-col">
               <div className="text-[#9C9DA2]   text-[14px] font-normal leading-[16px]">
                 Portfolio
@@ -1195,6 +1195,8 @@ const PortfolioSubpage: React.FC = () => {
                 )}
               </div>
             </div>
+            {/* Vertical Divider */}
+            <div className="w-px bg-[rgba(217,217,217,0.05)] self-stretch mx-8"></div>
             <div className="flex flex-col">
               <div className="text-[#9C9DA2]   text-[14px] font-normal leading-[16px]">
                 PNL
@@ -1226,11 +1228,11 @@ const PortfolioSubpage: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="flex flex-col w-full sm:w-auto justify-center items-center gap-2 py-[10px] px-4 rounded-[4px] border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)]">
+        <div className="flex flex-col w-full sm:w-auto justify-center items-end gap-2 py-[10px] px-4 rounded-[4px] border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)]">
           <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-[16px]">
             Wallet Address
           </div>
-          <div className="text-[#D7E3EF] font-mono opacity-80 text-xs sm:text-md">
+          <div className="text-[#D7E3EF] font-mono opacity-80 text-[14px] font-normal">
             {isConnected ? address : "Not connected"}
           </div>
         </div>
