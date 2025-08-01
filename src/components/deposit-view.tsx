@@ -1646,17 +1646,19 @@ const DepositView: React.FC<DepositViewProps> = ({
                     )} */}
                       {/* Input Section */}
                       <div className="mt-auto">
-                        <div className="relative mb-2">
-                          <input
-                            type="text"
-                            value={amount}
-                            onChange={handleAmountChange}
-                            placeholder="0.00"
-                            className="w-full bg-transparent text-[#EDF2F8] text-[24px] font-bold leading-normal outline-none focus:ring-0 border-0"
-                          />
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="flex-1 border-b border-[rgba(255,255,255,0.1)] pb-2">
+                            <input
+                              type="text"
+                              value={amount}
+                              onChange={handleAmountChange}
+                              placeholder="0.00"
+                              className="w-full bg-transparent text-[#EDF2F8] text-[24px] font-bold leading-normal outline-none focus:ring-0 border-0"
+                            />
+                          </div>
                           <button
                             onClick={handleMaxClick}
-                            className="absolute right-0 top-1/2 -translate-y-1/2 text-[#9C9DA2] text-[12px] font-normal hover:text-[#B88AF8] transition-all duration-200"
+                            className="text-[#9C9DA2] text-[12px] font-normal hover:text-[#B88AF8] transition-all duration-200 border border-[rgba(255,255,255,0.1)] rounded px-2 py-1 hover:border-[#B88AF8]"
                           >
                             MAX
                           </button>
