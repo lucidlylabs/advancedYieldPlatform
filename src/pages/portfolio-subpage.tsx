@@ -1684,8 +1684,8 @@ const PortfolioSubpage: React.FC = () => {
                     </div>
 
                     {/* Header with strategy info and balance */}
-                    <div className="flex items-end justify-between p-4  bg-[rgba(255,255,255,0.02)] mb-6 border-b border-[rgba(255,255,255,0.15)]">
-                    <div className="flex items-start gap-4">
+                    <div className="flex items-end justify-between p-4   bg-[rgba(255,255,255,0.02)] border-b border-[rgba(255,255,255,0.15)]">
+                      <div className="flex items-start gap-4">
                         <Image
                           src={`/images/icons/${selectedStrategy.asset.toLowerCase()}-${
                             selectedStrategy.type === "stable"
@@ -1707,9 +1707,9 @@ const PortfolioSubpage: React.FC = () => {
                             +0.00 in 1 year
                           </div>
                         </div>
-                          <div className="text-gray-400 text-[12px] -ml-1">
-                              {formatDuration("PERPETUAL_DURATION")}
-                          </div>
+                        <div className="text-gray-400 text-[12px] -ml-1">
+                          {formatDuration("PERPETUAL_DURATION")}
+                        </div>
                       </div>
                       <div className="text-[#9C9DA2] text-right   text-[12px] font-normal leading-normal">
                         Balance:{" "}
@@ -1720,7 +1720,7 @@ const PortfolioSubpage: React.FC = () => {
                     </div>
 
                     {/* Input field and percentage buttons in same row */}
-                    <div className="flex items-center gap-4 mb-6">
+                    <div className="flex items-center gap-4 mb-6 p-4  bg-[rgba(255,255,255,0.02)]">
                       {/* Input field on the left with no borders */}
                       <div className="flex-grow ">
                         <div>
@@ -1769,10 +1769,12 @@ const PortfolioSubpage: React.FC = () => {
                       </div>
                       <div className="flex justify-end items-center gap-4">
                         <div className="text-[#EDF2F8] text-[16px] font-medium leading-normal">
-                          {Number(formatUnits(
-                            amountOut ? BigInt(amountOut) : BigInt(0),
-                            6
-                          )).toFixed(2)}{" "}
+                          {Number(
+                            formatUnits(
+                              amountOut ? BigInt(amountOut) : BigInt(0),
+                              6
+                            )
+                          ).toFixed(2)}{" "}
                         </div>
                         {assetOptions.length > 1 && (
                           <div className="">
