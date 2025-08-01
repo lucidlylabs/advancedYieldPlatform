@@ -1239,9 +1239,9 @@ const PortfolioSubpage: React.FC = () => {
       {/* Main Content - Split View */}
       <div className="flex flex-1">
         {/* Left Side - Assets Table */}
-        <div className="w-full sm:w-1/2 border-r border-[rgba(255,255,255,0.1)] pt-8 px-4 sm:pl-8">
+        <div className="w-full sm:w-1/2 border-r border-[rgba(255,255,255,0.1)] pt-8 sm:pl-8">
           <div className="mb-6">
-            <div className="text-[rgba(255,255,255,0.70)]   text-[16px] font-bold uppercase">
+            <div className="text-[rgba(255,255,255,0.70)] text-[16px] font-medium uppercase">
               Total Portfolio Value
             </div>
           </div>
@@ -1284,10 +1284,10 @@ const PortfolioSubpage: React.FC = () => {
                 
 {/* Column Headers */}
 <div className="grid grid-cols-5 sm:pl-4 sm:pr-6 py-2 border-b border-[rgba(255,255,255,0.15)]">
-  <div className="flex justify-start text-[#9C9DA2] text-[14px] font-medium">
+  <div className="flex justify-start text-[#9C9DA2] text-[14px] font-[81px]">
     Available Yields
   </div>
-  <div className="flex justify-end text-[#9C9DA2]   text-[14px] font-medium  items-center">
+  <div className="flex justify-end text-[#9C9DA2] text-[14px] font-[81px] items-center">
     Deposited on
     <svg
       className="ml-1"
@@ -1302,7 +1302,7 @@ const PortfolioSubpage: React.FC = () => {
       </g>
     </svg>
   </div>
-  <div className="flex justify-center text-[#9C9DA2]   text-[14px] font-medium items-center">
+  <div className="flex justify-center text-[#9C9DA2] text-[14px] font-[81px] items-center">
     Expiry
     <svg
       className="ml-1"
@@ -1317,7 +1317,7 @@ const PortfolioSubpage: React.FC = () => {
       </g>
     </svg>
   </div>
-  <div className="flex justify-center text-[#9C9DA2] text-[14px] font-medium items-center">
+  <div className="flex justify-center text-[#9C9DA2] text-[14px] font-[81px] items-center">
     Base APY
     <svg
       className="ml-1"
@@ -1332,7 +1332,7 @@ const PortfolioSubpage: React.FC = () => {
       </g>
     </svg>
   </div>
-  <div className="flex justify-end text-[#9C9DA2]   text-[14px] font-medium items-center">
+  <div className="flex justify-end text-[#9C9DA2] text-[14px] font-[81px] items-center">
     Current Balance
     <svg
       className="ml-1"
