@@ -1763,18 +1763,16 @@ const PortfolioSubpage: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex justify-between py-4 mb-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] px-6 items-center">
-                      <div className="text-[#EDF2F8] text-[12px] font-normal leading-normal ml-4">
+                    <div className="flex justify-between py-4 mb-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] p-4 items-center">
+                      <div className="text-[#9C9DA2] text-[12px] font-normal leading-normal">
                         You Will Receive
                       </div>
                       <div className="flex justify-end items-center gap-4">
                         <div className="text-[#EDF2F8] text-[16px] font-medium leading-normal">
-                          {Number(
-                            formatUnits(
-                              amountOut ? BigInt(amountOut) : BigInt(0),
-                              6
-                            )
-                          ).toFixed(2)}{" "}
+                          {Number(formatUnits(
+                            amountOut ? BigInt(amountOut) : BigInt(0),
+                            6
+                          )).toFixed(2)}{" "}
                         </div>
                         {assetOptions.length > 1 && (
                           <div className="">
