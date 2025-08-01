@@ -1530,23 +1530,29 @@ const PortfolioSubpage: React.FC = () => {
               <div className="flex gap-4 mb-6 border-b border-[rgba(255,255,255,0.15)]">
                 <button
                   onClick={() => setActiveTab("withdraw")}
-                  className={`px-4 py-2 text-[14px] font-semibold transition-colors ${
+                  className={`px-2 py-2 pb-4 text-[12px] font-normal leading-[16px] transition-colors relative ${
                     activeTab === "withdraw"
-                      ? "text-white border-b-2 border-[#B88AF8]"
+                      ? "text-white"
                       : "text-[#9C9DA2]"
                   }`}
                 >
                   Withdraw
+                  {activeTab === "withdraw" && (
+                    <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white"></div>
+                  )}
                 </button>
                 <button
                   onClick={() => setActiveTab("request")}
-                  className={`px-4 py-2 text-[14px] font-semibold transition-colors ${
+                  className={`px-2 py-2 pb-4 text-[12px] font-normal leading-[16px] transition-colors relative ${
                     activeTab === "request"
-                      ? "text-white border-b-2 border-[#B88AF8]"
+                      ? "text-white"
                       : "text-[#9C9DA2]"
                   }`}
                 >
-                  Request
+                  Requests
+                  {activeTab === "request" && (
+                    <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white"></div>
+                  )}
                 </button>
               </div>
               {activeTab === "withdraw" && (
