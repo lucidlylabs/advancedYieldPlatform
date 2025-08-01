@@ -1286,10 +1286,10 @@ const PortfolioSubpage: React.FC = () => {
                 
 {/* Column Headers */}
 <div className="grid grid-cols-5 sm:pl-4 sm:pr-6 py-2 border-b border-[rgba(255,255,255,0.15)]">
-  <div className="flex justify-start text-[#9C9DA2] text-[14px] font-[81px]">
+  <div className="flex justify-start text-[#9C9DA2] text-[12px] font-normal">
     Available Yields
   </div>
-  <div className="flex justify-end text-[#9C9DA2] text-[14px] font-[81px] items-center">
+  <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
     Deposited on
     <svg
       className="ml-1"
@@ -1304,7 +1304,7 @@ const PortfolioSubpage: React.FC = () => {
       </g>
     </svg>
   </div>
-  <div className="flex justify-center text-[#9C9DA2] text-[14px] font-[81px] items-center">
+  <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
     Expiry
     <svg
       className="ml-1"
@@ -1319,8 +1319,27 @@ const PortfolioSubpage: React.FC = () => {
       </g>
     </svg>
   </div>
-  <div className="flex justify-center text-[#9C9DA2] text-[14px] font-[81px] items-center">
+  <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
     Base APY
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <svg
+            className="ml-1 cursor-pointer"
+            width="12"
+            height="12"
+            viewBox="0 0 10 10"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path d="M4.9987 6.66659V4.99992M4.9987 3.33325H5.00286M9.16536 4.99992C9.16536 7.30111 7.29988 9.16659 4.9987 9.16659C2.69751 9.16659 0.832031 7.30111 0.832031 4.99992C0.832031 2.69873 2.69751 0.833252 4.9987 0.833252C7.29988 0.833252 9.16536 2.69873 9.16536 4.99992Z" stroke="#9C9DA2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </TooltipTrigger>
+        <TooltipContent className="text-xs" side="top">
+          7 Day trailing
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
     <svg
       className="ml-1"
       width="14"
@@ -1334,7 +1353,7 @@ const PortfolioSubpage: React.FC = () => {
       </g>
     </svg>
   </div>
-  <div className="flex justify-end text-[#9C9DA2] text-[14px] font-[81px] items-center">
+  <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
     Current Balance
     <svg
       className="ml-1"
@@ -1421,11 +1440,11 @@ const PortfolioSubpage: React.FC = () => {
 
                   {/* Deposited On */}
                   {depositedChains.length === 0 ? (
-                    <div className="flex flex-col items-center justify-end">
+                    <div className="flex flex-col items-end justify-end">
                       <div className="text-[#EDF2F8] text-[12px] font-normal leading-normal">-</div>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-center gap-0 flex-wrap -space-x-2">
+                    <div className="flex items-center justify-end gap-0 flex-wrap -space-x-2">
                       {depositedChains.map((chainKey) => {
                         const chain = chainIconMap[chainKey];
                         if (!chain) return null;
@@ -1454,7 +1473,7 @@ const PortfolioSubpage: React.FC = () => {
                   )}
 
                   {/* Expiry */}
-                  <div className="flex flex-col items-center justify-end">
+                  <div className="flex flex-col items-end justify-end">
                     <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
                       {strategy.duration === "PERPETUAL_DURATION"
                         ? "No Expiry"
@@ -1468,7 +1487,7 @@ const PortfolioSubpage: React.FC = () => {
                   </div>
 
                   {/* APY */}
-                  <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal flex items-center justify-center">
+                  <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal flex items-center justify-end">
                     {usdApy}
                   </div>
 
