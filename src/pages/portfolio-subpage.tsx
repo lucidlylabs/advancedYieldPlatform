@@ -299,6 +299,11 @@ const chainConfigs = {
 
 const PortfolioSubpage: React.FC = () => {
   const { address, isConnected, chain } = useAccount();
+  const formatDuration = (duration: string) => {
+    if (duration === "PERPETUAL_DURATION") return "Liquid";
+    const [number, period] = duration.split("_");
+    return `${number} ${period.toLowerCase()}`;
+  };
   const [depositSuccess, setDepositSuccess] = useState(false);
   const [transactionHash, setTransactionHash] = useState<`0x${string}` | null>(
     null
@@ -1637,7 +1642,7 @@ const PortfolioSubpage: React.FC = () => {
 
                     {/* Header with strategy info and balance */}
                     <div className="flex items-end justify-between p-4  bg-[rgba(255,255,255,0.02)] mb-6 border-b border-[rgba(255,255,255,0.15)]">
-                      <div className="flex items-center gap-4">
+                    <div className="flex items-start gap-4">
                         <Image
                           src={`/images/icons/${selectedStrategy.asset.toLowerCase()}-${
                             selectedStrategy.type === "stable"
@@ -1645,20 +1650,23 @@ const PortfolioSubpage: React.FC = () => {
                               : "incentive"
                           }.svg`}
                           alt={selectedStrategy.asset}
-                          width={40}
-                          height={40}
+                          width={35}
+                          height={35}
                         />
                         <div>
-                          <div className="text-white font-semibold">
+                          <div className="text-white font-semibold text-[12px]">
                             {selectedStrategy.type === "stable"
                               ? "Base Yield"
                               : "Incentive Maxi"}{" "}
                             {selectedStrategy.asset}
                           </div>
-                          <div className="text-[#00D1A0] text-[14px]">
+                          <div className="text-[#00D1A0] text-[12px]">
                             +0.00 in 1 year
                           </div>
                         </div>
+                          <div className="text-gray-400 text-[12px] -ml-1">
+                              {formatDuration("PERPETUAL_DURATION")}
+                          </div>
                       </div>
                       <div className="text-[#9C9DA2] text-right   text-[12px] font-normal leading-normal">
                         Balance:{" "}
