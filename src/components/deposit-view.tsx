@@ -1395,7 +1395,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                 <div className="flex flex-col gap-6 md:flex-row justify-center items-start">
                   <div className="flex flex-col justify-center items-center">
                     {/* Deposit Chain Dropdown */}
-                    <div className="w-[280px] bg-[#121420] rounded-t-md p-4 border-l border-r border-t border-[rgba(255,255,255,0.05)]">
+                    <div className="w-[280px] bg-[#121420] p-4 border-l border-r border-t border-[rgba(255,255,255,0.05)]">
                       <div className="flex items-center justify-between gap-2">
                         <label className="text-[#9C9DA2] font-inter text-[12px] whitespace-nowrap flex items-center gap-1">
                           Deposit Network
@@ -1413,12 +1413,12 @@ const DepositView: React.FC<DepositViewProps> = ({
                             </Tooltip>
                           </TooltipProvider>
                         </label>
-                        <div className="relative w-full max-w-[250px]">
+                        <div className="relative w-fit">
                           <button
                             onClick={() =>
                               setIsChainDropdownOpen(!isChainDropdownOpen)
                             }
-                            className="flex items-center justify-between w-full bg-[#1e202c] text-[#EDF2F8] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] pr-2"
+                            className="flex items-center w-fit bg-[#1e202c] text-[#EDF2F8] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] pr-2 mr-[10px]"
                           >
                             <div className="flex items-center gap-2">
                               {targetChain && (
@@ -1436,6 +1436,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                                 {targetChain}
                               </span>
                             </div>
+                            <div className="w-[10px]"></div>
                             <svg
                               className={`w-4 h-4 transform transition-transform duration-200 ${
                                 isChainDropdownOpen ? "rotate-180" : "rotate-0"
@@ -1454,7 +1455,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                             </svg>
                           </button>
                           {isChainDropdownOpen && (
-                            <div className="absolute z-10 w-full mt-2 bg-[#1F202D] rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 focus:outline-none">
+                            <div className="absolute z-10 w-full mt-2 bg-[#1F202D] rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 focus:outline-none min-w-[120px]">
                               {getUniqueChainConfigs.map((chainOption) => (
                                 <button
                                   key={chainOption.network}
@@ -1479,7 +1480,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                     </div>
 
                     {/* Left Card - Deposit Input */}
-                    <div className="w-[280px] h-[311px] bg-[#0D101C] rounded-b-[4px] border-l border-r border-b border-[rgba(255,255,255,0.05)] p-6 flex flex-col">
+                    <div className="w-[280px] h-[311px] bg-[#0D101C] border-l border-r border-b border-[rgba(255,255,255,0.05)] p-6 flex flex-col">
                                                                       <div className="flex items-center justify-center">
                           <div className="flex flex-col items-center mt-[8px]">
                                                           <img
@@ -1644,7 +1645,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                   {/* Second Card Container */}
                   <div className="flex flex-col justify-center items-center">
                     {/* Destination Network Dropdown */}
-                    <div className="w-[280px] bg-[#121420] rounded-t-md p-4 border-l border-r border-t border-[rgba(255,255,255,0.05)]">
+                    <div className="w-[280px] bg-[#121420] p-4 border-l border-r border-t border-[rgba(255,255,255,0.05)]">
                       <div className="flex items-center justify-between gap-2">
                         <label className="text-[#9C9DA2] font-inter text-[12px] whitespace-nowrap flex items-center gap-1">
                           Destination Network
@@ -1662,8 +1663,8 @@ const DepositView: React.FC<DepositViewProps> = ({
                             </Tooltip>
                           </TooltipProvider>
                         </label>
-                        <div className="relative w-200px">
-                          <div className="flex items-center justify-between w-full bg-[#1e202c] text-[#EDF2F8] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] pr-2">
+                        <div className="relative w-fit">
+                          <div className="flex items-center justify-between w-fit bg-[#1e202c] text-[#EDF2F8] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] pr-2">
                             <div className="flex items-center gap-2">
                               {strategyConfig.network && (
                                 <img
@@ -1685,22 +1686,22 @@ const DepositView: React.FC<DepositViewProps> = ({
                       </div>
                     </div>
                     {/* Right Card - Strategy Info */}
-                    <div className="w-[280px] h-[311px] bg-[#0D101C] rounded-[4px] border border-[rgba(255,255,255,0.05)] p-6 relative flex flex-col">
+                    <div className="w-[280px] h-[311px] bg-[#0D101C] border-l border-r border-b border-[rgba(255,255,255,0.05)] p-6 relative flex flex-col">
                       {/* Background gradient effect - top */}
-                      <div className="absolute top-0 left-0 right-0 h-[200px] bg-gradient-to-b from-[rgba(255,255,255,0.02)] to-transparent rounded-t-[4px] pointer-events-none"></div>
+                      {/* <div className="absolute top-0 left-0 right-0 h-[200px] bg-gradient-to-b from-[rgba(255,255,255,0.02)] to-transparent pointer-events-none"></div> */}
 
                       {/* Background blur effect - bottom */}
-                      <div className="absolute -bottom-[100px] left-1/2 -translate-x-1/2 w-[200px] h-[200px] bg-white/[0.05] blur-[25px] pointer-events-none"></div>
+                      {/* <div className="absolute -bottom-[100px] left-1/2 -translate-x-1/2 w-[200px] h-[200px] bg-white/[0.05] blur-[25px] pointer-events-none"></div> */}
 
                       {/* Asset Info */}
-                      <div className="flex flex-col items-center text-center relative z-10">
+                      {/* <div className="flex flex-col items-center text-center relative z-10">
                         <h3 className="text-[32px] text-[#D7E3EF]   font-medium leading-normal mb-[8px] mt-[12px]">
                           {selectedAsset}
                         </h3>
-                      </div>
+                      </div> */}
 
                       {/* Strategy Info - Positioned at bottom */}
-                      <div className="mt-auto w-full p-3 bg-[#121521] rounded-[4px] border border-[rgba(255,255,255,0.05)]">
+                      <div className="mt-auto w-full p-3 bg-[#121521] border-l border-r border-b border-[rgba(255,255,255,0.05)]">
                         <div className="flex items-center gap-3">
                           <img
                             src={`/images/icons/${selectedAsset.toLowerCase()}-${strategy}.svg`}
