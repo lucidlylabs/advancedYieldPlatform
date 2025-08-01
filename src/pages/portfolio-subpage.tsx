@@ -1505,7 +1505,7 @@ const PortfolioSubpage: React.FC = () => {
         </div>
 
         {/* Right Side - Withdraw Form or Info */}
-        <div className="w-1/2 p-8 hidden sm:block">
+        <div className="w-1/2 p-8 hidden sm:block overflow-auto h-[65vh]">
           {selectedStrategy ? (
             <div className="flex flex-col h-full rounded-lg p-6">
               <div className="flex gap-4 mb-6 border-b border-[rgba(255,255,255,0.15)]">
