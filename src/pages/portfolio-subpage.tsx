@@ -1684,7 +1684,7 @@ const PortfolioSubpage: React.FC = () => {
                     </div>
 
                     {/* Header with strategy info and balance */}
-                    <div className="flex items-end justify-between p-4 bg-[rgba(255,255,255,0.02)] border-b border-[rgba(255,255,255,0.15)]">
+                    <div className="flex items-end justify-between p-4 rounded-tl-[4px] rounded-tr-[4px] bg-[rgba(255,255,255,0.02)] border-b border-[rgba(255,255,255,0.15)]">
                       <div className="flex items-start gap-4">
                         <Image
                           src={`/images/icons/${selectedStrategy.asset.toLowerCase()}-${
@@ -1720,7 +1720,7 @@ const PortfolioSubpage: React.FC = () => {
                     </div>
 
                     {/* Input field and percentage buttons in same row */}
-                    <div className="flex items-center gap-4 mb-3 p-4 bg-[rgba(255,255,255,0.02)]">
+                    <div className="flex items-center gap-4 mb-3 p-4 rounded-bl-[4px] rounded-br-[4px] bg-[rgba(255,255,255,0.02)]">
                       {/* Input field on the left with no borders */}
                       <div className="flex-grow ">
                         <div>
