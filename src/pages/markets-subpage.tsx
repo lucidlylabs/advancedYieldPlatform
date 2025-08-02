@@ -269,10 +269,10 @@ const MarketsSubpage: React.FC = () => {
                 style={{ height: "100%" }}
               />
               <div className="relative z-10 flex flex-col items-start gap-[10px]">
-                <div className="text-[#D7E3EF] font-inter text-[18px] font-semibold leading-[20px]">
+                <div className="text-[#D7E3EF] font-inter text-[16px] font-semibold leading-[20px]">
                   Explore Yields
                 </div>
-                <p className="text-[#9C9DA2] font-inter text-[15px] font-normal leading-[20px]">
+                <p className="text-[#9C9DA2] font-inter text-[12px] font-regular leading-[20px]">
                   Farm everything here
                 </p>
               </div>
