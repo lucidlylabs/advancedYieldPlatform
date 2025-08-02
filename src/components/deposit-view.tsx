@@ -1532,7 +1532,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                     </div>
 
                     {/* Left Card - Deposit Input */}
-                    <div className="w-[280px] h-[311px] bg-[#0D101C] border-l border-r border-b border-[rgba(255,255,255,0.05)] p-6 flex flex-col">
+                    <div className="w-[280px] h-[270px] bg-[#0D101C] border-l border-r border-b border-[rgba(255,255,255,0.05)] px-6 pt-6 pb-4 flex flex-col">
                       <div className="flex items-center justify-center">
                         <div className="flex flex-col items-center mt-[8px]">
                           <img
@@ -1645,7 +1645,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                       </div>
                     )} */}
                       {/* Input Section */}
-                      <div className="mt-auto">
+                      <div className="mt-8">
                         <div className="flex items-center gap-2 mb-2">
                           <div className="flex-1 border-b border-[rgba(255,255,255,0.1)] pb-2">
                             <input
@@ -1714,7 +1714,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                       </div>
                     </div>
                     {/* Right Card - Strategy Info */}
-                    <div className="w-[280px] h-[311px] bg-[#0D101C] border-l border-r border-b border-[rgba(255,255,255,0.05)] p-6 relative flex flex-col">
+                    <div className="w-[280px] h-[270px] bg-[#0D101C] border-l border-r border-b border-[rgba(255,255,255,0.05)] px-6 pt-6 pb-4 relative flex flex-col">
                       {/* Background gradient effect - top */}
                       {/* <div className="absolute top-0 left-0 right-0 h-[200px] bg-gradient-to-b from-[rgba(255,255,255,0.02)] to-transparent pointer-events-none"></div> */}
 
@@ -1737,7 +1737,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                           className="w-[56px] h-[56px] cursor-pointer hover:opacity-80 transition-all duration-200 mb-3"
                           onClick={onReset}
                         />
-                        <div className="flex flex-col items-center flex-1 justify-between">
+                        <div className="flex flex-col items-center flex-1 justify-start">
                           <div className="flex flex-col items-center">
                             <div className="flex items-center justify-center">
                               <div className="text-white font-semibold capitalize flex items-center gap-[10px]">
@@ -1789,7 +1789,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                               </span>
                             </div>
                           </div>
-                          <div>
+                          <div className="mt-8">
                             <div className="text-[#D7E3EF] text-[24px] font-bold leading-normal">
                               {sharesToReceive
                                 ? Number(sharesToReceive).toFixed(2)
