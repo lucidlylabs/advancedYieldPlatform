@@ -147,7 +147,7 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
   return (
     <div className="w-full">
       {/* Table Header */}
-      <div className="px-[16px] sm:pl-[32px]">
+      <div className="sm:pl-[32px]">
         <div className="grid grid-cols-12 pr-6 py-2 border-y-[0.5px] border-[rgba(255,255,255,0.15)]">
           <div
             className="col-span-4 cursor-pointer flex items-center text-white opacity-60 font-inter text-[11px] font-normal leading-[14px] py-[5px]"
@@ -184,9 +184,43 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
                 {sortDirection === "asc" ? "↑" : "↓"}
               </span>
             )}
+                                      <svg
+                className="ml-1"
+                width="14"
+                height="14"
+                viewBox="0 0 14 14"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <g opacity="0.6">
+                  <path
+                    d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992"
+                    stroke="white"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </g>
+              </svg>
           </div>
           <div className="col-span-3 flex items-center text-white opacity-60 font-inter text-[11px] font-normal leading-[14px]">
             Incentives
+            <svg
+                className="ml-1"
+                width="14"
+                height="14"
+                viewBox="0 0 14 14"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <g opacity="0.6">
+                  <path
+                    d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992"
+                    stroke="white"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </g>
+              </svg>
           </div>
           <div
             className="col-span-2 cursor-pointer flex items-center justify-end text-white opacity-60 font-inter text-[11px] font-normal leading-[14px]"
@@ -198,6 +232,23 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
                 {sortDirection === "asc" ? "↑" : "↓"}
               </span>
             )}
+                                      <svg
+                className="ml-1"
+                width="14"
+                height="14"
+                viewBox="0 0 14 14"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <g opacity="0.6">
+                  <path
+                    d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992"
+                    stroke="white"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </g>
+              </svg>
           </div>
         </div>
       </div>

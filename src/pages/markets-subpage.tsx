@@ -72,7 +72,7 @@ const AssetButton: React.FC<{
         if (!disabled) onClick(asset);
       }}
     >
-      <div className="w-4 h-4 flex items-center justify-center flex-shrink-0 rounded-full overflow-hidden">
+      <div className="w-4 h-4 flex items-center justify-center flex-shrink-0 rounded-full overflow-hidden mb-2">
         <Image
           src={icon}
           alt={`${asset} icon`}
@@ -81,7 +81,7 @@ const AssetButton: React.FC<{
           className="object-contain rounded-full"
         />
       </div>
-      <span className="text-white font-inter text-[12px] font-normal leading-[16px]">
+      <span className="text-white font-inter text-[12px] font-normal leading-[16px] mb-2">
         {asset}
       </span>
       {activeAsset === asset && (
@@ -280,7 +280,7 @@ const MarketsSubpage: React.FC = () => {
 
             {/* Asset Selection */}
             <div className="px-[32px] mt-[16px]">
-              <div className="grid grid-cols-4 gap-3 sm:flex sm:border-b-[0.5px] sm:border-[rgba(255,255,255,0.15)] sm:pr-6">
+              <div className="grid grid-cols-4 gap-3 sm:flex sm:pr-6">
                 <AssetButton
                   asset="ALL"
                   activeAsset={selectedAsset}
