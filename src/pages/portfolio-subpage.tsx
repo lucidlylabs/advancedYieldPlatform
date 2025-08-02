@@ -1998,7 +1998,7 @@ const PortfolioSubpage: React.FC = () => {
 
                   {/* Requests List */}
                   {requestTab === "pending" && (
-                    <div className="space-y-4">
+                    <div className="space-y-2">
                       {isLoadingRequests ? (
                         <div>Loading...</div>
                       ) : withdrawRequests.length === 0 ? (
@@ -2126,7 +2126,7 @@ const PortfolioSubpage: React.FC = () => {
                               ) : (
                                 <button
                                   onClick={() => handleCancel(req.request_id)}
-                                  className="text-[#F87171] text-[12px] font-medium hover:underline whitespace-nowrap"
+                                  className="text-[#F85A3E] text-[12px] font-medium hover:underline whitespace-nowrap"
                                 >
                                   Cancel Request
                                 </button>
@@ -2139,7 +2139,7 @@ const PortfolioSubpage: React.FC = () => {
                   )}
 
                   {requestTab === "completed" && (
-                    <div className="space-y-4">
+                    <div className="space-y-2">
                       {isLoadingRequests ? (
                         <div>Loading...</div>
                       ) : completedRequests.length === 0 ? (
