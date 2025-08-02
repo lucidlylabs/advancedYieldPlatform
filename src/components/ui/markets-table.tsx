@@ -259,7 +259,7 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
           <div
             key={item.id}
             onClick={() => onRowClick && onRowClick(item)}
-            className="cursor-pointer px-[16px] sm:pl-[32px]"
+            className="cursor-pointer sm:pl-[32px]"
           >
             <div
               className={cn(
