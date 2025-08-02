@@ -15,7 +15,7 @@ import DepositView from "../components/deposit-view";
 
 const isMobile = () => typeof window !== "undefined" && window.innerWidth < 640;
 
-type AssetType = "ALL" | "USD" | "ETH" | "BTC";
+type AssetType = "All" | "USD" | "ETH" | "BTC";
 
 interface MarketItem {
   id: number;
@@ -39,7 +39,7 @@ const AssetButton: React.FC<{
 }> = ({ asset, activeAsset, onClick, disabled = false }) => {
   const getAssetDetails = () => {
     switch (asset) {
-      case "ALL":
+      case "All":
         return {
           icon: "/images/icons/selector-all.svg",
         };
@@ -63,7 +63,7 @@ const AssetButton: React.FC<{
   return (
     <button
       className={cn(
-        "flex items-center gap-[4px] py-2 pb-[8px] transition-all duration-200 mr-[24px] last:mr-0 relative",
+        "flex items-center gap-[2px] py-2 px-2 pb-[8px] transition-all duration-200 relative",
         activeAsset === asset ? "opacity-100" : "opacity-50",
         "hover:opacity-100",
         disabled ? "cursor-not-allowed opacity-30" : "cursor-pointer"
@@ -85,14 +85,14 @@ const AssetButton: React.FC<{
         {asset}
       </span>
       {activeAsset === asset && (
-        <div className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-white" />
+        <div className="absolute bottom-[-1px] left-0 right-0 h-[0.5px] bg-white" />
       )}
     </button>
   );
 };
 
 const MarketsSubpage: React.FC = () => {
-  const [selectedAsset, setSelectedAsset] = useState<AssetType>("ALL");
+  const [selectedAsset, setSelectedAsset] = useState<AssetType>("All");
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [selectedItem, setSelectedItem] = useState<MarketItem | null>(null);
@@ -102,7 +102,7 @@ const MarketsSubpage: React.FC = () => {
 
   // Market data
   const marketData: Record<AssetType, MarketItem[]> = {
-    ALL: [],
+    All: [],
     ETH: [],
     BTC: [],
     USD: [
@@ -126,7 +126,7 @@ const MarketsSubpage: React.FC = () => {
   const router = useRouter();
 
   // Fill the "ALL" category
-  marketData.ALL = [...marketData.ETH, ...marketData.BTC, ...marketData.USD];
+  marketData.All = [...marketData.ETH, ...marketData.BTC, ...marketData.USD];
 
   // Fetch TVL for USD strategy if it's a URL
   useEffect(() => {
@@ -282,7 +282,7 @@ const MarketsSubpage: React.FC = () => {
             <div className="px-[32px] mt-[16px]">
               <div className="grid grid-cols-4 gap-3 sm:flex sm:pr-6">
                 <AssetButton
-                  asset="ALL"
+                  asset="All"
                   activeAsset={selectedAsset}
                   onClick={setSelectedAsset}
                 />
