@@ -262,7 +262,7 @@ const ExternalLinkIcon = () => (
   >
     <path
       d="M12.25 5.75L12.25 2.25M12.25 2.25H8.75M12.25 2.25L7.58333 6.91667M5.83333 3.41667H4.55C3.56991 3.41667 3.07986 3.41667 2.70552 3.60741C2.37623 3.77518 2.10852 4.0429 1.94074 4.37218C1.75 4.74653 1.75 5.23657 1.75 6.21667V9.95C1.75 10.9301 1.75 11.4201 1.94074 11.7945C2.10852 12.1238 2.37623 12.3915 2.70552 12.5593C3.07986 12.75 3.56991 12.75 4.55 12.75H8.28333C9.26342 12.75 9.75347 12.75 10.1278 12.5593C10.4571 12.3915 10.7248 12.1238 10.8926 11.7945C11.0833 11.4201 11.0833 10.9301 11.0833 9.95V8.66667"
-      stroke="#9C9DA2"
+      stroke="white"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
@@ -1566,9 +1566,9 @@ const PortfolioSubpage: React.FC = () => {
         </div>
 
         {/* Right Side - Withdraw Form or Info */}
-        <div className="w-1/2 p-4 pt-2 hidden sm:block overflow-auto h-[80vh]">
+        <div className="w-1/2 p-8 hidden sm:block overflow-auto h-[80vh]">
           {selectedStrategy ? (
-            <div className="flex flex-col h-full rounded-lg p-6 mb-48">
+            <div className="flex flex-col h-full rounded-lg p-6 mb-56">
               <div className="flex gap-4 mb-6 border-b border-[rgba(255,255,255,0.15)]">
                 <button
                   onClick={() => setActiveTab("withdraw")}
@@ -1972,22 +1972,22 @@ const PortfolioSubpage: React.FC = () => {
                 <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
                   {/* Segmented Control Tabs */}
                   <div className="mb-4 flex justify-start">
-                    <div className="relative bg-transparent border border-[rgba(255,255,255,0.2)] rounded-[6px] flex w-[158px]">
+                    <div className="relative bg-transparent rounded-[6px] flex w-[158px]">
                       <button
-                        className={`w-[71px] px-3 py-1.5 text-[12px] font-normal leading-[16px] transition-all duration-200 border rounded-l-[6px] rounded-r-[0px] flex items-center justify-center ${
+                        className={`w-[71px] px-3 py-1.5 text-[12px] font-normal leading-[16px] transition-all duration-200 rounded-l-[6px] rounded-r-[0px] flex items-center justify-center ${
                           requestTab === "pending"
-                            ? "bg-[rgba(184,138,248,0.15)] text-[#D7E3EF] shadow-sm border-[rgba(184,138,248,0.5)]"
-                            : "text-[#9C9DA2] hover:text-[#D7E3EF] border-transparent"
+                            ? "bg-[rgba(184,138,248,0.15)] text-[#D7E3EF] shadow-sm border-l border-t border-b border-r border-[rgba(184,138,248,0.5)]"
+                            : "text-[#9C9DA2] hover:text-[#D7E3EF] border-l border-t border-b border-[rgba(255,255,255,0.2)]"
                         }`}
                         onClick={() => setRequestTab("pending")}
                       >
                         Pending
                       </button>
                       <button
-                        className={`w-[87px] px-3 py-1.5 text-[12px] font-normal leading-[16px] transition-all duration-200 border rounded-l-[0px] rounded-r-[6px] flex items-center justify-center ${
+                        className={`w-[87px] px-3 py-1.5 text-[12px] font-normal leading-[16px] transition-all duration-200 rounded-l-[0px] rounded-r-[6px] flex items-center justify-center ${
                           requestTab === "completed"
-                            ? "bg-[rgba(184,138,248,0.15)] text-[#D7E3EF] shadow-sm border-[rgba(184,138,248,0.5)]"
-                            : "text-[#9C9DA2] hover:text-[#D7E3EF] border-transparent"
+                            ? "bg-[rgba(184,138,248,0.15)] text-[#D7E3EF] shadow-sm border-l border-t border-b border-r border-[rgba(184,138,248,0.5)]"
+                            : "text-[#9C9DA2] hover:text-[#D7E3EF] border-r border-t border-b border-[rgba(255,255,255,0.2)]"
                         }`}
                         onClick={() => setRequestTab("completed")}
                       >
