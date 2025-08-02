@@ -28,8 +28,8 @@ interface MarketsTableProps {
 
 const InfoIcon = () => (
   <svg
-    width="16"
-    height="16"
+    width="12"
+    height="12"
     viewBox="0 0 24 24"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
@@ -148,7 +148,7 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
     <div className="w-full">
       {/* Table Header */}
       <div className="sm:pl-[32px]">
-        <div className="grid grid-cols-12 pr-6 py-2 border-y-[0.5px] border-[rgba(255,255,255,0.15)]">
+        <div className="grid grid-cols-12 pr-6 py-1 border-y-[0.5px] border-[rgba(255,255,255,0.15)]" style={{ height: '38px' }}>
           <div
             className="col-span-4 cursor-pointer flex items-center text-white opacity-60 font-inter text-[11px] font-normal leading-[14px] py-[5px]"
             onClick={() => onSort("name")}
@@ -161,7 +161,7 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
             )}
           </div>
           <div
-            className="col-span-3 cursor-pointer flex items-center text-white opacity-60 font-inter text-[11px] font-normal leading-[14px]"
+            className="col-span-3 cursor-pointer flex items-center justify-end text-white opacity-60 font-inter text-[11px] font-normal leading-[14px]"
             onClick={() => onSort("baseYield")}
           >
             Base APY
@@ -202,7 +202,7 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
                 </g>
               </svg>
           </div>
-          <div className="col-span-3 flex items-center text-white opacity-60 font-inter text-[11px] font-normal leading-[14px]">
+          <div className="col-span-3 flex items-center justify-end text-white opacity-60 font-inter text-[11px] font-normal leading-[14px]">
             Incentives
             <svg
                 className="ml-1"
@@ -277,10 +277,10 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
                     {item.name}
                   </span>
                 </div>
-                <div className="col-span-3 flex items-center text-white font-inter text-xs font-normal leading-4">
+                <div className="col-span-3 flex items-center justify-end text-white font-inter text-xs font-normal leading-4">
                   {item.baseYield}
                 </div>
-                <div className="col-span-3 flex items-center">
+                <div className="col-span-3 flex items-center justify-end">
                   {(() => {
                     console.log('Incentives for', item.name, ':', item.incentives);
                     const hasValidIncentives = item.incentives && 
