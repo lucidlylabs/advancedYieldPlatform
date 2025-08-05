@@ -317,23 +317,6 @@ const MarketsSubpage: React.FC = () => {
                 selectedItemId={selectedItem?.id}
               />
             </div>
-            {/* Overlay to hide divider for selected row */}
-            {selectedItem && (
-              <div
-                className="absolute right-0 w-[1px] h-[60px] bg-[#0E1117]"
-                style={{
-                  top: `${
-                    124 +
-                    48 +
-                    getSortedData().findIndex(
-                      (item) => item.id === selectedItem.id
-                    ) *
-                      60 +
-                    60
-                  }px`,
-                }}
-              />
-            )}
           </div>
 
           <div className="w-[1px] bg-[rgba(255,255,255,0.1)]" />
