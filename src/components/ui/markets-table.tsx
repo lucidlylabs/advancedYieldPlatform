@@ -44,6 +44,36 @@ const InfoIcon = () => (
   </svg>
 );
 
+const SortIcon = ({ direction }: { direction: "asc" | "desc" | null }) => {
+  return (
+    <svg
+      className="ml-1"
+      width="14"
+      height="14"
+      viewBox="0 0 14 14"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <g opacity={direction ? "1" : "0.6"}>
+        {/* Up arrow - white when ascending, grey otherwise */}
+        <path
+          d="M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992"
+          stroke={direction === "asc" ? "white" : "#9C9DA2"}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {/* Down arrow - white when descending, grey otherwise */}
+        <path
+          d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992"
+          stroke={direction === "desc" ? "white" : "#9C9DA2"}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </g>
+    </svg>
+  );
+};
+
 const MarketsTable: React.FC<MarketsTableProps> = ({
   data,
   sortColumn,
@@ -154,11 +184,7 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
             onClick={() => onSort("name")}
           >
             Available Yields
-            {sortColumn === "name" && (
-              <span className="ml-1">
-                {sortDirection === "asc" ? "↑" : "↓"}
-              </span>
-            )}
+            <SortIcon direction={sortColumn === "name" ? sortDirection : null} />
           </div>
           <div
             className="col-span-3 cursor-pointer flex items-center justify-end text-white opacity-60 font-inter text-[11px] font-normal leading-[14px]"
@@ -179,76 +205,18 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            {sortColumn === "baseYield" && (
-              <span className="ml-1">
-                {sortDirection === "asc" ? "↑" : "↓"}
-              </span>
-            )}
-                                      <svg
-                className="ml-1"
-                width="14"
-                height="14"
-                viewBox="0 0 14 14"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <g opacity="0.6">
-                  <path
-                    d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992"
-                    stroke="white"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </g>
-              </svg>
+            <SortIcon direction={sortColumn === "baseYield" ? sortDirection : null} />
           </div>
           <div className="col-span-3 flex items-center justify-end text-white opacity-60 font-inter text-[11px] font-normal leading-[14px]">
             Incentives
-            <svg
-                className="ml-1"
-                width="14"
-                height="14"
-                viewBox="0 0 14 14"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <g opacity="0.6">
-                  <path
-                    d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992"
-                    stroke="white"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </g>
-              </svg>
+            <SortIcon direction={null} />
           </div>
           <div
             className="col-span-2 cursor-pointer flex items-center justify-end text-white opacity-60 font-inter text-[11px] font-normal leading-[14px]"
             onClick={() => onSort("tvl")}
           >
             TVL
-            {sortColumn === "tvl" && (
-              <span className="ml-1">
-                {sortDirection === "asc" ? "↑" : "↓"}
-              </span>
-            )}
-                                      <svg
-                className="ml-1"
-                width="14"
-                height="14"
-                viewBox="0 0 14 14"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <g opacity="0.6">
-                  <path
-                    d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992"
-                    stroke="white"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </g>
-              </svg>
+            <SortIcon direction={sortColumn === "tvl" ? sortDirection : null} />
           </div>
         </div>
       </div>
