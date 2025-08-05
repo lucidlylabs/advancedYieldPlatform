@@ -53,7 +53,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { setNonce } from "viem/actions";
+
 
 interface NetworkConfig {
   tokens: Array<{
