@@ -102,7 +102,7 @@ export default function Page() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col pt-[52px]">
       <Header onNavigateToDeposit={handleNavigateToDeposit}>
       <div className="flex items-center justify-between w-full">
         <div className="flex items-stretch h-full">
@@ -122,14 +122,14 @@ export default function Page() {
               />
             </div>
           </div>
-          <div className="w-[1px] bg-[rgba(255,255,255,0.1)] mx-4"></div>
+          <div className="w-[1px] bg-[rgba(255,255,255,0.1)] ml-4"></div>
           <nav className="hidden md:flex">
             <div className="relative flex">
               <button
-                className={`px-6 py-4 text-sm transition-colors relative ${
+                className={`px-8 py-[18px] text-sm transition-colors relative ${
                   selectedSubPage === SubPage.Yield
-                    ? "text-[#B88AF8]"
-                    : "text-white hover:text-gray-300"
+                    ? "text-white"
+                    : "text-[#9C9DA2] hover:text-gray-300"
                 }`}
                 onClick={() => {
                   setSelectedSubPage(SubPage.Yield);
@@ -138,45 +138,45 @@ export default function Page() {
               >
                 Earn
                 {selectedSubPage === SubPage.Yield && (
-                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#B88AF8]"></div>
+                  <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#B88AF8]"></div>
                 )}
               </button>
 
               <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
 
               <button
-                className={`px-6 py-4 text-sm transition-colors relative ${
+                className={`px-8 py-[18px] text-sm transition-colors relative ${
                   selectedSubPage === SubPage.Markets
-                    ? "text-[#B88AF8]"
-                    : "text-white hover:text-gray-300"
+                    ? "text-white"
+                    : "text-[#9C9DA2] hover:text-gray-300"
                 }`}
                 onClick={() => setSelectedSubPage(SubPage.Markets)}
               >
                 Yields
                 {selectedSubPage === SubPage.Markets && (
-                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#B88AF8]"></div>
+                  <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#B88AF8]"></div>
                 )}
               </button>
 
               <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
 
               <button
-                className={`px-6 py-4 text-sm transition-colors relative ${
+                className={`px-8 py-[18px] text-sm transition-colors relative ${
                   selectedSubPage === SubPage.Portfolio
-                    ? "text-[#B88AF8]"
-                    : "text-white hover:text-gray-300"
+                    ? "text-white"
+                    : "text-[#9C9DA2] hover:text-gray-300"
                 }`}
                 onClick={() => setSelectedSubPage(SubPage.Portfolio)}
               >
                 Portfolio
                 {selectedSubPage === SubPage.Portfolio && (
-                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#B88AF8]"></div>
+                  <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#B88AF8]"></div>
                 )}
               </button>
               <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
 
               <button
-                className={`px-6 py-4 text-sm transition-colors relative `}
+                className={`px-8 py-[18px] text-sm transition-colors relative text-[#9C9DA2] hover:text-gray-300`}
                 onClick={() => {
                   window.open(
                     "https://docs.lucidly.finance",
@@ -223,7 +223,7 @@ export default function Page() {
       </Header>
 
       {isMobileMenuOpen && (
-      <div className="md:hidden bg-[#0D101C] py-4 flex flex-col items-center gap-4 border-b border-[rgba(255,255,255,0.1)]">
+      <div className="fixed top-[72px] left-0 right-0 z-40 md:hidden bg-[#0D101C] py-4 flex flex-col items-center gap-4 border-b border-[rgba(255,255,255,0.1)]">
         <button
           className="text-white text-lg"
           onClick={() => {
@@ -255,7 +255,7 @@ export default function Page() {
       </div>
     )}
 
-      <main className="flex-1">{renderSubPage()}</main>
+      <main className={`flex-1 ${isMobileMenuOpen ? 'pt-[200px]' : ''}`}>{renderSubPage()}</main>
     </div>
   );
 }

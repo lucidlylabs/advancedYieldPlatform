@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import {
   useAccount,
@@ -19,6 +19,24 @@ import {
 } from "viem";
 import { useRouter } from "next/router";
 
+const InfoIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M12 16V12M12 8H12.01M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 const isMobile = () => typeof window !== "undefined" && window.innerWidth < 640;
 // import {
 //   BarChart,
@@ -35,6 +53,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { setNonce } from "viem/actions";
 
 interface NetworkConfig {
   tokens: Array<{
@@ -43,6 +62,54 @@ interface NetworkConfig {
     decimal: number;
     image: string;
   }>;
+}
+
+interface TokenConfig {
+  name: string;
+  contract: string;
+  decimal: number;
+  image: string;
+}
+
+interface ChainConfig {
+  tokens: TokenConfig[];
+  image?: string; // Add optional image property for chain
+  rpc: string;
+  chainId: number;
+  chainObject: {
+    id: number;
+    name: string;
+    network: string;
+    nativeCurrency: {
+      decimals: number;
+      name: string;
+      symbol: string;
+    };
+    rpcUrls: {
+      default: { http: string[] };
+      public: { http: string[] };
+    };
+  };
+}
+
+interface StrategyConfig {
+  network: string;
+  contract: string;
+  base: ChainConfig;
+  ethereum: ChainConfig;
+  arbitrum: ChainConfig;
+  katana: ChainConfig; // <-- Add this line
+  description: string;
+  apy: string;
+  incentives: string;
+  tvl: string;
+  rpc?: string;
+  show_cap: boolean;
+  filled_cap: string;
+  cap_limit: string;
+  boringVaultAddress?: string;
+  rateProvider: string;
+  shareAddress: string;
 }
 
 interface BaseStrategyConfig {
@@ -195,7 +262,7 @@ const ExternalLinkIcon = () => (
   >
     <path
       d="M12.25 5.75L12.25 2.25M12.25 2.25H8.75M12.25 2.25L7.58333 6.91667M5.83333 3.41667H4.55C3.56991 3.41667 3.07986 3.41667 2.70552 3.60741C2.37623 3.77518 2.10852 4.0429 1.94074 4.37218C1.75 4.74653 1.75 5.23657 1.75 6.21667V9.95C1.75 10.9301 1.75 11.4201 1.94074 11.7945C2.10852 12.1238 2.37623 12.3915 2.70552 12.5593C3.07986 12.75 3.56991 12.75 4.55 12.75H8.28333C9.26342 12.75 9.75347 12.75 10.1278 12.5593C10.4571 12.3915 10.7248 12.1238 10.8926 11.7945C11.0833 11.4201 11.0833 10.9301 11.0833 9.95V8.66667"
-      stroke="#9C9DA2"
+      stroke="white"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
@@ -231,7 +298,12 @@ const chainConfigs = {
 };
 
 const PortfolioSubpage: React.FC = () => {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, chain } = useAccount();
+  const formatDuration = (duration: string) => {
+    if (duration === "PERPETUAL_DURATION") return "Liquid";
+    const [number, period] = duration.split("_");
+    return `${number} ${period.toLowerCase()}`;
+  };
   const [depositSuccess, setDepositSuccess] = useState(false);
   const [transactionHash, setTransactionHash] = useState<`0x${string}` | null>(
     null
@@ -248,6 +320,7 @@ const PortfolioSubpage: React.FC = () => {
   const [withdrawTxHash, setWithdrawTxHash] = useState<`0x${string}` | null>(
     null
   );
+  const [isCancelling, setIsCancelling] = useState(false);
   const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"withdraw" | "request">(
@@ -265,11 +338,81 @@ const PortfolioSubpage: React.FC = () => {
   const [completedRequests, setCompletedRequests] = useState<any[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
   const [usdApy, setUsdApy] = useState<string | null>(null);
+  const [isChainDropdownOpen, setIsChainDropdownOpen] = useState(false);
+  const [targetChain, setTargetChain] = useState<string>(
+    chain?.name.toLowerCase() || "base"
+  );
+  const [cancelStatusMap, setCancelStatusMap] = useState<{
+    [key: string]: "idle" | "cancelling" | "cancelled";
+  }>({});
 
   const chainId = useChainId();
   const isBase = chainId === 8453;
 
   const router = useRouter();
+
+  const strategyConfigs = {
+    USD: USD_STRATEGIES,
+    BTC: BTC_STRATEGIES,
+    ETH: ETH_STRATEGIES,
+  };
+
+  const getUniqueChainConfigs = useMemo(() => {
+    const uniqueChains = new Map<
+      string,
+      { name: string; network: string; image: string }
+    >();
+
+    // Directly access the STABLE strategy within PERPETUAL_DURATION
+    const stablePerpetualConfig = USD_STRATEGIES.PERPETUAL_DURATION
+      .STABLE as StrategyConfig;
+
+    if (stablePerpetualConfig) {
+      if (stablePerpetualConfig.base && stablePerpetualConfig.base.image) {
+        uniqueChains.set("base", {
+          name: "Base",
+          network: "base",
+          image: stablePerpetualConfig.base.image,
+        });
+      }
+      if (
+        stablePerpetualConfig.ethereum &&
+        stablePerpetualConfig.ethereum.image
+      ) {
+        uniqueChains.set("ethereum", {
+          name: "Ethereum",
+          network: "ethereum",
+          image: stablePerpetualConfig.ethereum.image,
+        });
+      }
+      if (
+        stablePerpetualConfig.arbitrum &&
+        stablePerpetualConfig.arbitrum.image
+      ) {
+        uniqueChains.set("arbitrum", {
+          name: "Arbitrum",
+          network: "arbitrum",
+          image: stablePerpetualConfig.arbitrum.image,
+        });
+      }
+      if (stablePerpetualConfig.katana && stablePerpetualConfig.katana.image) {
+        uniqueChains.set("katana", {
+          name: "Katana",
+          network: "katana",
+          image: stablePerpetualConfig.katana.image,
+        });
+      }
+    }
+
+    // Optionally, you can add other durations if they also define chain images
+    // For example:
+    // const stable30DaysConfig = USD_STRATEGIES["30_DAYS"].STABLE as StrategyConfig;
+    // if (stable30DaysConfig && stable30DaysConfig.base && stable30DaysConfig.base.image) {
+    //   uniqueChains.set("base", { name: "Base", network: "base", image: stable30DaysConfig.base.image });
+    // }
+
+    return Array.from(uniqueChains.values());
+  }, [USD_STRATEGIES]);
 
   // Watch deposit transaction
   const { isLoading: isWaitingForDeposit, isSuccess: isDepositSuccess } =
@@ -278,19 +421,19 @@ const PortfolioSubpage: React.FC = () => {
     });
 
   useEffect(() => {
-      const apyUrl = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.apy;
-      if (typeof apyUrl === "string" && apyUrl.startsWith("http")) {
-        fetch(apyUrl)
-          .then(res => res.json())
-          .then(data => {
-            const trailingApy = data?.result?.trailing_total_APY;
-            if (typeof trailingApy === "number") {
-              setUsdApy(`${trailingApy.toFixed(2)}%`);
-            }
-          })
-          .catch(() => setUsdApy(null));
-      }
-    }, []);
+    const apyUrl = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.apy;
+    if (typeof apyUrl === "string" && apyUrl.startsWith("http")) {
+      fetch(apyUrl)
+        .then((res) => res.json())
+        .then((data) => {
+          const trailingApy = data?.result?.trailing_total_APY;
+          if (typeof trailingApy === "number") {
+            setUsdApy(`${trailingApy.toFixed(2)}%`);
+          }
+        })
+        .catch(() => setUsdApy(null));
+    }
+  }, []);
 
   // Watch for deposit completion
   useEffect(() => {
@@ -656,30 +799,148 @@ const PortfolioSubpage: React.FC = () => {
     }
   };
 
+  const handleCancel = async (requestId: string) => {
+    if (!selectedStrategy || !address) return;
+    console.log("Cancelling request with ID:", requestId);
+
+    try {
+      setIsCancelling(true);
+      setErrorMessage(null);
+      setCancelStatusMap((prev) => ({ ...prev, [requestId]: "cancelling" }));
+
+      const solverAddress = selectedStrategy.solverAddress as Address;
+
+      console.log("Cancel details:", {
+        solverAddress,
+        requestId,
+        address,
+      });
+
+      const client = createPublicClient({
+        transport: http(selectedStrategy.rpc),
+        chain: {
+          id: 8453,
+          name: "Base",
+          network: "base",
+          nativeCurrency: {
+            decimals: 18,
+            name: "Ether",
+            symbol: "ETH",
+          },
+          rpcUrls: {
+            default: { http: ["https://mainnet.base.org"] },
+            public: { http: ["https://mainnet.base.org"] },
+          },
+        },
+      });
+
+      // Find the complete request data from withdrawRequests using request_id
+      const requestToCancel = withdrawRequests.find(
+        (req) => req.request_id === requestId
+      );
+
+      if (!requestToCancel) {
+        throw new Error("Request not found in pending requests");
+      }
+
+      console.log("Found request to cancel:", requestToCancel);
+
+      const assetOption = assetOptions.find(
+        (opt) =>
+          opt.contract.toLowerCase() ===
+          (requestToCancel.withdraw_asset_address || "").toLowerCase()
+      );
+
+      if (!assetOption) {
+        throw new Error("Asset not found for this request");
+      }
+
+      const request = {
+        nonce: BigInt("46"), // uint64
+        user: address as `0x${string}`, // address
+        assetOut: requestToCancel.withdraw_asset_address as `0x${string}`, // address
+        amountOfShares: BigInt(requestToCancel.amount_of_shares || 0), // uint128
+        amountOfAssets: BigInt(requestToCancel.amount_of_assets || 0), // uint128
+        creationTime: Number(requestToCancel.creation_time || 0), // uint40
+        secondsToMaturity: Number(requestToCancel.seconds_to_maturity || 60), // uint24 - might need to be fetched from contract
+        secondsToDeadline: 3600, // uint24 - might need to be fetched from contract
+      };
+
+      console.log("Debug - Cancel contract call parameters:", {
+        functionName: "cancelOnChainWithdraw",
+        contractAddress: solverAddress,
+        request: {
+          nonce: request.nonce.toString(),
+          user: request.user,
+          assetOut: request.assetOut,
+          amountOfShares: request.amountOfShares.toString(),
+          amountOfAssets: request.amountOfAssets.toString(),
+          creationTime: request.creationTime,
+          secondsToMaturity: request.secondsToMaturity,
+          secondsToDeadline: request.secondsToDeadline,
+        },
+      });
+      const cancelTx = await writeContract({
+        address: solverAddress,
+        abi: SOLVER_ABI,
+        functionName: "cancelOnChainWithdraw",
+        args: [request],
+        chainId: 8453,
+        account: address,
+      });
+
+      if (
+        cancelTx &&
+        typeof cancelTx === "string" &&
+        cancelTx.startsWith("0x")
+      ) {
+        console.log("Cancel transaction submitted:", cancelTx);
+        setCancelStatusMap((prev) => ({ ...prev, [requestId]: "cancelled" }));
+
+        // Refresh the requests after successful cancellation
+        setTimeout(() => {
+          fetchWithdrawRequests("", address);
+        }, 2000);
+      } else {
+        throw new Error("Failed to get cancel transaction hash");
+      }
+    } catch (error: any) {
+      console.error("Cancel failed:", error);
+      setCancelStatusMap((prev) => ({ ...prev, [requestId]: "idle" }));
+      if (error.code === 4001) {
+        setErrorMessage("Cancel cancelled by user.");
+      } else {
+        setErrorMessage(error.message || "Cancel transaction failed");
+      }
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
   // Handler for row clicks
   const handleStrategySelect = (strategy: any) => {
-    console.log("strategy",strategy)
+    console.log("strategy", strategy);
     if (isMobile()) {
-        router.push({
-          pathname: `/portfolio/${strategy.contract}`,
-          query: { 
-            strategy: strategy.contract,
-            asset: strategy.asset,
-            balance: strategy.balance,
-            duration: strategy.duration,
-            type: strategy.type,
-            apy: strategy.apy,
-            solverAddress: strategy.solverAddress,
-            boringVaultAddress: strategy.boringVaultAddress,
-            // tvl: strategy.tvl,
-            // baseApy: strategy.baseYield,
-            // contractAddress: strategy.contractAddress || "",
-            // network: strategy.network || ""
-          },
-        });
+      router.push({
+        pathname: `/portfolio/${strategy.contract}`,
+        query: {
+          strategy: strategy.contract,
+          asset: strategy.asset,
+          balance: strategy.balance,
+          duration: strategy.duration,
+          type: strategy.type,
+          apy: strategy.apy,
+          solverAddress: strategy.solverAddress,
+          boringVaultAddress: strategy.boringVaultAddress,
+          // tvl: strategy.tvl,
+          // baseApy: strategy.baseYield,
+          // contractAddress: strategy.contractAddress || "",
+          // network: strategy.network || ""
+        },
+      });
     } else {
-        setSelectedStrategy(strategy);
-        setWithdrawAmount(strategy.balance.toString());
+      setSelectedStrategy(strategy);
+      setWithdrawAmount(strategy.balance.toString());
     }
   };
 
@@ -706,9 +967,9 @@ const PortfolioSubpage: React.FC = () => {
   // const CustomXAxisTick = ({ x, y, payload, index, data }) => {
   //   const currentLabel = payload.value;
   //   const prevLabel = index > 0 ? data[index - 1]?.date : null;
-  
+
   //   const showLabel = currentLabel !== prevLabel;
-  
+
   //   return showLabel ? (
   //     <text x={x} y={y + 15} fill="#9C9DA2" fontSize={6}>
   //       {currentLabel}
@@ -865,7 +1126,7 @@ const PortfolioSubpage: React.FC = () => {
         `https://api.lucidly.finance/services/queueData?vaultAddress=0x279CAD277447965AF3d24a78197aad1B02a2c589&userAddress=${userAddress}`
       );
       const data = await response.json();
-      console.log("response:" ,response)
+      console.log("response:", response);
       setWithdrawRequests(data.result?.PENDING || []);
       setCompletedRequests(data.result?.FULFILLED || []);
       console.log("API response:", data);
@@ -879,7 +1140,7 @@ const PortfolioSubpage: React.FC = () => {
 
   useEffect(() => {
     if (address) {
-      console.log("withdrwaimg")
+      console.log("withdrwaimg");
       fetchWithdrawRequests("", address);
     }
   }, [address]);
@@ -900,6 +1161,10 @@ const PortfolioSubpage: React.FC = () => {
             "cacheQueueData API called after withdraw success:",
             data
           );
+          console.log(
+            "cacheQueueData API called after withdraw success:",
+            data
+          );
         })
         .catch((err) => {
           console.error("Error calling cacheQueueData API:", err);
@@ -910,9 +1175,9 @@ const PortfolioSubpage: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen text-white">
       {/* Top Section - Portfolio Value, PNL, and Wallet */}
-      <div className="flex flex-col sm:flex-row w-full py-4 items-center justify-between px-8 bg-[#0D101C] border-b border-[rgba(255,255,255,0.1)]">
+      <div className="flex flex-col sm:flex-row w-full py-10 items-center justify-between px-8 bg-[#0D101C] border-b border-[rgba(255,255,255,0.1)]">
         <div>
-          <div className="flex gap-32">
+          <div className="flex items-center">
             <div className="flex flex-col">
               <div className="text-[#9C9DA2]   text-[14px] font-normal leading-[16px]">
                 Portfolio
@@ -949,6 +1214,8 @@ const PortfolioSubpage: React.FC = () => {
                 )}
               </div>
             </div>
+            {/* Vertical Divider */}
+            <div className="w-px bg-[rgba(217,217,217,0.05)] self-stretch mx-8"></div>
             <div className="flex flex-col">
               <div className="text-[#9C9DA2]   text-[14px] font-normal leading-[16px]">
                 PNL
@@ -980,11 +1247,11 @@ const PortfolioSubpage: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="flex flex-col w-full sm:w-auto justify-center items-center gap-2 py-[10px] px-4 rounded-[4px] border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)]">
+        <div className="flex flex-col w-full sm:w-auto justify-center items-end gap-2 py-[10px] px-4 rounded-[4px] border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)]">
           <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-[16px]">
             Wallet Address
           </div>
-          <div className="text-[#D7E3EF] font-mono opacity-80 text-xs sm:text-md">
+          <div className="text-[#D7E3EF] font-mono opacity-80 text-[14px] font-normal">
             {isConnected ? address : "Not connected"}
           </div>
         </div>
@@ -993,9 +1260,9 @@ const PortfolioSubpage: React.FC = () => {
       {/* Main Content - Split View */}
       <div className="flex flex-1">
         {/* Left Side - Assets Table */}
-        <div className="w-full sm:w-1/2 border-r border-[rgba(255,255,255,0.1)] pt-8 px-4 sm:pl-8">
+        <div className="w-full sm:w-1/2 border-r border-[rgba(255,255,255,0.1)] pt-8 sm:pl-8">
           <div className="mb-6">
-            <div className="text-[rgba(255,255,255,0.70)]   text-[16px] font-bold uppercase">
+            <div className="text-[rgba(255,255,255,0.70)] text-[16px] font-medium uppercase">
               Total Portfolio Value
             </div>
           </div>
@@ -1035,62 +1302,114 @@ const PortfolioSubpage: React.FC = () => {
               </BarChart>
             </ResponsiveContainer>
           </div> */}
-                
-{/* Column Headers */}
-<div className="grid grid-cols-5 sm:pl-4 sm:pr-6 py-2 border-b border-[rgba(255,255,255,0.15)]">
-            <div className="flex justify-start text-[#9C9DA2] text-[14px] font-medium">
+
+          {/* Column Headers */}
+          <div className="grid grid-cols-5 sm:pl-4 sm:pr-6 py-2 border-b border-[rgba(255,255,255,0.15)]">
+            <div className="flex justify-start text-[#9C9DA2] text-[12px] font-normal">
               Available Yields
             </div>
-            <div className="flex justify-end text-[#9C9DA2]   text-[14px] font-medium  items-center">
+            <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
               Deposited on
               <svg
                 className="ml-1"
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
+                width="14"
+                height="14"
+                viewBox="0 0 14 14"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
+                <g opacity="0.6">
+                  <path
+                    d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992"
+                    stroke="white"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </g>
               </svg>
             </div>
-            <div className="flex justify-center text-[#9C9DA2]   text-[14px] font-medium items-center">
+            <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
               Expiry
               <svg
                 className="ml-1"
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
+                width="14"
+                height="14"
+                viewBox="0 0 14 14"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
+                <g opacity="0.6">
+                  <path
+                    d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992"
+                    stroke="white"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </g>
               </svg>
             </div>
-            <div className="flex justify-center text-[#9C9DA2] text-[14px] font-medium items-center">
+            <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
               Base APY
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <svg
+                      className="ml-1 cursor-pointer"
+                      width="12"
+                      height="12"
+                      viewBox="0 0 10 10"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M4.9987 6.66659V4.99992M4.9987 3.33325H5.00286M9.16536 4.99992C9.16536 7.30111 7.29988 9.16659 4.9987 9.16659C2.69751 9.16659 0.832031 7.30111 0.832031 4.99992C0.832031 2.69873 2.69751 0.833252 4.9987 0.833252C7.29988 0.833252 9.16536 2.69873 9.16536 4.99992Z"
+                        stroke="#9C9DA2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </TooltipTrigger>
+                  <TooltipContent className="text-xs" side="top">
+                    7 Day trailing
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <svg
                 className="ml-1"
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
+                width="14"
+                height="14"
+                viewBox="0 0 14 14"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
+                <g opacity="0.6">
+                  <path
+                    d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992"
+                    stroke="white"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </g>
               </svg>
             </div>
-            <div className="flex justify-end text-[#9C9DA2]   text-[14px] font-medium items-center">
+            <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
               Current Balance
               <svg
                 className="ml-1"
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
+                width="14"
+                height="14"
+                viewBox="0 0 14 14"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <path d="M8 10.667L4 6.66699H12L8 10.667Z" fill="#9C9DA2" />
+                <g opacity="0.6">
+                  <path
+                    d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992"
+                    stroke="white"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </g>
               </svg>
             </div>
           </div>
@@ -1165,11 +1484,13 @@ const PortfolioSubpage: React.FC = () => {
 
                   {/* Deposited On */}
                   {depositedChains.length === 0 ? (
-                    <div className="flex flex-col items-center justify-end">
-                      <div className="text-[#EDF2F8] text-[12px] font-normal leading-normal">-</div>
+                    <div className="flex flex-col items-end justify-end">
+                      <div className="text-[#EDF2F8] text-[12px] font-normal leading-normal">
+                        -
+                      </div>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-center gap-2 flex-wrap">
+                    <div className="flex items-center justify-end gap-0 flex-wrap -space-x-2">
                       {depositedChains.map((chainKey) => {
                         const chain = chainIconMap[chainKey];
                         if (!chain) return null;
@@ -1198,7 +1519,7 @@ const PortfolioSubpage: React.FC = () => {
                   )}
 
                   {/* Expiry */}
-                  <div className="flex flex-col items-center justify-end">
+                  <div className="flex flex-col items-end justify-end">
                     <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
                       {strategy.duration === "PERPETUAL_DURATION"
                         ? "No Expiry"
@@ -1212,7 +1533,7 @@ const PortfolioSubpage: React.FC = () => {
                   </div>
 
                   {/* APY */}
-                  <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal flex items-center justify-center">
+                  <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal flex items-center justify-end">
                     {usdApy}
                   </div>
 
@@ -1249,37 +1570,126 @@ const PortfolioSubpage: React.FC = () => {
         </div>
 
         {/* Right Side - Withdraw Form or Info */}
-        <div className="w-1/2 p-8 hidden sm:block">
+        <div className="w-1/2 p-8 hidden sm:block overflow-auto h-[80vh]">
           {selectedStrategy ? (
-            <div className="flex flex-col h-full rounded-lg p-6">
+            <div className="flex flex-col h-full rounded-lg p-6 mb-56">
               <div className="flex gap-4 mb-6 border-b border-[rgba(255,255,255,0.15)]">
                 <button
                   onClick={() => setActiveTab("withdraw")}
-                  className={`px-4 py-2 text-[14px] font-semibold transition-colors ${
-                    activeTab === "withdraw"
-                      ? "text-white border-b-2 border-[#B88AF8]"
-                      : "text-[#9C9DA2]"
+                  className={`px-2 py-2 pb-4 text-[12px] font-normal leading-[16px] transition-colors relative ${
+                    activeTab === "withdraw" ? "text-white" : "text-[#9C9DA2]"
                   }`}
                 >
                   Withdraw
+                  {activeTab === "withdraw" && (
+                    <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white"></div>
+                  )}
                 </button>
                 <button
                   onClick={() => setActiveTab("request")}
-                  className={`px-4 py-2 text-[14px] font-semibold transition-colors ${
-                    activeTab === "request"
-                      ? "text-white border-b-2 border-[#B88AF8]"
-                      : "text-[#9C9DA2]"
+                  className={`px-2 py-2 pb-4 text-[12px] font-normal leading-[16px] transition-colors relative ${
+                    activeTab === "request" ? "text-white" : "text-[#9C9DA2]"
                   }`}
                 >
-                  Request
+                  Requests
+                  {activeTab === "request" && (
+                    <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white"></div>
+                  )}
                 </button>
               </div>
               {activeTab === "withdraw" && (
                 <>
                   <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
+                    {/* Withdrawing assets from dropdown */}
+                    <div className="flex flex-row justify-between items-center bg-[#B88AF8] bg-opacity-5 rounded-sm p-[6px] mb-4">
+                      {/* Label */}
+                      <label className="text-[#9C9DA2] font-inter text-[12px] block pl-2 pt-1">
+                        Withdrawing assets from
+                      </label>
+
+                      {/* Dropdown */}
+                      <div className="relative">
+                        <button
+                          onClick={() =>
+                            setIsChainDropdownOpen(!isChainDropdownOpen)
+                          }
+                          className="flex items-center justify-between w-full text-[#EDF2F8] rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] border border-[rgba(255,255,255,0.05)]"
+                        >
+                          <div className="flex items-center gap-2">
+                            {targetChain && (
+                              <img
+                                src={
+                                  getUniqueChainConfigs.find(
+                                    (c) => c.network === targetChain
+                                  )?.image || ""
+                                }
+                                alt={targetChain}
+                                className="w-5 h-5 rounded-full"
+                              />
+                            )}
+                            <span className="capitalize text-[12px]">
+                              {targetChain}
+                            </span>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="ml-1">
+                                    <InfoIcon />
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent
+                                  className="text-xs max-w-[240px]"
+                                  side="top"
+                                >
+                                  To reduce bridging risks and ensure accurate
+                                  yield tracking, deposits and withdrawals are
+                                  limited to the Base network.
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                          {/* Dropdown arrow */}
+                          {/* <svg
+                            className={`w-4 h-4 transform transition-transform duration-200 ${
+                              isChainDropdownOpen ? "rotate-180" : "rotate-0"
+                            }`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                          </svg> */}
+                        </button>
+
+                        {/* Dropdown options */}
+                        {/* {isChainDropdownOpen && (
+                          <div className="absolute z-10 w-full mt-2 bg-[#1F202D] rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 focus:outline-none">
+                            {getUniqueChainConfigs.map((chainOption) => (
+                              <button
+                                key={chainOption.network}
+                                onClick={() => {
+                                  setTargetChain(chainOption.network);
+                                  setIsChainDropdownOpen(false);
+                                }}
+                                className="flex items-center w-full px-4 py-2 text-sm text-[#EDF2F8] hover:bg-[#1A1B1E]"
+                              >
+                                <img
+                                  src={chainOption.image}
+                                  alt={chainOption.name}
+                                  className="w-5 h-5 mr-2 rounded-full"
+                                />
+                                {chainOption.name}
+                              </button>
+                            ))}
+                          </div>
+                        )} */}
+                      </div>
+                    </div>
+
                     {/* Header with strategy info and balance */}
-                    <div className="flex items-center justify-between p-4  bg-[rgba(255,255,255,0.02)] mb-6 border-b border-[rgba(255,255,255,0.15)]">
-                      <div className="flex items-center gap-4">
+                    <div className="flex items-end justify-between p-4 rounded-tl-[4px] rounded-tr-[4px] bg-[rgba(255,255,255,0.02)] border-b border-[rgba(255,255,255,0.15)]">
+                      <div className="flex items-start gap-4">
                         <Image
                           src={`/images/icons/${selectedStrategy.asset.toLowerCase()}-${
                             selectedStrategy.type === "stable"
@@ -1287,31 +1697,34 @@ const PortfolioSubpage: React.FC = () => {
                               : "incentive"
                           }.svg`}
                           alt={selectedStrategy.asset}
-                          width={40}
-                          height={40}
+                          width={35}
+                          height={35}
                         />
                         <div>
-                          <div className="text-white font-semibold">
+                          <div className="text-white font-semibold text-[12px]">
                             {selectedStrategy.type === "stable"
                               ? "Base Yield"
                               : "Incentive Maxi"}{" "}
                             {selectedStrategy.asset}
                           </div>
-                          <div className="text-[#00D1A0] text-[14px]">
+                          <div className="text-[#00D1A0] text-[12px]">
                             +0.00 in 1 year
                           </div>
+                        </div>
+                        <div className="text-gray-400 text-[12px] -ml-1">
+                          {formatDuration("PERPETUAL_DURATION")}
                         </div>
                       </div>
                       <div className="text-[#9C9DA2] text-right   text-[12px] font-normal leading-normal">
                         Balance:{" "}
                         <span className="text-[#D7E3EF] text-[12px] font-semibold leading-normal">
-                          {selectedStrategy.balance.toFixed(4)}
+                          {selectedStrategy.balance.toFixed(2)}
                         </span>
                       </div>
                     </div>
 
                     {/* Input field and percentage buttons in same row */}
-                    <div className="flex items-center gap-4 mb-6">
+                    <div className="flex items-center gap-4 mb-3 p-4 rounded-bl-[4px] rounded-br-[4px] bg-[rgba(255,255,255,0.02)]">
                       {/* Input field on the left with no borders */}
                       <div className="flex-grow ">
                         <div>
@@ -1328,25 +1741,25 @@ const PortfolioSubpage: React.FC = () => {
                       {/* Percentage buttons on the right */}
                       <div className="flex gap-2">
                         <button
-                          className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2]   text-[12px] font-normal"
+                          className="bg-[#121521] rounded-[4px] border border-[rgba(156,157,162,0.3)] py-0.5 px-1.5 text-[#9C9DA2] text-[12px] font-normal w-[41px]"
                           onClick={() => handlePercentageClick(0.25)}
                         >
                           25%
                         </button>
                         <button
-                          className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2]   text-[12px] font-normal"
+                          className="bg-[#121521] rounded-[4px] border border-[rgba(156,157,162,0.3)] py-0.5 px-1.5 text-[#9C9DA2] text-[12px] font-normal w-[41px]"
                           onClick={() => handlePercentageClick(0.5)}
                         >
                           50%
                         </button>
                         <button
-                          className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2]   text-[12px] font-normal"
+                          className="bg-[#121521] rounded-[4px] border border-[rgba(156,157,162,0.3)] py-0.5 px-1.5 text-[#9C9DA2] text-[12px] font-normal w-[41px]"
                           onClick={() => handlePercentageClick(0.75)}
                         >
                           75%
                         </button>
                         <button
-                          className="bg-[#0F111A] rounded-lg border border-[#1E2337] py-1 px-2 text-[#9C9DA2]   text-[12px] font-normal"
+                          className="bg-[#121521] rounded-[4px] border border-[rgba(156,157,162,0.3)] py-0.5 px-1.5 text-[#9C9DA2] text-[12px] font-normal w-[41px]"
                           onClick={handleMaxClick}
                         >
                           MAX
@@ -1354,16 +1767,16 @@ const PortfolioSubpage: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex justify-between py-4 mb-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] px-6 items-center">
-                      <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
+                    <div className="flex justify-between py-4 mb-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] p-4 items-center">
+                      <div className="text-[#9C9DA2] text-[12px] font-normal leading-normal">
                         You Will Receive
                       </div>
                       <div className="flex justify-end items-center gap-4">
                         <div className="text-[#EDF2F8] text-[16px] font-medium leading-normal">
-                          {formatUnits(
+                          {Number(formatUnits(
                             amountOut ? BigInt(amountOut) : BigInt(0),
                             6
-                          )}{" "}
+                          )).toFixed(2)}{" "}
                         </div>
                         {assetOptions.length > 1 && (
                           <div className="">
@@ -1372,7 +1785,7 @@ const PortfolioSubpage: React.FC = () => {
                                 onClick={() =>
                                   setIsAssetDropdownOpen(!isAssetDropdownOpen)
                                 }
-                                className="flex items-center justify-between w-full bg-[#0D101C] text-[#EDF2F8] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] border border-[rgba(255,255,255,0.19)]"
+                                className="flex items-center justify-between w-full bg-[#131520] text-[#EDF2F8] rounded px-3 py-2 text-sm focus:outline-none border border-[rgba(255,255,255,0.19)]"
                               >
                                 <div className="flex items-center gap-2">
                                   {assetOptions[selectedAssetIdx]?.image && (
@@ -1382,12 +1795,12 @@ const PortfolioSubpage: React.FC = () => {
                                       className="w-5 h-5 rounded-full"
                                     />
                                   )}
-                                  <span>
+                                  <span className="text-[12px] font-semibold">
                                     {assetOptions[selectedAssetIdx].name}
                                   </span>
                                 </div>
                                 <svg
-                                  className={`w-4 h-4 transform transition-transform duration-200 ${
+                                  className={`w-4 h-4 transform transition-transform duration-200 ml-1 ${
                                     isAssetDropdownOpen
                                       ? "rotate-180"
                                       : "rotate-0"
@@ -1421,7 +1834,7 @@ const PortfolioSubpage: React.FC = () => {
                                         <img
                                           src={opt.image}
                                           alt={opt.name}
-                                          className="w-5 h-5 mr-2 rounded-full"
+                                          className="w-5 h-5 mr-2 ml-2 rounded-full"
                                         />
                                       )}
                                       {opt.name}
@@ -1544,13 +1957,14 @@ const PortfolioSubpage: React.FC = () => {
                     )}
                   </div>
                   <div className="mt-2">
-                    <div className="text-[#D7E3EF] text-[14px] rounded-[4px] bg-[rgba(255,255,255,0.02)] p-[24px]">
-                      <strong>Note:</strong> By initiating a withdrawal, your
-                      vault shares ({strategy.name}) will be converted into the
-                      underlying asset based on the latest market rates, which
-                      may fluctuate slightly; once the request is submitted,
-                      please allow up to 24 hours for the funds to be received,
-                      as processing times can vary depending on network
+                    <div className="text-[#9C9DA2] text-[12px] rounded-[4px] bg-[rgba(255,255,255,0.02)] p-[24px]">
+                      <strong className="text-white">Note:</strong> By
+                      initiating a withdrawal, your vault shares (
+                      {strategy.name}) will be converted into the underlying
+                      asset based on the latest market rates, which may
+                      fluctuate slightly; once the request is submitted, please
+                      allow up to 24 hours for the funds to be received, as
+                      processing times can vary depending on network
                       conditions—there's no need to panic if the assets don't
                       arrive immediately.
                     </div>
@@ -1560,33 +1974,35 @@ const PortfolioSubpage: React.FC = () => {
 
               {activeTab === "request" && (
                 <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
-                  {/* Tabs */}
-                  <div className="mb-4 flex gap-6 border-b border-[#1A1B1E]">
-                    <button
-                      className={`py-2 text-[14px] font-medium ${
-                        requestTab === "pending"
-                          ? "text-white border-b-2 border-[#B88AF8]"
-                          : "text-[#9C9DA2]"
-                      }`}
-                      onClick={() => setRequestTab("pending")}
-                    >
-                      Pending
-                    </button>
-                    <button
-                      className={`py-2 text-[14px] font-medium ${
-                        requestTab === "completed"
-                          ? "text-white border-b-2 border-[#B88AF8]"
-                          : "text-[#9C9DA2]"
-                      }`}
-                      onClick={() => setRequestTab("completed")}
-                    >
-                      Completed
-                    </button>
+                  {/* Segmented Control Tabs */}
+                  <div className="mb-4 flex justify-start">
+                    <div className="relative bg-transparent rounded-[6px] flex w-[158px]">
+                      <button
+                        className={`w-[71px] px-3 py-1.5 text-[12px] font-normal leading-[16px] transition-all duration-200 rounded-l-[6px] rounded-r-[0px] flex items-center justify-center ${
+                          requestTab === "pending"
+                            ? "bg-[rgba(184,138,248,0.15)] text-[#D7E3EF] shadow-sm border-l border-t border-b border-r border-[rgba(184,138,248,0.5)]"
+                            : "text-[#9C9DA2] hover:text-[#D7E3EF] border-l border-t border-b border-[rgba(255,255,255,0.2)]"
+                        }`}
+                        onClick={() => setRequestTab("pending")}
+                      >
+                        Pending
+                      </button>
+                      <button
+                        className={`w-[87px] px-3 py-1.5 text-[12px] font-normal leading-[16px] transition-all duration-200 rounded-l-[0px] rounded-r-[6px] flex items-center justify-center ${
+                          requestTab === "completed"
+                            ? "bg-[rgba(184,138,248,0.15)] text-[#D7E3EF] shadow-sm border-l border-t border-b border-r border-[rgba(184,138,248,0.5)]"
+                            : "text-[#9C9DA2] hover:text-[#D7E3EF] border-r border-t border-b border-[rgba(255,255,255,0.2)]"
+                        }`}
+                        onClick={() => setRequestTab("completed")}
+                      >
+                        Completed
+                      </button>
+                    </div>
                   </div>
 
                   {/* Requests List */}
                   {requestTab === "pending" && (
-                    <div className="space-y-4">
+                    <div className="space-y-2">
                       {isLoadingRequests ? (
                         <div>Loading...</div>
                       ) : withdrawRequests.length === 0 ? (
@@ -1604,16 +2020,17 @@ const PortfolioSubpage: React.FC = () => {
                           const assetDecimals = assetOption
                             ? assetOption.decimal
                             : 18;
+             
                           return (
                             <div
                               key={req.request_id || idx}
-                              className="bg-[rgba(255,255,255,0.02)] rounded-lg p-4 flex justify-between items-center"
+                              className="bg-[rgba(255,255,255,0.02)] rounded-[4px] py-4 px-6 flex justify-between items-center"
                             >
-                              <div className="flex items-center gap-4">
+                              <div className="flex items-center justify-between w-full">
                                 {/* Calendar Icon + Date */}
-                                <div className="flex items-center text-[#9C9DA2] text-[13px] gap-1">
+                                <div className="flex items-center text-[#D7E3EF] text-[12px] gap-1">
                                   <button
-                                    className="text-[#9C9DA2] hover:text-white transition-colors cursor-pointer"
+                                    className="text-[#D7E3EF] hover:text-white transition-colors cursor-pointer"
                                     onClick={() => {
                                       if (req.transaction_hash) {
                                         window.open(
@@ -1635,9 +2052,14 @@ const PortfolioSubpage: React.FC = () => {
                                 </div>
 
                                 {/* Amounts row (same as completed) */}
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center justify-center gap-2 flex-1">
                                   {/* Shares pill */}
-                                  <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                                  <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1">
+                                    <span className="text-[#D7E3EF] text-[12px] font-normal">
+                                      {(
+                                        Number(req.amount_of_shares) / 1e6
+                                      ).toFixed(2)}
+                                    </span>
                                     <a
                                       href={
                                         req.transaction_hash
@@ -1656,24 +2078,30 @@ const PortfolioSubpage: React.FC = () => {
                                       <Image
                                         src="/images/icons/syUSD.svg"
                                         alt="Shares"
-                                        width={32}
-                                        height={32}
+                                        width={24}
+                                        height={24}
                                         className="cursor-pointer"
                                       />
                                     </a>
-                                    <span className="text-white text-sm font-medium">
-                                      {(
-                                        Number(req.amount_of_shares) / 1e6
-                                      ).toFixed(2)}
-                                    </span>
                                   </div>
                                   {/* Arrow */}
-                                  <span className="text-[#9C9DA2] text-sm">
-                                    →
-                                  </span>
+                                  <svg
+                                    width="15"
+                                    height="12"
+                                    viewBox="0 0 15 12"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <path
+                                      d="M0.832031 6H14.1654M14.1654 6L9.16536 1M14.1654 6L9.16536 11"
+                                      stroke="#9C9DA2"
+                                      stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                    />
+                                  </svg>
                                   {/* Assets pill */}
-                                  <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
-                                    <span className="text-white text-sm font-medium">
+                                  <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1">
+                                    <span className="text-white text-[12px] font-normal">
                                       {(
                                         Number(req.amount_of_assets) /
                                         Math.pow(10, assetDecimals)
@@ -1682,17 +2110,32 @@ const PortfolioSubpage: React.FC = () => {
                                     <Image
                                       src={assetImage}
                                       alt="Assets"
-                                      width={32}
-                                      height={32}
+                                      width={24}
+                                      height={24}
                                       className="cursor-pointer"
                                     />
                                   </div>
                                 </div>
                               </div>
                               {/* Cancel Button */}
-                              {/* <button className="text-[#F87171] text-[13px] font-medium hover:underline">
-                                Cancel Request
-                              </button> */}
+                              {cancelStatusMap[req.request_id] ===
+                              "cancelling" ? (
+                                <span className="text-gray-400 text-[13px] font-medium">
+                                  Cancelling...
+                                </span>
+                              ) : cancelStatusMap[req.request_id] ===
+                                "cancelled" ? (
+                                <span className="text-green-500 text-[13px] font-medium">
+                                  Request Cancelled
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => handleCancel(req.request_id)}
+                                  className="text-[#F85A3E] text-[12px] font-medium hover:underline whitespace-nowrap"
+                                >
+                                  Cancel Request
+                                </button>
+                              )}
                             </div>
                           );
                         })
@@ -1701,7 +2144,7 @@ const PortfolioSubpage: React.FC = () => {
                   )}
 
                   {requestTab === "completed" && (
-                    <div className="space-y-4">
+                    <div className="space-y-2">
                       {isLoadingRequests ? (
                         <div>Loading...</div>
                       ) : completedRequests.length === 0 ? (
@@ -1722,13 +2165,13 @@ const PortfolioSubpage: React.FC = () => {
                           return (
                             <div
                               key={req.request_id || idx}
-                              className="bg-[rgba(255,255,255,0.02)] rounded-lg p-4 flex justify-between items-center"
+                              className="bg-[rgba(255,255,255,0.02)] rounded-[4px] py-4 px-6 flex justify-between items-center"
                             >
-                              <div className="flex items-center gap-4">
+                              <div className="flex items-center justify-between w-full">
                                 {/* Calendar Icon + Date */}
-                                <div className="flex items-center text-[#9C9DA2] text-[13px] gap-1">
+                                <div className="flex items-center text-[#D7E3EF] text-[12px] gap-1">
                                   <button
-                                    className="text-[#9C9DA2] hover:text-white transition-colors cursor-pointer"
+                                    className="text-[#D7E3EF] hover:text-white transition-colors cursor-pointer"
                                     onClick={() => {
                                       if (req.transaction_hash) {
                                         window.open(
@@ -1749,10 +2192,15 @@ const PortfolioSubpage: React.FC = () => {
                                     : "-"}
                                 </div>
 
-                                {/* Amounts row (same as completed) */}
-                                <div className="flex items-center gap-2">
+                                {/* Amounts row (aligned to the right) */}
+                                <div className="flex items-center justify-end gap-2">
                                   {/* Shares pill */}
-                                  <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                                  <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1">
+                                    <span className="text-[#D7E3EF] text-[12px] font-normal">
+                                      {(
+                                        Number(req.amount_of_shares) / 1e6
+                                      ).toFixed(2)}
+                                    </span>
                                     <a
                                       href={
                                         req.transaction_hash
@@ -1771,34 +2219,43 @@ const PortfolioSubpage: React.FC = () => {
                                       <Image
                                         src="/images/icons/syUSD.svg"
                                         alt="Shares"
-                                        width={32}
-                                        height={32}
+                                        width={24}
+                                        height={24}
                                         className="cursor-pointer"
                                       />
                                     </a>
-                                    <span className="text-white text-sm font-medium">
-                                      {(
-                                        Number(req.amount_of_shares) / 1e6
-                                      ).toFixed(2)}
-                                    </span>
                                   </div>
                                   {/* Arrow */}
-                                  <span className="text-[#9C9DA2] text-sm">
-                                    →
-                                  </span>
+                                  <svg
+                                    width="15"
+                                    height="12"
+                                    viewBox="0 0 15 12"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <path
+                                      d="M0.832031 6H14.1654M14.1654 6L9.16536 1M14.1654 6L9.16536 11"
+                                      stroke="#9C9DA2"
+                                      stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                    />
+                                  </svg>
                                   {/* Assets pill */}
-                                  <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
-                                    <span className="text-white text-sm font-medium">
+                                  <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1">
+                                    <span className="text-white text-[12px] font-normal">
                                       {(
+                                        
                                         Number(req.amount_of_assets) /
+                                       
                                         Math.pow(10, assetDecimals)
+                                      
                                       ).toFixed(2)}
                                     </span>
                                     <Image
                                       src={assetImage}
                                       alt="Assets"
-                                      width={32}
-                                      height={32}
+                                      width={24}
+                                      height={24}
                                       className="cursor-pointer"
                                     />
                                   </div>

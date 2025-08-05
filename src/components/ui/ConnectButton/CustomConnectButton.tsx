@@ -89,8 +89,10 @@ export const CustomConnectButton: React.FC = () => {
                     className={styles.accountButton}
                   >
                     {account.displayName}
-                  
-                  </button>
+                    <svg width="13" height="14" viewBox="0 0 13 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M0.166992 0.666992H12.8337V13.3337H0.166992V0.666992ZM11.4262 11.9262V2.0744H1.5744V11.9262H11.4262ZM7.20403 6.29662H10.0188V7.70403H7.20403H5.79662H2.98181V6.29662H5.79662H7.20403Z" fill="#D7E3EF"/>
+                    </svg>
+                  </button> 
                 </div>
               );
             })()}
