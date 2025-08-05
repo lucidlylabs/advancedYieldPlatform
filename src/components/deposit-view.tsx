@@ -1284,7 +1284,7 @@ const DepositView: React.FC<DepositViewProps> = ({
 
   return (
     <>
-      <div className="relative overflow-hidden pt-24">
+      <div className="relative overflow-hidden pt-48">
         {depositSuccess ? (
           <div className="flex flex-col items-center justify-center h-full pt-12">
             <div className="w-[580px] bg-[#0D101C] rounded-lg p-8 text-center">

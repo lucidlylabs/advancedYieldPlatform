@@ -272,7 +272,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
           onReset={handleReset}
         />
       ) : selectedAsset ? (
-        <div className="flex flex-col min-h-screen items-center justify-center gap-6 pb-[14vh]">
+        <div className="flex flex-col min-h-screen items-center justify-center gap-6 pb-[8vh] ml-[3vw]">
           <h1 className="text-[20px] sm:text-[40px] font-[619px]">
             Select a Yield Source
           </h1>
