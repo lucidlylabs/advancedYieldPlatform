@@ -6,11 +6,22 @@ import {
     Tooltip,
     ResponsiveContainer,
     CartesianGrid,
+    Legend,
   } from "recharts";
   import { useEffect, useState } from "react";
+
+  const tokenAddressMap: Record<string, string> = {
+    "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913": "USDC",
+    "0x820c137fa70c8691f0e44dc420a5e53c168921dc": "USDS",
+    "0x5875eEE11Cf8398102FdAd704C9E96607675467a": "sUSDS",
+  };
   
   const formatAddress = (addr: string) =>
     addr.slice(0, 6) + "..." + addr.slice(-4);
+
+  const shortToFullAddress: Record<string, string> = Object.fromEntries(
+    Object.entries(tokenAddressMap).map(([full, name]) => [formatAddress(full), full])
+  );
 
   type ChartDataItem = {
     date: string;
@@ -78,12 +89,18 @@ import {
                 tick={{ fill: "#A3A3A3", fontSize: 10 }}
                 axisLine={false}
                 tickLine={false}
-                tickFormatter={(val) => `$${val / 1_000_000}M`}
+                tickFormatter={(val: number) => {
+                  if (val >= 1000) return `$${(val / 1000).toFixed(1)}K`;
+                  return `$${val}`;
+                }}
               />
               <Tooltip
                 contentStyle={{ backgroundColor: "#1C1D2A", border: "none" }}
                 labelStyle={{ color: "#A3A3A3" }}
-                formatter={(value) => [`$${value}`, ""]}
+                formatter={(value: number) => {
+                  if (value >= 1000) return [`$${(value / 1000).toFixed(1)}K`, ""];
+                  return [`$${value}`, ""];
+                }}
               />
               {data.length > 0 &&
                 (() => {
@@ -111,7 +128,17 @@ import {
                     />
                   ));
                 })()}
+              <Legend
+                verticalAlign="bottom"
+                align="center"
+                iconType="circle"
+                wrapperStyle={{ fontSize: 12 , marginTop: 16 }}
+                formatter={(shortAddr: string) =>
+                  tokenAddressMap[shortToFullAddress[shortAddr]] || shortAddr
+                }
+              />
             </BarChart>
+
           </ResponsiveContainer>
         </div>
       </div>    
