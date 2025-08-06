@@ -32,6 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       `,
       [userAddress.toLowerCase()]
     );
+    console.log('Portfolio value query result:', result.rows);
 
     res.status(200).json({
       portfolioData: result.rows.map(row => ({
