@@ -27,6 +27,7 @@ export default function Page() {
   const [isVerified, setIsVerified] = useState(false);
   const [isCodePopupOpen, setIsCodePopupOpen] = useState(true);
   const [verificationError, setVerificationError] = useState("");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Check if user is already verified from localStorage
   useEffect(() => {
@@ -103,6 +104,7 @@ export default function Page() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header onNavigateToDeposit={handleNavigateToDeposit}>
+      <div className="flex items-center justify-between w-full">
         <div className="flex items-stretch h-full">
           <div className="flex items-center">
             <div
@@ -188,8 +190,70 @@ export default function Page() {
             </div>
           </nav>
         </div>
-        <CustomConnectButton />
+        <div className="flex flex-row gap-2">
+            <CustomConnectButton />
+            <button
+              className="sm:hidden text-white"
+              onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+            >
+              {isMobileMenuOpen ? (
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14" />
+                </svg>
+              ) : (
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
+        </div>
+        </div>
       </Header>
+
+      {isMobileMenuOpen && (
+      <div className="md:hidden bg-[#0D101C] py-4 flex flex-col items-center gap-4 border-b border-[rgba(255,255,255,0.1)]">
+        <button
+          className="text-white text-lg"
+          onClick={() => {
+            setSelectedSubPage(SubPage.Yield);
+            setDepositParams(null);
+            setIsMobileMenuOpen(false);
+          }}
+        >
+          Earn
+        </button>
+        <button
+          className="text-white text-lg"
+          onClick={() => {
+            setSelectedSubPage(SubPage.Markets);
+            setIsMobileMenuOpen(false);
+          }}
+        >
+          Yields
+        </button>
+        <button
+          className="text-white text-lg"
+          onClick={() => {
+            setSelectedSubPage(SubPage.Portfolio);
+            setIsMobileMenuOpen(false);
+          }}
+        >
+          Portfolio
+        </button>
+      </div>
+    )}
 
       <main className="flex-1">{renderSubPage()}</main>
     </div>

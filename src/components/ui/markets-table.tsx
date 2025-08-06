@@ -142,104 +142,108 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
         }
     };
 
-    return (
-        <div className="w-full">
-            <div className="pl-[32px]">
-                <div className="grid grid-cols-12 pr-6 py-2 border-y-[0.5px] border-[rgba(255,255,255,0.15)]">
-                    <div
-                        className="col-span-4 cursor-pointer flex items-center text-white opacity-60 text-[14px] font-normal leading-[14px] py-[5px]"
-                        onClick={() => onSort("name")}
-                    >
-                        Available Yields
-                        {sortColumn === "name" && (
-                            <span className="ml-1">
-                                {sortDirection === "asc" ? "↑" : "↓"}
-                            </span>
-                        )}
-                    </div>
-                    <div
-                        className="col-span-3 cursor-pointer flex items-center text-white opacity-60 text-[14px] font-normal leading-[14px]"
-                        onClick={() => onSort("baseYield")}
-                    >
-                        Base APY
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <button className="ml-1 text-white opacity-60 hover:opacity-100 transition-all duration-200 flex items-center">
-                                        <InfoIcon />
-                                    </button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>
-                                        Annual Percentage Yield scaled on historical 7 day trailing performance.
-                                    </p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                        {sortColumn === "baseYield" && (
-                            <span className="ml-1">
-                                {sortDirection === "asc" ? "↑" : "↓"}
-                            </span>
-                        )}
-                    </div>
-                    <div className="col-span-3 flex items-center text-white opacity-60 text-[14px] font-normal leading-[14px]">
-                        Incentives
-                    </div>
-                    <div
-                        className="col-span-2 cursor-pointer flex items-center justify-end text-white opacity-60 text-[14px] font-normal leading-[14px]"
-                        onClick={() => onSort("tvl")}
-                    >
-                        TVL
-                        {sortColumn === "tvl" && (
-                            <span className="ml-1">
-                                {sortDirection === "asc" ? "↑" : "↓"}
-                            </span>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            <div>
-                {data.map((item, index) => (
-                    <div
-                        key={item.id}
-                        onClick={() => onRowClick && onRowClick(item)}
-                        className="cursor-pointer pl-[32px]"
-                    >
-                        <div
-                            className={cn(
-                                "transition duration-200",
-                                "hover:bg-[rgba(255,255,255,0.02)]",
-                                selectedItemId === item.id && "bg-[rgba(255,255,255,0.02)]"
-                            )}
-                        >
-                            <div className="grid grid-cols-12 pr-6 py-4 pl-4">
-                                <div className="col-span-4 flex items-center">
-                                    {getAssetIcon(item.type)}
-                                    <span className="text-white text-xs font-normal leading-4">
-                                        {item.name}
-                                    </span>
-                                </div>
-                                <div className="col-span-3 flex items-center text-white text-xs font-normal leading-4">
-                                    {item.baseYield}
-                                </div>
-                                <div className="col-span-3 flex items-center">
-                                    {item.incentives.map((incentive, index) => (
-                                        <div key={index} className="-ml-1 first:ml-0">
-                                            <IncentiveIcon type={incentive} />
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="col-span-2 flex items-center justify-end text-white text-xs font-normal leading-4">
-                                    {item.tvl}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
+  return (
+    <div className="w-full">
+      {/* Table Header */}
+      <div className="px-[16px] sm:pl-[32px]">
+        <div className="grid grid-cols-12 pr-6 py-2 border-y-[0.5px] border-[rgba(255,255,255,0.15)]">
+          <div
+            className="col-span-4 cursor-pointer flex items-center text-white opacity-60 font-inter text-[11px] font-normal leading-[14px] py-[5px]"
+            onClick={() => onSort("name")}
+          >
+            Available Yields
+            {sortColumn === "name" && (
+              <span className="ml-1">
+                {sortDirection === "asc" ? "↑" : "↓"}
+              </span>
+            )}
+          </div>
+          <div
+            className="col-span-3 cursor-pointer flex items-center text-white opacity-60 font-inter text-[11px] font-normal leading-[14px]"
+            onClick={() => onSort("baseYield")}
+          >
+            Base APY
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="ml-1 text-white opacity-60 hover:opacity-100 transition-all duration-200 flex items-center">
+                    <InfoIcon />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    Annual Percentage Yield based on current market conditions
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            {sortColumn === "baseYield" && (
+              <span className="ml-1">
+                {sortDirection === "asc" ? "↑" : "↓"}
+              </span>
+            )}
+          </div>
+          <div className="col-span-3 flex items-center text-white opacity-60 font-inter text-[11px] font-normal leading-[14px]">
+            Incentives
+          </div>
+          <div
+            className="col-span-2 cursor-pointer flex items-center justify-end text-white opacity-60 font-inter text-[11px] font-normal leading-[14px]"
+            onClick={() => onSort("tvl")}
+          >
+            TVL
+            {sortColumn === "tvl" && (
+              <span className="ml-1">
+                {sortDirection === "asc" ? "↑" : "↓"}
+              </span>
+            )}
+          </div>
         </div>
-    );
+      </div>
+
+      {/* Table Rows */}
+      <div>
+        {data.map((item, index) => (
+          <div
+            key={item.id}
+            onClick={() => onRowClick && onRowClick(item)}
+            className="cursor-pointer px-[16px] sm:pl-[32px]"
+          >
+            <div
+              className={cn(
+                "transition duration-200",
+                index % 2 === 1 && "bg-[rgba(255,255,255,0.02)]",
+                "hover:bg-[linear-gradient(90deg,rgba(0,209,160,0.15)_0%,rgba(0,209,160,0)_15%,rgba(0,209,160,0)_85%,rgba(0,209,160,0.15)_100%)]",
+                selectedItemId === item.id &&
+                  "bg-[linear-gradient(90deg,rgba(0,209,160,0.15)_0%,rgba(0,209,160,0)_15%,rgba(0,209,160,0)_85%,rgba(0,209,160,0.15)_100%)]"
+              )}
+            >
+              <div className="grid grid-cols-12 pr-6 py-4 pl-4">
+                <div className="col-span-4 flex items-center">
+                  {getAssetIcon(item.type)}
+                  <span className="text-white font-inter text-xs font-normal leading-4">
+                    {item.name}
+                  </span>
+                </div>
+                <div className="col-span-3 flex items-center text-white font-inter text-xs font-normal leading-4">
+                  {item.baseYield}
+                </div>
+                <div className="col-span-3 flex items-center">
+                  {item.incentives.map((incentive, index) => (
+                    <div key={index} className="-ml-1 first:ml-0">
+                      <IncentiveIcon type={incentive} />
+                    </div>
+                  ))}
+                </div>
+                <div className="col-span-2 flex items-center justify-end text-white font-inter text-xs font-normal leading-4">
+                  {item.tvl}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 };
 
 export { MarketsTable };

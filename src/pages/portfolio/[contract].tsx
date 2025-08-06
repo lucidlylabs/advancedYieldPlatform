@@ -49,43 +49,19 @@ const assetOptions = [
     name: "USDC",
     contract: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
     image: "/images/icons/usdc.svg",
+    decimal: 6,
   },
   {
     name: "USDS",
     contract: "0x820C137fa70C8691f0e44Dc420a5e53c168921Dc",
     image: "/images/icons/usds.svg",
+    decimal: 18,
   },
   {
     name: "sUSDS",
     contract: "0x5875eEE11Cf8398102FdAd704C9E96607675467a",
     image: "/images/icons/sUSDS.svg",
-  },
-];
-
-const requests = [
-  {
-    date: "18th May’25",
-    fromAmount: "1,000,000",
-    toAmount: "1,004,000",
-    canCancel: true,
-  },
-  {
-    date: "19th May’25",
-    fromAmount: "100",
-    toAmount: "104",
-    canCancel: true,
-  },
-  {
-    date: "19th May’25",
-    fromAmount: "900",
-    toAmount: "909",
-    canCancel: true,
-  },
-  {
-    date: "19th May’25",
-    fromAmount: "1,092",
-    toAmount: "1,200",
-    canCancel: true,
+    decimal: 18,
   },
 ];
 
@@ -129,6 +105,7 @@ const chainConfigs = {
   },
 };
 console.log("chain configs:", chainConfigs);
+
 const PortfolioDetailedPage = () => {
   const { address, isConnected } = useAccount();
   const router = useRouter();
@@ -158,9 +135,19 @@ const PortfolioDetailedPage = () => {
   // Add state for custom dropdown
   const [isAssetDropdownOpen, setIsAssetDropdownOpen] = useState(false);
   const [depositedChains, setDepositedChains] = useState<string[]>([]);
+  const [completedRequests, setCompletedRequests] = useState<any[]>([]);
+  const [isLoadingRequests, setIsLoadingRequests] = useState(false);
+  const [withdrawRequests, setWithdrawRequests] = useState<any[]>([]);
 
   const chainId = useChainId();
   const isBase = chainId === 8453;
+
+  // Initialize `withdrawAmount` from query param
+  useEffect(() => {
+    if (router.query.balance && typeof router.query.balance === "string") {
+      setWithdrawAmount(router.query.balance.toString());
+    }
+  }, [router.query.balance]);
 
   // Watch deposit transaction
   const { isLoading: isWaitingForDeposit, isSuccess: isDepositSuccess } =
@@ -607,13 +594,21 @@ const PortfolioDetailedPage = () => {
 
   useEffect(() => {
     const fetchAmountOut = async () => {
-      if (!contract || !withdrawAmount) return;
+      if (!router.isReady || !contract || !withdrawAmount) return;
   
       try {
+        const normalizedRpc = Array.isArray(rpc) ? rpc[0] : (rpc as string || "https://base.llamarpc.com");
+        console.log("🧪 Debug fetchAmountOut");
+        console.log("contract:", contract);
+        console.log("withdrawAmount:", withdrawAmount);
+        console.log("solverAddress:", solverAddress);
+        console.log("boringVaultAddress:", boringVaultAddress);
+        console.log("rpc:", normalizedRpc);
+
         const selectedAssetAddress = getAddress(assetOptions[selectedAssetIdx].contract);
 
         const client = createPublicClient({
-          transport: http(Array.isArray(rpc) ? rpc[0] : rpc || "https://base.llamarpc.com"),
+          transport: http(normalizedRpc),
           chain: {
             id: 8453,
             name: "Base",
@@ -661,7 +656,7 @@ const PortfolioDetailedPage = () => {
     };
   
     fetchAmountOut();
-  }, [contract, withdrawAmount]);
+  }, [router.isReady, contract, withdrawAmount]);
 
 
   return (
@@ -669,7 +664,7 @@ const PortfolioDetailedPage = () => {
       <button className="text-lg text-white" onClick={() => router.back()}>
       <ArrowLeft className="absolute top-4 left-4" />
       </button>
-      <div className="py-4 mt-4">
+      <div className="py-4 mt-4 px-4">
         <div className="flex flex-col h-full rounded-lg">
           <div className="flex gap-4 mb-6 border-b border-[rgba(255,255,255,0.15)]">
             <button
@@ -987,122 +982,206 @@ const PortfolioDetailedPage = () => {
               </button>
             </div>
 
-            {/* Requests List */}
-            {requestTab === "pending" && (                
-              <div className="space-y-2">
-              {requests.map((req, idx) => (
-                <div
-                  key={idx}
-                  className="bg-[rgba(255,255,255,0.02)] rounded-lg p-3"
-                >
-                  <div className="flex flex-col gap-4">
-                    <div className="flex flex-row justify-between items-center">
-                      {/* Calendar Icon + Date */}
-                      <div className="flex items-center text-[#9C9DA2] text-[13px] gap-1">
-                        <button className="text-[#9C9DA2] hover:text-white transition-colors">
-                            <ExternalLinkIcon />
-                        </button>
-                        {req.date}
-                      </div>
-                      {/* Cancel Button */}
-                      {req.canCancel && (
-                        <button className="text-[#F87171] text-[13px] font-medium hover:underline">
-                          Cancel Request
-                        </button>
+                  {/* Requests List */}
+                  {requestTab === "pending" && (
+                    <div className="space-y-4 text-white">
+                      {isLoadingRequests ? (
+                        <div>Loading...</div>
+                      ) : withdrawRequests.length === 0 ? (
+                        <div>No pending requests found.</div>
+                      ) : (
+                        withdrawRequests.map((req, idx) => {
+                          const assetOption = assetOptions.find(
+                            (opt) =>
+                              opt.contract.toLowerCase() ===
+                              (req.withdraw_asset_address || "").toLowerCase()
+                          );
+                          const assetImage = assetOption
+                            ? assetOption.image
+                            : "/images/icons/susd-stable.svg";
+                          const assetDecimals = assetOption ? assetOption.decimal : 18;
+                          return (
+                            <div
+                              key={req.request_id || idx}
+                              className="bg-[rgba(255,255,255,0.02)] rounded-lg p-4 flex justify-between items-center"
+                            >
+                              <div className="flex items-center gap-4">
+                                {/* Calendar Icon + Date */}
+                                <div className="flex items-center text-[#9C9DA2] text-[13px] gap-1">
+                                  <button
+                                    className="text-[#9C9DA2] hover:text-white transition-colors cursor-pointer"
+                                    onClick={() => {
+                                      if (req.transaction_hash) {
+                                        window.open(
+                                          `https://basescan.org/tx/${req.transaction_hash}`,
+                                          "_blank",
+                                          "noopener,noreferrer"
+                                        );
+                                      }
+                                    }}
+                                    type="button"
+                                  >
+                                    <ExternalLinkIcon />
+                                  </button>
+                                  {req.creation_time
+                                    ? new Date(req.creation_time * 1000).toLocaleDateString()
+                                    : "-"}
+                                </div>
+
+                                {/* Amounts row (same as completed) */}
+                                <div className="flex items-center gap-2">
+                                  {/* Shares pill */}
+                                  <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                                    <a
+                                      href={
+                                        req.transaction_hash
+                                          ? `https://basescan.org/tx/${req.transaction_hash}`
+                                          : undefined
+                                      }
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      tabIndex={req.transaction_hash ? 0 : -1}
+                                      style={{
+                                        pointerEvents: req.transaction_hash ? "auto" : "none",
+                                      }}
+                                    >
+                                      <Image
+                                        src="/images/icons/syUSD.svg"
+                                        alt="Shares"
+                                        width={32}
+                                        height={32}
+                                        className="cursor-pointer"
+                                      />
+                                    </a>
+                                    <span className="text-white text-sm font-medium">
+                                    {(Number(req.amount_of_shares) / 1e6).toFixed(2)}
+                                    </span>
+                                  </div>
+                                  {/* Arrow */}
+                                  <span className="text-[#9C9DA2] text-sm">→</span>
+                                  {/* Assets pill */}
+                                  <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                                    <span className="text-white text-sm font-medium">
+                                      {(Number(req.amount_of_assets) / Math.pow(10, assetDecimals)).toFixed(2)}
+                                    </span>
+                                    <Image
+                                      src={assetImage}
+                                      alt="Assets"
+                                      width={32}
+                                      height={32}
+                                      className="cursor-pointer"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                              {/* Cancel Button */}
+                              {/* <button className="text-[#F87171] text-[13px] font-medium hover:underline">
+                                Cancel Request
+                              </button> */}
+                            </div>
+                          );
+                        })
                       )}
                     </div>
+                  )}
 
-                    {/* Amounts */}
-                    <div className="flex items-center justify-center gap-2">
-                      {/* From Amount */}
-                      <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
-                        <Image
-                          src={`/images/icons/${(typeof asset === "string" ? asset.toLowerCase() : "")}-${
-                            type === "stable" ? "stable" : "incentive"
-                          }.svg`}
-                          alt={typeof asset === "string" ? asset : ""}
-                          width={32}
-                          height={32}
-                        />
-                        <span className="text-white text-sm font-medium">{req.fromAmount}</span>
-                      </div>
+                  {requestTab === "completed" && (
+                    <div className="space-y-4 text-white">
+                      {isLoadingRequests ? (
+                        <div>Loading...</div>
+                      ) : completedRequests.length === 0 ? (
+                        <div>No completed requests found.</div>
+                      ) : (
+                        completedRequests.map((req, idx) => {
+                          const assetOption = assetOptions.find(
+                            (opt) =>
+                              opt.contract.toLowerCase() ===
+                              (req.withdraw_asset_address || "").toLowerCase()
+                          );
+                          const assetImage = assetOption
+                            ? assetOption.image
+                            : "/images/icons/susd-stable.svg";
+                          const assetDecimals = assetOption ? assetOption.decimal : 18;
+                          return (
+                            <div
+                              key={req.request_id || idx}
+                              className="bg-[rgba(255,255,255,0.02)] rounded-lg p-4 flex justify-between items-center"
+                            >
+                              <div className="flex items-center gap-4">
+                                {/* Calendar Icon + Date */}
+                                <div className="flex items-center text-[#9C9DA2] text-[13px] gap-1">
+                                  <button
+                                    className="text-[#9C9DA2] hover:text-white transition-colors cursor-pointer"
+                                    onClick={() => {
+                                      if (req.transaction_hash) {
+                                        window.open(
+                                          `https://basescan.org/tx/${req.transaction_hash}`,
+                                          "_blank",
+                                          "noopener,noreferrer"
+                                        );
+                                      }
+                                    }}
+                                    type="button"
+                                  >
+                                    <ExternalLinkIcon />
+                                  </button>
+                                  {req.creation_time
+                                    ? new Date(req.creation_time * 1000).toLocaleDateString()
+                                    : "-"}
+                                </div>
 
-                      {/* Arrow */}
-                      <span className="text-[#9C9DA2] text-sm">→</span>
-
-                      {/* To Amount */}
-                      <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
-                        <span className="text-white text-sm font-medium">{req.toAmount}</span>
-                        <Image
-                          src={`/images/icons/${typeof asset === "string" ? asset.toLowerCase() : ""}-${
-                            type === "stable" ? "stable" : "incentive"
-                          }.svg`}
-                          alt={typeof asset === "string" ? asset : ""}
-                          width={32}
-                          height={32}
-                        />
-                      </div>
+                                {/* Amounts row (same as completed) */}
+                                <div className="flex items-center gap-2">
+                                  {/* Shares pill */}
+                                  <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                                    <a
+                                      href={
+                                        req.transaction_hash
+                                          ? `https://basescan.org/tx/${req.transaction_hash}`
+                                          : undefined
+                                      }
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      tabIndex={req.transaction_hash ? 0 : -1}
+                                      style={{
+                                        pointerEvents: req.transaction_hash ? "auto" : "none",
+                                      }}
+                                    >
+                                      <Image
+                                        src="/images/icons/syUSD.svg"
+                                        alt="Shares"
+                                        width={32}
+                                        height={32}
+                                        className="cursor-pointer"
+                                      />
+                                    </a>
+                                    <span className="text-white text-sm font-medium">
+                                    {(Number(req.amount_of_shares) / 1e6).toFixed(2)}
+                                    </span>
+                                  </div>
+                                  {/* Arrow */}
+                                  <span className="text-[#9C9DA2] text-sm">→</span>
+                                  {/* Assets pill */}
+                                  <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                                    <span className="text-white text-sm font-medium">
+                                      {(Number(req.amount_of_assets) / Math.pow(10, assetDecimals)).toFixed(2)}
+                                    </span>
+                                    <Image
+                                      src={assetImage}
+                                      alt="Assets"
+                                      width={32}
+                                      height={32}
+                                      className="cursor-pointer"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
                     </div>
-                  </div>
-                </div>
-              ))}
-              </div>
-            )}
-
-            {requestTab === "completed" && (                
-              <div className="space-y-2">
-              {requests.map((req, idx) => (
-                <div
-                  key={idx}
-                  className="bg-[rgba(255,255,255,0.02)] rounded-lg p-3"
-                >
-                  <div className="flex flex-col gap-4">
-                    <div className="flex flex-row justify-between items-center">
-                      {/* Calendar Icon + Date */}
-                      <div className="flex items-center text-[#9C9DA2] text-[13px] gap-1">
-                        <button className="text-[#9C9DA2] hover:text-white transition-colors">
-                            <ExternalLinkIcon />
-                        </button>
-                        {req.date}
-                      </div>
-                    </div>
-
-                    {/* Amounts */}
-                    <div className="flex items-center justify-center gap-2">
-                      {/* From Amount */}
-                      <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
-                        <Image
-                          src={`/images/icons/${(typeof asset === "string" ? asset.toLowerCase() : "")}-${
-                            type === "stable" ? "stable" : "incentive"
-                          }.svg`}
-                          alt={typeof asset === "string" ? asset : ""}
-                          width={32}
-                          height={32}
-                        />
-                        <span className="text-white text-sm font-medium">{req.fromAmount}</span>
-                      </div>
-
-                      {/* Arrow */}
-                      <span className="text-[#9C9DA2] text-sm">→</span>
-
-                      {/* To Amount */}
-                      <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
-                        <span className="text-white text-sm font-medium">{req.toAmount}</span>
-                        <Image
-                          src={`/images/icons/${typeof asset === "string" ? asset.toLowerCase() : ""}-${
-                            type === "stable" ? "stable" : "incentive"
-                          }.svg`}
-                          alt={typeof asset === "string" ? asset : ""}
-                          width={32}
-                          height={32}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              </div>
-            )}
+                  )}
 
             </div>
           )}

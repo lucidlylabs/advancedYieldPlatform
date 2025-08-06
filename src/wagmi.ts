@@ -32,13 +32,34 @@ const connectors = connectorsForWallets(
   }
 );
 
+// Katana custom chain definition
+export const katana = {
+  id: 747474,
+  name: "Katana",
+  nativeCurrency: {
+    decimals: 18,
+    name: "ETH",
+    symbol: "ETH",
+  },
+  rpcUrls: {
+    default: { http: ["https://rpc.katana.network"] },
+    public: { http: ["https://rpc.katana.network"] },
+  },
+  blockExplorers: {
+    default: { name: "Katana Explorer", url: "https://explorer.katanarpc.com/" },
+  },
+  testnet: false,
+  iconUrl: "/images/logo/katana.svg",
+} as const as any; // <-- Add this cast
+
 export const config = createConfig({
   connectors,
-  chains: [mainnet, base, arbitrum],
+  chains: [mainnet, base, arbitrum, katana],
   transports: {
     [mainnet.id]: http(),
     [base.id]: http(),
     [arbitrum.id]: http(),
+    [katana.id]: http("https://rpc.katana.network"),
   },
   ssr: true,
 });

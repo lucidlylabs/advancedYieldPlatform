@@ -1,5 +1,5 @@
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+export default {
     content: [
       "./src/pages/**/*.{js,ts,jsx,tsx}",
       "./src/components/**/*.{js,ts,jsx,tsx}",
@@ -70,4 +70,4 @@ module.exports = {
     },
     darkMode: ['media', "class"], // or 'class' if you want manual control
     plugins: [require("tailwindcss-animate")],
-}
+}																																																																																							

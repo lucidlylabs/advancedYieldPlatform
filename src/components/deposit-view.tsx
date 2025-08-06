@@ -66,6 +66,7 @@ interface StrategyConfig {
   base: ChainConfig;
   ethereum: ChainConfig;
   arbitrum: ChainConfig;
+  katana: ChainConfig; // <-- Add this line
   description: string;
   apy: string;
   incentives: string;
@@ -340,6 +341,16 @@ const DepositView: React.FC<DepositViewProps> = ({
           image: stablePerpetualConfig.arbitrum.image,
         });
       }
+      if (
+        stablePerpetualConfig.katana &&
+        stablePerpetualConfig.katana.image
+      ) {
+        uniqueChains.set("katana", {
+          name: "Katana",
+          network: "katana",
+          image: stablePerpetualConfig.katana.image,
+        });
+      }
     }
 
     // Optionally, you can add other durations if they also define chain images
@@ -359,6 +370,8 @@ const DepositView: React.FC<DepositViewProps> = ({
         return strategyConfig.arbitrum.tokens;
       case "ethereum":
         return strategyConfig.ethereum.tokens;
+      case "katana":
+        return strategyConfig.katana.tokens;
       case "base":
       default:
         return strategyConfig.base.tokens;
@@ -918,6 +931,9 @@ const DepositView: React.FC<DepositViewProps> = ({
       case "ethereum":
         chainData = strategyConfig.ethereum;
         break;
+      case "katana":
+        chainData = strategyConfig.katana;
+        break;
       case "base":
       default:
         chainData = strategyConfig.base;
@@ -962,6 +978,8 @@ const DepositView: React.FC<DepositViewProps> = ({
         return `https://etherscan.io/tx/${txHash}`;
       case "arbitrum":
         return `https://arbiscan.io/tx/${txHash}`;
+      case "katana":
+        return `https://explorer.katanarpc.com//tx/${txHash}`;
       case "base":
       default:
         return `https://basescan.org/tx/${txHash}`;
@@ -1000,6 +1018,11 @@ const DepositView: React.FC<DepositViewProps> = ({
         }
       );
       setBalance(formattedBalance);
+      console.log("Fetching balance for", {
+        token: selectedAssetOption.name,
+        contract: tokenContractAddress,
+        wallet: address,
+      });
     } catch (error) {
       console.error("Error fetching balance:", error);
       setBalance("0.00");
@@ -1141,7 +1164,8 @@ const DepositView: React.FC<DepositViewProps> = ({
             </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col gap-6 items-center">
+            <div className="w-full max-w-[280px] md:max-w-[580px]">
             {/* <button
             onClick={(e) => {
               e.stopPropagation();
@@ -1160,295 +1184,297 @@ const DepositView: React.FC<DepositViewProps> = ({
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
           </button> */}
-
-            <div className="w-[580px] flex gap-6 justify-center items-center">
-              {/* Deposit Chain Dropdown */}
-              <div className="w-[280px] bg-[#121420] rounded-t-md p-4 border-l border-r border-t border-[rgba(255,255,255,0.05)]">
-                <div className="flex items-center justify-between gap-2">
-                  <label className="text-[#9C9DA2] font-inter text-[12px] whitespace-nowrap flex items-center gap-1">
-                    Deposit Network
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div>
-                            <InfoIcon />
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent className="text-xs" side="top">
-                          Select the network you'll be depositing funds from.
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </label>
-                  <div className="relative w-full max-w-[250px]">
-                    <button
-                      onClick={() =>
-                        setIsChainDropdownOpen(!isChainDropdownOpen)
-                      }
-                      className="flex items-center justify-between w-full bg-[#1e202c] text-[#EDF2F8] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] pr-2"
-                    >
-                      <div className="flex items-center gap-2">
-                        {targetChain && (
-                          <img
-                            src={
-                              getUniqueChainConfigs.find(
-                                (c) => c.network === targetChain
-                              )?.image || ""
-                            }
-                            alt={targetChain} // Use network name for alt text
-                            className="w-5 h-5 rounded-full"
-                          />
-                        )}
-                        <span className="capitalize text-[12px]">
-                          {targetChain}
-                        </span>
-                      </div>
-                      <svg
-                        className={`w-4 h-4 transform transition-transform duration-200 ${
-                          isChainDropdownOpen ? "rotate-180" : "rotate-0"
-                        }`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
+            <div className="flex flex-col gap-6 md:flex-row">
+              <div className="w-auto flex flex-col justify-center items-center">
+                {/* Deposit Chain Dropdown */}
+                <div className="w-[280px] bg-[#121420] rounded-t-md p-4 border-l border-r border-t border-[rgba(255,255,255,0.05)]">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-[#9C9DA2] font-inter text-[12px] whitespace-nowrap flex items-center gap-1">
+                      Deposit Network
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div>
+                              <InfoIcon />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent className="text-xs" side="top">
+                            Select the network you'll be depositing funds from.
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </label>
+                    <div className="relative w-full max-w-[250px]">
+                      <button
+                        onClick={() =>
+                          setIsChainDropdownOpen(!isChainDropdownOpen)
+                        }
+                        className="flex items-center justify-between w-full bg-[#1e202c] text-[#EDF2F8] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] pr-2"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M19 9l-7 7-7-7"
-                        ></path>
-                      </svg>
-                    </button>
-                    {isChainDropdownOpen && (
-                      <div className="absolute z-10 w-full mt-2 bg-[#1F202D] rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 focus:outline-none">
-                        {getUniqueChainConfigs.map((chainOption) => (
-                          <button
-                            key={chainOption.network}
-                            onClick={() => {
-                              setTargetChain(chainOption.network);
-                              setIsChainDropdownOpen(false);
-                            }}
-                            className="flex items-center w-full px-4 py-2 text-sm text-[#EDF2F8] hover:bg-[#1A1B1E]"
-                          >
+                        <div className="flex items-center gap-2">
+                          {targetChain && (
                             <img
-                              src={chainOption.image}
-                              alt={chainOption.name}
-                              className="w-5 h-5 mr-2 rounded-full"
+                              src={
+                                getUniqueChainConfigs.find(
+                                  (c) => c.network === targetChain
+                                )?.image || ""
+                              }
+                              alt={targetChain} // Use network name for alt text
+                              className="w-5 h-5 rounded-full"
                             />
-                            {chainOption.name}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Receive on Dropdown */}
-              <div className="w-[280px] bg-[#121420] rounded-t-md p-4 border-l border-r border-t border-[rgba(255,255,255,0.05)]">
-                <div className="flex items-center justify-between gap-2">
-                  <label className="text-[#9C9DA2] font-inter text-[12px] whitespace-nowrap flex items-center gap-1">
-                    Destination Network
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div>
-                            <InfoIcon />
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent className="text-xs" side="top">
-                          This is the network where you'll receive your syUSD
-                          vault tokens
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </label>
-                  <div className="relative  w-200px">
-                    <div className="flex items-center justify-between w-full bg-[#1e202c] text-[#EDF2F8] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] pr-2">
-                      <div className="flex items-center gap-2">
-                        {strategyConfig.network && (
-                          <img
-                            src={
-                              getUniqueChainConfigs.find(
-                                (c) => c.network === "base"
-                              )?.image || ""
-                            }
-                            alt={targetChain} // Use network name for alt text
-                            className="w-5 h-5 rounded-full"
-                          />
-                        )}
-                        <span className="capitalize text-[12px]">
-                          {strategyConfig.network}
-                        </span>
-                      </div>
+                          )}
+                          <span className="capitalize text-[12px]">
+                            {targetChain}
+                          </span>
+                        </div>
+                        <svg
+                          className={`w-4 h-4 transform transition-transform duration-200 ${
+                            isChainDropdownOpen ? "rotate-180" : "rotate-0"
+                          }`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M19 9l-7 7-7-7"
+                          ></path>
+                        </svg>
+                      </button>
+                      {isChainDropdownOpen && (
+                        <div className="absolute z-10 w-full mt-2 bg-[#1F202D] rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 focus:outline-none">
+                          {getUniqueChainConfigs.map((chainOption) => (
+                            <button
+                              key={chainOption.network}
+                              onClick={() => {
+                                setTargetChain(chainOption.network);
+                                setIsChainDropdownOpen(false);
+                              }}
+                              className="flex items-center w-full px-4 py-2 text-sm text-[#EDF2F8] hover:bg-[#1A1B1E]"
+                            >
+                              <img
+                                src={chainOption.image}
+                                alt={chainOption.name}
+                                className="w-5 h-5 mr-2 rounded-full"
+                              />
+                              {chainOption.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
-
-            <div className="w-[580px] flex-shrink-0">
-              <div className="flex gap-6 justify-center items-center">
+                
                 {/* Left Card - Deposit Input */}
                 <div className="w-[280px] h-[311px] bg-[#0D101C] rounded-b-[4px] border-l border-r border-b border-[rgba(255,255,255,0.05)] p-6 flex flex-col">
-                  <div className="flex items-center justify-center">
-                    <div className="flex flex-col items-center mt-[20px]">
-                      {selectedAssetOption.image && (
-                        <img
-                          src={selectedAssetOption.image}
-                          alt={selectedAssetOption.name}
-                          className="w-[56px] h-[56px]"
-                        />
-                      )}
-                      <span className="text-[#EDF2F8] text-center   text-[14px] font-semibold leading-normal mt-[16px]">
-                        Deposit {selectedAssetOption.name}
-                      </span>
-                      <div className="relative group">
-                        <span className="text-[#00D1A0] text-center text-[12px] font-normal leading-normal blur-[2px] transition-all duration-300">
-                          +0.00 in 1 year
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Asset Dropdown */}
-                  {assetOptions.length > 1 && (
-                    <div className="mt-4">
-                      <label className="text-[#9C9DA2] text-[12px] block mb-2">
-                        Select Deposit Asset
-                      </label>
-
-                      <div className="relative w-full">
-                        <button
-                          onClick={() =>
-                            setIsAssetDropdownOpen(!isAssetDropdownOpen)
-                          }
-                          className="flex items-center justify-between w-full bg-[#1e202c] text-[#EDF2F8] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] border border-[rgba(255,255,255,0.19)]"
-                        >
-                          <div className="flex items-center gap-2">
-                            {assetOptions[selectedAssetIdx]?.image && (
-                              <img
-                                src={assetOptions[selectedAssetIdx].image}
-                                alt={assetOptions[selectedAssetIdx].name}
-                                className="w-5 h-5 rounded-full"
-                              />
-                            )}
-                            <span>{assetOptions[selectedAssetIdx].name}</span>
-                          </div>
-                          <svg
-                            className={`w-4 h-4 transform transition-transform duration-200 ${
-                              isAssetDropdownOpen ? "rotate-180" : "rotate-0"
-                            }`}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M19 9l-7 7-7-7"
-                            ></path>
-                          </svg>
-                        </button>
-
-                        {isAssetDropdownOpen && (
-                          <div className="absolute z-10 w-full mt-2 bg-[#1F202D] rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 focus:outline-none">
-                            {assetOptions.map((opt, idx) => (
-                              <button
-                                key={opt.contract}
-                                onClick={() => {
-                                  setSelectedAssetIdx(idx);
-                                  setIsAssetDropdownOpen(false);
-                                }}
-                                className="flex items-center w-full px-4 py-2 text-sm text-[#EDF2F8] hover:bg-[#1A1B1E]"
-                              >
-                                {opt.image && (
-                                  <img
-                                    src={opt.image}
-                                    alt={opt.name}
-                                    className="w-5 h-5 mr-2 rounded-full"
-                                  />
-                                )}
-                                {opt.name}
-                              </button>
-                            ))}
-                          </div>
+                    <div className="flex items-center justify-center">
+                      <div className="flex flex-col items-center mt-[20px]">
+                        {selectedAssetOption.image && (
+                          <img
+                            src={selectedAssetOption.image}
+                            alt={selectedAssetOption.name}
+                            className="w-[56px] h-[56px]"
+                          />
                         )}
+                        <span className="text-[#EDF2F8] text-center   text-[14px] font-semibold leading-normal mt-[16px]">
+                          Deposit {selectedAssetOption.name}
+                        </span>
+                        <div className="relative group">
+                          <span className="text-[#00D1A0] text-center text-[12px] font-normal leading-normal blur-[2px] transition-all duration-300">
+                            +0.00 in 1 year
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  )}
-                  {/* --- End Asset Dropdown & Multi-chain Toggle --- */}
-                  <div className="mt-auto flex flex-col gap-[1px]">
-                    <div className="relative flex items-center">
-                      <input
-                        type="text"
-                        value={amount}
-                        onChange={handleAmountChange}
-                        placeholder="0.00"
-                        className="w-[calc(100%-70px)] bg-transparent text-[#EDF2F8]   text-[24px] font-bold leading-normal outline-none focus:ring-0 border-0 border-b border-[rgba(255,255,255,0.19)]"
-                      />
-                      <button
-                        onClick={handleMaxClick}
-                        className="absolute right-0 flex justify-center items-center px-[8px] py-[4px] gap-[10px] rounded-[4px] border border-[rgba(255,255,255,0.30)] bg-transparent hover:opacity-80 transition-all duration-200"
-                      >
-                        <span className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
-                          MAX
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Right Card - Strategy Info */}
-                <div className="w-[280px] h-[311px] bg-[#0D101C] rounded-b-[4px] border-l border-r border-b border-[rgba(255,255,255,0.05)] p-6 relative flex flex-col">
-                  {/* Background gradient effect - top */}
-                  <div className="absolute top-0 left-0 right-0 h-[200px] bg-gradient-to-b from-[rgba(255,255,255,0.02)] to-transparent rounded-t-[4px] pointer-events-none"></div>
+                    {/* Asset Dropdown */}
+                    {assetOptions.length > 1 && (
+                      <div className="mt-4">
+                        <label className="text-[#9C9DA2] text-[12px] block mb-2">
+                          Select Deposit Asset
+                        </label>
 
-                  {/* Background blur effect - bottom */}
-                  <div className="absolute -bottom-[100px] left-1/2 -translate-x-1/2 w-[200px] h-[200px] bg-white/[0.05] blur-[25px] pointer-events-none"></div>
+                        <div className="relative w-full">
+                          <button
+                            onClick={() =>
+                              setIsAssetDropdownOpen(!isAssetDropdownOpen)
+                            }
+                            className="flex items-center justify-between w-full bg-[#1e202c] text-[#EDF2F8] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] border border-[rgba(255,255,255,0.19)]"
+                          >
+                            <div className="flex items-center gap-2">
+                              {assetOptions[selectedAssetIdx]?.image && (
+                                <img
+                                  src={assetOptions[selectedAssetIdx].image}
+                                  alt={assetOptions[selectedAssetIdx].name}
+                                  className="w-5 h-5 rounded-full"
+                                />
+                              )}
+                              <span>{assetOptions[selectedAssetIdx].name}</span>
+                            </div>
+                            <svg
+                              className={`w-4 h-4 transform transition-transform duration-200 ${
+                                isAssetDropdownOpen ? "rotate-180" : "rotate-0"
+                              }`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M19 9l-7 7-7-7"
+                              ></path>
+                            </svg>
+                          </button>
 
-                  {/* Asset Info */}
-                  <div className="flex flex-col items-center text-center relative z-10">
-                    <h3 className="text-[32px] text-[#D7E3EF]   font-medium leading-normal mb-[8px] mt-[12px]">
-                      {selectedAsset}
-                    </h3>
-                    {/* <div
-                    onClick={onReset}
-                    className="text-[16px] text-[#9C9DA2]   font-normal leading-normal underline decoration-solid underline-offset-auto mb-[25px] cursor-pointer hover:text-[#9C9DA2]/80 transition-all duration-200"
-                  >
-                    {formatDuration(duration)}
-                  </div> */}
-                  </div>
-
-                  {/* Strategy Info - Positioned at bottom */}
-                  <div className="mt-auto w-full p-3 bg-[#121521] rounded-[4px] border border-[rgba(255,255,255,0.05)]">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={`/images/icons/${selectedAsset.toLowerCase()}-${strategy}.svg`}
-                        alt={strategy}
-                        className="w-[32px] h-[32px] ml-[4px] mr-[12px] my-auto cursor-pointer hover:opacity-80 transition-all duration-200"
-                        onClick={onReset}
-                      />
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <div className="text-white font-semibold capitalize">
-                            {strategy} {selectedAsset}
-                          </div>
+                          {isAssetDropdownOpen && (
+                            <div className="absolute z-10 w-full mt-2 bg-[#1F202D] rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 focus:outline-none">
+                              {assetOptions.map((opt, idx) => (
+                                <button
+                                  key={opt.contract}
+                                  onClick={() => {
+                                    setSelectedAssetIdx(idx);
+                                    setIsAssetDropdownOpen(false);
+                                  }}
+                                  className="flex items-center w-full px-4 py-2 text-sm text-[#EDF2F8] hover:bg-[#1A1B1E]"
+                                >
+                                  {opt.image && (
+                                    <img
+                                      src={opt.image}
+                                      alt={opt.name}
+                                      className="w-5 h-5 mr-2 rounded-full"
+                                    />
+                                  )}
+                                  {opt.name}
+                                </button>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                        <div className="flex items-center gap-4 mt-[4px]">
+                      </div>
+                    )}
+                    {/* --- End Asset Dropdown & Multi-chain Toggle --- */}
+                    <div className="mt-auto flex flex-col gap-[1px]">
+                      <div className="relative flex items-center">
+                        <input
+                          type="text"
+                          value={amount}
+                          onChange={handleAmountChange}
+                          placeholder="0.00"
+                          className="w-[calc(100%-70px)] bg-transparent text-[#EDF2F8]   text-[24px] font-bold leading-normal outline-none focus:ring-0 border-0 border-b border-[rgba(255,255,255,0.19)]"
+                        />
+                        <button
+                          onClick={handleMaxClick}
+                          className="absolute right-0 flex justify-center items-center px-[8px] py-[4px] gap-[10px] rounded-[4px] border border-[rgba(255,255,255,0.30)] bg-transparent hover:opacity-80 transition-all duration-200"
+                        >
                           <span className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
-                            APY {apy}
+                            MAX
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                </div>
+              </div>
+
+              <div className="w-auto flex flex-col justify-center items-center">
+                {/* Receive on Dropdown */}
+                <div className="w-[280px] bg-[#121420] rounded-t-md p-4 border-l border-r border-t border-[rgba(255,255,255,0.05)]">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-[#9C9DA2] font-inter text-[12px] whitespace-nowrap flex items-center gap-1">
+                      Destination Network
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div>
+                              <InfoIcon />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent className="text-xs" side="top">
+                            This is the network where you'll receive your syUSD
+                            vault tokens
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </label>
+                    <div className="relative  w-200px">
+                      <div className="flex items-center justify-between w-full bg-[#1e202c] text-[#EDF2F8] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] pr-2">
+                        <div className="flex items-center gap-2">
+                          {strategyConfig.network && (
+                            <img
+                              src={
+                                getUniqueChainConfigs.find(
+                                  (c) => c.network === "base"
+                                )?.image || ""
+                              }
+                              alt={targetChain} // Use network name for alt text
+                              className="w-5 h-5 rounded-full"
+                            />
+                          )}
+                          <span className="capitalize text-[12px]">
+                            {strategyConfig.network}
                           </span>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
+                {/* Right Card - Strategy Info */}
+                <div className="w-[280px] h-full bg-[#0D101C] rounded-[4px] border border-[rgba(255,255,255,0.05)] p-6 relative flex flex-col">
+                    {/* Background gradient effect - top */}
+                    <div className="absolute top-0 left-0 right-0 h-[200px] bg-gradient-to-b from-[rgba(255,255,255,0.02)] to-transparent rounded-t-[4px] pointer-events-none"></div>
+
+                      {/* Background blur effect - bottom */}
+                      <div className="absolute -bottom-[100px] left-1/2 -translate-x-1/2 w-[200px] h-[200px] bg-white/[0.05] blur-[25px] pointer-events-none"></div>
+
+                      {/* Asset Info */}
+                      <div className="flex flex-col items-center text-center relative z-10">
+                        <h3 className="text-[32px] text-[#D7E3EF]   font-medium leading-normal mb-[8px] mt-[12px]">
+                          {selectedAsset}
+                        </h3>
+                        {/* <div
+                        onClick={onReset}
+                        className="text-[16px] text-[#9C9DA2]   font-normal leading-normal underline decoration-solid underline-offset-auto mb-[25px] cursor-pointer hover:text-[#9C9DA2]/80 transition-all duration-200"
+                      >
+                        {formatDuration(duration)}
+                      </div> */}
+                      </div>
+
+                      {/* Strategy Info - Positioned at bottom */}
+                      <div className="mt-auto w-full p-3 bg-[#121521] rounded-[4px] border border-[rgba(255,255,255,0.05)]">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={`/images/icons/${selectedAsset.toLowerCase()}-${strategy}.svg`}
+                            alt={strategy}
+                            className="w-[32px] h-[32px] ml-[4px] mr-[12px] my-auto cursor-pointer hover:opacity-80 transition-all duration-200"
+                            onClick={onReset}
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <div className="text-white font-semibold capitalize">
+                                {strategy} {selectedAsset}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4 mt-[4px]">
+                              <span className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
+                                APY {apy}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                </div>
+              </div> 
+            </div>
+ 
+
+            <div className="w-auto items-center">
               <div className="relative mt-[12px] w-full text-left">
                 <span className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
                   Balance:{" "}
@@ -1616,6 +1642,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                   )}
                 </div>
               )}
+            </div>
             </div>
           </div>
         )}

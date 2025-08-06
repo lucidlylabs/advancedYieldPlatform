@@ -17,6 +17,18 @@ import {
   parseUnits,
   getAddress,
 } from "viem";
+import { useRouter } from "next/router";
+
+const isMobile = () => typeof window !== "undefined" && window.innerWidth < 640;
+// import {
+//   BarChart,
+//   Bar,
+//   XAxis,
+//   YAxis,
+//   Tooltip,
+//   ResponsiveContainer,
+//   CartesianGrid,
+// } from "recharts";
 import {
   TooltipContent,
   TooltipProvider,
@@ -72,6 +84,76 @@ interface StrategyDuration {
   STABLE: BaseStrategyConfig;
   INCENTIVE: IncentiveStrategyConfig;
 }
+
+// Mock data for stacked chart
+const chartData = [
+  { date: "FEB 24", base: 2, incentive: 1 },
+  { date: "FEB 24", base: 2.5, incentive: 0.8 },
+  { date: "FEB 24", base: 3, incentive: 1.2 },
+
+  { date: "MAR 24", base: 4, incentive: 1.4 },
+  { date: "MAR 24", base: 4.5, incentive: 1.6 },
+  { date: "MAR 24", base: 5, incentive: 1.8 },
+
+  { date: "APR 24", base: 6.2, incentive: 2 },
+  { date: "APR 24", base: 6.8, incentive: 2.5 },
+  { date: "APR 24", base: 7.1, incentive: 2.7 },
+
+  { date: "MAY 24", base: 8.2, incentive: 3 },
+  { date: "MAY 24", base: 9.4, incentive: 2.8 },
+
+  { date: "JUN 24", base: 10.2, incentive: 3.4 },
+  { date: "JUN 24", base: 10.8, incentive: 3.7 },
+
+  { date: "JUL 24", base: 12, incentive: 4.2 },
+  { date: "JUL 24", base: 13, incentive: 4.8 },
+
+  { date: "AUG 24", base: 14.5, incentive: 5.5 },
+  { date: "AUG 24", base: 15.5, incentive: 6.2 },
+
+  { date: "SEP 24", base: 18, incentive: 6.8 },
+  { date: "SEP 24", base: 19.5, incentive: 7 },
+
+  { date: "OCT 24", base: 21, incentive: 8 },
+  { date: "OCT 24", base: 23, incentive: 8.4 },
+
+  { date: "NOV 24", base: 27, incentive: 8.6 },
+  { date: "NOV 24", base: 28, incentive: 9 },
+
+  { date: "DEC 24", base: 30, incentive: 9.6 },
+  { date: "DEC 24", base: 32, incentive: 10 },
+
+  { date: "JAN 24", base: 34, incentive: 10.4 },
+  { date: "JAN 24", base: 36, incentive: 10.9 },
+];
+
+// Mock data for the table rows
+export const tableData = [
+  {
+    id: 1,
+    name: "Base Yield ETH",
+    expiry: "29th March 2025",
+    expiresIn: "20 days to Expire",
+    apy: "6.64%",
+    currentBalance: "$115,447.00",
+    change: "+$100.00 (10%)",
+    changeColor: "text-green-400",
+    period: "+0.00 in 1 year",
+    icon: "/icons/eth-icon.svg", // Use appropriate path or emoji
+  },
+  {
+    id: 2,
+    name: "Incentive Maxi ETH",
+    expiry: "16th February 2025",
+    expiresIn: "7 days to Expire",
+    apy: "23.43%",
+    currentBalance: "$343,504,807.10",
+    change: "-$100.00 (10%)",
+    changeColor: "text-red-400",
+    period: "+0.00 in 1 year",
+    icon: "/icons/eth-icon.svg",
+  },
+];
 
 interface StrategyAsset {
   [key: string]: StrategyDuration;
@@ -183,15 +265,33 @@ const PortfolioSubpage: React.FC = () => {
   const [withdrawRequests, setWithdrawRequests] = useState<any[]>([]);
   const [completedRequests, setCompletedRequests] = useState<any[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
+  const [usdApy, setUsdApy] = useState<string | null>(null);
 
   const chainId = useChainId();
   const isBase = chainId === 8453;
+
+  const router = useRouter();
 
   // Watch deposit transaction
   const { isLoading: isWaitingForDeposit, isSuccess: isDepositSuccess } =
     useTransaction({
       hash: transactionHash || undefined,
     });
+
+  useEffect(() => {
+      const apyUrl = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.apy;
+      if (typeof apyUrl === "string" && apyUrl.startsWith("http")) {
+        fetch(apyUrl)
+          .then(res => res.json())
+          .then(data => {
+            const trailingApy = data?.result?.trailing_total_APY;
+            if (typeof trailingApy === "number") {
+              setUsdApy(`${trailingApy.toFixed(2)}%`);
+            }
+          })
+          .catch(() => setUsdApy(null));
+      }
+    }, []);
 
   // Watch for deposit completion
   useEffect(() => {
@@ -556,9 +656,31 @@ const PortfolioSubpage: React.FC = () => {
     }
   };
 
+  // Handler for row clicks
   const handleStrategySelect = (strategy: any) => {
-    setSelectedStrategy(strategy);
-    setWithdrawAmount(strategy.balance.toString());
+    console.log("strategy",strategy)
+    if (isMobile()) {
+        router.push({
+          pathname: `/portfolio/${strategy.contract}`,
+          query: { 
+            strategy: strategy.contract,
+            asset: strategy.asset,
+            balance: strategy.balance,
+            duration: strategy.duration,
+            type: strategy.type,
+            apy: strategy.apy,
+            solverAddress: strategy.solverAddress,
+            boringVaultAddress: strategy.boringVaultAddress,
+            // tvl: strategy.tvl,
+            // baseApy: strategy.baseYield,
+            // contractAddress: strategy.contractAddress || "",
+            // network: strategy.network || ""
+          },
+        });
+    } else {
+        setSelectedStrategy(strategy);
+        setWithdrawAmount(strategy.balance.toString());
+    }
   };
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -580,6 +702,19 @@ const PortfolioSubpage: React.FC = () => {
       setWithdrawAmount(selectedStrategy.balance.toString());
     }
   };
+
+  // const CustomXAxisTick = ({ x, y, payload, index, data }) => {
+  //   const currentLabel = payload.value;
+  //   const prevLabel = index > 0 ? data[index - 1]?.date : null;
+  
+  //   const showLabel = currentLabel !== prevLabel;
+  
+  //   return showLabel ? (
+  //     <text x={x} y={y + 15} fill="#9C9DA2" fontSize={6}>
+  //       {currentLabel}
+  //     </text>
+  //   ) : null;
+  // };
 
   const getDepositedChainsViem = async ({
     userAddress,
@@ -669,6 +804,9 @@ const PortfolioSubpage: React.FC = () => {
         const selectedAssetAddress = getAddress(
           assetOptions[selectedAssetIdx].contract
         );
+        console.log("rpc", selectedStrategy.rpc);
+        console.log("solverAddress", solverAddress);
+        console.log("vaultAddress", vaultAddress);
 
         const client = createPublicClient({
           transport: http(selectedStrategy.rpc),
@@ -715,7 +853,7 @@ const PortfolioSubpage: React.FC = () => {
     };
 
     fetchAmountOut();
-  }, [selectedStrategy, withdrawAmount, selectedAssetIdx]);
+  }, [selectedStrategy, withdrawAmount]);
 
   const fetchWithdrawRequests = async (
     vaultAddress: string,
@@ -727,9 +865,9 @@ const PortfolioSubpage: React.FC = () => {
         `https://api.lucidly.finance/services/queueData?vaultAddress=0x279CAD277447965AF3d24a78197aad1B02a2c589&userAddress=${userAddress}`
       );
       const data = await response.json();
+      console.log("response:" ,response)
       setWithdrawRequests(data.result?.PENDING || []);
       setCompletedRequests(data.result?.FULFILLED || []);
-      console.log("Withdraw requests:");
       console.log("API response:", data);
     } catch (error) {
       setWithdrawRequests([]);
@@ -741,6 +879,7 @@ const PortfolioSubpage: React.FC = () => {
 
   useEffect(() => {
     if (address) {
+      console.log("withdrwaimg")
       fetchWithdrawRequests("", address);
     }
   }, [address]);
@@ -768,7 +907,7 @@ const PortfolioSubpage: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen text-white">
       {/* Top Section - Portfolio Value, PNL, and Wallet */}
-      <div className="w-full h-[124px] flex items-center justify-between px-8 bg-[#0D101C] border-b border-[rgba(255,255,255,0.1)]">
+      <div className="flex flex-col sm:flex-row w-full py-4 items-center justify-between px-8 bg-[#0D101C] border-b border-[rgba(255,255,255,0.1)]">
         <div>
           <div className="flex gap-32">
             <div className="flex flex-col">
@@ -838,11 +977,11 @@ const PortfolioSubpage: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="flex flex-col justify-center items-end gap-2 py-[10px] px-4 rounded-[4px] border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)]">
-          <div className="text-[#9C9DA2]   text-[14px] font-normal leading-[16px]">
+        <div className="flex flex-col w-full sm:w-auto justify-center items-center gap-2 py-[10px] px-4 rounded-[4px] border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)]">
+          <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-[16px]">
             Wallet Address
           </div>
-          <div className="text-[#D7E3EF] font-mono opacity-80">
+          <div className="text-[#D7E3EF] font-mono opacity-80 text-xs sm:text-md">
             {isConnected ? address : "Not connected"}
           </div>
         </div>
@@ -1058,7 +1197,7 @@ const PortfolioSubpage: React.FC = () => {
                         $
                         {(
                           (strategy.balance *
-                            parseFloat(strategy.apy?.replace("%", "") || "0")) /
+                            parseFloat(usdApy?.replace("%", "") || "0")) /
                           100
                         ).toFixed(2)}{" "}
                         ({strategy.apy})
@@ -1077,7 +1216,7 @@ const PortfolioSubpage: React.FC = () => {
         </div>
 
         {/* Right Side - Withdraw Form or Info */}
-        <div className="w-1/2 p-8">
+        <div className="w-1/2 p-8 hidden sm:block">
           {selectedStrategy ? (
             <div className="flex flex-col h-full rounded-lg p-6">
               <div className="flex gap-4 mb-6 border-b border-[rgba(255,255,255,0.15)]">
@@ -1188,12 +1327,10 @@ const PortfolioSubpage: React.FC = () => {
                       </div>
                       <div className="flex justify-end items-center gap-4">
                         <div className="text-[#EDF2F8] text-[16px] font-medium leading-normal">
-                          {Number(
-                            formatUnits(
-                              amountOut ? BigInt(amountOut) : BigInt(0),
-                              assetOptions[selectedAssetIdx]?.decimal || 18
-                            )
-                          ).toFixed(4)}{" "}
+                          {formatUnits(
+                            amountOut ? BigInt(amountOut) : BigInt(0),
+                            6
+                          )}{" "}
                         </div>
                         {assetOptions.length > 1 && (
                           <div className="">
