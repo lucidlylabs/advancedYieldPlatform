@@ -12,6 +12,7 @@ import { USD_STRATEGIES } from "../config/env";
 import DailyDeposits from "./graphs/daily_deposits";
 import DepositBarChart from "./ui/depositChart";
 import AllocationChart from "./ui/allocationsChart";
+import StrategyDailyYieldChart from "./ui/strategyDailyYieldChart";
 
 interface MarketItem {
   id: number;
@@ -148,7 +149,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
       {activeDepositTab === "deposits" && <DepositBarChart />}
 
       {activeDepositTab === "allocation" && (
-        <AllocationChart />
+        <AllocationChart/>
       )}
     </div>
   );
@@ -186,74 +187,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
     const renderIncentivesTab = () => (
         <div>
-            <h2 className="text-[rgba(255,255,255,0.70)]  text-[16px] font-bold my-6">
-                INCENTIVE REWARDS
-            </h2>
-
-            {/* Incentive rewards content (commented out for now) */}
-            {/* <div className="bg-gray-800 rounded-md p-6">
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="border border-gray-700 rounded-md p-4">
-                        <div className="flex items-center gap-2 mb-4">
-                            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                                <svg
-                                    width="16"
-                                    height="16"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                >
-                                    <path
-                                        d="M12 2L12 9.5M12 2L6 5M12 2L18 5M12 22L12 15M12 22L6 19M12 22L18 19"
-                                        stroke="white"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    />
-                                </svg>
-                            </div>
-                            <span className="font-medium">ETH Rewards</span>
-                        </div>
-                        <div className="text-2xl font-bold mb-1">0.25 ETH</div>
-                        <div className="text-gray-400 text-sm">~$625.00 USD</div>
-                    </div>
-
-                    <div className="border border-gray-700 rounded-md p-4">
-                        <div className="flex items-center gap-2 mb-4">
-                            <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
-                                <svg
-                                    width="16"
-                                    height="16"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                >
-                                    <path
-                                        d="M12 2V22M17 5H9.5C7.567 5 6 6.567 6 8.5C6 10.433 7.567 12 9.5 12H14.5C16.433 12 18 13.567 18 15.5C18 17.433 16.433 19 14.5 19H7"
-                                        stroke="white"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    />
-                                </svg>
-                            </div>
-                            <span className="font-medium">Platform Token</span>
-                        </div>
-                        <div className="text-2xl font-bold mb-1">150 LCY</div>
-                        <div className="text-gray-400 text-sm">$75 USD</div>
-                    </div>
-                </div>
-            </div> */}
-            <div className="relative w-full mb-6">
-                <h2 className="absolute top-48 left-1/2 -translate-x-1/2 text-lg text-white z-10">Collecting data...</h2>
-                <Image
-                    src="/images/background/yields-blurred.jpg"
-                    alt="Deposits Chart"
-                    width={600}
-                    height={300}
-                    className="w-full h-auto"
-                />
-            </div>
+          <StrategyDailyYieldChart/>
         </div>
     );
 
