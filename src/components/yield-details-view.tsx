@@ -9,6 +9,7 @@ import {
 import Image from "next/image";
 import DepositView from "./deposit-view";
 import { USD_STRATEGIES } from "../config/env";
+import DailyDeposits from "./graphs/daily_deposits";
 import DepositBarChart from "./ui/depositChart";
 import AllocationChart from "./ui/allocationsChart";
 
