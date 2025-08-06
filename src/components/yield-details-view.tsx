@@ -432,9 +432,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
             {/* Content */}
             <div className="mt-2 pl-0">
-                {activeTab === "deposits" && (
-                  <DailyDeposits endpoint="http://localhost:3001/api/syUSD/daily-deposits" />
-                )}
+                {activeTab === "deposits" && renderDepositsTab()}
                 {activeTab === "baseApy" && renderBaseApyTab()}
                 {activeTab === "incentives" && renderIncentivesTab()}
             </div>
