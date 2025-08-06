@@ -22,8 +22,9 @@ export default function PortfolioChart({ userAddress }: { userAddress: string })
   useEffect(() => {
     async function fetchData() {
       try {
-        const res = await fetch(`/api/portfolio?userAddress=${userAddress}`);
+        const res = await fetch(`http://localhost:3001/api/portfolio-value?userAddress=${userAddress}`);
         const json = await res.json();
+        console.log('portfolioData', json.portfolioData);
 
         if (Array.isArray(json.portfolioData)) {
           const sorted = json.portfolioData
