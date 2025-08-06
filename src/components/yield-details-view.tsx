@@ -315,6 +315,14 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
             <div className="font-semibold text-sm leading-none">---</div>
           </div>
 
+          {/* Content */}
+          {/* <div className="mt-2 pl-0">
+                {activeTab === "deposits" && (
+                  <DailyDeposits endpoint="http://localhost:3001/api/syUSD/daily-deposits" />
+                )}
+                {activeTab === "baseApy" && renderBaseApyTab()}
+                {activeTab === "incentives" && renderIncentivesTab()}
+          </div> */}
           {/* Contract Address */}
           <div className="flex flex-col justify-center items-start relative pr-6 h-[35px] gap-[10px] after:content-[''] after:absolute after:right-0 after:top-1/2 after:-translate-y-1/2 after:w-px after:h-[35px] after:bg-gray-700">
             <div className="text-[#9C9DA2] text-xs leading-none">
