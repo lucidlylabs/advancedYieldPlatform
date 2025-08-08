@@ -186,7 +186,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
     );
 
     const renderIncentivesTab = () => (
-        <div>
+        <div className="h-[400px] overflow-y-auto pb-2">
           <StrategyDailyYieldChart/>
         </div>
     );
