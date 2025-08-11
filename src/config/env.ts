@@ -158,7 +158,7 @@ export const USD_STRATEGIES = {
         enabled: true,
         points: [
           {
-            name: "1.5x Liquidity Land Points",
+            name: "1.5x boost Liquidity Land",
             image: "/images/icons/syUSD/liquidity_land.png",
             multiplier: 1.0,
           },
