@@ -146,7 +146,10 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
       </div>
   
-      {activeDepositTab === "deposits" && <DepositBarChart />}
+      {activeDepositTab === "deposits" && 
+              <div className="h-[400px] overflow-y-auto pb-2">
+<DepositBarChart />
+</div>}
 
       {activeDepositTab === "allocation" && (
         <AllocationChart/>

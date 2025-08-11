@@ -55,7 +55,10 @@ export default function StrategyDailyYieldChart() {
   useEffect(() => {
     async function fetchData() {
       try {
-        setLoading(true);
+        // Only show loading on initial load, not on period changes
+        if (data.length === 0) {
+          setLoading(true);
+        }
         const res = await fetch(`http://localhost:3001/api/strategy/yield?period=${period}`);
         const json = await res.json();
         console.log('Fetched yield data:', json);
@@ -204,16 +207,16 @@ export default function StrategyDailyYieldChart() {
       const totalPeriodYield = periodData.reduce((sum: number, item: any) => sum + (item.value || 0), 0);
       
       return (
-        <div className="bg-white border shadow-md p-3 rounded text-sm">
-          <p className="font-medium mb-2 text-[#1F202D]">{label}</p>
+        <div className="bg-[#1C1D2A] border-none p-3 rounded text-sm">
+          <p className="text-gray-400 mb-1">{label}</p>
           
           {periodData.length > 0 && (
             <>
-              <p className="font-medium mb-1 text-[#1F202D]">
+              <p className="text-gray-400 text-xs my-1">
                 {period.charAt(0).toUpperCase() + period.slice(1)} Yield: {totalPeriodYield.toFixed(4)}
               </p>
               {periodData.map((item: any, idx: number) => (
-                <p key={idx} style={{ color: item.fill }}>
+                <p key={idx} style={{ color: item.fill }} className="my-0.5">
                   {item.name}: <span className="font-medium">{item.value.toFixed(4)} YLD</span>
                 </p>
               ))}
@@ -222,9 +225,9 @@ export default function StrategyDailyYieldChart() {
           
           {cumulativeData.length > 0 && (
             <>
-              <p className="font-medium mb-1 mt-2 text-[#1F202D] border-t pt-2">Cumulative:</p>
+              <p className="text-gray-400 text-xs my-1 border-t border-gray-600 pt-1">Cumulative:</p>
               {cumulativeData.map((item: any, idx: number) => (
-                <p key={idx} style={{ color: item.stroke }}>
+                <p key={idx} style={{ color: item.stroke }} className="my-0.5">
                   {item.name}: <span className="font-medium">{item.value.toFixed(2)} YLD</span>
                 </p>
               ))}
