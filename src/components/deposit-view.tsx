@@ -66,10 +66,18 @@ interface StrategyConfig {
   base: ChainConfig;
   ethereum: ChainConfig;
   arbitrum: ChainConfig;
-  katana: ChainConfig; // <-- Add this line
+  katana: ChainConfig;
   description: string;
   apy: string;
-  incentives: string;
+  incentives: {
+    enabled: boolean;
+    points: Array<{
+      name: string;
+      image: string;
+      multiplier: number;
+      description?: string;
+    }>;
+  };
   tvl: string;
   rpc?: string;
   show_cap: boolean;
