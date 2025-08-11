@@ -22,7 +22,7 @@ interface MarketItem {
   name: string;
   type: string;
   baseYield: string;
-  incentives: string[];
+  incentives: Array<{ image: string; name: string }>;
   tvl: string;
   description?: string;
   riskLevel?: string;
@@ -113,7 +113,23 @@ const MarketsSubpage: React.FC = () => {
         baseYield: usdApy
           ? usdApy
           : USD_STRATEGIES.PERPETUAL_DURATION.STABLE.apy,
-        incentives: [USD_STRATEGIES.PERPETUAL_DURATION.STABLE.incentives],
+        incentives: (() => {
+          const incentives = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.incentives;
+          console.log('Raw incentives config:', incentives);
+          
+          if (!incentives?.enabled || !incentives.points || incentives.points.length === 0) {
+            console.log('No incentives enabled or no points');
+            return [];
+          }
+          
+          // Return objects with both image and name for tooltips
+          const incentiveData = incentives.points.map(point => ({
+            image: point.image,
+            name: point.name
+          }));
+          console.log('Incentive data:', incentiveData);
+          return incentiveData;
+        })(),
         tvl: usdTvl ? usdTvl : USD_STRATEGIES.PERPETUAL_DURATION.STABLE.tvl,
         description: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.description,
         riskLevel: "Very Low",

@@ -365,7 +365,7 @@ const PortfolioSubpage: React.FC = () => {
 
     // Directly access the STABLE strategy within PERPETUAL_DURATION
     const stablePerpetualConfig = USD_STRATEGIES.PERPETUAL_DURATION
-      .STABLE as StrategyConfig;
+      .STABLE as unknown as StrategyConfig;
 
     if (stablePerpetualConfig) {
       if (stablePerpetualConfig.base && stablePerpetualConfig.base.image) {

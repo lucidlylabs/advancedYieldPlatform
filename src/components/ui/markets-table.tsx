@@ -13,7 +13,7 @@ interface MarketItem {
   name: string;
   type: string;
   baseYield: string;
-  incentives: string[];
+  incentives: Array<{ image: string; name: string }>;
   tvl: string;
 }
 
@@ -253,14 +253,31 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
                     console.log('Incentives for', item.name, ':', item.incentives);
                     const hasValidIncentives = item.incentives && 
                       item.incentives.length > 0 && 
-                      item.incentives.some(incentive => incentive && incentive.trim() !== '');
+                      item.incentives.some(incentive => incentive && incentive.image);
                     
                     return hasValidIncentives ? (
                       item.incentives
-                        .filter(incentive => incentive && incentive.trim() !== '')
+                        .filter(incentive => incentive && incentive.image)
                         .map((incentive, index) => (
-                          <div key={index} className="-ml-1 first:ml-0">
-                            <IncentiveIcon type={incentive} />
+                          <div key={index} className={index === 0 ? "" : "ml-2"}>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div>
+                                    <Image
+                                      src={incentive.image}
+                                      alt={incentive.name}
+                                      width={16}
+                                      height={16}
+                                      className="object-contain"
+                                    />
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{incentive.name}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           </div>
                         ))
                     ) : (
