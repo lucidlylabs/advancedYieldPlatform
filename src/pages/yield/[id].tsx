@@ -8,7 +8,7 @@ interface MarketItem {
     name: string;
     type: string;
     baseYield: string;
-    incentives: string[];
+    incentives: Array<{ image: string; name: string }>;
     tvl: string;
     description?: string;
     riskLevel?: string;
