@@ -35,8 +35,6 @@ import {
     [key: string]: number | string;
   };
 
-
-
   async function fetchData(period: 'daily' | 'weekly' | 'monthly'): Promise<ChartDataItem[]> {
     try {
       const res = await fetch(`http://localhost:3001/api/syUSD/deposits?period=${period}`);
@@ -275,7 +273,7 @@ import {
         <div className="w-full h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
-              data={[...filteredData].reverse()}
+              data={filteredData}
               margin={{ top: 10, right: 40, left: 0, bottom: 0 }}
             >
               <CartesianGrid

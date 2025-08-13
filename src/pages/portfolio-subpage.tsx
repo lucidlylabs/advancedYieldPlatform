@@ -1287,7 +1287,7 @@ const PortfolioSubpage: React.FC = () => {
       {/* Main Content - Split View */}
       <div className="flex flex-1">
         {/* Left Side - Assets Table */}  
-        <div className="w-1/2 border-r border-[rgba(255,255,255,0.1)] pt-8 pl-8">
+        <div className="w-1/2 border-r border-[rgba(255,255,255,0.1)] pt-8 pl-8 h-[600px] overflow-y-auto pb-36">
           <PortfolioChart userAddress={address ?? ""} />
           <div className="mt-8">      
             <div className="mb-6">
@@ -1296,42 +1296,6 @@ const PortfolioSubpage: React.FC = () => {
               </div>
             </div>
           </div>
-
-          {/* Graph */}
-          {/* <div className="w-full h-[350px] rounded-xl">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={chartData}
-                barCategoryGap={1} 
-                barGap={0}
-              >
-                <CartesianGrid vertical={false} stroke="#1F1F2B" />
-                <XAxis
-                  dataKey="date"
-                  stroke="#9C9DA2"
-                  fontSize={8}
-                  tickMargin={4}
-                  interval={2}
-                  tick={(props) => <CustomXAxisTick {...props} data={chartData} />}
-                />
-                <YAxis
-                  orientation="right"
-                  stroke="#9C9DA2"
-                  tickFormatter={(value) => `$${value}`}
-                  domain={[0, 100]}
-                  fontSize={12}
-                  axisLine={false}
-                />
-                <Tooltip
-                  contentStyle={{ backgroundColor: "#1A1A2F", border: "none", color: "#fff" }}
-                  labelStyle={{ color: "#9C9DA2" }}
-                  formatter={(value: number) => [`$${value.toFixed(2)}`, "Value"]}
-                />
-                <Bar dataKey="base" stackId="a" fill="#00E8C2" radius={[2, 2, 0, 0]} />
-                <Bar dataKey="incentive" stackId="a" fill="#7155FF" radius={[2, 2, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div> */}
 
           {/* Column Headers */}
           <div className="grid grid-cols-5 sm:pl-4 sm:pr-6 py-2 border-b border-[rgba(255,255,255,0.15)]">

@@ -168,7 +168,7 @@ export default function AllocationChart() {
   };
 
   return (
-    <div className="p-6 rounded-xl text-white w-full">
+    <div className="p-6 rounded-xl text-white w-full mb-8">
       <div className="w-full h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart

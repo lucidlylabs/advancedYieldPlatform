@@ -51,6 +51,7 @@ export default function StrategyDailyYieldChart() {
   const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [colorMap, setColorMap] = useState<Record<string, string>>({});
   const [showCumulative, setShowCumulative] = useState(true);
+  const [showAsPercentage, setShowAsPercentage] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -179,6 +180,13 @@ export default function StrategyDailyYieldChart() {
 
   const filteredData = combinedData.map(item => {
     const filtered: any = { date: item.date };
+    
+    // Calculate total for percentage calculation
+    const totalYield = showAsPercentage ? 
+      Object.keys(item)
+        .filter(k => k !== 'date' && !k.endsWith('_cumulative') && selectedKeys.has(k))
+        .reduce((sum, k) => sum + ((item[k] as number) || 0), 0) : 0;
+    
     Object.keys(item).forEach(k => {
       if (k === 'date') {
         filtered[k] = item[k];
@@ -189,8 +197,13 @@ export default function StrategyDailyYieldChart() {
           filtered[k] = item[k];
         }
       } else if (selectedKeys.has(k)) {
-        // Include regular bar data
-        filtered[k] = item[k];
+        // Include regular bar data - convert to percentage if toggle is on
+        if (showAsPercentage && totalYield !== 0) {
+          const value = (item[k] as number) || 0;
+          filtered[k] = (value / totalYield) * 100;
+        } else {
+          filtered[k] = item[k];
+        }
       }
     });
     return filtered;
@@ -212,12 +225,16 @@ export default function StrategyDailyYieldChart() {
           
           {periodData.length > 0 && (
             <>
-              <p className="text-gray-400 text-xs my-1">
-                {period.charAt(0).toUpperCase() + period.slice(1)} Yield: {totalPeriodYield.toFixed(4)}
-              </p>
+              {!showAsPercentage && (
+                <p className="text-gray-400 text-xs my-1">
+                  {period.charAt(0).toUpperCase() + period.slice(1)} Yield: {totalPeriodYield.toFixed(4)}
+                </p>
+              )}
               {periodData.map((item: any, idx: number) => (
                 <p key={idx} style={{ color: item.fill }} className="my-0.5">
-                  {item.name}: <span className="font-medium">{item.value.toFixed(4)} YLD</span>
+                  {item.name}: <span className="font-medium">
+                    {showAsPercentage ? `${item.value.toFixed(1)}%` : `${item.value.toFixed(4)} YLD`}
+                  </span>
                 </p>
               ))}
             </>
@@ -253,6 +270,15 @@ export default function StrategyDailyYieldChart() {
             />
             Show Cumulative
           </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={showAsPercentage}
+              onChange={(e) => setShowAsPercentage(e.target.checked)}
+              className="rounded"
+            />
+            Show as %
+          </label>
           <select
             value={period}
             onChange={(e) => setPeriod(e.target.value as 'daily' | 'weekly' | 'monthly')}
@@ -269,7 +295,7 @@ export default function StrategyDailyYieldChart() {
         <ComposedChart data={filteredData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#ccc" strokeOpacity={0.2} />
           <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-          <YAxis yAxisId="left" tickFormatter={(val) => `${val.toFixed(2)}`} tick={{ fontSize: 12 }} />
+          <YAxis yAxisId="left" tickFormatter={(val) => showAsPercentage ? `${val.toFixed(1)}%` : `${val.toFixed(2)}`} tick={{ fontSize: 12 }} />
           <YAxis yAxisId="right" orientation="right" tickFormatter={(val) => `${val.toFixed(0)}`} tick={{ fontSize: 12 }} />
           <Tooltip content={<CustomTooltip />} />
           
