@@ -161,6 +161,7 @@ export const USD_STRATEGIES = {
             name: "1.5x boost Liquidity Land",
             image: "/images/icons/syUSD/liquidity_land.png",
             multiplier: 1.0,
+            link: "https://app.liquidity.land/project/Lucidly",
           },
           {
             name: "Ethena Sats",

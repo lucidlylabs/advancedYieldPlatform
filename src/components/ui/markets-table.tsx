@@ -13,7 +13,7 @@ interface MarketItem {
   name: string;
   type: string;
   baseYield: string;
-  incentives: Array<{ image: string; name: string }>;
+  incentives: Array<{ image: string; name: string; link: string }>;
   tvl: string;
 }
 
@@ -263,15 +263,32 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <div>
-                                    <Image
-                                      src={incentive.image}
-                                      alt={incentive.name}
-                                      width={16}
-                                      height={16}
-                                      className="object-contain"
-                                    />
-                                  </div>
+                                  {incentive.link && incentive.link !== "#" ? (
+                                    <a 
+                                      href={incentive.link} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="cursor-pointer hover:opacity-80 transition-opacity"
+                                    >
+                                      <Image
+                                        src={incentive.image}
+                                        alt={incentive.name}
+                                        width={16}
+                                        height={16}
+                                        className="object-contain"
+                                      />
+                                    </a>
+                                  ) : (
+                                    <div>
+                                      <Image
+                                        src={incentive.image}
+                                        alt={incentive.name}
+                                        width={16}
+                                        height={16}
+                                        className="object-contain"
+                                      />
+                                    </div>
+                                  )}
                                 </TooltipTrigger>
                                 <TooltipContent>
                                   <p>{incentive.name}</p>

@@ -22,7 +22,7 @@ interface MarketItem {
   name: string;
   type: string;
   baseYield: string;
-  incentives: Array<{ image: string; name: string }>;
+  incentives: Array<{ image: string; name: string; link: string }>;
   tvl: string;
   description?: string;
   riskLevel?: string;
@@ -122,10 +122,11 @@ const MarketsSubpage: React.FC = () => {
             return [];
           }
           
-          // Return objects with both image and name for tooltips
+          // Return objects with image, name, and link for tooltips and navigation
           const incentiveData = incentives.points.map(point => ({
             image: point.image,
-            name: point.name
+            name: point.name,
+            link: point.link || "#" // Use link from config or fallback to "#"
           }));
           console.log('Incentive data:', incentiveData);
           return incentiveData;

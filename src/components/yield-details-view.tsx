@@ -15,7 +15,7 @@ interface MarketItem {
   name: string;
   type: string;
   baseYield: string;
-  incentives: Array<{ image: string; name: string }>;
+  incentives: Array<{ image: string; name: string; link: string }>;
   tvl: string;
   description?: string;
   riskLevel?: string;
