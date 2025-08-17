@@ -277,7 +277,7 @@ const MarketsSubpage: React.FC = () => {
           onReset={() => setShowDepositView(false)}
         />
       ) : (
-        <div className="flex min-h-screen text-white overflow-y-auto">
+        <div className="flex min-h-screen text-white overflow-y-auto mt-8 sm:mt-0">
           {/* Left side - 50% */}
           <div className="w-full flex flex-col relative">
             <div className="w-full h-[124px] flex flex-col justify-center items-start relative pl-4 sm:pl-[32px]">
