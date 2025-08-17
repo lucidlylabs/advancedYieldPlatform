@@ -484,7 +484,7 @@ const DepositView: React.FC<DepositViewProps> = ({
         maximumFractionDigits: 6,
       });
 
-      setSharesToReceive(formattedShares);
+      setSharesToReceive(sharesFormatted);
 
       // Calculate USD value: shares * exchange rate
       const sharesForUsd = parseFloat(sharesFormatted);
