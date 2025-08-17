@@ -16,7 +16,7 @@ export default function FarcasterApp() {
         setIsReady(true);
 
         // Get user information
-        const userInfo = await sdk.actions.signIn();
+        const userInfo = await sdk.actions.signIn({ nonce: 'lucidly-miniapp' });
         setUser(userInfo);
       } catch (error) {
         console.error('Failed to initialize Mini App:', error);
