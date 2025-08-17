@@ -9,6 +9,14 @@ const nextConfig = {
     config.externals.push('pino-pretty', 'lokijs', 'encoding');
     return config;
   },
+  async rewrites() {
+    return [
+      {
+        source: '/.well-known/farcaster.json',
+        destination: '/farcaster.json',
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;
