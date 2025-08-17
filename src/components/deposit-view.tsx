@@ -1292,10 +1292,10 @@ const DepositView: React.FC<DepositViewProps> = ({
 
   return (
     <>
-      <div className="relative overflow-hidden pt-40">
+      <div className="relative overflow-hidden pt-20 sm:pt-40 px-4 sm:px-0">
         {depositSuccess ? (
-          <div className="flex flex-col items-center justify-center h-full pt-12">
-            <div className="w-[580px] bg-[#0D101C] rounded-lg p-8 text-center">
+          <div className="flex flex-col items-center justify-center h-full pt-12 px-4 sm:px-0">
+            <div className="w-full max-w-[580px] bg-[#0D101C] rounded-lg p-6 sm:p-8 text-center">
               <div className="flex justify-center mb-6">
                 <svg
                   width="88"
@@ -1318,13 +1318,13 @@ const DepositView: React.FC<DepositViewProps> = ({
                   />
                 </svg>
               </div>
-              <h2 className="text-[#D7E3EF] text-2xl font-bold mb-2">
+              <h2 className="text-[#D7E3EF] text-xl sm:text-2xl font-bold mb-2">
                 Deposit Success
               </h2>
               <p className="text-[#9C9DA2] mb-6">
                 Your deposit has been successfully processed
               </p>
-              <div className="bg-[#121521] rounded p-4 mb-4 px-6">
+              <div className="bg-[#121521] rounded p-4 mb-4 px-4 sm:px-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <img
@@ -1335,25 +1335,25 @@ const DepositView: React.FC<DepositViewProps> = ({
                       alt={selectedAssetOption?.name || "Asset"}
                       className="w-6 h-6 rounded-full"
                     />
-                    <span className="text-[#EDF2F8] text-base font-semibold">
+                    <span className="text-[#EDF2F8] text-sm sm:text-base font-semibold">
                       {selectedAssetOption?.name || "Amount"}
                     </span>
                   </div>
-                  <span className="text-[#EDF2F8] text-base font-semibold">
+                  <span className="text-[#EDF2F8] text-sm sm:text-base font-semibold">
                     {amount} {selectedAssetOption?.name || "Unknown"}
                   </span>
                 </div>
               </div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[#9C9DA2] ml-6 text-sm font-normal">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 gap-2">
+                <span className="text-[#9C9DA2] text-sm font-normal">
                   Transaction Hash
                 </span>
-                <div className="flex items-center gap-3 mr-6">
+                <div className="flex items-center gap-3">
                   <a
                     href={getExplorerUrl(targetChain, transactionHash || "")}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[#B88AF8] hover:underline flex items-center gap-1 text-sm font-normal"
+                    className="text-[#B88AF8] hover:underline flex items-center gap-1 text-sm font-normal break-all"
                   >
                     <svg
                       width="16"
@@ -1361,6 +1361,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                       viewBox="0 0 24 24"
                       fill="none"
                       xmlns="http://www.w3.org/2000/svg"
+                      className="flex-shrink-0"
                     >
                       <path
                         d="M18 13V19C18 19.5304 17.7893 20.0391 17.4142 20.4142C17.0391 20.7893 16.5304 21 16 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V8C3 7.46957 3.21071 6.96086 3.58579 6.58579C3.96086 6.21071 4.46957 6 5 6H11"
@@ -1395,7 +1396,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                     viewBox="0 0 16 16"
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"
-                    className={`cursor-pointer hover:opacity-80 transition-all duration-200 ${
+                    className={`cursor-pointer hover:opacity-80 transition-all duration-200 flex-shrink-0 ${
                       isCopied ? "opacity-100" : "opacity-60"
                     }`}
                     onClick={async () => {
@@ -1424,38 +1425,20 @@ const DepositView: React.FC<DepositViewProps> = ({
             </div>
             <button
               onClick={onReset}
-              className="w-[580px] py-4 rounded bg-[#B88AF8] text-[#1A1B1E] font-semibold hover:opacity-90 transition-all duration-200 mt-8"
+              className="w-full max-w-[580px] py-4 rounded bg-[#B88AF8] text-[#1A1B1E] font-semibold hover:opacity-90 transition-all duration-200 mt-8"
             >
               Make Another Deposit
             </button>
           </div>
         ) : (
-          <div className="flex flex-col gap-6 items-center">
+          <div className="flex flex-col gap-6 items-center w-full">
             <div className="w-full max-w-[280px] md:max-w-[580px]">
-              {/* <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onReset();
-            }}
-            className="absolute -translate-x-[284px] -translate-y-[42px] text-[#B88AF8] hover:opacity-100 transition-all duration-200 flex items-center gap-2 font-normal text-xs leading-none"
-          >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-[24px] h-[24px]"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-          </button> */}
               <div className="flex flex-col gap-6">
                 {/* Two Cards Row */}
                 <div className="flex flex-col gap-6 md:flex-row justify-center items-start">
-                  <div className="flex flex-col justify-center items-center">
+                  <div className="flex flex-col justify-center items-center w-full">
                     {/* Deposit Chain Dropdown */}
-                    <div className="w-[280px] bg-[#121420] p-4 border-l border-r border-t border-[rgba(255,255,255,0.05)]">
+                    <div className="w-full max-w-[280px] bg-[#121420] p-4 border-l border-r border-t border-[rgba(255,255,255,0.05)]">
                       <div className="flex items-center justify-between gap-2">
                         <label className="text-[#9C9DA2] font-inter text-[12px] whitespace-nowrap flex items-center gap-1">
                           Deposit Network
@@ -1540,7 +1523,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                     </div>
 
                     {/* Left Card - Deposit Input */}
-                    <div className="w-[280px] h-[270px] bg-[#0D101C] border-l border-r border-b border-[rgba(255,255,255,0.05)] px-6 pt-6 pb-4 flex flex-col">
+                    <div className="w-full max-w-[280px] h-[270px] bg-[#0D101C] border-l border-r border-b border-[rgba(255,255,255,0.05)] px-6 pt-6 pb-4 flex flex-col">
                       <div className="flex items-center justify-center">
                         <div className="flex flex-col items-center mt-[8px]">
                           <img
@@ -1584,74 +1567,6 @@ const DepositView: React.FC<DepositViewProps> = ({
                         </div>
                       </div>
 
-                      {/* Asset Dropdown */}
-                      {/* {assetOptions.length > 1 && (
-                      <div className="mt-4">
-                        <label className="text-[#9C9DA2] text-[12px] block mb-2">
-                          Select Deposit Asset
-                        </label>
-
-                        <div className="relative w-full">
-                          <button
-                            onClick={() =>
-                              setIsAssetDropdownOpen(!isAssetDropdownOpen)
-                            }
-                            className="flex items-center justify-between w-full bg-[#1e202c] text-[#EDF2F8] rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] border border-[rgba(255,255,255,0.19)]"
-                          >
-                            <div className="flex items-center gap-2">
-                              {assetOptions[selectedAssetIdx]?.image && (
-                                <img
-                                  src={assetOptions[selectedAssetIdx].image}
-                                  alt={assetOptions[selectedAssetIdx].name}
-                                  className="w-5 h-5 rounded-full"
-                                />
-                              )}
-                              <span>{assetOptions[selectedAssetIdx].name}</span>
-                            </div>
-                            <svg
-                              className={`w-4 h-4 transform transition-transform duration-200 ${
-                                isAssetDropdownOpen ? "rotate-180" : "rotate-0"
-                              }`}
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M19 9l-7 7-7-7"
-                              ></path>
-                            </svg>
-                          </button>
-
-                          {isAssetDropdownOpen && (
-                            <div className="absolute z-10 w-full mt-2 bg-[#1F202D] rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 focus:outline-none">
-                              {assetOptions.map((opt, idx) => (
-                                <button
-                                  key={opt.contract}
-                                  onClick={() => {
-                                    setSelectedAssetIdx(idx);
-                                    setIsAssetDropdownOpen(false);
-                                  }}
-                                  className="flex items-center w-full px-4 py-2 text-sm text-[#EDF2F8] hover:bg-[#1A1B1E]"
-                                >
-                                  {opt.image && (
-                                    <img
-                                      src={opt.image}
-                                      alt={opt.name}
-                                      className="w-5 h-5 mr-2 rounded-full"
-                                    />
-                                  )}
-                                  {opt.name}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )} */}
                       {/* Input Section */}
                       <div className="mt-8">
                         <div className="flex items-center gap-2 mb-2">
@@ -1679,9 +1594,9 @@ const DepositView: React.FC<DepositViewProps> = ({
                   </div>
 
                   {/* Second Card Container */}
-                  <div className="flex flex-col justify-center items-center">
+                  <div className="flex flex-col justify-center items-center w-full">
                     {/* Destination Network Dropdown */}
-                    <div className="w-[280px] bg-[#121420] p-4 border-l border-r border-t border-[rgba(255,255,255,0.05)]">
+                    <div className="w-full max-w-[280px] bg-[#121420] p-4 border-l border-r border-t border-[rgba(255,255,255,0.05)]">
                       <div className="flex items-center justify-between gap-2">
                         <label className="text-[#9C9DA2] font-inter text-[12px] whitespace-nowrap flex items-center gap-1">
                           Destination Network
@@ -1722,22 +1637,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                       </div>
                     </div>
                     {/* Right Card - Strategy Info */}
-                    <div className="w-[280px] h-[270px] bg-[#0D101C] border-l border-r border-b border-[rgba(255,255,255,0.05)] px-6 pt-6 pb-4 relative flex flex-col">
-                      {/* Background gradient effect - top */}
-                      {/* <div className="absolute top-0 left-0 right-0 h-[200px] bg-gradient-to-b from-[rgba(255,255,255,0.02)] to-transparent pointer-events-none"></div> */}
-
-                      {/* Background blur effect - bottom */}
-                      {/* <div className="absolute -bottom-[100px] left-1/2 -translate-x-1/2 w-[200px] h-[200px] bg-white/[0.05] blur-[25px] pointer-events-none"></div> */}
-
-                      {/* Asset Info */}
-                      {/* <div className="flex flex-col items-center text-center relative z-10">
-                        <h3 className="text-[32px] text-[#D7E3EF]   font-medium leading-normal mb-[8px] mt-[12px]">
-                          {selectedAsset}
-                        </h3>
-                      </div> */}
-
-                      {/* Strategy Info - Positioned at bottom */}
-
+                    <div className="w-full max-w-[280px] h-[270px] bg-[#0D101C] border-l border-r border-b border-[rgba(255,255,255,0.05)] px-6 pt-6 pb-4 relative flex flex-col">
                       <div className="flex flex-col items-center text-center h-full">
                         <img
                           src={`/images/icons/${selectedAsset.toLowerCase()}-${strategy}.svg`}
@@ -1815,26 +1715,6 @@ const DepositView: React.FC<DepositViewProps> = ({
 
                 {/* Button Section - Below the cards */}
                 <div className="w-full flex flex-col gap-4">
-                  {/* Deposit Cap Progress Bar - Only shown if show_cap is true */}
-                  {/* {showDepositCap && (
-              <div className="w-full mt-6 mb-4 p-4 rounded-[4px] bg-[rgba(255,255,255,0.02)]">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-[#EDF2F8]   text-[14px] font-medium">
-                    ${remainingSpace} Remaining
-                  </span>
-                  <span className="text-[#9C9DA2]   text-[14px]">
-                    Limited Space: ${depositCap.used}/${depositCap.total}
-                  </span>
-                </div>
-                <div className="w-full h-[6px] bg-[#1A1B1E] rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-[#4A63D3] rounded-full"
-                    style={{ width: `${progressPercentage}%` }}
-                  />
-                </div>
-              </div>
-            )} */}
-
                   {/* Dynamic Connect/Deposit Button */}
                   {targetChain !== strategyConfig.network.toLowerCase() && (
                     <div className="w-full mt-4 mb-2 p-4 rounded bg-[#2B2320] border border-[#B88AF8]/20 text-[#FFD580] text-sm">
@@ -1960,11 +1840,11 @@ const DepositView: React.FC<DepositViewProps> = ({
         {/* Asset Selection Popup */}
         {isAssetPopupOpen && (
           <div
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
             onClick={() => setIsAssetPopupOpen(false)}
           >
             <div
-              className="bg-[#080B17] rounded-lg p-6 w-[400px] max-w-[90vw]"
+              className="bg-[#080B17] rounded-lg p-6 w-full max-w-[400px] max-h-[80vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-4">

@@ -253,7 +253,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
   // Always render the main content, assuming verification is handled by parent
   return (
     <div
-      className="min-h-[calc(100vh)] relative w-full"
+      className="min-h-[calc(100vh)] relative w-full overflow-y-auto"
       style={{
         backgroundImage: "url('/images/background/earn-page-bg.svg')",
         backgroundPosition: "center bottom -50px",
@@ -272,13 +272,13 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
           onReset={handleReset}
         />
       ) : selectedAsset ? (
-        <div className="flex flex-col min-h-screen items-center justify-center gap-6 pb-[8vh] ml-[3vw]">
-          <h1 className="text-[20px] sm:text-[40px] font-[619px]">
+        <div className="flex flex-col min-h-screen items-center justify-center gap-6 pb-[8vh] px-4 sm:px-0 sm:ml-[3vw] pt-20 sm:pt-0">
+          <h1 className="text-[20px] sm:text-[40px] font-[619px] text-center">
             Select a Yield Source
           </h1>
-          <div className="flex flex-col items-center">
-            <div className="flex flex-col sm:flex-row gap-6 justify-center items-stretch">
-              <div className="flex-shrink-0 w-[264px]">
+          <div className="flex flex-col items-center w-full max-w-6xl">
+            <div className="flex flex-col sm:flex-row gap-6 justify-center items-stretch w-full">
+              <div className="flex-shrink-0 w-full sm:w-[264px] flex justify-center">
                 <CustomCard
                   heading={selectedAsset.asset as AssetType}
                   imageSrc={`/images/icons/card-${(
@@ -294,10 +294,10 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                   selectedDuration={selectedAsset.duration}
                   onReset={handleReset}
                   disableHover={true}
-                  className="w-[300px] h-[311px]"
+                  className="w-full sm:w-[300px] h-[311px]"
                 />
               </div>
-              <div className="flex-1 flex flex-col sm:flex-row items-center justify-center gap-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
+              <div className="flex-1 flex flex-col sm:flex-row items-center justify-center gap-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] p-4 sm:p-6 w-full">
                 <div
                   onClick={() =>
                     handleStrategySelect(
@@ -305,7 +305,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                       selectedAsset.asset as AssetType
                     )
                   }
-                  className="cursor-pointer"
+                  className="cursor-pointer w-full sm:w-auto"
                 >
                   <CustomCard
                     heading={
@@ -326,6 +326,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                     selectedDuration={selectedAsset.duration}
                     onReset={handleReset}
                     disableHover={true}
+                    className="w-full sm:w-[300px] h-[311px]"
                   />
                 </div>
                 <div
@@ -341,7 +342,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                           ),
                       })}
                   className={
-                    "group " +
+                    "group w-full sm:w-auto " +
                     (getStrategyInfo(selectedAsset.duration).incentives[
                       selectedAsset.asset as AssetType
                     ].comingSoon
@@ -373,24 +374,25 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                         selectedAsset.asset as AssetType
                       ].comingSoon === true
                     }
+                    className="w-full sm:w-[300px] h-[311px]"
                   />
                 </div>
               </div>
             </div>
             <button
               onClick={() => setSelectedAsset(null)}
-              className="px-4 py-2 bg-[rgba(255,255,255,0.02)] text-[#B8B8BC] rounded-lg hover:bg-[rgba(255,255,255,0.05)] transition-colors mt-2.5 self-start"
+              className="px-4 py-2 bg-[rgba(255,255,255,0.02)] text-[#B8B8BC] rounded-lg hover:bg-[rgba(255,255,255,0.05)] transition-colors mt-6 sm:mt-2.5 self-start"
             >
               Previous
             </button>
           </div>
         </div>
       ) : (
-        <div className="flex flex-col min-h-screen items-center justify-center gap-6 pb-[14vh]">
-          <h1 className="text-[20px] font-[619px] sm:text-[40px]">
+        <div className="flex flex-col min-h-screen items-center justify-center gap-6 pb-[14vh] px-4 sm:px-0 pt-20 sm:pt-0">
+          <h1 className="text-[20px] font-[619px] sm:text-[40px] text-center">
             Select an asset you want yield on
           </h1>
-          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center w-full max-w-6xl">
             <CustomCard
               heading="USD"
               imageSrc="/images/icons/card-usd.svg"
@@ -399,7 +401,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                 handleDurationSelect("USD", duration)
               }
               availableDurations={["PERPETUAL_DURATION"]}
-              className="w-[300px] h-[311px]"
+              className="w-full sm:w-[300px] h-[311px]"
               showRadialGradient={true}
             />
             <CustomCard
@@ -411,7 +413,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                 handleDurationSelect("ETH", duration)
               }
               isComingSoon={true}
-              className="w-[300px] h-[311px]"
+              className="w-full sm:w-[300px] h-[311px]"
               showRadialGradient={true}
             />
             <CustomCard
@@ -423,7 +425,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                 handleDurationSelect("BTC", duration)
               }
               isComingSoon={true}
-              className="w-[300px] h-[311px]"
+              className="w-full sm:w-[300px] h-[311px]"
               showRadialGradient={true}
             />
           </div>

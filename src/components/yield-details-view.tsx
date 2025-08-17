@@ -318,12 +318,12 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
             onReset={() => setShowDepositView(false)}
             />
         ):( */}
-      <div className="w-full pl-0 sm:pl-4 mt-2 sm:mt-10">
-        <div className="flex justify-between items-center mb-2">
-          <div className="flex items-center pl-0">
+      <div className="w-full pl-0 sm:pl-4 mt-2 sm:mt-10 px-4 sm:px-0">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-4 sm:gap-0">
+          <div className="flex items-center pl-0 w-full sm:w-auto">
             <div className="inline-flex items-center gap-[6px] pl-0">
               <div className="flex items-baseline gap-2">
-                <h1 className="text-[20px] font-semibold text-[#D7E3EF] leading-normal">
+                <h1 className="text-[18px] sm:text-[20px] font-semibold text-[#D7E3EF] leading-normal">
                   {name}
                 </h1>
                 <TooltipProvider>
@@ -343,9 +343,9 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 w-full sm:w-auto">
             <button
-              className="bg-[#B88AF8] hover:bg-[#9F6EE9] text-[#080B17] flex items-center gap-[8px] px-[16px] py-[6px] rounded-[4px] transition-colors  text-[14px] font-normal leading-normal"
+              className="bg-[#B88AF8] hover:bg-[#9F6EE9] text-[#080B17] flex items-center gap-[8px] px-[16px] py-[6px] rounded-[4px] transition-colors text-[14px] font-normal leading-normal w-full sm:w-auto justify-center"
               onClick={onOpenDepositView}
             >
               Deposit
@@ -353,21 +353,21 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-x-8 gap-y-4 border-b border-gray-700 pb-4 text-sm text-white">
+        <div className="flex flex-wrap gap-x-4 sm:gap-x-8 gap-y-4 border-b border-gray-700 pb-4 text-sm text-white overflow-x-auto">
           {/* TVL */}
-          <div className="flex flex-col justify-center items-start relative pr-6 h-[35px] gap-[10px] after:content-[''] after:absolute after:right-0 after:top-1/2 after:-translate-y-1/2 after:w-px after:h-[35px] after:bg-gray-700">
+          <div className="flex flex-col justify-center items-start relative pr-4 sm:pr-6 h-[35px] gap-[10px] after:content-[''] after:absolute after:right-0 after:top-1/2 after:-translate-y-1/2 after:w-px after:h-[35px] after:bg-gray-700 min-w-[80px]">
             <div className="text-[#9C9DA2] text-xs leading-none">TVL</div>
             <div className="font-semibold text-sm leading-none">{tvl}</div>
           </div>
 
           {/* Base APY */}
-          <div className="flex flex-col justify-center items-start relative pr-6 h-[35px] gap-[10px] after:content-[''] after:absolute after:right-0 after:top-1/2 after:-translate-y-1/2 after:w-px after:h-[35px] after:bg-gray-700">
+          <div className="flex flex-col justify-center items-start relative pr-4 sm:pr-6 h-[35px] gap-[10px] after:content-[''] after:absolute after:right-0 after:top-1/2 after:-translate-y-1/2 after:w-px after:h-[35px] after:bg-gray-700 min-w-[80px]">
             <div className="text-[#9C9DA2] text-xs leading-none">Base APY</div>
             <div className="font-semibold text-sm leading-none">---</div>
           </div>
 
           {/* Contract Address */}
-          <div className="flex flex-col justify-center items-start relative pr-6 h-[35px] gap-[10px] after:content-[''] after:absolute after:right-0 after:top-1/2 after:-translate-y-1/2 after:w-px after:h-[35px] after:bg-gray-700">
+          <div className="flex flex-col justify-center items-start relative pr-4 sm:pr-6 h-[35px] gap-[10px] after:content-[''] after:absolute after:right-0 after:top-1/2 after:-translate-y-1/2 after:w-px after:h-[35px] after:bg-gray-700 min-w-[120px] sm:min-w-[140px]">
             <div className="text-[#9C9DA2] text-xs leading-none">
               Contract Address
             </div>
@@ -389,7 +389,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
           </div>
 
           {/* Network */}
-          <div className="flex flex-col justify-center items-start h-[35px] gap-[5px]">
+          <div className="flex flex-col justify-center items-start h-[35px] gap-[5px] min-w-[80px]">
             <div className="text-[#9C9DA2] text-xs leading-none">Network</div>
             <div className="relative mt-0 text-[14px] flex items-center cursor-pointer group">
               {(
@@ -429,7 +429,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
           </div>
         </div>
 
-        <div className="flex border-b border-gray-700 pl-0">
+        <div className="flex border-b border-gray-700 pl-0 overflow-x-auto">
           <Tab
             label="Deposits"
             icon={

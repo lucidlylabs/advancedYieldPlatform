@@ -1173,16 +1173,16 @@ const PortfolioSubpage: React.FC = () => {
   }, [isWithdrawSuccess, withdrawTxHash, address]);
 
   return (
-    <div className="flex flex-col min-h-screen text-white">
+    <div className="flex flex-col min-h-screen text-white overflow-y-auto">
       {/* Top Section - Portfolio Value, PNL, and Wallet */}
-      <div className="flex flex-col sm:flex-row w-full py-10 items-center justify-between px-8 bg-[#0D101C] border-b border-[rgba(255,255,255,0.1)]">
-        <div>
-          <div className="flex items-center">
-            <div className="flex flex-col">
-              <div className="text-[#9C9DA2]   text-[14px] font-normal leading-[16px]">
+      <div className="flex flex-col sm:flex-row w-full py-6 sm:py-10 items-center justify-between px-4 sm:px-8 bg-[#0D101C] border-b border-[rgba(255,255,255,0.1)]">
+        <div className="w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-0">
+            <div className="flex flex-col items-center sm:items-start">
+              <div className="text-[#9C9DA2] text-[14px] font-normal leading-[16px]">
                 Portfolio
               </div>
-              <div className="text-[#D7E3EF]   text-[24px] font-semibold leading-normal mt-1">
+              <div className="text-[#D7E3EF] text-[20px] sm:text-[24px] font-semibold leading-normal mt-1">
                 {isRefreshingBalance ? (
                   <span className="inline-flex items-center gap-1">
                     <svg
@@ -1215,12 +1215,12 @@ const PortfolioSubpage: React.FC = () => {
               </div>
             </div>
             {/* Vertical Divider */}
-            <div className="w-px bg-[rgba(217,217,217,0.05)] self-stretch mx-8"></div>
-            <div className="flex flex-col">
-              <div className="text-[#9C9DA2]   text-[14px] font-normal leading-[16px]">
+            <div className="w-px bg-[rgba(217,217,217,0.05)] self-stretch mx-4 sm:mx-8 hidden sm:block"></div>
+            <div className="flex flex-col items-center sm:items-start">
+              <div className="text-[#9C9DA2] text-[14px] font-normal leading-[16px]">
                 PNL
               </div>
-              <div className="text-[#00D1A0]   text-[16px] font-normal leading-normal mt-3">
+              <div className="text-[#00D1A0] text-[16px] font-normal leading-normal mt-1 sm:mt-3">
                 {strategiesWithBalance
                   .reduce(
                     (sum, s) =>
@@ -1247,20 +1247,20 @@ const PortfolioSubpage: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="flex flex-col w-full sm:w-auto justify-center items-end gap-2 py-[10px] px-4 rounded-[4px] border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)]">
+        <div className="flex flex-col w-full sm:w-auto justify-center items-center sm:items-end gap-2 py-[10px] px-4 rounded-[4px] border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] mt-4 sm:mt-0">
           <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-[16px]">
             Wallet Address
           </div>
-          <div className="text-[#D7E3EF] font-mono opacity-80 text-[14px] font-normal">
+          <div className="text-[#D7E3EF] font-mono opacity-80 text-[12px] sm:text-[14px] font-normal text-center sm:text-left">
             {isConnected ? address : "Not connected"}
           </div>
         </div>
       </div>
 
       {/* Main Content - Split View */}
-      <div className="flex flex-1">
+      <div className="flex flex-col sm:flex-row flex-1">
         {/* Left Side - Assets Table */}
-        <div className="w-full sm:w-1/2 border-r border-[rgba(255,255,255,0.1)] pt-8 sm:pl-8">
+        <div className="w-full sm:w-1/2 border-r border-[rgba(255,255,255,0.1)] pt-4 sm:pt-8 px-4 sm:pl-8">
           <div className="mb-6">
             <div className="text-[rgba(255,255,255,0.70)] text-[16px] font-medium uppercase">
               Total Portfolio Value
