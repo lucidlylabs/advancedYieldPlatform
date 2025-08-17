@@ -76,8 +76,10 @@ import {
     const [data, setData] = useState<ChartDataItem[]>([]);
     const [cumulativeData, setCumulativeData] = useState<CumulativeDataItem[]>([]);
     const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+      setLoading(true);
       fetchData(period).then(rawData => {
         setData(rawData);
         
@@ -128,6 +130,9 @@ import {
           
           setCumulativeData(cumulativeData);
         }
+        setLoading(false);
+      }).catch(() => {
+        setLoading(false);
       });
     }, [period]); // refetch when period changes
 
@@ -149,6 +154,17 @@ import {
       }
       return null;
     };
+
+    if (loading) return (
+      <div className="p-6 rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 mb-12">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7B5FFF] mx-auto mb-4"></div>
+            <p className="text-[#9C9DA2]">Loading deposit data...</p>
+          </div>
+        </div>
+      </div>
+    );
 
     return (
       <div className="p-6 rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 mb-12">
