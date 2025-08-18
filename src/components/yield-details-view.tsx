@@ -41,8 +41,8 @@ interface YieldDetailsViewProps {
 // Helper components
 const InfoIcon = () => (
   <svg
-    width="16"
-    height="16"
+    width="12"
+    height="12"
     viewBox="0 0 24 24"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
@@ -84,9 +84,9 @@ interface TabProps {
 const Tab: React.FC<TabProps> = ({ label, icon, active, onClick }) => (
   <button
     className={cn(
-      "flex items-center gap-2 px-4 pt-6 pb-4 border-b-2 transition-colors",
+      "flex items-center gap-2 px-4 pt-6 pb-4 border-b transition-colors",
       active
-        ? "border-white text-white"
+        ? "border-white text-white border-b-[0.75px]"
         : "border-transparent text-gray-400 hover:text-gray-300"
     )}
     onClick={onClick}
@@ -110,63 +110,65 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   const [activeTab, setActiveTab] = useState<
     "deposits" | "baseApy" | "incentives"
   >("deposits");
-  const [activeDepositTab, setActiveDepositTab] = useState<"deposits" | "allocation">("deposits");
+  const [activeDepositTab, setActiveDepositTab] = useState<
+    "deposits" | "allocation"
+  >("deposits");
 
   // Sub-components for each tab
   const renderDepositsTab = () => (
     <div className="w-full">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-[rgba(255,255,255,0.70)] text-[16px] font-bold">
+      <div className="flex justify-between items-center mb-3 mt-4">
+        <h2 className="text-[rgba(255,255,255,0.70)] text-[16px] font-extrabold ">
           TOTAL DEPOSITS IN {name}
         </h2>
-  
+
         {/* Toggle buttons */}
-        <div className="flex overflow-hidden border border-[rgba(184,138,248,0.3)] rounded-md">
-        <button
-          className={`px-4 py-2 w-32 text-sm transition-colors duration-150 bg-[rgba(184,138,248,0.15)] ${
-            activeDepositTab === 'deposits'
-              ? 'deposits text-white border rounded-l-md border-purple-500'
-              : 'bg-transparent text-purple-300'
-          }`}
-          onClick={() => setActiveDepositTab('deposits')}
-        >
-          Total Deposits
-        </button>
-        <button
-          className={`px-4 py-2 w-32 text-sm transition-colors duration-150 ${
-            activeDepositTab === 'allocation'
-              ? 'bg-[rgba(184,138,248,0.15)] text-white border rounded-r-md border-purple-500'
-              : 'bg-transparent text-purple-300'
-          }`}
-          onClick={() => setActiveDepositTab('allocation')}
-        >
-          Allocation
-        </button>
+        <div className="flex overflow-hidden border border-[rgba(184,138,248,0.2)] rounded-md">
+          <button
+            className={`px-3 py-1.5 w-28 text-xs transition-colors duration-150 ${
+              activeDepositTab === "deposits"
+                ? "bg-[rgba(184,138,248,0.1)] text-white"
+                : "bg-transparent text-gray-400 hover:text-gray-300"
+            }`}
+            onClick={() => setActiveDepositTab("deposits")}
+          >
+            Total Deposits
+          </button>
+          <button
+            className={`px-3 py-1.5 w-28 text-xs transition-colors duration-150 ${
+              activeDepositTab === "allocation"
+                ? "bg-[rgba(184,138,248,0.1)] text-white"
+                : "bg-transparent text-gray-400 hover:text-gray-300"
+            }`}
+            onClick={() => setActiveDepositTab("allocation")}
+          >
+            Allocation
+          </button>
+        </div>
       </div>
 
-      </div>
-  
-      {activeDepositTab === "deposits" && 
-              <div className="h-[800px] overflow-y-auto pb-2">
-<DepositBarChart />
-</div>}
+      {activeDepositTab === "deposits" && (
+        <div className="h-[800px] overflow-y-auto pb-2">
+          <DepositBarChart />
+        </div>
+      )}
 
       {activeDepositTab === "allocation" && (
         <div className="h-[400px] overflow-y-auto pb-2">
-        <AllocationChart/>
+          <AllocationChart />
         </div>
       )}
     </div>
   );
 
-    const renderBaseApyTab = () => (
-        <div>
-            <h2 className="text-[rgba(255,255,255,0.70)]  text-[16px] font-bold my-6">
-                BASE APY HISTORY
-            </h2>
+  const renderBaseApyTab = () => (
+    <div>
+      <h2 className="text-[rgba(255,255,255,0.70)]  text-[16px] font-bold my-6">
+        BASE APY HISTORY
+      </h2>
 
-            {/* APY History Chart (simplified for example) */}
-            {/* <div className="w-full h-64 bg-gray-800 rounded-md flex items-end">
+      {/* APY History Chart (simplified for example) */}
+      {/* <div className="w-full h-64 bg-gray-800 rounded-md flex items-end">
                 <div className="w-full flex items-end justify-between p-4">
                     {[15, 18, 22, 25, 20, 24, 28, 30, 27, 25, 27, 25].map((val, i) => (
                         <div
@@ -177,24 +179,26 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                     ))}
                 </div>
             </div> */}
-            <div className="relative w-full mb-6">
-                <h2 className="absolute top-48 left-1/2 -translate-x-1/2 text-lg text-white z-10">Collecting data...</h2>
-                <Image
-                    src="/images/background/yields-blurred.jpg"
-                    alt="Deposits Chart"
-                    width={600}
-                    height={300}
-                    className="w-full h-auto"
-                />
-            </div>
-        </div>
-    );
+      <div className="relative w-full mb-6">
+        <h2 className="absolute top-48 left-1/2 -translate-x-1/2 text-lg text-white z-10">
+          Collecting data...
+        </h2>
+        <Image
+          src="/images/background/yields-blurred.jpg"
+          alt="Deposits Chart"
+          width={600}
+          height={300}
+          className="w-full h-auto"
+        />
+      </div>
+    </div>
+  );
 
-    const renderIncentivesTab = () => (
-        <div className="h-[800px] overflow-y-auto pb-2">
-          <StrategyDailyYieldChart/>
-        </div>
-    );
+  const renderIncentivesTab = () => (
+    <div className="h-[800px] overflow-y-auto pb-2">
+      <StrategyDailyYieldChart />
+    </div>
+  );
 
   return (
     <>
@@ -208,8 +212,8 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
             onReset={() => setShowDepositView(false)}
             />
         ):( */}
-      <div className="w-full pl-0 sm:pl-4 mt-2 sm:mt-10">
-        <div className="flex justify-between items-center mb-2">
+      <div className="w-full pl-0 sm:pl-6 lg:pl-10 mt-2 sm:mt-10">
+        <div className="flex justify-between items-center mb-4">
           <div className="flex items-center pl-0">
             <div className="inline-flex items-center gap-[6px] pl-0">
               <div className="flex items-baseline gap-2">
@@ -220,13 +224,25 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className="flex items-baseline">
-                        <svg width="14" height="13" viewBox="0 0 14 13" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M6.99935 8.83341V6.50008M6.99935 4.16675H7.00518M12.8327 6.50008C12.8327 9.72174 10.221 12.3334 6.99935 12.3334C3.77769 12.3334 1.16602 9.72174 1.16602 6.50008C1.16602 3.27842 3.77769 0.666748 6.99935 0.666748C10.221 0.666748 12.8327 3.27842 12.8327 6.50008Z" stroke="#9C9DA2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <svg
+                          width="14"
+                          height="13"
+                          viewBox="0 0 14 13"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M6.99935 8.83341V6.50008M6.99935 4.16675H7.00518M12.8327 6.50008C12.8327 9.72174 10.221 12.3334 6.99935 12.3334C3.77769 12.3334 1.16602 9.72174 1.16602 6.50008C1.16602 3.27842 3.77769 0.666748 6.99935 0.666748C10.221 0.666748 12.8327 3.27842 12.8327 6.50008Z"
+                            stroke="#9C9DA2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
                         </svg>
                       </div>
                     </TooltipTrigger>
                     <TooltipContent className="text-xs" side="top">
-                      syUSD is a synthetic USD stablecoin that provides yield through various DeFi strategies
+                      syUSD is a synthetic USD stablecoin that provides yield
+                      through various DeFi strategies
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -235,7 +251,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
           </div>
           <div className="flex items-center gap-3">
             <button
-              className="bg-[#B88AF8] hover:bg-[#9F6EE9] text-[#080B17] flex items-center gap-[8px] px-[16px] py-[6px] rounded-[4px] transition-colors  text-[14px] font-normal leading-normal"
+              className="bg-[#B88AF8] hover:bg-[#9F6EE9] text-[#080B17] flex items-center gap-[8px] px-[16px] py-[4px] rounded-[4px] transition-colors  text-[14px] font-normal leading-normal"
               onClick={onOpenDepositView}
             >
               Deposit
@@ -252,8 +268,22 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
           {/* Base APY */}
           <div className="flex flex-col justify-center items-start relative pr-6 h-[35px] gap-[10px] after:content-[''] after:absolute after:right-0 after:top-1/2 after:-translate-y-1/2 after:w-px after:h-[35px] after:bg-gray-700">
-            <div className="text-[#9C9DA2] text-xs leading-none">Base APY</div>
-            <div className="font-semibold text-sm leading-none">---</div>
+            <div className="text-[#9C9DA2] text-xs leading-none flex items-center gap-1">
+              Base APY
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="cursor-help">
+                      <InfoIcon />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent className="text-xs" side="top">
+                    7d moving average
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <div className="font-semibold text-sm leading-none">{baseApy}</div>
           </div>
 
           {/* Content */}
@@ -271,7 +301,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
             </div>
             <div className="font-semibold text-sm leading-none flex items-center gap-1">
               {contractAddress
-                ? `${contractAddress.slice(0, 6)}...${contractAddress.slice(
+                ? `${contractAddress.slice(0, 4)}...${contractAddress.slice(
                     -4
                   )}`
                 : "N/A"}
@@ -369,16 +399,16 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
           />
         </div>
 
-            {/* Content */}
-            <div className="mt-2 pl-0">
-                {activeTab === "deposits" && renderDepositsTab()}
-                {activeTab === "baseApy" && renderBaseApyTab()}
-                {activeTab === "incentives" && renderIncentivesTab()}
-            </div>
-              </div>
-            {/* )} */}
-        </>
-    );
+        {/* Content */}
+        <div className="mt-2 pl-0">
+          {activeTab === "deposits" && renderDepositsTab()}
+          {activeTab === "baseApy" && renderBaseApyTab()}
+          {activeTab === "incentives" && renderIncentivesTab()}
+        </div>
+      </div>
+      {/* )} */}
+    </>
+  );
 };
 
 export { YieldDetailsView };

@@ -54,8 +54,13 @@ const DailyDeposits: React.FC<DailyDepositsProps> = ({ endpoint }) => {
     <ResponsiveContainer width="100%" height={300}>
       <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="date" />
-        <YAxis />
+        <XAxis 
+          dataKey="date" 
+          label={{ value: "Date", position: "bottom", offset: 0, style: { fill: "#A3A3A3", fontSize: 12 } }}
+        />
+        <YAxis 
+          label={{ value: "TVL in dollar value", angle: -90, position: "left", offset: 0, style: { fill: "#A3A3A3", fontSize: 12 } }}
+        />
         <Tooltip />
         <Legend />
         {assetKeys.map((key, idx) => (
