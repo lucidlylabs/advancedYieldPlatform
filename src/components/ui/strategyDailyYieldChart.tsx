@@ -26,10 +26,10 @@ interface CumulativeDataPoint {
 const STRATEGY_NAME_MAP: Record<string, string> = {
   "0x2fa924e8474726dec250eead84f4f34e063acdcc": "PT-sUSDF/USDC SiloV2 (7.5x)",
   "0xa32ba04a547e1c6419d3fcf5bbdb7461b3d19bb1": "PT-iUSD/USDC Morpho (4x)",
-  "0xd0bc4920f1b43882b334354ffab23c9e9637b89e": "Gauntlet Frontier USDC",
+  "0xd0bc4920f1b43882b334354ffab23c9e9637b89e": "gauntlet Frontier USDC",
   "0x1ed0a3d7562066c228a0bb3fed738182f03abd01": "RLP/USDC Morpho",
-  "0x79857afb972e43c7049ae3c63274fc5ef3b815bb": "SUSD/USDC AaveV3 (7x)",
-  "0x56b3c60b4ea708a6fda0955b81df52148e96813a": "SUSDe"
+  "0x79857afb972e43c7049ae3c63274fc5ef3b815bb": "sUSDe/USDC AaveV3 (7x)",
+  "0x56b3c60b4ea708a6fda0955b81df52148e96813a": "sUSDe"
 };
 
 const normalizeAddress = (address: string): string => {
@@ -37,12 +37,9 @@ const normalizeAddress = (address: string): string => {
 };
 
 const COLORS = [
-  '#3B82F6', // Blue for RLP/USDC Morpho
-  '#F59E0B', // Orange for PT-sUSDF/USDC SiloV2
-  '#22C55E', // Green for SUSDe
-  '#EF4444', // Red for SUSD/USDC AaveV3
-  '#A855F7', // Purple for PT-iUSD/USDC Morpho
-  '#10B981'  // Light Green for Gauntlet Frontier USDC
+  '#4F46E5', '#22C55E', '#F59E0B', '#EF4444',
+  '#06B6D4', '#A855F7', '#E11D48', '#0EA5E9',
+  '#F97316', '#84CC16'
 ];
 
 export default function StrategyDailyYieldChart() {
@@ -54,33 +51,6 @@ export default function StrategyDailyYieldChart() {
   const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [colorMap, setColorMap] = useState<Record<string, string>>({});
   const [showCumulative, setShowCumulative] = useState(true);
-  const [showAsPercentage, setShowAsPercentage] = useState(false);
-  const [tvl, setTvl] = useState<number>(0);
-  const [overallYieldData, setOverallYieldData] = useState<ChartDataPoint[]>([]);
-
-  // Fetch TVL data
-  const fetchTVL = async () => {
-    try {
-      const response = await fetch('https://api.lucidly.finance/services/aum_data?vaultName=syUSD');
-      const data = await response.json();
-      console.log('TVL API response:', data);
-      
-      // Try different possible field names for TVL
-      const tvlValue = parseFloat(data.tvl || data.value || data.amount || data.aum || data.totalValue || '0');
-      setTvl(tvlValue);
-      console.log('TVL fetched:', tvlValue);
-      
-      // If TVL is still 0, use a reasonable default for testing
-      if (tvlValue === 0) {
-        console.log('TVL is 0, using default value for testing');
-        setTvl(1000000); // $1M default for testing
-      }
-    } catch (error) {
-      console.error('Error fetching TVL:', error);
-      // Fallback to a reasonable default if API fails
-      setTvl(1000000); // $1M default
-    }
-  };
 
   useEffect(() => {
     async function fetchData() {
@@ -90,20 +60,12 @@ export default function StrategyDailyYieldChart() {
           setLoading(true);
         }
         
-        // Fetch TVL first and wait for it
-        await fetchTVL();
-        
+        // Fetch yield data
         const res = await fetch(`http://localhost:3001/api/strategy/yield?period=${period}`);
         const json = await res.json();
         console.log('Fetched yield data:', json);
         const raw: RawYield[] = json.data;
         
-        // Debug: Check if we have any yield data
-        console.log('Raw yield data length:', raw.length);
-        if (raw.length > 0) {
-          console.log('Sample yield entry:', raw[0]);
-          console.log('Sample yield value:', raw[0].yield);
-        }
         const grouped: Record<string, ChartDataPoint> = {};
         const strategyNames = new Set<string>();
 
@@ -135,7 +97,6 @@ export default function StrategyDailyYieldChart() {
         const chartData = Object.values(grouped);
         const uniqueKeys = Array.from(strategyNames);
         console.log('Chart data:', chartData);
-        console.log('Current TVL value:', tvl);
         
         // Sort chartData by date for proper cumulative calculation
         chartData.sort((a, b) => {
@@ -146,29 +107,10 @@ export default function StrategyDailyYieldChart() {
             : dayjs(a.date).valueOf();
           const dateB = period === 'weekly'
             ? dayjs(b.date.replace('Week of ', '')).valueOf()
+            : period === 'monthly'
+            ? dayjs(b.date).valueOf()
             : dayjs(b.date).valueOf();
           return dateA - dateB;
-        });
-
-        // Get the current TVL value for calculation
-        const currentTvl = tvl || 1000000; // Use current TVL or fallback
-        
-        // Calculate overall yield percentage over TVL
-        const overallData: ChartDataPoint[] = chartData.map(dataPoint => {
-          const totalDailyYield = uniqueKeys.reduce((sum, key) => {
-            return sum + ((dataPoint[key] as number) || 0);
-          }, 0);
-          
-          const yieldPercentage = currentTvl > 0 ? (totalDailyYield / currentTvl) * 100 : 0;
-          
-          console.log(`Date: ${dataPoint.date}, Total Yield: ${totalDailyYield}, TVL: ${currentTvl}, Percentage: ${yieldPercentage}%`);
-          
-          return {
-            overallYieldPercentage: yieldPercentage,
-            totalDailyYield: totalDailyYield,
-            // Keep individual strategy data for tooltip
-            ...dataPoint
-          };
         });
 
         // Calculate cumulative data
@@ -199,11 +141,12 @@ export default function StrategyDailyYieldChart() {
         });
         
         setData(chartData);
-        setOverallYieldData(overallData);
         setCumulativeData(cumulativeData);
         setKeys(uniqueKeys);
         setColorMap(newColorMap);
         setSelectedKeys(new Set(uniqueKeys)); // select all initially
+        
+
       } catch (err) {
         console.error('Error loading chart data:', err);
       } finally {
@@ -212,7 +155,7 @@ export default function StrategyDailyYieldChart() {
     }
 
     fetchData();
-  }, [period, tvl]); // refetch when period or TVL changes
+  }, [period]); // refetch when period changes
 
   const handleLegendClick = (key: string) => {
     setSelectedKeys(prev => {
@@ -239,304 +182,217 @@ export default function StrategyDailyYieldChart() {
     return combined;
   });
 
-  // Use overall yield data when showing as percentage, otherwise use individual strategy data
-  const chartDataToUse = showAsPercentage ? overallYieldData : combinedData;
+  // Calculate combined cumulative data with total
+  const combinedCumulativeData = combinedData.map((item, index) => {
+    const combined = { ...item };
+    let totalCumulative = 0;
+    
+    // Calculate individual cumulative values and total
+    keys.forEach(key => {
+      const cumulativeValue = (cumulativeData[index][`${key}_cumulative`] as number) || 0;
+      combined[`${key}_cumulative`] = cumulativeValue;
+      totalCumulative += cumulativeValue;
+    });
+    
+    combined.total_cumulative = totalCumulative;
+    return combined;
+  });
 
-  const filteredData = chartDataToUse.map(item => {
+  const filteredData = combinedCumulativeData.map(item => {
     const filtered: any = { date: item.date };
     
-    if (showAsPercentage) {
-      // When showing as percentage, only show overall yield percentage
-      filtered.overallYieldPercentage = item.overallYieldPercentage;
-      filtered.totalDailyYield = item.totalDailyYield;
-    } else {
-      // Calculate total for percentage calculation
-      const totalYield = Object.keys(item)
-        .filter(k => k !== 'date' && !k.endsWith('_cumulative') && selectedKeys.has(k))
-        .reduce((sum, k) => sum + ((item[k] as number) || 0), 0);
-      
-      Object.keys(item).forEach(k => {
-        if (k === 'date') {
-          filtered[k] = item[k];
-        } else if (k.endsWith('_cumulative')) {
-          // Include cumulative data if the base strategy is selected and cumulative is enabled
-          const baseKey = k.replace('_cumulative', '');
-          if (selectedKeys.has(baseKey) && showCumulative) {
-            filtered[k] = item[k];
-          }
-        } else if (selectedKeys.has(k)) {
-          // Include regular bar data
+    // Normal mode: show bars and cumulative
+    Object.keys(item).forEach(k => {
+      if (k === 'date') {
+        filtered[k] = item[k];
+      } else if (k === 'total_cumulative') {
+        // Include total cumulative line
+        filtered[k] = item[k];
+      } else if (k.endsWith('_cumulative')) {
+        // Include individual cumulative data for tooltip breakdown
+        const baseKey = k.replace('_cumulative', '');
+        if (selectedKeys.has(baseKey)) {
           filtered[k] = item[k];
         }
-      });
-    }
+      } else if (selectedKeys.has(k)) {
+        // Include regular bar data
+        filtered[k] = item[k];
+      }
+    });
+    
     return filtered;
   });
 
-  if (loading) return (
-    <div className="w-full p-6 rounded-xl text-white">
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7B5FFF] mx-auto mb-4"></div>
-          <p className="text-[#9C9DA2]">Loading yield data...</p>
-        </div>
-      </div>
-    </div>
-  );
+  if (loading) return <div>Loading yield data...</div>;
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-      if (showAsPercentage) {
-        // When showing as percentage, show overall yield percentage and strategy breakdown
-        const overallData = payload.find((item: any) => item.dataKey === 'overallYieldPercentage');
-        const totalYieldData = payload.find((item: any) => item.dataKey === 'totalDailyYield');
-        
-        // Find the corresponding data point to get individual strategy breakdown
-        const dataPoint = filteredData.find((item: any) => item.date === label);
-        
-        return (
-          <div className="bg-[#1C1D2A] border border-[rgba(255,255,255,0.1)] p-3 rounded text-sm shadow-lg">
-            <p className="text-[#9C9DA2] mb-2 font-medium">{label}</p>
-            
-            {overallData && (
-              <p className="text-[#7B5FFF] text-sm mb-2 font-semibold">
-                Overall Yield: {overallData.value.toFixed(2)}%
+      // Normal mode tooltip (cumulative + bars)
+      const totalCumulative = payload.find((item: any) => item.dataKey === 'total_cumulative');
+      const cumulativeBreakdown = payload.filter((item: any) => 
+        item.dataKey.endsWith('_cumulative') && item.dataKey !== 'total_cumulative'
+      );
+      
+      const currentDataPoint = filteredData.find((item: any) => item.date === label);
+      const dailyYields = keys.filter(key => selectedKeys.has(key)).map(key => ({
+        name: key,
+        value: (currentDataPoint?.[key] as number) || 0,
+        color: colorMap[key]
+      }));
+      const totalDailyYield = dailyYields.reduce((sum, item) => sum + item.value, 0);
+      
+      return (
+        <div className="bg-[#1C1D2A] border-none p-3 rounded text-sm">
+          <p className="text-gray-400 mb-1">{label}</p>
+          
+          {totalCumulative && (
+            <div className="mb-2">
+              <p className="text-white font-medium text-base">
+                Total Cumulative: <span className="text-blue-400">{totalCumulative.value.toFixed(2)} YLD</span>
               </p>
-            )}
-            
-            {totalYieldData && (
-              <p className="text-[#9C9DA2] text-xs mb-2 border-b border-[rgba(255,255,255,0.1)] pb-1">
-                Total Daily Yield: {totalYieldData.value.toFixed(4)} YLD
+            </div>
+          )}
+          
+          {dailyYields.length > 0 && (
+            <div className="mb-2">
+              <p className="text-gray-400 text-xs mb-1">
+                {period.charAt(0).toUpperCase() + period.slice(1)} Yield: {totalDailyYield.toFixed(4)} YLD
               </p>
-            )}
-            
-            {dataPoint && (
-              <>
-                <p className="text-[#9C9DA2] text-xs my-2">Strategy Breakdown:</p>
-                {keys.filter(key => selectedKeys.has(key)).map((key) => {
-                  const value = (dataPoint[key] as number) || 0;
-                  const percentage = tvl > 0 ? (value / tvl) * 100 : 0;
-                  return (
-                    <p key={key} style={{ color: colorMap[key] }} className="my-1 flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: colorMap[key] }}></div>
-                      <span className="text-white">{key}:</span>
-                      <span className="font-semibold">
-                        {percentage.toFixed(2)}% ({value.toFixed(4)} YLD)
-                      </span>
-                    </p>
-                  );
-                })}
-              </>
-            )}
-          </div>
-        );
-      } else {
-        // Original tooltip for individual strategy view
-        const periodData = payload.filter((item: any) => !item.dataKey.endsWith('_cumulative'));
-        const cumulativeData = payload.filter((item: any) => item.dataKey.endsWith('_cumulative'));
-        
-        const totalPeriodYield = periodData.reduce((sum: number, item: any) => sum + (item.value || 0), 0);
-        
-        return (
-          <div className="bg-[#1C1D2A] border border-[rgba(255,255,255,0.1)] p-3 rounded text-sm shadow-lg">
-            <p className="text-[#9C9DA2] mb-2 font-medium">{label}</p>
-            
-            {periodData.length > 0 && (
-              <>
-                <p className="text-[#9C9DA2] text-xs mb-2 border-b border-[rgba(255,255,255,0.1)] pb-1">
-                  {period.charAt(0).toUpperCase() + period.slice(1)} Yield: {totalPeriodYield.toFixed(4)}
-                </p>
-                {periodData.map((item: any, idx: number) => (
-                  <p key={idx} style={{ color: item.fill }} className="my-1 flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: item.fill }}></div>
-                    <span className="text-white">{item.name}:</span>
-                    <span className="font-semibold">
-                      {`${item.value.toFixed(4)} YLD`}
-                    </span>
+              {dailyYields.map((item, idx) => {
+                const percentage = totalDailyYield > 0 ? ((item.value / totalDailyYield) * 100) : 0;
+                return (
+                  <p key={idx} style={{ color: item.color }} className="my-0.5 text-xs">
+                    {item.name}: <span className="font-medium">{item.value.toFixed(4)} YLD</span>
+                    <span className="text-gray-400 ml-1">({percentage.toFixed(1)}%)</span>
                   </p>
-                ))}
-              </>
-            )}
-            
-            {cumulativeData.length > 0 && (
-              <>
-                <p className="text-[#9C9DA2] text-xs my-2 border-t border-[rgba(255,255,255,0.1)] pt-2">Cumulative:</p>
-                {cumulativeData.map((item: any, idx: number) => (
-                  <p key={idx} style={{ color: item.stroke }} className="my-1 flex items-center gap-2">
-                    <div className="w-4 h-0.5" style={{ backgroundColor: item.stroke }}></div>
-                    <span className="text-white">{item.name.replace(' (Cumulative)', '')}:</span>
-                    <span className="font-semibold">{item.value.toFixed(2)} YLD</span>
+                );
+              })}
+            </div>
+          )}
+          
+          {cumulativeBreakdown.length > 0 && (
+            <div>
+              <p className="text-gray-400 text-xs mb-1 border-t border-gray-600 pt-1">Cumulative Breakdown:</p>
+              {cumulativeBreakdown.map((item: any, idx: number) => {
+                const assetName = item.dataKey.replace('_cumulative', '');
+                const percentage = totalCumulative ? ((item.value / totalCumulative.value) * 100) : 0;
+                return (
+                  <p key={idx} style={{ color: item.stroke }} className="my-0.5 text-xs">
+                    {assetName}: <span className="text-white font-medium">{item.value.toFixed(2)} YLD</span>
+                    <span className="text-gray-400 ml-1">({percentage.toFixed(1)}%)</span>
                   </p>
-                ))}
-              </>
-            )}
-          </div>
-        );
-      }
+                );
+              })}
+            </div>
+          )}
+        </div>
+      );
     }
     return null;
   };
 
   return (
-    <div className="w-full p-6 rounded-xl text-white">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-[#D7E3EF]">STRATEGY YIELD</h2>
-        <div className="flex gap-4 items-center">
-          <label className="flex items-center gap-2 text-sm text-[#9C9DA2]">
+    <div className="w-full">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold">Strategy Yield</h2>
+        <div className="flex gap-2 items-center">
+          <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
               checked={showCumulative}
               onChange={(e) => setShowCumulative(e.target.checked)}
-              className="rounded border-[rgba(255,255,255,0.2)] bg-[#1F202D] text-[#7B5FFF] focus:ring-[#7B5FFF]"
+              className="rounded"
             />
             Show Cumulative
           </label>
-          <label className="flex items-center gap-2 text-sm text-[#9C9DA2]">
-            <input
-              type="checkbox"
-              checked={showAsPercentage}
-              onChange={(e) => setShowAsPercentage(e.target.checked)}
-              className="rounded border-[rgba(255,255,255,0.2)] bg-[#1F202D] text-[#7B5FFF] focus:ring-[#7B5FFF]"
-            />
-            Show as %
-          </label>
-          <div className="flex border border-[rgba(255,255,255,0.1)] rounded-md overflow-hidden">
-            {['daily', 'weekly', 'monthly'].map((p) => (
-              <button
-                key={p}
-                onClick={() => setPeriod(p as 'daily' | 'weekly' | 'monthly')}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${
-                  period === p
-                    ? 'bg-[#7B5FFF] text-white'
-                    : 'bg-transparent text-[#9C9DA2] hover:text-white hover:bg-[rgba(255,255,255,0.05)]'
-                }`}
-              >
-                {p.charAt(0).toUpperCase() + p.slice(1)}
-              </button>
-            ))}
-          </div>
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value as 'daily' | 'weekly' | 'monthly')}
+            className="px-3 py-1 m-2 rounded text-sm bg-[#1F202D]"
+          >
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
         </div>
       </div>
 
       <ResponsiveContainer width="100%" height={400}>
         <ComposedChart data={filteredData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#2A2A3C" strokeOpacity={0.5} />
-          <XAxis 
-            dataKey="date" 
-            tick={{ fill: "#A3A3A3", fontSize: 12 }} 
-            axisLine={false}
-            tickLine={false}
-          />
-          <YAxis 
-            yAxisId="left" 
-            tickFormatter={(val) => showAsPercentage ? `${val.toFixed(2)}%` : `${val.toFixed(2)}`} 
-            tick={{ fill: "#A3A3A3", fontSize: 12 }}
-            axisLine={false}
-            tickLine={false}
-          />
-          <YAxis 
-            yAxisId="right" 
-            orientation="right" 
-            tickFormatter={(val) => `${val.toFixed(0)}`} 
-            tick={{ fill: "#A3A3A3", fontSize: 12 }}
-            axisLine={false}
-            tickLine={false}
-          />
+          <CartesianGrid strokeDasharray="3 3" stroke="#ccc" strokeOpacity={0.2} />
+          <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+          <YAxis yAxisId="left" tickFormatter={(val) => `${val.toFixed(2)}`} tick={{ fontSize: 12 }} />
+          <YAxis yAxisId="right" orientation="right" tickFormatter={(val) => `${val.toFixed(0)}`} tick={{ fontSize: 12 }} />
           <Tooltip content={<CustomTooltip />} />
           
-          {showAsPercentage ? (
-            // Show overall yield percentage as a single line
-            <Line
+          {/* Bars for daily/period yields */}
+          {keys.filter(k => selectedKeys.has(k)).map((key) => (
+            <Bar
+              key={key}
               yAxisId="left"
+              dataKey={key}
+              stackId="a"
+              fill={colorMap[key]}
+              name={key}
+            />
+          ))}
+          
+          {/* Single combined cumulative line */}
+          {showCumulative && (
+            <Line
+              yAxisId="right"
               type="monotone"
-              dataKey="overallYieldPercentage"
-              stroke="#7B5FFF"
+              dataKey="total_cumulative"
+              stroke="#3B82F6"
               strokeWidth={3}
               dot={false}
-              name="Overall Yield %"
+              name="Total Cumulative Yield"
             />
-          ) : (
-            <>
-              {/* Bars for daily/period yields */}
-              {keys.filter(k => selectedKeys.has(k)).map((key) => (
-                <Bar
-                  key={key}
-                  yAxisId="left"
-                  dataKey={key}
-                  stackId="a"
-                  fill={colorMap[key]}
-                  name={key}
-                  radius={[2, 2, 0, 0]}
-                />
-              ))}
-              
-              {/* Lines for cumulative yields */}
-              {showCumulative && keys.filter(k => selectedKeys.has(k)).map((key) => (
-                <Line
-                  key={`${key}_cumulative`}
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey={`${key}_cumulative`}
-                  stroke={colorMap[key]}
-                  strokeWidth={2}
-                  dot={false}
-                  name={`${key} (Cumulative)`}
-                />
-              ))}
-            </>
           )}
         </ComposedChart>
       </ResponsiveContainer>
 
       {/* Custom legend */}
-      {showAsPercentage ? (
-        <div className="flex flex-wrap justify-center gap-4 mt-6">
-          <div className="flex items-center gap-2 p-2 rounded">
-            <div className="w-4 h-0.5 bg-[#7B5FFF]"></div>
-            <span className="text-xs text-white">
-              Overall Yield % (Daily Yield / TVL)
-            </span>
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-wrap justify-center gap-4 mt-6">
-          {keys.map((key) => {
-            const isSelected = selectedKeys.has(key);
-            return (
-              <div
-                key={key}
-                className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[rgba(255,255,255,0.05)] transition-colors"
-                onClick={() => handleLegendClick(key)}
-              >
-                <div className="flex items-center gap-1">
-                  {/* Bar indicator */}
-                  <div
-                    className="w-3 h-3 rounded-sm"
-                    style={{
-                      backgroundColor: isSelected ? colorMap[key] : '#666666'
-                    }}
-                  />
-                  {/* Line indicator (when cumulative is shown) */}
-                  {showCumulative && isSelected && (
-                    <div
-                      className="w-4 h-0.5"
-                      style={{
-                        backgroundColor: colorMap[key]
-                      }}
-                    />
-                  )}
-                </div>
-                <span className={`text-xs ${isSelected ? 'text-white' : 'text-gray-500'}`}>
-                  {isSelected ? key : `${key} (deselected)`}
-                  {showCumulative && isSelected && (
-                    <span className="text-gray-400"> (bar + line)</span>
-                  )}
-                </span>
+      <div className="flex flex-wrap justify-center gap-4 mt-4">
+        {keys.map((key) => {
+          const isSelected = selectedKeys.has(key);
+          return (
+            <div
+              key={key}
+              className="flex items-center gap-2 cursor-pointer"
+              onClick={() => handleLegendClick(key)}
+            >
+              <div className="flex items-center gap-1">
+                {/* Bar indicator */}
+                <div
+                  className="w-3 h-3 rounded-sm"
+                  style={{
+                    backgroundColor: isSelected ? colorMap[key] : '#666666'
+                  }}
+                />
               </div>
-            );
-          })}
-        </div>
-      )}
+              <span className={`text-xs ${isSelected ? 'text-white' : 'text-gray-500'}`}>
+                {isSelected ? key : `${key} (deselected)`}
+              </span>
+            </div>
+          );
+        })}
+        
+        {/* Total cumulative line indicator */}
+        {showCumulative && (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <div
+                className="w-4 h-0.5"
+                style={{
+                  backgroundColor: '#3B82F6'
+                }}
+              />
+            </div>
+            <span className="text-xs text-white">Total Cumulative Yield</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
