@@ -106,6 +106,7 @@ export default function TotalDepositsChart({}: DepositBarChartProps) {
   useEffect(() => {
     const loadData = async () => {
       try {
+        setLoading(true);
         const rawData = await fetchData(period);
         setData(rawData);
 
@@ -166,6 +167,8 @@ export default function TotalDepositsChart({}: DepositBarChartProps) {
         // Set empty data on error
         setData([]);
         setCumulativeData([]);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -195,6 +198,27 @@ export default function TotalDepositsChart({}: DepositBarChartProps) {
     }
     return null;
   };
+
+  if (loading) {
+    return (
+      <div className="pt-2 pl-6 pb-6 rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 mb-12 [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
+        <div className="flex justify-end items-center mb-4">
+          <div className="flex gap-1 items-center">
+            <div className="px-2 py-1 rounded text-xs bg-gray-600 text-gray-400">Daily</div>
+            <div className="px-2 py-1 rounded text-xs bg-gray-600 text-gray-400">Weekly</div>
+            <div className="px-2 py-1 rounded text-xs bg-gray-600 text-gray-400">Monthly</div>
+          </div>
+        </div>
+        
+        <div className="w-full h-[300px] flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+            <p className="text-gray-400 text-sm">Loading deposit data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="pt-2 pl-6 pb-6 rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 mb-12 [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
