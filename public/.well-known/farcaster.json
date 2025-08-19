@@ -7,9 +7,9 @@
     "miniapp": {
       "version": "1",
       "name": "Lucidly",
-      "iconUrl": "https://dev.lucidly.finance/images/logo/logo-desktop.svg",
+      "iconUrl": "https://dev.lucidly.finance/images/logo/logo.png",
       "homeUrl": "https://dev.lucidly.finance/farcaster",
-      "splashImageUrl": "https://dev.lucidly.finance/images/logo/logo-desktop.svg",
+      "splashImageUrl": "https://dev.lucidly.finance/images/logo/logo.png",
       "splashBackgroundColor": "#1e3a8a",
       "subtitle": "Advanced Yield Platform",
       "description": "Discover and earn from the best DeFi yield opportunities across multiple chains with Lucidly's advanced yield platform.",
