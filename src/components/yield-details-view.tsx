@@ -13,6 +13,7 @@ import DailyDeposits from "./graphs/daily_deposits";
 import DepositBarChart from "./ui/depositChart";
 import AllocationChart from "./ui/allocationsChart";
 import StrategyDailyYieldChart from "./ui/strategyDailyYieldChart";
+import BaseApyTotalChart from "./ui/baseApyTotalChart";
 
 interface MarketItem {
   id: number;
@@ -113,6 +114,9 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   const [activeDepositTab, setActiveDepositTab] = useState<
     "deposits" | "allocation"
   >("deposits");
+  const [activeBaseApyTab, setActiveBaseApyTab] = useState<
+    "totalApy" | "bySource"
+  >("totalApy");
 
   // Sub-components for each tab
   const renderDepositsTab = () => (
@@ -162,41 +166,59 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   );
 
   const renderBaseApyTab = () => (
-    <div>
-      <h2 className="text-[rgba(255,255,255,0.70)]  text-[16px] font-bold my-6">
-        BASE APY HISTORY
-      </h2>
-
-      {/* APY History Chart (simplified for example) */}
-      {/* <div className="w-full h-64 bg-gray-800 rounded-md flex items-end">
-                <div className="w-full flex items-end justify-between p-4">
-                    {[15, 18, 22, 25, 20, 24, 28, 30, 27, 25, 27, 25].map((val, i) => (
-                        <div
-                            key={i}
-                            className="w-2 bg-purple-500 rounded-t"
-                            style={{ height: `${val * 2}px` }}
-                        ></div>
-                    ))}
-                </div>
-            </div> */}
-      <div className="relative w-full mb-6">
-        <h2 className="absolute top-48 left-1/2 -translate-x-1/2 text-lg text-white z-10">
-          Collecting data...
+    <div className="w-full">
+      <div className="flex justify-between items-center mb-3 mt-4">
+        <h2 className="text-[rgba(255,255,255,0.70)] text-[16px] font-extrabold ">
+          BASE APY HISTORY
         </h2>
-        <Image
-          src="/images/background/yields-blurred.jpg"
-          alt="Deposits Chart"
-          width={600}
-          height={300}
-          className="w-full h-auto"
-        />
+
+        {/* Toggle buttons */}
+        <div className="flex overflow-hidden border border-[rgba(184,138,248,0.2)] rounded-md">
+          <button
+            className={`px-3 py-1.5 w-28 text-xs transition-colors duration-150 ${
+              activeBaseApyTab === "totalApy"
+                ? "bg-[rgba(184,138,248,0.1)] text-white"
+                : "bg-transparent text-gray-400 hover:text-gray-300"
+            }`}
+            onClick={() => setActiveBaseApyTab("totalApy")}
+          >
+            Total APY
+          </button>
+          <button
+            className={`px-3 py-1.5 w-28 text-xs transition-colors duration-150 ${
+              activeBaseApyTab === "bySource"
+                ? "bg-[rgba(184,138,248,0.1)] text-white"
+                : "bg-transparent text-gray-400 hover:text-gray-300"
+            }`}
+            onClick={() => setActiveBaseApyTab("bySource")}
+          >
+            By Source
+          </button>
+        </div>
       </div>
+
+      {activeBaseApyTab === "totalApy" && (
+        <div className="h-[800px] overflow-y-auto pb-2">
+          <BaseApyTotalChart />
+        </div>
+      )}
+
+      {activeBaseApyTab === "bySource" && (
+        <div className="h-[800px] overflow-y-auto pb-2">
+          <StrategyDailyYieldChart />
+        </div>
+      )}
     </div>
   );
 
   const renderIncentivesTab = () => (
     <div className="h-[800px] overflow-y-auto pb-2">
-      <StrategyDailyYieldChart />
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <h3 className="text-lg text-gray-400 mb-2">Incentives Data</h3>
+          <p className="text-sm text-gray-500">No incentives data available at the moment.</p>
+        </div>
+      </div>
     </div>
   );
 
