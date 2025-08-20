@@ -12,6 +12,14 @@ const nextConfig = {
     config.resolve.fallback = { fs: false, net: false, tls: false };
     return config;
   },
+  async rewrites() {
+    return [
+      {
+        source: '/.well-known/farcaster.json',
+        destination: '/farcaster.json',
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;
