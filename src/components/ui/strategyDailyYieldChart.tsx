@@ -1,8 +1,8 @@
 // components/StrategyDailyYieldChart.tsx
 import { useEffect, useState } from 'react';
 import {
-  ComposedChart, Bar, Line, XAxis, YAxis, Tooltip,
-  CartesianGrid, ResponsiveContainer, Legend, Area
+  AreaChart, Area, Line, XAxis, YAxis, Tooltip,
+  CartesianGrid, ResponsiveContainer, Legend, BarChart, Bar, ComposedChart
 } from 'recharts';
 import dayjs from 'dayjs';
 import { USD_STRATEGIES } from '../../config/env';
@@ -12,6 +12,12 @@ interface RawYield {
   strategy: string;
   network: string;
   yield: number;
+  yieldDollars: number;
+  yieldPercentage: number;
+  aum: number;
+  previousAum: number;
+  aumPerShare: number;
+  previousAumPerShare: number;
 }
 
 interface ChartDataPoint {
@@ -43,22 +49,21 @@ const normalizeAddress = (address: string): string => {
 };
 
 const COLORS = [
-  '#4F46E5', '#22C55E', '#F59E0B', '#EF4444',
-  '#06B6D4', '#A855F7', '#E11D48', '#0EA5E9',
-  '#F97316', '#84CC16'
+  '#E91E63', '#2B66FF', '#AB47BC', '#FF9A43', '#00BCD4', '#16D768'
 ];
 
 export default function StrategyDailyYieldChart() {
   const [data, setData] = useState<ChartDataPoint[]>([]);
-  const [cumulativeData, setCumulativeData] = useState<CumulativeDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [keys, setKeys] = useState<string[]>([]);
+  const [selectedStrategy, setSelectedStrategy] = useState<string>('');
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [colorMap, setColorMap] = useState<Record<string, string>>({});
+  const [showPercentages, setShowPercentages] = useState(true);
   const [showCumulative, setShowCumulative] = useState(true);
-  const [showPercentages, setShowPercentages] = useState(false);
   const [tvlData, setTvlData] = useState<TVLData[]>([]);
+  const [rawData, setRawData] = useState<RawYield[]>([]);
 
   useEffect(() => {
     async function fetchData() {
@@ -73,11 +78,12 @@ export default function StrategyDailyYieldChart() {
         const json = await res.json();
         console.log('Fetched yield data:', json);
         const raw: RawYield[] = json.data;
+        setRawData(raw); // Store raw data for percentage calculations
         
         const grouped: Record<string, ChartDataPoint> = {};
         const strategyNames = new Set<string>();
 
-        raw.forEach(({ date, strategy, network, yield: y }) => {
+        raw.forEach(({ date, strategy, network, yieldPercentage, yieldDollars }) => {
           // Format differently for weekly/monthly
           const d =
             period === 'weekly'
@@ -99,14 +105,24 @@ export default function StrategyDailyYieldChart() {
             grouped[d][strategyName] = 0;
           }
 
-          (grouped[d][strategyName] as number) += y;
+          // Use the yield value directly (this will be yieldDollars from API)
+          (grouped[d][strategyName] as number) += yieldDollars || 0;
         });
 
         const chartData = Object.values(grouped);
         const uniqueKeys = Array.from(strategyNames);
+        
+        // Get all possible strategies from the raw data to maintain consistency
+        const allStrategies = new Set<string>();
+        raw.forEach(({ strategy, network }) => {
+          const normalizedStrategy = normalizeAddress(strategy);
+          const strategyName = STRATEGY_NAME_MAP[normalizedStrategy] || `${network}_${strategy}`;
+          allStrategies.add(strategyName);
+        });
+        
         console.log('Chart data:', chartData);
         
-        // Sort chartData by date for proper cumulative calculation
+        // Sort chartData by date
         chartData.sort((a, b) => {
           const dateA = period === 'weekly' 
             ? dayjs(a.date.replace('Week of ', '')).valueOf()
@@ -120,27 +136,6 @@ export default function StrategyDailyYieldChart() {
             : dayjs(b.date).valueOf();
           return dateA - dateB;
         });
-
-        // Calculate cumulative data
-        const cumulativeData: CumulativeDataPoint[] = [];
-        const runningTotals: Record<string, number> = {};
-        
-        // Initialize running totals
-        uniqueKeys.forEach(key => {
-          runningTotals[key] = 0;
-        });
-        
-        chartData.forEach(dataPoint => {
-          const cumulativePoint: CumulativeDataPoint = { date: dataPoint.date };
-          
-          uniqueKeys.forEach(key => {
-            const dailyValue = (dataPoint[key] as number) || 0;
-            runningTotals[key] += dailyValue;
-            cumulativePoint[`${key}_cumulative`] = runningTotals[key];
-          });
-          
-          cumulativeData.push(cumulativePoint);
-        });
         
         // Create a stable color mapping for each strategy
         const newColorMap: Record<string, string> = {};
@@ -149,10 +144,28 @@ export default function StrategyDailyYieldChart() {
         });
         
         setData(chartData);
-        setCumulativeData(cumulativeData);
-        setKeys(uniqueKeys);
-        setColorMap(newColorMap);
-        setSelectedKeys(new Set(uniqueKeys)); // select all initially
+        
+        // Maintain consistent color mapping across all periods
+        if (Object.keys(colorMap).length === 0) {
+          // Only create color map on initial load
+          const newColorMap: Record<string, string> = {};
+          Array.from(allStrategies).forEach((key, index) => {
+            newColorMap[key] = COLORS[index % COLORS.length];
+          });
+          setColorMap(newColorMap);
+        }
+        
+        // Keep all strategies in keys, but track which ones have data for current period
+        setKeys(Array.from(allStrategies));
+        
+        // Only set selectedStrategy if it's not already set or if the current selection is not in the new keys
+        if (!selectedStrategy || !uniqueKeys.includes(selectedStrategy)) {
+          setSelectedStrategy(uniqueKeys[0] || '');
+        }
+        
+        console.log('Period changed to:', period, 'Selected strategy:', selectedStrategy, 'Available keys:', uniqueKeys);
+        console.log('Chart data sample:', chartData.slice(0, 2));
+        setSelectedKeys(new Set(uniqueKeys)); // select all strategies initially for dollar view
         
         // Fetch TVL data from config API after chart data is ready
         const tvlUrl = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.tvl;
@@ -203,43 +216,15 @@ export default function StrategyDailyYieldChart() {
     fetchData();
   }, [period]); // refetch when period changes
 
-  // Calculate percentage data based on daily yield changes and TVL
+
+
+  // Since we're always showing percentages now, we can simplify this
   const calculatePercentageData = (chartData: ChartDataPoint[]): ChartDataPoint[] => {
-    if (!showPercentages || tvlData.length === 0) return chartData;
-    
-    const percentageData: ChartDataPoint[] = [];
-    
-    chartData.forEach((dataPoint, index) => {
-      const percentagePoint: ChartDataPoint = { date: dataPoint.date };
-      
-      if (index === 0) {
-        // First day: no previous day to compare, so percentage is 0
-        keys.forEach(key => {
-          percentagePoint[key] = 0;
-        });
-      } else {
-        const previousDataPoint = chartData[index - 1];
-        const currentDate = dataPoint.date;
-        const previousDate = previousDataPoint.date;
-        
-        // Find TVL for current date
-        const currentTvl = tvlData.find(t => t.date === currentDate)?.tvl || 1;
-        
-        keys.forEach(key => {
-          const currentYield = (dataPoint[key] as number) || 0;
-          const previousYield = (previousDataPoint[key] as number) || 0;
-          
-          // Calculate daily yield change: (yield on day 2 - yield on day 1) / Total TVL * 100
-          const yieldChange = currentYield - previousYield;
-          const percentage = (yieldChange / currentTvl) * 100;
-          percentagePoint[key] = percentage;
-        });
-      }
-      
-      percentageData.push(percentagePoint);
-    });
-    
-    return percentageData;
+    return chartData; // Data is already in percentage format
+  };
+
+  const handleStrategySelect = (strategy: string) => {
+    setSelectedStrategy(strategy);
   };
 
   const handleLegendClick = (key: string) => {
@@ -254,63 +239,80 @@ export default function StrategyDailyYieldChart() {
     });
   };
 
-  // Calculate percentage data if needed
-  const percentageData = calculatePercentageData(data);
-  
-  // Use percentage data or regular data based on toggle
-  const chartDataToUse = showPercentages ? percentageData : data;
-  
-  // Combine data and cumulative data for the chart
-  const combinedData = chartDataToUse.map((item, index) => {
-    const combined = { ...item };
-    // Always include cumulative data for the cumulative line
-    if (cumulativeData[index]) {
-      Object.keys(cumulativeData[index]).forEach(key => {
-        if (key !== 'date') {
-          combined[key] = cumulativeData[index][key];
-        }
-      });
-    }
-    return combined;
-  });
-
-  // Calculate combined cumulative data with total
-  const combinedCumulativeData = combinedData.map((item, index) => {
-    const combined = { ...item };
-    let totalCumulative = 0;
+  // Process data based on view type
+  const processedData = data.map(item => {
+    const processed: any = { date: item.date };
     
-    // Always calculate cumulative values for the cumulative line
     keys.forEach(key => {
-      const cumulativeValue = (cumulativeData[index][`${key}_cumulative`] as number) || 0;
-      combined[`${key}_cumulative`] = cumulativeValue;
-      totalCumulative += cumulativeValue;
-    });
-    combined.total_cumulative = totalCumulative;
-    
-    return combined;
-  });
-
-  const filteredData = combinedCumulativeData.map(item => {
-    const filtered: any = { date: item.date };
-    
-    // Always include cumulative line data
-    Object.keys(item).forEach(k => {
-      if (k === 'date') {
-        filtered[k] = item[k];
-      } else if (k === 'total_cumulative') {
-        // Include total cumulative line
-        filtered[k] = item[k];
-      } else if (k.endsWith('_cumulative')) {
-        // Include individual cumulative data for tooltip breakdown
-        const baseKey = k.replace('_cumulative', '');
-        if (selectedKeys.has(baseKey)) {
-          filtered[k] = item[k];
-        }
-      } else if (selectedKeys.has(k)) {
-        // Include regular bar data
-        filtered[k] = item[k];
+      if (showPercentages) {
+        // For percentage view, we need to calculate from raw data
+        const rawItem = rawData.find(r => {
+          const normalizedStrategy = normalizeAddress(r.strategy);
+          const strategyName = STRATEGY_NAME_MAP[normalizedStrategy] || `${r.network}_${r.strategy}`;
+          
+          // Match date format based on period
+          const dateMatch = period === 'weekly' 
+            ? dayjs(r.date).startOf('week').format('MMM DD') === item.date.replace('Week of ', '')
+            : period === 'monthly'
+            ? dayjs(r.date).format('MMM YYYY') === item.date
+            : dayjs(r.date).format('MMM DD') === item.date;
+            
+          return strategyName === key && dateMatch;
+        });
+        processed[key] = rawItem?.yieldPercentage || 0;
+      } else {
+        // For dollar view, use the stored dollar values
+        processed[key] = item[key] || 0;
       }
     });
+    
+    return processed;
+  });
+
+  // Calculate cumulative data for dollar view (all strategies)
+  const cumulativeData = processedData.map((item, index) => {
+    const cumulative: any = { date: item.date };
+    
+    // Calculate cumulative for all strategies
+    keys.forEach(key => {
+      if (index === 0) {
+        cumulative[`${key}_cumulative`] = item[key] || 0;
+      } else {
+        // Calculate cumulative by summing all previous values
+        let runningTotal = 0;
+        for (let i = 0; i <= index; i++) {
+          runningTotal += (processedData[i][key] as number) || 0;
+        }
+        cumulative[`${key}_cumulative`] = runningTotal;
+      }
+    });
+    
+    // Calculate total cumulative
+    let totalCumulative = 0;
+    keys.forEach(key => {
+      totalCumulative += cumulative[`${key}_cumulative`] || 0;
+    });
+    cumulative.total_cumulative = totalCumulative;
+    
+    return cumulative;
+  });
+
+  // Use the data based on view type
+  const filteredData = processedData.map(item => {
+    const filtered: any = { date: item.date };
+    
+    // Include only the selected strategy bar data for both percentage and dollar view
+    if (selectedStrategy && item[selectedStrategy] !== undefined) {
+      filtered[selectedStrategy] = item[selectedStrategy];
+    }
+    
+    // Include cumulative line if enabled and not showing percentages
+    if (!showPercentages && showCumulative) {
+      const index = processedData.findIndex(d => d.date === item.date);
+      if (index !== -1) {
+        filtered.total_cumulative = cumulativeData[index].total_cumulative;
+      }
+    }
     
     return filtered;
   });
@@ -318,33 +320,6 @@ export default function StrategyDailyYieldChart() {
   if (loading) {
     return (
       <div className="w-full mt-2">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-[rgba(255,255,255,0.70)] text-[16px] font-extrabold">
-            STRATEGY YIELD
-          </h2>
-          <div className="flex gap-4 items-center">
-            <div className="flex gap-1 items-center">
-              <div className="px-2 py-1 rounded text-xs bg-gray-600 text-gray-400">Daily</div>
-              <div className="px-2 py-1 rounded text-xs bg-gray-600 text-gray-400">Weekly</div>
-              <div className="px-2 py-1 rounded text-xs bg-gray-600 text-gray-400">Monthly</div>
-            </div>
-            <div className="flex gap-4 items-center">
-              <div className="flex items-center gap-2 text-sm">
-                <div className="w-10 h-6 rounded-full bg-gray-600">
-                  <div className="w-4 h-4 bg-white rounded-full mt-1 ml-1"></div>
-                </div>
-                <span className="text-gray-300">Show as %</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <div className="w-10 h-6 rounded-full bg-gray-600">
-                  <div className="w-4 h-4 bg-white rounded-full mt-1 ml-1"></div>
-                </div>
-                <span className="text-gray-300">Show Cumulative</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
         <div className="w-full h-[400px] flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
@@ -358,127 +333,128 @@ export default function StrategyDailyYieldChart() {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const currentDataPoint = filteredData.find((item: any) => item.date === label);
-      const dailyYields = keys.filter(key => selectedKeys.has(key)).map(key => ({
-        name: key,
-        value: (currentDataPoint?.[key] as number) || 0,
-        color: colorMap[key]
-      }));
+      const dailyYields = selectedStrategy ? [{
+        name: selectedStrategy,
+        value: (currentDataPoint?.[selectedStrategy] as number) || 0,
+        color: colorMap[selectedStrategy]
+      }] : [];
       const totalDailyYield = dailyYields.reduce((sum, item) => sum + item.value, 0);
       
-      if (showPercentages) {
-        // Percentage mode tooltip - simplified without strategy breakdown
-        const totalCumulative = payload.find((item: any) => item.dataKey === 'total_cumulative');
-        return (
-          <div className="bg-[#1C1D2A] border-none p-3 rounded text-sm">
-            <p className="text-gray-400 mb-1">{label}</p>
-            
-            {totalCumulative && (
-              <div className="mb-2">
-                <p className="text-white font-medium text-base">
-                  Total Cumulative: <span className="text-blue-400">${totalCumulative.value.toFixed(2)}</span>
-                </p>
-              </div>
-            )}
-            
-            <div className="mb-2">
-              <p className="text-gray-400 text-xs mb-1">
-                {period.charAt(0).toUpperCase() + period.slice(1)} Yield Change: {totalDailyYield.toFixed(4)}%
-              </p>
-              {dailyYields.map((item, idx) => (
-                <p key={idx} style={{ color: item.color }} className="my-0.5 text-xs">
-                  {item.name}: <span className="font-medium">{item.value.toFixed(4)}%</span>
-                  <span className="text-gray-400 ml-1">({((item.value / totalDailyYield) * 100).toFixed(1)}% of total)</span>
-                </p>
-              ))}
-            </div>
-          </div>
-        );
-      } else {
-        // Normal mode tooltip (cumulative + bars)
-        const totalCumulative = payload.find((item: any) => item.dataKey === 'total_cumulative');
-        const cumulativeBreakdown = payload.filter((item: any) => 
-          typeof item.dataKey === 'string' && item.dataKey.endsWith('_cumulative') && item.dataKey !== 'total_cumulative'
-        );
+      // Tooltip for both percentage and dollar views
+      const cumulativeValue = payload.find((item: any) => item.dataKey === 'total_cumulative');
       
-              return (
-          <div className="bg-[#1C1D2A] border-none p-3 rounded text-sm">
-            <p className="text-gray-400 mb-1">{label}</p>
-            
-            {totalCumulative && (
-              <div className="mb-2">
-                <p className="text-white font-medium text-base">
-                  Total Cumulative: <span className="text-blue-400">${totalCumulative.value.toFixed(2)}</span>
-                </p>
-              </div>
-            )}
-            
-            {dailyYields.length > 0 && (
-              <div className="mb-2">
-                <p className="text-gray-400 text-xs mb-1">
-                  {period.charAt(0).toUpperCase() + period.slice(1)} Yield: ${totalDailyYield.toFixed(4)}
-                </p>
-                {dailyYields.map((item, idx) => {
-                  const percentage = totalDailyYield !== 0 ? ((item.value / Math.abs(totalDailyYield)) * 100) : 0;
-                  return (
-                    <p key={idx} style={{ color: item.color }} className="my-0.5 text-xs">
-                      {item.name}: <span className="font-medium">${item.value.toFixed(4)}</span>
-                      <span className="text-gray-400 ml-1">({percentage.toFixed(1)}%)</span>
-                    </p>
-                  );
-                })}
-              </div>
-            )}
-            
-            {cumulativeBreakdown.length > 0 && (
-              <div>
-                <p className="text-gray-400 text-xs mb-1 border-t border-gray-600 pt-1">Cumulative Breakdown:</p>
-                {cumulativeBreakdown.map((item: any, idx: number) => {
-                  const assetName = typeof item.dataKey === 'string' ? item.dataKey.replace('_cumulative', '') : '';
-                  const percentage = totalCumulative ? ((item.value / Math.abs(totalCumulative.value)) * 100) : 0;
-                  return (
-                    <p key={idx} style={{ color: item.stroke }} className="my-0.5 text-xs">
-                      {assetName}: <span className="text-white font-medium">${item.value.toFixed(2)}</span>
-                      <span className="text-gray-400 ml-1">({percentage.toFixed(1)}%)</span>
-                    </p>
-                  );
-                })}
-              </div>
-            )}
+      return (
+        <div className="bg-[#1C1D2A] border-none p-3 rounded text-sm">
+          <p className="text-gray-400 mb-1">{label}</p>
+          
+          {!showPercentages && cumulativeValue && (
+            <div className="mb-2">
+              <p className="text-white font-medium text-base">
+                Total Cumulative: <span className="text-blue-400">
+                  {Math.abs(cumulativeValue.value) >= 1000 
+                    ? `$${(cumulativeValue.value / 1000).toFixed(1)}k`
+                    : `$${cumulativeValue.value.toFixed(2)}`
+                  }
+                </span>
+              </p>
+            </div>
+          )}
+          
+          <div className="mb-2">
+            {dailyYields.map((item, idx) => (
+              <p key={idx} style={{ color: item.color }} className="my-0.5 text-xs">
+                {item.name}: <span className="text-white font-medium">
+                  {showPercentages 
+                    ? `${item.value.toFixed(2)}%`
+                    : Math.abs(item.value) >= 1000 
+                      ? `$${(item.value / 1000).toFixed(1)}k`
+                      : `$${item.value.toFixed(2)}`
+                  }
+                </span>
+              </p>
+            ))}
           </div>
-        );
-      }
+        </div>
+      );
     }
     return null;
   };
 
   return (
     <div className="w-full mt-2">
-      <div className="flex items-center justify-between mb-6">
-      <h2 className="text-[rgba(255,255,255,0.70)] text-[16px] font-extrabold ">
-        STRATEGY YIELD
-      </h2>
-      <div className="flex gap-4 items-center">
+      <div className="mb-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-[rgba(255,255,255,0.70)] text-[16px] font-extrabold">
+            {selectedStrategy ? `${selectedStrategy} YIELD` : 'STRATEGY YIELD'}
+          </h2>
+          
           <div className="flex gap-4 items-center">
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  checked={showPercentages}
-                  onChange={(e) => setShowPercentages(e.target.checked)}
-                  className="sr-only"
-                />
-                <div className={`w-10 h-5 rounded-full transition-all duration-300 ease-in-out shadow-inner ${
-                  showPercentages ? 'bg-[#7B5FFF]' : 'bg-[#2A2A3C]'
-                }`}>
-                  <div className={`w-5 h-5 bg-white rounded-full transition-all duration-300 ease-in-out transform shadow-md ${
-                    showPercentages ? 'translate-x-6' : 'translate-x-0.5'
-                  } mt-0.5`}></div>
+            {/* Main toggle: Percentage vs Yield Values */}
+            <div className="flex items-center gap-2">
+              <span className={`text-sm font-medium ${showPercentages ? 'text-[#ffffff]' : 'text-gray-400'}`}>
+                Percentage
+              </span>
+              <label className="flex items-center cursor-pointer">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={!showPercentages}
+                    onChange={(e) => setShowPercentages(!e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div className={`w-10 h-5 rounded-full transition-all duration-300 ease-in-out shadow-inner ${
+                    !showPercentages ? 'bg-[#7B5FFF]' : 'bg-[#2A2A3C]'
+                  }`}>
+                    <div className={`w-5 h-5 bg-white rounded-full transition-all duration-300 ease-in-out transform shadow-md ${
+                      !showPercentages ? 'translate-x-6' : 'translate-x-0.5'
+                    } mt-0.5`}></div>
+                  </div>
                 </div>
-              </div>
-              <span className="text-gray-300 font-medium">Show as %</span>
-            </label>
-            
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              </label>
+              <span className={`text-sm font-medium ${!showPercentages ? 'text-[#ffffff]' : 'text-gray-400'}`}>
+                Yield Values
+              </span>
+            </div>
+
+            <div className="flex gap-1 items-center">
+              <button
+                onClick={() => setPeriod("daily")}
+                className={`px-2 py-1 rounded text-xs transition-colors ${
+                  period === "daily"
+                    ? "bg-[#7B5FFF] text-white"
+                    : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
+                }`}
+              >
+                Daily
+              </button>
+              <button
+                onClick={() => setPeriod("weekly")}
+                className={`px-2 py-1 rounded text-xs transition-colors ${
+                  period === "weekly"
+                    ? "bg-[#7B5FFF] text-white"
+                    : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
+                }`}
+              >
+                Weekly
+              </button>
+              <button
+                onClick={() => setPeriod("monthly")}
+                className={`px-2 py-1 rounded text-xs transition-colors ${
+                  period === "monthly"
+                    ? "bg-[#7B5FFF] text-white"
+                    : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
+                }`}
+              >
+                Monthly
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        {/* Cumulative toggle - positioned below the tabs on its own line */}
+        {!showPercentages && (
+          <div className="flex justify-end mt-3">
+            <label className="flex items-center gap-2 text-xs cursor-pointer">
               <div className="relative">
                 <input
                   type="checkbox"
@@ -486,172 +462,187 @@ export default function StrategyDailyYieldChart() {
                   onChange={(e) => setShowCumulative(e.target.checked)}
                   className="sr-only"
                 />
-                <div className={`w-10 h-5 rounded-full transition-all duration-300 ease-in-out shadow-inner ${
+                <div className={`w-8 h-4 rounded-full transition-all duration-300 ease-in-out shadow-inner ${
                   showCumulative ? 'bg-[#7B5FFF]' : 'bg-[#2A2A3C]'
                 }`}>
-                  <div className={`w-5 h-5 bg-white rounded-full transition-all duration-300 ease-in-out transform shadow-md ${
-                    showCumulative ? 'translate-x-6' : 'translate-x-0.5'
-                  } mt-0.5`}></div>
+                  <div className={`w-4 h-4 bg-white rounded-full transition-all duration-300 ease-in-out transform shadow-md ${
+                    showCumulative ? 'translate-x-4' : 'translate-x-0'
+                  } mt-0`}></div>
                 </div>
               </div>
               <span className="text-gray-300 font-medium">Show Cumulative</span>
             </label>
           </div>
-
-          <div className="flex gap-1 items-center">
-            <button
-              onClick={() => setPeriod("daily")}
-              className={`px-2 py-1 rounded text-xs transition-colors ${
-                period === "daily"
-                  ? "bg-[#7B5FFF] text-white"
-                  : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
-              }`}
-            >
-              Daily
-            </button>
-            <button
-              onClick={() => setPeriod("weekly")}
-              className={`px-2 py-1 rounded text-xs transition-colors ${
-                period === "weekly"
-                  ? "bg-[#7B5FFF] text-white"
-                  : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
-              }`}
-            >
-              Weekly
-            </button>
-            <button
-              onClick={() => setPeriod("monthly")}
-              className={`px-2 py-1 rounded text-xs transition-colors ${
-                period === "monthly"
-                  ? "bg-[#7B5FFF] text-white"
-                  : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
-              }`}
-            >
-              Monthly
-            </button>
-          </div>
-        </div>
+        )}
       </div>
 
       <ResponsiveContainer width="100%" height={400}>
-        <ComposedChart data={filteredData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-          {/* Background fill for negative area */}
-          <defs>
-            <linearGradient id="negativeGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#EF4444" stopOpacity={0.1} />
-              <stop offset="100%" stopColor="#EF4444" stopOpacity={0.05} />
-            </linearGradient>
-          </defs>
-          
-          {/* Negative area background */}
-          <Area
-            type="monotone"
-            dataKey={() => 0}
-            stroke="none"
-            fill="url(#negativeGradient)"
-            yAxisId="right"
-          />
-          
-          <CartesianGrid strokeDasharray="3 3" stroke="#374151" strokeOpacity={0.3} />
-          <XAxis 
-            dataKey="date" 
-            tick={{ fontSize: 12, fill: '#9CA3AF' }} 
-            axisLine={{ stroke: '#374151' }}
-            tickLine={{ stroke: '#374151' }}
-          />
-          <YAxis 
-            yAxisId="left" 
-            tickFormatter={(val) => {
-              if (Math.abs(val) >= 1000) {
-                return `$${(val / 1000).toFixed(0)}k`;
-              }
-              return `$${val.toFixed(0)}`;
-            }} 
-            tick={{ fontSize: 12, fill: '#9CA3AF' }} 
-            axisLine={{ stroke: '#374151' }}
-            tickLine={{ stroke: '#374151' }}
-          />
-          <YAxis 
-            yAxisId="right" 
-            orientation="right" 
-            tickFormatter={(val) => {
-              if (showPercentages) {
-                return `${val.toFixed(1)}%`;
-              }
-              if (Math.abs(val) >= 1000) {
-                return `$${(val / 1000).toFixed(0)}k`;
-              }
-              return `$${val.toFixed(0)}`;
-            }} 
-            tick={{ fontSize: 12, fill: '#9CA3AF' }} 
-            axisLine={{ stroke: '#374151' }}
-            tickLine={{ stroke: '#374151' }}
-          />
-          <Tooltip content={<CustomTooltip />} />
-          
-          {/* Bars for daily/period yields */}
-          {keys.filter(k => selectedKeys.has(k)).map((key) => (
-            <Bar
-              key={key}
-              yAxisId="right"
-              dataKey={key}
-              stackId="a"
-              fill={colorMap[key]}
-              name={key}
+        {showPercentages ? (
+          // Area Chart for Percentage view
+          <AreaChart data={filteredData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+            <defs>
+              {/* Gradient for the selected strategy area */}
+              <linearGradient id="strategyGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={colorMap[selectedStrategy] || '#7B5FFF'} stopOpacity={0.8} />
+                <stop offset="95%" stopColor={colorMap[selectedStrategy] || '#7B5FFF'} stopOpacity={0.1} />
+              </linearGradient>
+            </defs>
+            
+            <CartesianGrid strokeDasharray="3 3" stroke="#374151" strokeOpacity={0.3} />
+            <XAxis 
+              dataKey="date" 
+              tick={{ fontSize: 12, fill: '#9CA3AF' }} 
+              axisLine={{ stroke: '#374151' }}
+              tickLine={{ stroke: '#374151' }}
             />
-          ))}
-          
-          {/* Single combined cumulative line */}
-          {showCumulative && (
-            <Line
-              yAxisId="left"
+            <YAxis 
+              tickFormatter={(val) => `${val.toFixed(2)}%`}
+              tick={{ fontSize: 12, fill: '#9CA3AF' }} 
+              axisLine={{ stroke: '#374151' }}
+              tickLine={{ stroke: '#374151' }}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            
+            {/* Single strategy area for percentage view */}
+            {selectedStrategy && (
+              <Area
+                key={selectedStrategy}
+                type="monotone"
+                dataKey={selectedStrategy}
+                stroke={colorMap[selectedStrategy] || '#7B5FFF'}
+                strokeWidth={2}
+                fill="url(#strategyGradient)"
+                name={selectedStrategy}
+              />
+            )}
+          </AreaChart>
+        ) : (
+          // Composed Chart (Bar + Line) for Yield Values view
+          <ComposedChart data={filteredData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+            <defs>
+              {/* Background fill for negative area */}
+              <linearGradient id="negativeGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#EF4444" stopOpacity={0.1} />
+                <stop offset="100%" stopColor="#EF4444" stopOpacity={0.05} />
+              </linearGradient>
+            </defs>
+            
+            {/* Negative area background */}
+            <Area
               type="monotone"
-              dataKey="total_cumulative"
-              stroke="#3B82F6"
-              strokeWidth={3}
-              dot={false}
-              name="Total Cumulative Yield"
+              dataKey={() => 0}
+              stroke="none"
+              fill="url(#negativeGradient)"
+              yAxisId="right"
             />
-          )}
-        </ComposedChart>
+            
+            <CartesianGrid strokeDasharray="3 3" stroke="#374151" strokeOpacity={0.3} />
+            <XAxis 
+              dataKey="date" 
+              tick={{ fontSize: 12, fill: '#9CA3AF' }} 
+              axisLine={{ stroke: '#374151' }}
+              tickLine={{ stroke: '#374151' }}
+            />
+            <YAxis 
+              yAxisId="left" 
+              tickFormatter={(val) => {
+                if (Math.abs(val) >= 1000) {
+                  return `$${(val / 1000).toFixed(0)}k`;
+                }
+                return `$${val.toFixed(0)}`;
+              }}
+              tick={{ fontSize: 12, fill: '#9CA3AF' }} 
+              axisLine={{ stroke: '#374151' }}
+              tickLine={{ stroke: '#374151' }}
+            />
+            <YAxis 
+              yAxisId="right" 
+              orientation="right" 
+              tickFormatter={(val) => {
+                if (Math.abs(val) >= 1000) {
+                  return `$${(val / 1000).toFixed(0)}k`;
+                }
+                return `$${val.toFixed(0)}`;
+              }}
+              tick={{ fontSize: 12, fill: '#9CA3AF' }} 
+              axisLine={{ stroke: '#374151' }}
+              tickLine={{ stroke: '#374151' }}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            
+            {/* Single strategy bar for yield values view */}
+            {selectedStrategy && (
+              <Bar
+                key={selectedStrategy}
+                yAxisId="right"
+                dataKey={selectedStrategy}
+                fill={colorMap[selectedStrategy] || '#7B5FFF'}
+                name={selectedStrategy}
+              />
+            )}
+            
+            {/* Cumulative line for yield values view */}
+            {showCumulative && (
+              <Line
+                yAxisId="left"
+                type="monotone"
+                dataKey="total_cumulative"
+                stroke="#3B82F6"
+                strokeWidth={3}
+                dot={false}
+                name="Total Cumulative Yield"
+              />
+            )}
+          </ComposedChart>
+        )}
       </ResponsiveContainer>
 
-      {/* Custom legend */}
-      <div className="flex flex-wrap justify-center gap-6 mt-6">
-        {keys.map((key) => {
-          const isSelected = selectedKeys.has(key);
-          return (
-            <div
-              key={key}
-              className="flex items-center gap-2 cursor-pointer"
-              onClick={() => handleLegendClick(key)}
-            >
+                            {/* Strategy selector for both percentage and dollar view */}
+        <div className="flex flex-wrap justify-center gap-4 mt-6">
+          {/* Strategy selector buttons */}
+          <div className="flex flex-wrap gap-2">
+            {keys.map((key, index) => {
+              // Check if this strategy has data for the current period
+              const hasData = data.some(item => item[key] !== undefined && item[key] !== 0);
+              const isSelected = selectedStrategy === key;
+              const strategyColor = colorMap[key] || COLORS[index % COLORS.length];
+              
+              return (
+                <button
+                  key={key}
+                  className={`px-3 py-1 rounded text-xs transition-colors ${
+                    isSelected
+                      ? "text-white"
+                      : hasData
+                      ? "text-gray-400 hover:text-white"
+                      : "text-gray-600 cursor-not-allowed"
+                  }`}
+                  style={{
+                    backgroundColor: isSelected ? strategyColor : hasData ? '#2A2A3C' : '#1A1A2C',
+                    border: isSelected ? `2px solid ${strategyColor}` : '2px solid transparent'
+                  }}
+                  onClick={() => hasData && handleStrategySelect(key)}
+                  disabled={!hasData}
+                >
+                  {key}
+                </button>
+              );
+            })}
+          </div>
+          
+          {/* Cumulative line indicator for dollar view */}
+          {!showPercentages && showCumulative && (
+            <div className="flex items-center gap-2">
               <div
-                className="w-4 h-4 rounded-sm"
+                className="w-6 h-1 rounded"
                 style={{
-                  backgroundColor: isSelected ? colorMap[key] : '#666666'
+                  backgroundColor: '#3B82F6'
                 }}
               />
-              <span className={`text-xs ${isSelected ? 'text-white' : 'text-gray-500'}`}>
-                {key}
-              </span>
+              <span className="text-xs text-white">Total Cumulative</span>
             </div>
-          );
-        })}
-        
-        {/* Total cumulative line indicator */}
-        {showCumulative && (
-          <div className="flex items-center gap-2">
-            <div
-              className="w-6 h-1 rounded"
-              style={{
-                backgroundColor: '#3B82F6'
-              }}
-            />
-            <span className="text-xs text-white">Total Cumulative</span>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
     </div>
   );
 }
