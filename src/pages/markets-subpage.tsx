@@ -22,7 +22,7 @@ interface MarketItem {
   name: string;
   type: string;
   baseYield: string;
-  incentives: string[];
+  incentives: Array<{ image: string; name: string; link: string }>;
   tvl: string;
   description?: string;
   riskLevel?: string;
@@ -113,7 +113,24 @@ const MarketsSubpage: React.FC = () => {
         baseYield: usdApy
           ? usdApy
           : USD_STRATEGIES.PERPETUAL_DURATION.STABLE.apy,
-        incentives: [USD_STRATEGIES.PERPETUAL_DURATION.STABLE.incentives],
+        incentives: (() => {
+          const incentives = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.incentives;
+          console.log('Raw incentives config:', incentives);
+          
+          if (!incentives?.enabled || !incentives.points || incentives.points.length === 0) {
+            console.log('No incentives enabled or no points');
+            return [];
+          }
+          
+          // Return objects with image, name, and link for tooltips and navigation
+          const incentiveData = incentives.points.map(point => ({
+            image: point.image,
+            name: point.name,
+            link: point.link || "#" // Use link from config or fallback to "#"
+          }));
+          console.log('Incentive data:', incentiveData);
+          return incentiveData;
+        })(),
         tvl: usdTvl ? usdTvl : USD_STRATEGIES.PERPETUAL_DURATION.STABLE.tvl,
         description: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.description,
         riskLevel: "Very Low",
@@ -260,10 +277,10 @@ const MarketsSubpage: React.FC = () => {
           onReset={() => setShowDepositView(false)}
         />
       ) : (
-        <div className="flex min-h-screen text-white">
+        <div className="flex min-h-screen text-white overflow-y-auto mt-8 sm:mt-0">
           {/* Left side - 50% */}
           <div className="w-full flex flex-col relative">
-            <div className="w-full h-[124px] flex flex-col justify-center items-start relative pl-[32px]">
+            <div className="w-full h-[124px] flex flex-col justify-center items-start relative pl-4 sm:pl-[32px]">
               <div
                 className="absolute inset-0 bg-[url('/images/background/earn-page-heading-bg.svg')] bg-no-repeat bg-cover"
                 style={{ height: "100%" }}
@@ -279,7 +296,7 @@ const MarketsSubpage: React.FC = () => {
             </div>
 
             {/* Asset Selection */}
-            <div className="px-[32px] mt-[16px]">
+            <div className="px-4 sm:px-[32px] mt-[16px]">
               <div className="grid grid-cols-4 gap-3 sm:flex sm:pr-6">
                 <AssetButton
                   asset="All"
@@ -307,7 +324,7 @@ const MarketsSubpage: React.FC = () => {
             </div>
 
             {/* Market Table */}
-            <div>
+            <div className="px-4 sm:px-0">
               <MarketsTable
                 data={getSortedData()}
                 sortColumn={sortColumn}
@@ -319,7 +336,7 @@ const MarketsSubpage: React.FC = () => {
             </div>
           </div>
 
-          <div className="w-[1px] bg-[rgba(255,255,255,0.1)]" />
+          <div className="w-[1px] bg-[rgba(255,255,255,0.1)] hidden sm:block" />
 
           {/* Right side - 50% */}
           <div className="w-full hidden sm:block pr-6">

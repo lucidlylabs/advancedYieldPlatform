@@ -104,7 +104,7 @@ export default function Page() {
   return (
     <div className="min-h-screen flex flex-col pt-[52px]">
       <Header onNavigateToDeposit={handleNavigateToDeposit}>
-      <div className="flex items-center justify-between w-full">
+      <div className="flex items-center justify-between w-full px-4 sm:px-0">
         <div className="flex items-stretch h-full">
           <div className="flex items-center">
             <div
@@ -122,7 +122,7 @@ export default function Page() {
               />
             </div>
           </div>
-          <div className="w-[1px] bg-[rgba(255,255,255,0.1)] ml-4"></div>
+          <div className="w-[1px] bg-[rgba(255,255,255,0.1)] ml-4 hidden sm:block"></div>
           <nav className="hidden md:flex">
             <div className="relative flex">
               <button
@@ -193,7 +193,7 @@ export default function Page() {
         <div className="flex flex-row gap-2">
             <CustomConnectButton />
             <button
-              className="sm:hidden text-white"
+              className="sm:hidden text-white p-2"
               onClick={() => setIsMobileMenuOpen((prev) => !prev)}
             >
               {isMobileMenuOpen ? (
@@ -204,7 +204,7 @@ export default function Page() {
                   viewBox="0 0 24 24"
                   xmlns="http://www.w3.org/2000/svg"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               ) : (
                 <svg
@@ -223,9 +223,13 @@ export default function Page() {
       </Header>
 
       {isMobileMenuOpen && (
-      <div className="fixed top-[72px] left-0 right-0 z-40 md:hidden bg-[#0D101C] py-4 flex flex-col items-center gap-4 border-b border-[rgba(255,255,255,0.1)]">
+      <div className="fixed top-[72px] left-0 right-0 z-40 md:hidden bg-[#0D101C] py-4 flex flex-col items-center gap-4 border-b border-[rgba(255,255,255,0.1)] px-4">
         <button
-          className="text-white text-lg"
+          className={`text-lg w-full text-center py-2 rounded transition-colors ${
+            selectedSubPage === SubPage.Yield
+              ? "text-white bg-[rgba(184,138,248,0.1)]"
+              : "text-[#9C9DA2] hover:text-white"
+          }`}
           onClick={() => {
             setSelectedSubPage(SubPage.Yield);
             setDepositParams(null);
@@ -235,7 +239,11 @@ export default function Page() {
           Earn
         </button>
         <button
-          className="text-white text-lg"
+          className={`text-lg w-full text-center py-2 rounded transition-colors ${
+            selectedSubPage === SubPage.Markets
+              ? "text-white bg-[rgba(184,138,248,0.1)]"
+              : "text-[#9C9DA2] hover:text-white"
+          }`}
           onClick={() => {
             setSelectedSubPage(SubPage.Markets);
             setIsMobileMenuOpen(false);
@@ -244,7 +252,11 @@ export default function Page() {
           Yields
         </button>
         <button
-          className="text-white text-lg"
+          className={`text-lg w-full text-center py-2 rounded transition-colors ${
+            selectedSubPage === SubPage.Portfolio
+              ? "text-white bg-[rgba(184,138,248,0.1)]"
+              : "text-[#9C9DA2] hover:text-white"
+          }`}
           onClick={() => {
             setSelectedSubPage(SubPage.Portfolio);
             setIsMobileMenuOpen(false);
@@ -252,10 +264,23 @@ export default function Page() {
         >
           Portfolio
         </button>
+        <button
+          className="text-lg w-full text-center py-2 rounded transition-colors text-[#9C9DA2] hover:text-white"
+          onClick={() => {
+            window.open(
+              "https://docs.lucidly.finance",
+              "_blank",
+              "noopener,noreferrer"
+            );
+            setIsMobileMenuOpen(false);
+          }}
+        >
+          Docs
+        </button>
       </div>
     )}
 
-      <main className={`flex-1 ${isMobileMenuOpen ? 'pt-[200px]' : ''}`}>{renderSubPage()}</main>
+      <main className={`flex-1 overflow-y-auto ${isMobileMenuOpen ? 'pt-[200px]' : ''}`}>{renderSubPage()}</main>
     </div>
   );
 }

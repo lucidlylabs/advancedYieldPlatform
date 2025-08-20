@@ -272,13 +272,13 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
           onReset={handleReset}
         />
       ) : selectedAsset ? (
-        <div className="flex flex-col min-h-screen items-center justify-center gap-6 pb-[8vh] ml-[3vw]">
+        <div className="flex flex-col min-h-screen items-center justify-center gap-6 pb-[8vh] ml-[3vw] mt-8 sm:mt-0">
           <h1 className="text-[20px] sm:text-[40px] font-[619px]">
             Select a Yield Source
           </h1>
           <div className="flex flex-col items-center">
             <div className="flex flex-col sm:flex-row gap-6 justify-center items-stretch">
-              <div className="flex-shrink-0 w-[264px]">
+              <div className="flex-shrink-0 w-[264px] px-6 sm:px-0">
                 <CustomCard
                   heading={selectedAsset.asset as AssetType}
                   imageSrc={`/images/icons/card-${(
@@ -386,7 +386,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
           </div>
         </div>
       ) : (
-        <div className="flex flex-col min-h-screen items-center justify-center gap-6 pb-[14vh]">
+        <div className="flex flex-col min-h-screen items-center justify-center gap-6 pb-[14vh] mt-8 sm:mt-0">
           <h1 className="text-[20px] font-[619px] sm:text-[40px]">
             Select an asset you want yield on
           </h1>
