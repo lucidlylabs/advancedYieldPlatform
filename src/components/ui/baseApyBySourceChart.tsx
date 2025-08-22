@@ -34,6 +34,8 @@ export default function BaseApyBySourceChart({}: BaseApyBySourceChartProps) {
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
 
+
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -143,7 +145,7 @@ export default function BaseApyBySourceChart({}: BaseApyBySourceChartProps) {
 
   if (loading)
     return (
-      <div className="pt-2 pl-6 pb-6 rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 mb-12 [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 focus:border-0">
+      <div className="pt-2 pl-6 pb-6 rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 mb-12 chart-container">
         <div className="flex justify-end items-center mb-4">
           <div className="flex gap-1 items-center">
             <div className="px-2 py-1 rounded text-xs bg-gray-600 text-gray-400">Daily</div>
@@ -221,7 +223,7 @@ export default function BaseApyBySourceChart({}: BaseApyBySourceChartProps) {
   };
 
   return (
-    <div className="pt-2 pl-6 pb-6 rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 mb-12 [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 focus:border-0">
+    <div className="pt-2 pl-6 pb-6 rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 mb-12 chart-container">
       <div className="flex justify-end items-center mb-4">
         <div className="flex gap-1 items-center">
           <button
@@ -257,14 +259,20 @@ export default function BaseApyBySourceChart({}: BaseApyBySourceChartProps) {
         </div>
       </div>
       
-      <div className="w-full h-[400px] focus:outline-none focus:ring-0 focus:border-0">
-        <ResponsiveContainer width="100%" height="70%" className="focus:outline-none focus:ring-0 focus:border-0">
+      <div className="w-full h-[400px]">
+        <ResponsiveContainer width="100%" height="70%">
           <AreaChart
             data={[...filteredData].reverse()}
             margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
             stackOffset="expand"
-            style={{ outline: 'none', border: 'none' }}
-            className="focus:outline-none focus:ring-0 focus:border-0"
+            style={{
+              outline: 'none',
+              border: 'none',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              MozUserSelect: 'none',
+              msUserSelect: 'none'
+            }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#2A2A3C" />
             <XAxis
@@ -304,7 +312,7 @@ export default function BaseApyBySourceChart({}: BaseApyBySourceChartProps) {
 
       {/* Custom legend */}
       {data.length > 0 && (
-        <div className="flex flex-wrap justify-center gap-4 mt-4">
+        <div className="flex flex-wrap justify-center gap-4 mt-6">
           {keys.map((key, idx) => {
             const isSelected = selectedKeys.has(key);
             // Truncate long addresses for display

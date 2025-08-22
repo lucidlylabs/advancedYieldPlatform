@@ -282,7 +282,7 @@ export default function TotalDepositsChart({}: DepositBarChartProps) {
               tick={{ fill: "#A3A3A3", fontSize: 10 }}
               axisLine={false}
               tickLine={false}
-              label={{ value: "Date", position: "bottom", offset: 0, style: { fill: "#A3A3A3", fontSize: 12 } }}
+              label={{ value: "Time", position: "bottom", offset: 0, style: { fill: "#A3A3A3", fontSize: 12 } }}
             />
             <YAxis
               tick={{ fill: "#A3A3A3", fontSize: 10 }}
@@ -293,7 +293,7 @@ export default function TotalDepositsChart({}: DepositBarChartProps) {
                 if (val >= 1000) return `$${Math.round(val / 1000)}K`;
                 return `$${val}`;
               }}
-              label={{ value: "TVL in dollar value", angle: -90, position: "left", offset: 0, style: { fill: "#A3A3A3", fontSize: 12 } }}
+              label={{ value: "TVL in Dollars", angle: -90, position: "left", offset: 0, style: { fill: "#A3A3A3", fontSize: 12 } }}
             />
             <Tooltip
               content={<CustomTooltip />}
