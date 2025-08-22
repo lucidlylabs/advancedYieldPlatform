@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { CustomConnectButton } from "../components/ui/ConnectButton/CustomConnectButton";
 import { Header } from "../components/ui/header";
-import PortfolioSubpage from "./portfolio-subpage";
-import YieldSubpage from "./earn-subpage";
-import MarketsSubpage from "./markets-subpage";
+import PortfolioSubpage from "./portfolio";
+import YieldSubpage from "./earn";
+import MarketsSubpage from "./yields";
 import CodeVerificationPopup from "@/components/ui/CodeVerificationPopup";
 
 enum SubPage {
@@ -15,9 +16,22 @@ enum SubPage {
 }
 
 export default function Page() {
+  const router = useRouter();
   const [selectedSubPage, setSelectedSubPage] = useState<SubPage>(
     SubPage.Yield
   );
+
+  // Check the current route and set the appropriate subpage
+  useEffect(() => {
+    const path = router.pathname;
+    if (path === '/portfolio') {
+      setSelectedSubPage(SubPage.Portfolio);
+    } else if (path === '/yields') {
+      setSelectedSubPage(SubPage.Markets);
+    } else if (path === '/earn') {
+      setSelectedSubPage(SubPage.Yield);
+    }
+  }, [router.pathname]);
   const [depositParams, setDepositParams] = useState<{
     asset: string;
     duration: string;
@@ -79,6 +93,28 @@ export default function Page() {
   };
 
   const renderSubPage = () => {
+    // Check the current route and render appropriate component
+    const path = router.pathname;
+    
+    if (path === '/portfolio') {
+      return <PortfolioSubpage />;
+    } else if (path === '/yields') {
+      return <MarketsSubpage />;
+    } else if (path === '/earn') {
+      if (!isVerified) {
+        return (
+          <CodeVerificationPopup
+            isOpen={isCodePopupOpen}
+            onClose={() => {}}
+            onVerify={handleVerifyCode}
+            error={verificationError}
+          />
+        );
+      }
+      return <YieldSubpage depositParams={depositParams} />;
+    }
+    
+    // Default behavior for the main page
     switch (selectedSubPage) {
       case SubPage.Portfolio:
         return <PortfolioSubpage />;
@@ -132,8 +168,7 @@ export default function Page() {
                     : "text-[#9C9DA2] hover:text-gray-300"
                 }`}
                 onClick={() => {
-                  setSelectedSubPage(SubPage.Yield);
-                  setDepositParams(null);
+                  router.push('/earn');
                 }}
               >
                 Earn
@@ -150,7 +185,9 @@ export default function Page() {
                     ? "text-white"
                     : "text-[#9C9DA2] hover:text-gray-300"
                 }`}
-                onClick={() => setSelectedSubPage(SubPage.Markets)}
+                onClick={() => {
+                  router.push('/yields');
+                }}
               >
                 Yields
                 {selectedSubPage === SubPage.Markets && (
@@ -166,7 +203,9 @@ export default function Page() {
                     ? "text-white"
                     : "text-[#9C9DA2] hover:text-gray-300"
                 }`}
-                onClick={() => setSelectedSubPage(SubPage.Portfolio)}
+                onClick={() => {
+                  router.push('/portfolio');
+                }}
               >
                 Portfolio
                 {selectedSubPage === SubPage.Portfolio && (
@@ -231,8 +270,7 @@ export default function Page() {
               : "text-[#9C9DA2] hover:text-white"
           }`}
           onClick={() => {
-            setSelectedSubPage(SubPage.Yield);
-            setDepositParams(null);
+            router.push('/earn');
             setIsMobileMenuOpen(false);
           }}
         >
@@ -245,7 +283,7 @@ export default function Page() {
               : "text-[#9C9DA2] hover:text-white"
           }`}
           onClick={() => {
-            setSelectedSubPage(SubPage.Markets);
+            router.push('/yields');
             setIsMobileMenuOpen(false);
           }}
         >
@@ -258,7 +296,7 @@ export default function Page() {
               : "text-[#9C9DA2] hover:text-white"
           }`}
           onClick={() => {
-            setSelectedSubPage(SubPage.Portfolio);
+            router.push('/portfolio');
             setIsMobileMenuOpen(false);
           }}
         >

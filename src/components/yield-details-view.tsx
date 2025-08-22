@@ -9,12 +9,11 @@ import {
 import Image from "next/image";
 import DepositView from "./deposit-view";
 import { USD_STRATEGIES } from "../config/env";
-import DailyDeposits from "./graphs/daily_deposits";
-import DepositBarChart from "./ui/depositChart";
-import AllocationChart from "./ui/allocationsChart";
-import StrategyDailyYieldChart from "./ui/strategyDailyYieldChart";
 import { IncentiveRewards } from "./ui/IncentiveRewards";
-import BaseApyTotalChart from "./ui/baseApyTotalChart";
+import DepositBarChart from "./graphs/depositChart";
+import AllocationChart from "./graphs/allocationsChart";
+import StrategyDailyYieldChart from "./graphs/strategyDailyYieldChart";
+import BaseApyTotalChart from "./graphs/baseApyTotalChart";
 
 interface MarketItem {
   id: number;

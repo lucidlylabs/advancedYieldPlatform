@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import { CustomCard } from "@/components/ui/card";
 import DepositView from "@/components/deposit-view";
 import { USD_STRATEGIES, BTC_STRATEGIES, ETH_STRATEGIES } from "../config/env";
 import { useRouter } from "next/router";
+import { CustomConnectButton } from "../components/ui/ConnectButton/CustomConnectButton";
+import { Header } from "../components/ui/header";
+import CodeVerificationPopup from "@/components/ui/CodeVerificationPopup";
 
 type DurationType = "30_DAYS" | "60_DAYS" | "180_DAYS" | "PERPETUAL_DURATION";
 type StrategyType = "STABLE" | "INCENTIVE";
@@ -185,8 +189,67 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
   const [selectedStrategy, setSelectedStrategy] =
     useState<SelectedStrategy | null>(null);
   const [usdApy, setUsdApy] = useState<string | null>(null);
+  const [isVerified, setIsVerified] = useState(false);
+  const [isCodePopupOpen, setIsCodePopupOpen] = useState(true);
+  const [verificationError, setVerificationError] = useState("");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const router = useRouter();
+
+  // Check if user is already verified from localStorage
+  useEffect(() => {
+    const verified = localStorage.getItem("isVerified");
+    if (verified === "true") {
+      setIsVerified(true);
+      setIsCodePopupOpen(false);
+    }
+  }, []);
+
+  const handleVerifyCode = async (code: string) => {
+    try {
+      const response = await fetch("/api/verify-code", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ accessCode: code }),
+      });
+
+      if (response.ok) {
+        setIsVerified(true);
+        setIsCodePopupOpen(false);
+        setVerificationError("");
+        localStorage.setItem("isVerified", "true");
+      } else {
+        const data = await response.json();
+        setVerificationError(
+          data.message || "Incorrect code. Please try again."
+        );
+        setIsVerified(false);
+        setIsCodePopupOpen(true);
+      }
+    } catch (error) {
+      setVerificationError("An error occurred during verification.");
+      setIsVerified(false);
+      setIsCodePopupOpen(true);
+    }
+  };
+
+  const handleNavigateToDeposit = (params: {
+    asset: string;
+    duration: string;
+    strategy: string;
+  }) => {
+    setSelectedAsset({ asset: params.asset, duration: params.duration as DurationType });
+    setSelectedStrategy({
+      type: params.strategy as "stable" | "incentive",
+      asset: params.asset,
+      duration: params.duration as DurationType,
+      apy: getStrategyInfo(params.duration as DurationType)[
+        params.strategy === "stable" ? "stable" : "incentives"
+      ][params.asset as AssetType].apy.value,
+    });
+  };
 
   useEffect(() => {
     const apyUrl = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.apy;
@@ -264,18 +327,134 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
 
   console.log("Selected Strategy:", selectedStrategy);
 
-  // Always render the main content, assuming verification is handled by parent
+  if (!isVerified) {
+    return (
+      <div className="min-h-screen flex flex-col pt-[52px]">
+        <Header onNavigateToDeposit={handleNavigateToDeposit}>
+          <div className="flex items-center justify-between w-full px-4 sm:px-0">
+            <div className="flex items-stretch h-full">
+              <div className="flex items-center">
+                <div
+                  className="cursor-pointer"
+                  onClick={() => {
+                    router.push("/");
+                  }}
+                >
+                  <Image
+                    src="/images/logo/logo-desktop.svg"
+                    alt="Lucidity Logo"
+                    width={80}
+                    height={16}
+                    priority
+                  />
+                </div>
+              </div>
+              <div className="w-[1px] bg-[rgba(255,255,255,0.1)] ml-4 hidden sm:block"></div>
+              <nav className="hidden md:flex">
+                <div className="relative flex">
+                  <button
+                    className="px-8 py-[18px] text-sm transition-colors relative text-white"
+                    onClick={() => router.push('/earn')}
+                  >
+                    Earn
+                    <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#B88AF8]"></div>
+                  </button>
+                  <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
+                  <button
+                    className="px-8 py-[18px] text-sm transition-colors relative text-[#9C9DA2] hover:text-gray-300"
+                    onClick={() => router.push('/yields')}
+                  >
+                    Yields
+                  </button>
+                  <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
+                  <button
+                    className="px-8 py-[18px] text-sm transition-colors relative text-[#9C9DA2] hover:text-gray-300"
+                    onClick={() => router.push('/portfolio')}
+                  >
+                    Portfolio
+                  </button>
+                </div>
+              </nav>
+            </div>
+            <div className="flex flex-row gap-2">
+              <CustomConnectButton />
+            </div>
+          </div>
+        </Header>
+        <CodeVerificationPopup
+          isOpen={isCodePopupOpen}
+          onClose={() => {}}
+          onVerify={handleVerifyCode}
+          error={verificationError}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div
-      className="min-h-[calc(100vh)] relative w-full"
-      style={{
-        backgroundImage: "url('/images/background/earn-page-bg.svg')",
-        backgroundPosition: "center bottom -50px",
-        backgroundRepeat: "no-repeat",
-        backgroundSize: "100% auto",
-        backgroundAttachment: "fixed",
-      }}
-    >
+    <div className="min-h-screen flex flex-col pt-[52px]">
+      <Header onNavigateToDeposit={handleNavigateToDeposit}>
+        <div className="flex items-center justify-between w-full px-4 sm:px-0">
+          <div className="flex items-stretch h-full">
+            <div className="flex items-center">
+              <div
+                className="cursor-pointer"
+                onClick={() => {
+                  router.push("/");
+                }}
+              >
+                <Image
+                  src="/images/logo/logo-desktop.svg"
+                  alt="Lucidity Logo"
+                  width={80}
+                  height={16}
+                  priority
+                />
+              </div>
+            </div>
+            <div className="w-[1px] bg-[rgba(255,255,255,0.1)] ml-4 hidden sm:block"></div>
+            <nav className="hidden md:flex">
+              <div className="relative flex">
+                <button
+                  className="px-8 py-[18px] text-sm transition-colors relative text-white"
+                  onClick={() => router.push('/earn')}
+                >
+                  Earn
+                  <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#B88AF8]"></div>
+                </button>
+                <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
+                <button
+                  className="px-8 py-[18px] text-sm transition-colors relative text-[#9C9DA2] hover:text-gray-300"
+                  onClick={() => router.push('/yields')}
+                >
+                  Yields
+                </button>
+                <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
+                <button
+                  className="px-8 py-[18px] text-sm transition-colors relative text-[#9C9DA2] hover:text-gray-300"
+                  onClick={() => router.push('/portfolio')}
+                >
+                  Portfolio
+                </button>
+              </div>
+            </nav>
+          </div>
+          <div className="flex flex-row gap-2">
+            <CustomConnectButton />
+          </div>
+        </div>
+      </Header>
+      <main className="flex-1 overflow-y-auto">
+        <div
+          className="min-h-[calc(100vh)] relative w-full"
+          style={{
+            backgroundImage: "url('/images/background/earn-page-bg.svg')",
+            backgroundPosition: "center bottom -50px",
+            backgroundRepeat: "no-repeat",
+            backgroundSize: "100% auto",
+            backgroundAttachment: "fixed",
+          }}
+        >
       {selectedStrategy ? (
         <DepositView
           selectedAsset={selectedStrategy.asset}
@@ -442,7 +621,9 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
             />
           </div>
         </div>
-      )}
+        )}
+        </div>
+      </main>
     </div>
   );
 };

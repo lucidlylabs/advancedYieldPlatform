@@ -12,6 +12,8 @@ import Image from "next/image";
 import { useRouter } from "next/router";
 import { USD_STRATEGIES } from "@/config/env";
 import DepositView from "../components/deposit-view";
+import { CustomConnectButton } from "../components/ui/ConnectButton/CustomConnectButton";
+import { Header } from "../components/ui/header";
 
 const isMobile = () => typeof window !== "undefined" && window.innerWidth < 640;
 
@@ -311,18 +313,71 @@ const MarketsSubpage: React.FC = () => {
   }
 
   return (
-    <>
-      {showDepositView ? (
-        <DepositView
-          selectedAsset="USD"
-          duration="PERPETUAL_DURATION"
-          strategy="stable"
-          apy="4.5%"
-          onBack={() => setShowDepositView(false)}
-          onReset={() => setShowDepositView(false)}
-        />
-      ) : (
-        <div className="flex min-h-screen text-white overflow-y-auto mt-8 sm:mt-0">
+    <div className="min-h-screen flex flex-col pt-[52px]">
+      <Header onNavigateToDeposit={() => {}}>
+        <div className="flex items-center justify-between w-full px-4 sm:px-0">
+          <div className="flex items-stretch h-full">
+            <div className="flex items-center">
+              <div
+                className="cursor-pointer"
+                onClick={() => {
+                  router.push("/");
+                }}
+              >
+                <Image
+                  src="/images/logo/logo-desktop.svg"
+                  alt="Lucidity Logo"
+                  width={80}
+                  height={16}
+                  priority
+                />
+              </div>
+            </div>
+            <div className="w-[1px] bg-[rgba(255,255,255,0.1)] ml-4 hidden sm:block"></div>
+            <nav className="hidden md:flex">
+              <div className="relative flex">
+                <button
+                  className="px-8 py-[18px] text-sm transition-colors relative text-[#9C9DA2] hover:text-gray-300"
+                  onClick={() => router.push('/earn')}
+                >
+                  Earn
+                </button>
+                <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
+                <button
+                  className="px-8 py-[18px] text-sm transition-colors relative text-white"
+                  onClick={() => router.push('/yields')}
+                >
+                  Yields
+                  <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#B88AF8]"></div>
+                </button>
+                <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
+                <button
+                  className="px-8 py-[18px] text-sm transition-colors relative text-[#9C9DA2] hover:text-gray-300"
+                  onClick={() => router.push('/portfolio')}
+                >
+                  Portfolio
+                </button>
+              </div>
+            </nav>
+          </div>
+          <div className="flex flex-row gap-2">
+            <CustomConnectButton />
+          </div>
+        </div>
+      </Header>
+      <main className="flex-1 overflow-y-auto">
+        <>
+          {showDepositView ? (
+            <DepositView
+              selectedAsset="USD"
+              duration="PERPETUAL_DURATION"
+              strategy="stable"
+              apy="4.5%"
+              onBack={() => setShowDepositView(false)}
+              onReset={() => setShowDepositView(false)}
+            />
+          ) : (
+            <div className="flex min-h-screen text-white overflow-y-auto mt-8 sm:mt-0">
           {/* Left side - 50% */}
           <div className="w-full flex flex-col relative">
             <div className="w-full h-[124px] flex flex-col justify-center items-start relative pl-4 sm:pl-[32px]">
@@ -422,10 +477,11 @@ const MarketsSubpage: React.FC = () => {
               </div>
             )}
           </div>
-        </div>
-      )}
-      ;
-    </>
+            </div>
+          )}
+        </>
+      </main>
+    </div>
   );
 };
 
