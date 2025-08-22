@@ -159,22 +159,26 @@ export const USD_STRATEGIES = {
         enabled: true,
         points: [
           {
-            name: "1.5x boost Liquidity Land",
+            name: "Liquidity Land",
             image: "/images/icons/syUSD/liquidity_land.png",
-            multiplier: 1.0,
+            multiplier: 1.5,
+            description:
+              "Earn 1.5x Lucildy Drops  as bonus for Liquidity Land users ",
             link: "https://app.liquidity.land/project/Lucidly",
           },
           {
             name: "Ethena Sats",
             image: "/images/icons/syUSD/ethena.svg",
-            description: "Earn loyalty points for long-term staking",
             multiplier: 1,
+            description:
+              "Points earned through protocol fund allocation strategies",
           },
           {
             name: "Resolv Points",
             image: "/images/icons/syUSD/resolv.svg",
-            description: "Earn referral points for bringing new users",
-            multiplier: 2.0,
+            multiplier: 1,
+            description:
+              "Points earned through protocol fund allocation strategies",
           },
         ],
       },

@@ -262,15 +262,15 @@ const MarketsSubpage: React.FC = () => {
       let valueA, valueB;
 
       if (sortColumn === "baseYield") {
-        // Handle cases where baseYield might be "Loading..." or "N/A"
-        const aValue = a.baseYield === "Loading..." || a.baseYield === "N/A" ? 0 : parseFloat(a.baseYield.replace("%", ""));
-        const bValue = b.baseYield === "Loading..." || b.baseYield === "N/A" ? 0 : parseFloat(b.baseYield.replace("%", ""));
+        // Handle cases where baseYield might be "N/A" or fallback values
+        const aValue = a.baseYield === "N/A" ? 0 : parseFloat(a.baseYield.replace("%", ""));
+        const bValue = b.baseYield === "N/A" ? 0 : parseFloat(b.baseYield.replace("%", ""));
         valueA = isNaN(aValue) ? 0 : aValue;
         valueB = isNaN(bValue) ? 0 : bValue;
       } else if (sortColumn === "tvl") {
-        // Handle cases where tvl might be "Loading..." or "N/A"
-        const aValue = a.tvl === "Loading..." || a.tvl === "N/A" ? 0 : parseFloat(a.tvl.replace("$", "").replace(",", ""));
-        const bValue = b.tvl === "Loading..." || b.tvl === "N/A" ? 0 : parseFloat(b.tvl.replace("$", "").replace(",", ""));
+        // Handle cases where tvl might be "N/A" or fallback values
+        const aValue = a.tvl === "N/A" ? 0 : parseFloat(a.tvl.replace("$", "").replace(",", ""));
+        const bValue = b.tvl === "N/A" ? 0 : parseFloat(b.tvl.replace("$", "").replace(",", ""));
         valueA = isNaN(aValue) ? 0 : aValue;
         valueB = isNaN(bValue) ? 0 : bValue;
       } else if (sortColumn === "name") {

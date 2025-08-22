@@ -13,6 +13,7 @@ import DailyDeposits from "./graphs/daily_deposits";
 import DepositBarChart from "./ui/depositChart";
 import AllocationChart from "./ui/allocationsChart";
 import StrategyDailyYieldChart from "./ui/strategyDailyYieldChart";
+import { IncentiveRewards } from "./ui/IncentiveRewards";
 import BaseApyTotalChart from "./ui/baseApyTotalChart";
 
 interface MarketItem {
@@ -212,22 +213,10 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   );
 
   const renderIncentivesTab = () => (
-    <div className="w-full">
-    <div className="flex justify-between items-center mb-3 mt-5">
-      <h2 className="text-[rgba(255,255,255,0.70)] text-[16px] font-extrabold ">
-        STRATEGY YIELD
-      </h2>
-    </div>
-
-    <div className="h-[800px] overflow-y-auto pb-2">
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <h3 className="text-lg text-gray-400 mb-2">Incentives Data</h3>
-          <p className="text-sm text-gray-500">No incentives data available at the moment.</p>
-        </div>
-      </div>
-    </div>
-  </div>
+    <IncentiveRewards 
+      strategyName={name}
+      className="w-full"
+    />
   );
 
   return (
