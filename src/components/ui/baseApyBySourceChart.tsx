@@ -34,8 +34,6 @@ export default function BaseApyBySourceChart({}: BaseApyBySourceChartProps) {
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
 
-
-
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -119,7 +117,8 @@ export default function BaseApyBySourceChart({}: BaseApyBySourceChartProps) {
     if (item.strategies && Array.isArray(item.strategies)) {
       item.strategies.forEach((strategy: Strategy) => {
         transformed[strategy.strategy] = strategy.apy; // APY value
-        transformed[`${strategy.strategy}_allocation`] = strategy.allocationPercentage / 100; // Convert percentage to decimal
+        transformed[`${strategy.strategy}_allocation`] =
+          strategy.allocationPercentage / 100; // Convert percentage to decimal
       });
     }
 
@@ -148,16 +147,24 @@ export default function BaseApyBySourceChart({}: BaseApyBySourceChartProps) {
       <div className="pt-2 pl-6 pb-6 rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 mb-12 chart-container">
         <div className="flex justify-end items-center mb-4">
           <div className="flex gap-1 items-center">
-            <div className="px-2 py-1 rounded text-xs bg-gray-600 text-gray-400">Daily</div>
-            <div className="px-2 py-1 rounded text-xs bg-gray-600 text-gray-400">Weekly</div>
-            <div className="px-2 py-1 rounded text-xs bg-gray-600 text-gray-400">Monthly</div>
+            <div className="px-2 py-1 rounded text-xs bg-gray-600 text-gray-400">
+              Daily
+            </div>
+            <div className="px-2 py-1 rounded text-xs bg-gray-600 text-gray-400">
+              Weekly
+            </div>
+            <div className="px-2 py-1 rounded text-xs bg-gray-600 text-gray-400">
+              Monthly
+            </div>
           </div>
         </div>
-        
+
         <div className="w-full h-[300px] flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-            <p className="text-gray-400 text-sm">Loading base APY by source data...</p>
+            <p className="text-gray-400 text-sm">
+              Loading base APY by source data...
+            </p>
           </div>
         </div>
       </div>
@@ -258,7 +265,7 @@ export default function BaseApyBySourceChart({}: BaseApyBySourceChartProps) {
           </button>
         </div>
       </div>
-      
+
       <div className="w-full h-[400px]">
         <ResponsiveContainer width="100%" height="70%">
           <AreaChart
@@ -266,12 +273,12 @@ export default function BaseApyBySourceChart({}: BaseApyBySourceChartProps) {
             margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
             stackOffset="expand"
             style={{
-              outline: 'none',
-              border: 'none',
-              userSelect: 'none',
-              WebkitUserSelect: 'none',
-              MozUserSelect: 'none',
-              msUserSelect: 'none'
+              outline: "none",
+              border: "none",
+              userSelect: "none",
+              WebkitUserSelect: "none",
+              MozUserSelect: "none",
+              msUserSelect: "none",
             }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#2A2A3C" />
@@ -312,37 +319,51 @@ export default function BaseApyBySourceChart({}: BaseApyBySourceChartProps) {
 
       {/* Custom legend */}
       {data.length > 0 && (
-        <div className="flex flex-wrap justify-center gap-4 mt-6">
-          {keys.map((key, idx) => {
-            const isSelected = selectedKeys.has(key);
-            // Truncate long addresses for display
-            const displayName =
-              key.length > 10 ? `${key.slice(0, 6)}...${key.slice(-4)}` : key;
+        <div className="w-full mt-6">
+          <div 
+            className="grid grid-cols-auto-fit gap-4" 
+            style={{ 
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              justifyContent: 'center',
+              alignItems: 'center',
+              width: '100%',
+              marginLeft: '24px',
+              marginRight: '24px'
+            }}
+          >
+            {keys.map((key, idx) => {
+              const isSelected = selectedKeys.has(key);
+              // Truncate long addresses for display
+              const displayName =
+                key.length > 10 ? `${key.slice(0, 6)}...${key.slice(-4)}` : key;
 
-            return (
-              <div
-                key={key}
-                className="flex items-center gap-2 cursor-pointer"
-                onClick={() => handleLegendClick(key)}
-              >
+              return (
                 <div
-                  className="w-3 h-3 rounded-full"
-                  style={{
-                    backgroundColor: isSelected
-                      ? colors[idx % colors.length]
-                      : "#666666",
-                  }}
-                />
-                <span
-                  className={`text-xs ${
-                    isSelected ? "text-white" : "text-gray-500"
-                  }`}
+                  key={key}
+                  className="flex items-center gap-6 cursor-pointer px-3 py-2 rounded bg-[#2A2A3C] hover:bg-[#3A3A4C] transition-colors"
+                  onClick={() => handleLegendClick(key)}
+                  
                 >
-                  {isSelected ? displayName : `${displayName} (deselected)`}
-                </span>
-              </div>
-            );
-          })}
+                  <div
+                    className="w-3 h-3 rounded-full flex-shrink-0 ml-6"
+                    style={{
+                      backgroundColor: isSelected
+                        ? colors[idx % colors.length]
+                        : "#666666",
+                    }}
+                  />
+                  <span
+                    className={`text-xs whitespace-nowrap  ${
+                      isSelected ? "text-white" : "text-gray-500"
+                    }`}
+                  >
+                    {isSelected ? displayName : `${displayName} (deselected)`}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
