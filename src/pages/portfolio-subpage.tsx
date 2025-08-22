@@ -451,14 +451,28 @@ const PortfolioSubpage: React.FC = () => {
     const apyUrl = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.apy;
     if (typeof apyUrl === "string" && apyUrl.startsWith("http")) {
       fetch(apyUrl)
-        .then((res) => res.json())
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          return res.json();
+        })
         .then((data) => {
           const trailingApy = data?.result?.trailing_total_APY;
           if (typeof trailingApy === "number") {
             setUsdApy(`${trailingApy.toFixed(2)}%`);
+          } else {
+            console.warn('Unexpected APY data structure:', data);
+            setUsdApy("N/A");
           }
         })
-        .catch(() => setUsdApy(null));
+        .catch((error) => {
+          console.error('Error fetching APY:', error);
+          setUsdApy(USD_STRATEGIES.PERPETUAL_DURATION.STABLE.fallbackApy || "N/A");
+        });
+    } else if (typeof apyUrl === "string" && !apyUrl.startsWith("http")) {
+      // If apyUrl is not a URL, use it directly (fallback value)
+      setUsdApy(apyUrl);
     }
   }, []);
 

@@ -100,57 +100,73 @@ const MarketsSubpage: React.FC = () => {
   const [usdTvl, setUsdTvl] = useState<string | null>(null);
   const [usdApy, setUsdApy] = useState<string | null>(null);
 
-  // Market data
-  const marketData: Record<AssetType, MarketItem[]> = {
+  // Market data state
+  const [marketData, setMarketData] = useState<Record<AssetType, MarketItem[]>>({
     All: [],
     ETH: [],
     BTC: [],
-    USD: [
-      {
-        id: 5,
-        name: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.name,
-        type: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.type,
-        baseYield: usdApy
-          ? usdApy
-          : USD_STRATEGIES.PERPETUAL_DURATION.STABLE.apy,
-        incentives: (() => {
-          const incentives = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.incentives;
-          console.log('Raw incentives config:', incentives);
-          
-          if (!incentives?.enabled || !incentives.points || incentives.points.length === 0) {
-            console.log('No incentives enabled or no points');
-            return [];
-          }
-          
-          // Return objects with image, name, and link for tooltips and navigation
-          const incentiveData = incentives.points.map(point => ({
-            image: point.image,
-            name: point.name,
-            link: point.link || "#" // Use link from config or fallback to "#"
-          }));
-          console.log('Incentive data:', incentiveData);
-          return incentiveData;
-        })(),
-        tvl: usdTvl ? usdTvl : USD_STRATEGIES.PERPETUAL_DURATION.STABLE.tvl,
-        description: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.description,
-        riskLevel: "Very Low",
-        network: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.network,
-        contractAddress:
-          USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress,
-      },
-    ],
-  };
+    USD: [],
+  });
+  
   const router = useRouter();
 
-  // Fill the "ALL" category
-  marketData.All = [...marketData.ETH, ...marketData.BTC, ...marketData.USD];
+  // Update market data when usdApy or usdTvl changes
+  useEffect(() => {
+    const newMarketData: Record<AssetType, MarketItem[]> = {
+      All: [],
+      ETH: [],
+      BTC: [],
+      USD: [
+        {
+          id: 5,
+          name: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.name,
+          type: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.type,
+          baseYield: usdApy || USD_STRATEGIES.PERPETUAL_DURATION.STABLE.fallbackApy,
+          incentives: (() => {
+            const incentives = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.incentives;
+            console.log('Raw incentives config:', incentives);
+            
+            if (!incentives?.enabled || !incentives.points || incentives.points.length === 0) {
+              console.log('No incentives enabled or no points');
+              return [];
+            }
+            
+            // Return objects with image, name, and link for tooltips and navigation
+            const incentiveData = incentives.points.map(point => ({
+              image: point.image,
+              name: point.name,
+              link: point.link || "#" // Use link from config or fallback to "#"
+            }));
+            console.log('Incentive data:', incentiveData);
+            return incentiveData;
+          })(),
+          tvl: usdTvl || USD_STRATEGIES.PERPETUAL_DURATION.STABLE.tvl,
+          description: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.description,
+          riskLevel: "Very Low",
+          network: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.network,
+          contractAddress:
+            USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress,
+        },
+      ],
+    };
+
+    // Fill the "ALL" category
+    newMarketData.All = [...newMarketData.ETH, ...newMarketData.BTC, ...newMarketData.USD];
+    
+    setMarketData(newMarketData);
+  }, [usdApy, usdTvl]);
 
   // Fetch TVL for USD strategy if it's a URL
   useEffect(() => {
     const tvlUrl = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.tvl;
     if (typeof tvlUrl === "string" && tvlUrl.startsWith("http")) {
       fetch(tvlUrl)
-        .then((res) => res.json())
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          return res.json();
+        })
         .then((data) => {
           if (typeof data.result === "number") {
             setUsdTvl(
@@ -161,9 +177,18 @@ const MarketsSubpage: React.FC = () => {
                 minimumFractionDigits: 0,
               })
             );
+          } else {
+            console.warn('Unexpected TVL data structure:', data);
+            setUsdTvl("N/A");
           }
         })
-        .catch(() => setUsdTvl(null));
+        .catch((error) => {
+          console.error('Error fetching TVL:', error);
+          setUsdTvl("N/A");
+        });
+    } else if (typeof tvlUrl === "string" && !tvlUrl.startsWith("http")) {
+      // If tvlUrl is not a URL, use it directly (fallback value)
+      setUsdTvl(tvlUrl);
     }
   }, []);
 
@@ -171,14 +196,28 @@ const MarketsSubpage: React.FC = () => {
     const apyUrl = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.apy;
     if (typeof apyUrl === "string" && apyUrl.startsWith("http")) {
       fetch(apyUrl)
-        .then((res) => res.json())
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          return res.json();
+        })
         .then((data) => {
           const trailingApy = data?.result?.trailing_total_APY;
           if (typeof trailingApy === "number") {
             setUsdApy(`${trailingApy.toFixed(2)}%`);
+          } else {
+            console.warn('Unexpected APY data structure:', data);
+            setUsdApy("N/A");
           }
         })
-        .catch(() => setUsdApy(null));
+        .catch((error) => {
+          console.error('Error fetching APY:', error);
+          setUsdApy(USD_STRATEGIES.PERPETUAL_DURATION.STABLE.fallbackApy || "N/A");
+        });
+    } else if (typeof apyUrl === "string" && !apyUrl.startsWith("http")) {
+      // If apyUrl is not a URL, use it directly (fallback value)
+      setUsdApy(apyUrl);
     }
   }, []);
 
@@ -223,11 +262,17 @@ const MarketsSubpage: React.FC = () => {
       let valueA, valueB;
 
       if (sortColumn === "baseYield") {
-        valueA = parseFloat(a.baseYield);
-        valueB = parseFloat(b.baseYield);
+        // Handle cases where baseYield might be "Loading..." or "N/A"
+        const aValue = a.baseYield === "Loading..." || a.baseYield === "N/A" ? 0 : parseFloat(a.baseYield.replace("%", ""));
+        const bValue = b.baseYield === "Loading..." || b.baseYield === "N/A" ? 0 : parseFloat(b.baseYield.replace("%", ""));
+        valueA = isNaN(aValue) ? 0 : aValue;
+        valueB = isNaN(bValue) ? 0 : bValue;
       } else if (sortColumn === "tvl") {
-        valueA = parseFloat(a.tvl.replace("$", "").replace(",", ""));
-        valueB = parseFloat(b.tvl.replace("$", "").replace(",", ""));
+        // Handle cases where tvl might be "Loading..." or "N/A"
+        const aValue = a.tvl === "Loading..." || a.tvl === "N/A" ? 0 : parseFloat(a.tvl.replace("$", "").replace(",", ""));
+        const bValue = b.tvl === "Loading..." || b.tvl === "N/A" ? 0 : parseFloat(b.tvl.replace("$", "").replace(",", ""));
+        valueA = isNaN(aValue) ? 0 : aValue;
+        valueB = isNaN(bValue) ? 0 : bValue;
       } else if (sortColumn === "name") {
         valueA = a.name;
         valueB = b.name;
