@@ -16,6 +16,7 @@ import {
 } from "recharts";
 import dayjs from "dayjs";
 import { USD_STRATEGIES } from "../../config/env";
+import CommonTooltip from "../ui/CommonTooltip";
 
 interface RawYield {
   date: string;
@@ -70,6 +71,7 @@ const COLORS = [
 export default function StrategyDailyYieldChart() {
   const [data, setData] = useState<ChartDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [keys, setKeys] = useState<string[]>([]);
   const [selectedStrategy, setSelectedStrategy] = useState<string>("");
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
@@ -83,8 +85,8 @@ export default function StrategyDailyYieldChart() {
   useEffect(() => {
     async function fetchData() {
       try {
-        // Only show loading on initial load, not on period changes
-        if (data.length === 0) {
+        // Only show loading on initial load
+        if (initialLoading) {
           setLoading(true);
         }
 
@@ -237,6 +239,7 @@ export default function StrategyDailyYieldChart() {
         console.error("Error loading chart data:", err);
       } finally {
         setLoading(false);
+        setInitialLoading(false);
       }
     }
 
@@ -292,8 +295,25 @@ export default function StrategyDailyYieldChart() {
         });
         processed[key] = rawItem?.yieldPercentage || 0;
       } else {
-        // For dollar view, use the stored dollar values
-        processed[key] = item[key] || 0;
+        // For dollar view, calculate from raw data using yieldDollars
+        const rawItem = rawData.find((r) => {
+          const normalizedStrategy = normalizeAddress(r.strategy);
+          const strategyName =
+            STRATEGY_NAME_MAP[normalizedStrategy] ||
+            `${r.network}_${r.strategy}`;
+
+          // Match date format based on period
+          const dateMatch =
+            period === "weekly"
+              ? dayjs(r.date).startOf("week").format("MMM DD") ===
+                item.date.replace("Week of ", "")
+              : period === "monthly"
+              ? dayjs(r.date).format("MMM YYYY") === item.date
+              : dayjs(r.date).format("MMM DD") === item.date;
+
+          return strategyName === key && dateMatch;
+        });
+        processed[key] = rawItem?.yieldDollars || 0;
       }
     });
 
@@ -348,10 +368,11 @@ export default function StrategyDailyYieldChart() {
     return filtered;
   });
 
-  if (loading) {
+  if (initialLoading && loading) {
     return (
-      <div className="w-full mt-2">
-        <div className="w-full h-[400px] flex items-center justify-center">
+      <div className="rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
+      
+        <div className="w-full h-[300px] px-6 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
             <p className="text-gray-400 text-sm">Loading yield data...</p>
@@ -361,80 +382,15 @@ export default function StrategyDailyYieldChart() {
     );
   }
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const currentDataPoint = filteredData.find(
-        (item: any) => item.date === label
-      );
-      const dailyYields = selectedStrategy
-        ? [
-            {
-              name: selectedStrategy,
-              value: (currentDataPoint?.[selectedStrategy] as number) || 0,
-              color: colorMap[selectedStrategy],
-            },
-          ]
-        : [];
-      const totalDailyYield = dailyYields.reduce(
-        (sum, item) => sum + item.value,
-        0
-      );
 
-      // Tooltip for both percentage and dollar views
-      const cumulativeValue = payload.find(
-        (item: any) => item.dataKey === "total_cumulative"
-      );
-
-      return (
-        <div className="bg-[#1C1D2A] border-none p-3 rounded text-sm">
-          <p className="text-gray-400 mb-1">{label}</p>
-
-          {!showPercentages && cumulativeValue && (
-            <div className="mb-2">
-              <p className="text-white font-medium text-base">
-                Total Cumulative:{" "}
-                <span className="text-blue-400">
-                  {Math.abs(cumulativeValue.value) >= 1000
-                    ? `$${(cumulativeValue.value / 1000).toFixed(1)}k`
-                    : `$${cumulativeValue.value.toFixed(2)}`}
-                </span>
-              </p>
-            </div>
-          )}
-
-          <div className="mb-2">
-            {dailyYields.map((item, idx) => (
-              <p
-                key={idx}
-                style={{ color: item.color }}
-                className="my-0.5 text-xs"
-              >
-                {item.name}:{" "}
-                <span className="text-white font-medium">
-                  {showPercentages
-                    ? `${item.value.toFixed(2)}%`
-                    : Math.abs(item.value) >= 1000
-                    ? `$${(item.value / 1000).toFixed(1)}k`
-                    : `$${item.value.toFixed(2)}`}
-                </span>
-              </p>
-            ))}
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
-    <div className="w-full mt-2">
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-[rgba(255,255,255,0.70)] text-[16px] font-extrabold">
-            {selectedStrategy ? `${selectedStrategy} YIELD` : "STRATEGY YIELD"}
-          </h2>
-
-          <div className="flex gap-4 items-center">
+    <div className="pt-2 pb-6 rounded-xl text-white w-full max-h-[600px] mb-12 [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
+      <div className="flex justify-between items-center mb-4">
+        <div className="text-lg font-semibold text-white">
+          {selectedStrategy ? `${selectedStrategy} Yield` : "Strategy Yield"}
+        </div>
+        <div className="flex gap-4 items-center">
             {/* Main toggle: Percentage vs Yield Values */}
             <div className="flex items-center gap-2">
               <span
@@ -509,42 +465,17 @@ export default function StrategyDailyYieldChart() {
           </div>
         </div>
 
-        {/* Cumulative toggle - positioned below the tabs on its own line */}
-        {!showPercentages && (
-          <div className="flex justify-end mt-3">
-            <label className="flex items-center gap-2 text-xs cursor-pointer">
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  checked={showCumulative}
-                  onChange={(e) => setShowCumulative(e.target.checked)}
-                  className="sr-only"
-                />
-                <div
-                  className={`w-8 h-4 rounded-full transition-all duration-300 ease-in-out shadow-inner ${
-                    showCumulative ? "bg-[#7B5FFF]" : "bg-[#2A2A3C]"
-                  }`}
-                >
-                  <div
-                    className={`w-4 h-4 bg-white rounded-full transition-all duration-300 ease-in-out transform shadow-md ${
-                      showCumulative ? "translate-x-4" : "translate-x-0"
-                    } mt-0`}
-                  ></div>
-                </div>
-              </div>
-              <span className="text-gray-300 font-medium">Show Cumulative</span>
-            </label>
-          </div>
-        )}
-      </div>
 
-      <ResponsiveContainer width="100%" height={400}>
-        {showPercentages ? (
-          // Area Chart for Percentage view
-          <AreaChart
-            data={filteredData}
-            margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-          >
+
+      <div className="flex gap-6">
+        <div className="flex-1">
+          <ResponsiveContainer width="100%" height={400}>
+            {showPercentages ? (
+              // Area Chart for Percentage view
+              <AreaChart
+                data={filteredData}
+                margin={{ top: 20, right: 0, left: -15, bottom: 20 }}
+              >
             <defs>
               {/* Gradient for the selected strategy area */}
               <linearGradient id="strategyGradient" x1="0" y1="0" x2="0" y2="1">
@@ -578,7 +509,32 @@ export default function StrategyDailyYieldChart() {
               axisLine={{ stroke: "#374151" }}
               tickLine={{ stroke: "#374151" }}
             />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={({ active, payload, label }) => (
+              <CommonTooltip
+                active={active}
+                payload={payload}
+                label={String(label)}
+                title="Strategy Yield"
+                showTotal={false}
+                showColoredCircles={false}
+                customContent={
+                  active && payload && payload.length ? (
+                    <div className="space-y-2 mb-3">
+                      {payload.map((item: any, idx: number) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <span className="text-sm text-gray-600 flex-1">
+                            {item.name}
+                          </span>
+                          <span className="text-sm font-medium text-gray-800">
+                            {`${item.value.toFixed(2)}%`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null
+                }
+              />
+            )} />
 
             {/* Single strategy area for percentage view */}
             {selectedStrategy && (
@@ -597,7 +553,7 @@ export default function StrategyDailyYieldChart() {
           // Composed Chart (Bar + Line) for Yield Values view
           <ComposedChart
             data={filteredData}
-            margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+            margin={{ top: 20, right: -20, left: -30, bottom: 20 }}
           >
             <defs>
               {/* Background fill for negative area */}
@@ -652,7 +608,59 @@ export default function StrategyDailyYieldChart() {
               axisLine={{ stroke: "#374151" }}
               tickLine={{ stroke: "#374151" }}
             />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={({ active, payload, label }) => {
+              if (!active || !payload || payload.length === 0) return null;
+              
+              // Find the strategy data (bar) and cumulative data (line)
+              const strategyData = payload.find((item: any) => item.dataKey === selectedStrategy);
+              const cumulativeData = payload.find((item: any) => item.dataKey === "total_cumulative");
+              
+              return (
+                <div className="rounded-lg shadow-lg overflow-hidden border border-gray-200 relative z-50">
+                  {/* Header - Darker grey background */}
+                  <div className="bg-gray-300 border-b border-gray-400 px-4 py-3">
+                    <div className="text-sm font-semibold text-gray-700">
+                      Strategy Yield
+                    </div>
+                  </div>
+                  
+                  {/* Content - Light grey background */}
+                  <div className="bg-gray-100 px-4 py-3 relative z-50">
+                    <div className="space-y-2 mb-3">
+                      {/* Strategy daily yield */}
+                      {strategyData && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-gray-600 flex-1">
+                            {strategyData.name}
+                          </span>
+                          <span className="text-sm font-medium text-gray-800">
+                            {Math.abs(strategyData.value) >= 1000
+                              ? `$${(strategyData.value / 1000).toFixed(1)}K`
+                              : `$${strategyData.value.toFixed(2)}`}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Footer - Same darker grey as header */}
+                  {cumulativeData && (
+                    <div className="bg-gray-300 border-t border-gray-400 px-4 py-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-semibold text-gray-700">
+                          Total Cumulative
+                        </span>
+                        <span className="text-sm font-semibold text-gray-700">
+                          {Math.abs(cumulativeData.value) >= 1000
+                            ? `$${(cumulativeData.value / 1000).toFixed(1)}K`
+                            : `$${cumulativeData.value.toFixed(2)}`}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            }} />
 
             {/* Single strategy bar for yield values view */}
             {selectedStrategy && (
@@ -671,8 +679,8 @@ export default function StrategyDailyYieldChart() {
                 yAxisId="left"
                 type="monotone"
                 dataKey="total_cumulative"
-                stroke="#3B82F6"
-                strokeWidth={3}
+                stroke="#7B5FFF"
+                strokeWidth={1.5}
                 dot={false}
                 name="Total Cumulative Yield"
               />
@@ -680,11 +688,10 @@ export default function StrategyDailyYieldChart() {
           </ComposedChart>
         )}
       </ResponsiveContainer>
+        </div>
 
-      {/* Strategy selector for both percentage and dollar view */}
-      <div className="flex flex-wrap justify-center gap-4 mt-6">
-        {/* Strategy selector buttons */}
-        <div className="flex flex-wrap gap-2">
+        {/* Strategy selector - moved to right side */}
+        <div className="flex flex-col gap-2 min-w-[200px]">
           {keys.map((key, index) => {
             // Check if this strategy has data for the current period
             const hasData = data.some(
@@ -697,7 +704,7 @@ export default function StrategyDailyYieldChart() {
             return (
               <button
                 key={key}
-                className={`px-3 py-1 rounded text-xs transition-colors ${
+                className={`px-3 py-2 rounded text-xs transition-colors text-left ${
                   isSelected
                     ? "text-white"
                     : hasData
@@ -721,20 +728,48 @@ export default function StrategyDailyYieldChart() {
               </button>
             );
           })}
-        </div>
 
-        {/* Cumulative line indicator for dollar view */}
-        {!showPercentages && showCumulative && (
-          <div className="flex items-center gap-2">
-            <div
-              className="w-6 h-1 rounded"
-              style={{
-                backgroundColor: "#3B82F6",
-              }}
-            />
-            <span className="text-xs text-white">Total Cumulative</span>
-          </div>
-        )}
+          {/* Cumulative toggle for yield values view */}
+          {!showPercentages && (
+            <div className="mt-4 pt-4 border-t border-gray-600">
+              <label className="flex items-center gap-2 text-xs cursor-pointer">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={showCumulative}
+                    onChange={(e) => setShowCumulative(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div
+                    className={`w-8 h-4 rounded-full transition-all duration-300 ease-in-out shadow-inner ${
+                      showCumulative ? "bg-[#7B5FFF]" : "bg-[#2A2A3C]"
+                    }`}
+                  >
+                    <div
+                      className={`w-4 h-4 bg-white rounded-full transition-all duration-300 ease-in-out transform shadow-md ${
+                        showCumulative ? "translate-x-4" : "translate-x-0"
+                      } mt-0`}
+                    ></div>
+                  </div>
+                </div>
+                <span className="text-gray-300 font-medium">Show Cumulative</span>
+              </label>
+            </div>
+          )}
+
+          {/* Cumulative line indicator for dollar view */}
+          {!showPercentages && showCumulative && (
+            <div className="flex items-center gap-2 mt-2">
+              <div
+                className="w-6 h-1 rounded"
+                style={{
+                  backgroundColor: "#7B5FFF",
+                }}
+              />
+              <span className="text-xs text-white">Total Cumulative</span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

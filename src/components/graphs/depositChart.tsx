@@ -9,6 +9,7 @@ import {
 } from "recharts";
 import { useEffect, useState } from "react";
 import dayjs from "dayjs";
+import CommonTooltip from "../ui/CommonTooltip";
 
 const tokenAddressMap: Record<string, string> = {
   "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913": "USDC",
@@ -101,12 +102,16 @@ export default function TotalDepositsChart({}: DepositBarChartProps) {
   );
   const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
   const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        setLoading(true);
+        // Only show loading on initial load
+        if (initialLoading) {
+          setLoading(true);
+        }
         const rawData = await fetchData(period);
         setData(rawData);
 
@@ -169,48 +174,20 @@ export default function TotalDepositsChart({}: DepositBarChartProps) {
         setCumulativeData([]);
       } finally {
         setLoading(false);
+        setInitialLoading(false);
       }
     };
 
     loadData();
-  }, [period]); // refetch when period changes
+  }, [period, initialLoading]); // refetch when period changes
 
-  // Custom tooltip content component
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const value = payload[0].value;
-      const formattedValue =
-        value >= 1000000
-          ? `$${(value / 1000000).toFixed(1)}M`
-          : value >= 1000
-          ? `$${(value / 1000).toFixed(1)}K`
-          : `$${value}`;
 
-      return (
-        <div className="bg-[#1C1D2A] border-none p-3 rounded text-sm">
-          <p className="text-gray-400 mb-1">{label}</p>
-          <p className="text-gray-400 text-xs my-1">
-            Total Cumulative Deposits:
-          </p>
-          <p className="text-white my-0.5">{formattedValue}</p>
-        </div>
-      );
-    }
-    return null;
-  };
 
-  if (loading) {
+  if (initialLoading && loading) {
     return (
-      <div className="pt-2 pl-6 pb-6 rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 mb-12 [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
-        <div className="flex justify-end items-center mb-4">
-          <div className="flex gap-1 items-center">
-            <div className="px-2 py-1 rounded text-xs bg-gray-600 text-gray-400">Daily</div>
-            <div className="px-2 py-1 rounded text-xs bg-gray-600 text-gray-400">Weekly</div>
-            <div className="px-2 py-1 rounded text-xs bg-gray-600 text-gray-400">Monthly</div>
-          </div>
-        </div>
-        
-        <div className="w-full h-[300px] flex items-center justify-center">
+      <div className="rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
+      
+        <div className="w-full h-[300px] px-6 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
             <p className="text-gray-400 text-sm">Loading deposit data...</p>
@@ -221,8 +198,9 @@ export default function TotalDepositsChart({}: DepositBarChartProps) {
   }
 
   return (
-    <div className="pt-2 pl-6 pb-6 rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 mb-12 [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
-      <div className="flex justify-end items-center mb-4">
+    <div className="pt-2 pb-6 rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 mb-12 [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
+      <div className="flex justify-between items-center mb-4">
+        <div className="text-lg font-semibold text-white">Total Deposits</div>
         <div className="flex gap-1 items-center">
           <button
             onClick={() => setPeriod("daily")}
@@ -256,7 +234,7 @@ export default function TotalDepositsChart({}: DepositBarChartProps) {
           </button>
         </div>
       </div>
-            <div className="w-full h-[300px] focus:outline-none focus:ring-0 focus:border-0">
+      <div className="w-full h-[300px] focus:outline-none focus:ring-0 focus:border-0 relative">
         <ResponsiveContainer width="100%" height="100%" className="focus:outline-none focus:ring-0 focus:border-0">
                       <AreaChart
               data={cumulativeData}
@@ -296,7 +274,34 @@ export default function TotalDepositsChart({}: DepositBarChartProps) {
               label={{ value: "TVL in Dollars", angle: -90, position: "left", offset: 0, style: { fill: "#A3A3A3", fontSize: 12 } }}
             />
             <Tooltip
-              content={<CustomTooltip />}
+              content={({ active, payload, label }) => (
+                <CommonTooltip
+                  active={active}
+                  payload={payload}
+                  label={String(label)}
+                  title="Total Cumulative Deposits"
+                  showTotal={false}
+                  showColoredCircles={false}
+                  customContent={
+                    active && payload && payload.length ? (
+                      <div className="space-y-2 mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-gray-600 flex-1">
+                            Total Cumulative Deposits:
+                          </span>
+                          <span className="text-sm font-medium text-gray-800">
+                            {payload[0].value >= 1000000
+                              ? `$${(payload[0].value / 1000000).toFixed(1)}M`
+                              : payload[0].value >= 1000
+                              ? `$${(payload[0].value / 1000).toFixed(1)}K`
+                              : `$${payload[0].value}`}
+                          </span>
+                        </div>
+                      </div>
+                    ) : null
+                  }
+                />
+              )}
               labelFormatter={(label: string) => label}
             />
             <Area

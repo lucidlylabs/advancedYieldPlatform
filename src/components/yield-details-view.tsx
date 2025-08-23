@@ -158,7 +158,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
       )}
 
       {activeDepositTab === "allocation" && (
-        <div className="h-[400px] overflow-y-auto pb-2">
+        <div className="overflow-y-auto pb-2">
           <AllocationChart />
         </div>
       )}
