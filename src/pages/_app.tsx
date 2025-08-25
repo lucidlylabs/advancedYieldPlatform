@@ -29,9 +29,19 @@ function MyApp({ Component, pageProps }: AppProps) {
         <QueryClientProvider client={client}>
           <RainbowKitProvider>
             <Head>
-              <link rel="icon" href="/images/logo/logo.svg" />
-              <title>Lucidly Finance</title>
-              <meta property="og:image" content="/images/background/metaImage.svg" />
+              <link rel="icon" type="image/png" href="/images/logo/Logomark_200_200.png" />
+              <title>Lucidly Finance - Advanced Yield Platform</title>
+              <meta property="og:title" content="Lucidly Finance - Advanced Yield Platform" />
+              <meta property="og:description" content="Discover the most advanced DeFi yield platform. Earn optimal returns on your crypto assets with Lucidly Finance." />
+              <meta property="og:image" content="https://dev.lucidly.finance/images/logo/Dark_Logomark_1024_1024.png" />
+              <meta property="og:image:width" content="1024" />
+              <meta property="og:image:height" content="1024" />
+              <meta property="og:image:alt" content="Lucidly Finance - Advanced Yield Platform for DeFi" />
+              <meta name="twitter:card" content="summary_large_image" />
+              <meta name="twitter:title" content="Lucidly Finance - Advanced Yield Platform" />
+              <meta name="twitter:description" content="Discover the most advanced DeFi yield platform. Earn optimal returns on your crypto assets with Lucidly Finance." />
+              <meta name="twitter:image" content="https://dev.lucidly.finance/images/logo/Dark_Logomark_1024_1024.png" />
+              <meta name="twitter:creator" content="@LucidlyFinance" />
             </Head>
             <Component {...pageProps} />
           </RainbowKitProvider>
