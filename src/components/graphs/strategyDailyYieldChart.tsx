@@ -25,6 +25,9 @@ interface RawYield {
   yield: number;
   yieldDollars: number;
   yieldPercentage: number;
+  dailyYieldRatio: number;
+  avgDailyYield7d: number;
+  annualizedYield7d: number;
   aum: number;
   previousAum: number;
   aumPerShare: number;
@@ -293,7 +296,10 @@ export default function StrategyDailyYieldChart() {
 
           return strategyName === key && dateMatch;
         });
-        processed[key] = rawItem?.yieldPercentage || 0;
+        // Cap extreme annualized yield values to make them more practical
+        const annualizedYield = rawItem?.annualizedYield7d || 0;
+        // Cap at 1000% APY to filter out unrealistic values from early/volatile periods
+        processed[key] = Math.min(annualizedYield, 1000);
       } else {
         // For dollar view, calculate from raw data using yieldDollars
         const rawItem = rawData.find((r) => {
@@ -388,7 +394,7 @@ export default function StrategyDailyYieldChart() {
     <div className="pt-2 pb-6 rounded-xl text-white w-full max-h-[600px] mb-12 [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
       <div className="flex justify-between items-center mb-4">
         <div className="text-lg font-semibold text-white">
-          {selectedStrategy ? `${selectedStrategy} Yield` : "Strategy Yield"}
+          {selectedStrategy ? `${selectedStrategy} Annualized Yield` : "Strategy Annualized Yield"}
         </div>
         <div className="flex gap-4 items-center">
             {/* Main toggle: Percentage vs Yield Values */}
@@ -398,7 +404,7 @@ export default function StrategyDailyYieldChart() {
                   showPercentages ? "text-[#ffffff]" : "text-gray-400"
                 }`}
               >
-                Percentage
+                Annualized %
               </span>
               <label className="flex items-center cursor-pointer">
                 <div className="relative">
@@ -504,7 +510,7 @@ export default function StrategyDailyYieldChart() {
               tickLine={{ stroke: "#374151" }}
             />
             <YAxis
-              tickFormatter={(val) => `${val.toFixed(2)}%`}
+              tickFormatter={(val) => `${val.toFixed(1)}`}
               tick={{ fontSize: 12, fill: "#9CA3AF" }}
               axisLine={{ stroke: "#374151" }}
               tickLine={{ stroke: "#374151" }}
@@ -514,7 +520,7 @@ export default function StrategyDailyYieldChart() {
                 active={active}
                 payload={payload}
                 label={String(label)}
-                title="Strategy Yield"
+                title={String(label)}
                 showTotal={false}
                 showColoredCircles={false}
                 customContent={
@@ -526,7 +532,7 @@ export default function StrategyDailyYieldChart() {
                             {item.name}
                           </span>
                           <span className="text-sm font-medium text-gray-800">
-                            {`${item.value.toFixed(2)}%`}
+                            {`${item.value.toFixed(2)}% APY`}
                           </span>
                         </div>
                       ))}
@@ -620,7 +626,7 @@ export default function StrategyDailyYieldChart() {
                   {/* Header - Darker grey background */}
                   <div className="bg-gray-300 border-b border-gray-400 px-4 py-3">
                     <div className="text-sm font-semibold text-gray-700">
-                      Strategy Yield
+                      {String(label)}
                     </div>
                   </div>
                   

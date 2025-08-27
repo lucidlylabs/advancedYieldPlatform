@@ -279,7 +279,7 @@ export default function TotalDepositsChart({}: DepositBarChartProps) {
                   active={active}
                   payload={payload}
                   label={String(label)}
-                  title="Total Cumulative Deposits"
+                  title={String(label)}
                   showTotal={false}
                   showColoredCircles={false}
                   customContent={

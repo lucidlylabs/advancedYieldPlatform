@@ -206,7 +206,7 @@ export default function AllocationChart({}: AllocationChartProps) {
                   active={active}
                   payload={payload}
                   label={String(label)}
-                  title="Strategy Allocations"
+                  title={String(label)}
                   showTotal={true}
                   totalLabel="Total"
                   valueFormatter={(value) => `${(value * 100).toFixed(2)}%`}
