@@ -103,6 +103,27 @@ const MarketsSubpage: React.FC = () => {
   const [usdTvl, setUsdTvl] = useState<string | null>(null);
   const [usdApy, setUsdApy] = useState<string | null>(null);
 
+  // Format TVL for display (like $10.5 B)
+  const formatTVLForDisplay = (tvlString: string | null): string => {
+    if (!tvlString) return "$0";
+    
+    // Remove $ and commas to get the number
+    const cleanNumber = tvlString.replace(/[$,]/g, '');
+    const number = parseFloat(cleanNumber);
+    
+    if (isNaN(number)) return tvlString;
+    
+    if (number >= 1000000000) {
+      return `$${(number / 1000000000).toFixed(1)} B`;
+    } else if (number >= 1000000) {
+      return `$${(number / 1000000).toFixed(1)} M`;
+    } else if (number >= 1000) {
+      return `$${(number / 1000).toFixed(1)} K`;
+    } else {
+      return `$${number.toFixed(0)}`;
+    }
+  };
+
   // Market data state
   const [marketData, setMarketData] = useState<Record<AssetType, MarketItem[]>>({
     All: [],
@@ -397,8 +418,48 @@ const MarketsSubpage: React.FC = () => {
               </div>
             </div>
 
+            {/* TVL Section */}
+            <div className="pl-4 sm:pl-[32px] mt-[32px] mb-[16px]">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[#9C9DA2] font-inter text-[11px] font-normal leading-[16px]">
+                  TVL
+                </span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="cursor-help">
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 14 14"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M6.99935 9.33341V7.00008M6.99935 4.66675H7.00518M12.8327 7.00008C12.8327 10.2217 10.221 12.8334 6.99935 12.8334C3.77769 12.8334 1.16602 10.2217 1.16602 7.00008C1.16602 3.77842 3.77769 1.16675 6.99935 1.16675C10.221 1.16675 12.8327 3.77842 12.8327 7.00008Z"
+                            stroke="#9C9DA2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent className="text-xs" side="top">
+                      Total Value Locked across all strategies
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-white font-inter text-[16px] font-semibold leading-[40px]">
+                  {formatTVLForDisplay(usdTvl)}
+                </span>
+                <div className="w-full h-[1px] bg-[rgba(255,255,255,0.1)] mt-1"></div>
+              </div>
+            </div>
+
             {/* Asset Selection */}
-            <div className="px-4 sm:px-[32px] mt-[16px]">
+            <div className="px-4 sm:px-[32px]">
               <div className="grid grid-cols-4 gap-3 sm:flex sm:pr-6">
                 <AssetButton
                   asset="All"
