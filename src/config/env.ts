@@ -2,6 +2,7 @@ export const USD_STRATEGIES = {
   PERPETUAL_DURATION: {
     STABLE: {
       name: "syUSD",
+      displayName: "Stable Yield USD",
       type: "usd",
       network: "Base",
       contract: "0xaefc11908fF97c335D16bdf9F2Bf720817423825",
@@ -208,6 +209,126 @@ export const USD_STRATEGIES = {
   },
 };
 
-export const BTC_STRATEGIES = {};
+export const ETH_STRATEGIES = {
+  PERPETUAL_DURATION: {
+    STABLE: {
+      name: "syETH",
+      displayName: "Stable Yield ETH",
+      type: "eth",
+      network: "Ethereum",
+      contract: "0x0000000000000000000000000000000000000000", // Placeholder
+      boringVaultAddress: "0x0000000000000000000000000000000000000000", // Placeholder
+      solverAddress: "0x0000000000000000000000000000000000000000", // Placeholder
+      shareAddress: "0x0000000000000000000000000000000000000000", // Placeholder
+      shareAddress_token_decimal: 18,
+      rateProvider: "0x0000000000000000000000000000000000000000", // Placeholder
+      image: "/images/icons/syETH.svg",
+      
+      ethereum: {
+        image: "/images/logo/eth.svg",
+        rpc: "https://eth.llamarpc.com",
+        chainId: 1,
+        chainObject: {
+          id: 1,
+          name: "Ethereum",
+          network: "ethereum",
+          nativeCurrency: { decimals: 18, name: "Ether", symbol: "ETH" },
+          rpcUrls: {
+            default: { http: ["https://eth.llamarpc.com"] },
+            public: { http: ["https://eth.llamarpc.com"] },
+          },
+        },
+        tokens: [
+          {
+            name: "ETH",
+            contract: "0x0000000000000000000000000000000000000000",
+            decimal: 18,
+            image: "/images/icons/eth.svg",
+          },
+        ],
+      },
 
-export const ETH_STRATEGIES = {};
+      description: "Ethereum yield strategy - Coming Soon",
+      apy: "6.64%", // Static for now
+      fallbackApy: "6.64%",
+      cap_limit: "0",
+      filled_cap: "0",
+      show_cap: false,
+      tvl: "$1,016.96", // Static for now
+      rpc: "https://eth.llamarpc.com",
+    },
+    INCENTIVE: {
+      network: "",
+      comingSoon: true,
+      contract: "",
+      deposit_token: "",
+      deposit_token_contract: "",
+      tvl: "",
+      rpc: "",
+      description: "",
+      apy: "",
+    },
+  },
+};
+
+export const BTC_STRATEGIES = {
+  PERPETUAL_DURATION: {
+    STABLE: {
+      name: "syBTC",
+      displayName: "Stable Yield BTC",
+      type: "btc",
+      network: "Bitcoin",
+      contract: "0x0000000000000000000000000000000000000000", // Placeholder
+      boringVaultAddress: "0x0000000000000000000000000000000000000000", // Placeholder
+      solverAddress: "0x0000000000000000000000000000000000000000", // Placeholder
+      shareAddress: "0x0000000000000000000000000000000000000000", // Placeholder
+      shareAddress_token_decimal: 8,
+      rateProvider: "0x0000000000000000000000000000000000000000", // Placeholder
+      image: "/images/icons/syBTC.svg",
+      
+      bitcoin: {
+        image: "/images/logo/btc.svg",
+        rpc: "https://btc-rpc-placeholder.com", // Placeholder
+        chainId: 999999, // Placeholder
+        chainObject: {
+          id: 999999,
+          name: "Bitcoin",
+          network: "bitcoin",
+          nativeCurrency: { decimals: 8, name: "Bitcoin", symbol: "BTC" },
+          rpcUrls: {
+            default: { http: ["https://btc-rpc-placeholder.com"] },
+            public: { http: ["https://btc-rpc-placeholder.com"] },
+          },
+        },
+        tokens: [
+          {
+            name: "BTC",
+            contract: "0x0000000000000000000000000000000000000000",
+            decimal: 8,
+            image: "/images/icons/btc.svg",
+          },
+        ],
+      },
+
+      description: "Bitcoin yield strategy - Coming Soon",
+      apy: "6.64%", // Static for now
+      fallbackApy: "6.64%",
+      cap_limit: "0",
+      filled_cap: "0",
+      show_cap: false,
+      tvl: "$1,016.96", // Static for now
+      rpc: "https://btc-rpc-placeholder.com",
+    },
+    INCENTIVE: {
+      network: "",
+      comingSoon: true,
+      contract: "",
+      deposit_token: "",
+      deposit_token_contract: "",
+      tvl: "",
+      rpc: "",
+      description: "",
+      apy: "",
+    },
+  },
+};

@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/tooltip";
 import Image from "next/image";
 import { useRouter } from "next/router";
-import { USD_STRATEGIES } from "@/config/env";
+import { USD_STRATEGIES, ETH_STRATEGIES, BTC_STRATEGIES } from "@/config/env";
 import DepositView from "../components/deposit-view";
 import { CustomConnectButton } from "../components/ui/ConnectButton/CustomConnectButton";
 import { Header } from "../components/ui/header";
@@ -22,6 +22,7 @@ type AssetType = "All" | "USD" | "ETH" | "BTC";
 interface MarketItem {
   id: number;
   name: string;
+  ticker: string;
   type: string;
   baseYield: string;
   incentives: Array<{ image: string; name: string; link: string }>;
@@ -116,12 +117,13 @@ const MarketsSubpage: React.FC = () => {
   useEffect(() => {
     const newMarketData: Record<AssetType, MarketItem[]> = {
       All: [],
-      ETH: [],
-      BTC: [],
+      ETH: [], // Empty for now - no ETH strategies available yet
+      BTC: [], // Empty for now - no BTC strategies available yet
       USD: [
         {
           id: 5,
-          name: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.name,
+          name: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.displayName,
+          ticker: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.name, // syUSD
           type: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.type,
           baseYield: usdApy || USD_STRATEGIES.PERPETUAL_DURATION.STABLE.fallbackApy,
           incentives: (() => {

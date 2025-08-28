@@ -10,7 +10,7 @@ import Image from "next/image";
 import { useAccount, useReadContract } from "wagmi";
 import { formatUnits } from "viem";
 import DepositView from "./deposit-view";
-import { USD_STRATEGIES } from "../config/env";
+import { USD_STRATEGIES, ETH_STRATEGIES, BTC_STRATEGIES } from "../config/env";
 import { IncentiveRewards } from "./ui/IncentiveRewards";
 import DepositBarChart from "./graphs/depositChart";
 import AllocationChart from "./graphs/allocationsChart";

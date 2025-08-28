@@ -11,6 +11,7 @@ import Image from "next/image";
 interface MarketItem {
   id: number;
   name: string;
+  ticker: string;
   type: string;
   baseYield: string;
   incentives: Array<{ image: string; name: string; link: string }>;
@@ -241,9 +242,14 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
               <div className="grid grid-cols-12 pr-6 py-4 pl-4">
                 <div className="col-span-4 flex items-center">
                   {getAssetIcon(item.type)}
-                  <span className="text-white font-inter text-xs font-normal leading-4">
-                    {item.name}
-                  </span>
+                  <div className="flex flex-col">
+                    <span className="text-white font-inter text-xs font-normal leading-4">
+                      {item.name}
+                    </span>
+                    <span className="text-[#9C9DA2] font-inter text-[10px] font-normal leading-3 mt-1">
+                      {item.ticker}
+                    </span>
+                  </div>
                 </div>
                 <div className="col-span-3 flex items-center justify-end text-white font-inter text-xs font-normal leading-4">
                   {item.baseYield}
