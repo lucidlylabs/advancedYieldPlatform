@@ -88,7 +88,7 @@ const AssetButton: React.FC<{
         {asset}
       </span>
       {activeAsset === asset && (
-        <div className="absolute bottom-[-1px] left-0 right-0 h-[0.5px] bg-white" />
+        <div className="absolute bottom-[-4px] left-0 right-0 h-[0.5px] bg-white" />
       )}
     </button>
   );
@@ -102,6 +102,20 @@ const MarketsSubpage: React.FC = () => {
   const [showDepositView, setShowDepositView] = useState(false);
   const [usdTvl, setUsdTvl] = useState<string | null>(null);
   const [usdApy, setUsdApy] = useState<string | null>(null);
+  const [showColumnsDropdown, setShowColumnsDropdown] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState({
+    availableYields: true,
+    baseApy: true,
+    incentives: true,
+    tvl: true,
+  });
+
+  const toggleColumn = (column: keyof typeof visibleColumns) => {
+    setVisibleColumns(prev => ({
+      ...prev,
+      [column]: !prev[column]
+    }));
+  };
 
   // Format TVL for display (like $10.5 B)
   const formatTVLForDisplay = (tvlString: string | null): string => {
@@ -460,29 +474,80 @@ const MarketsSubpage: React.FC = () => {
 
             {/* Asset Selection */}
             <div className="px-4 sm:px-[32px]">
-              <div className="grid grid-cols-4 gap-3 sm:flex sm:pr-6">
-                <AssetButton
-                  asset="All"
-                  activeAsset={selectedAsset}
-                  onClick={setSelectedAsset}
-                />
-                <AssetButton
-                  asset="USD"
-                  activeAsset={selectedAsset}
-                  onClick={setSelectedAsset}
-                />
-                <AssetButton
-                  asset="ETH"
-                  activeAsset={selectedAsset}
-                  onClick={setSelectedAsset}
-                  disabled
-                />
-                <AssetButton
-                  asset="BTC"
-                  activeAsset={selectedAsset}
-                  onClick={setSelectedAsset}
-                  disabled
-                />
+              <div className="flex justify-between items-center">
+                <div className="grid grid-cols-4 gap-3 sm:flex sm:pr-6">
+                  <AssetButton
+                    asset="All"
+                    activeAsset={selectedAsset}
+                    onClick={setSelectedAsset}
+                  />
+                  <AssetButton
+                    asset="USD"
+                    activeAsset={selectedAsset}
+                    onClick={setSelectedAsset}
+                  />
+                  <AssetButton
+                    asset="ETH"
+                    activeAsset={selectedAsset}
+                    onClick={setSelectedAsset}
+                    disabled
+                  />
+                  <AssetButton
+                    asset="BTC"
+                    activeAsset={selectedAsset}
+                    onClick={setSelectedAsset}
+                    disabled
+                  />
+                </div>
+                
+                {/* Columns Button */}
+                <div className="relative mb-3">
+                  <button
+                    onClick={() => setShowColumnsDropdown(!showColumnsDropdown)}
+                    className="flex items-center gap-2 px-3 py-2 text-[#9C9DA2] hover:text-white text-[12px] font-normal transition-colors border border-[rgba(255,255,255,0.1)] rounded-md"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M3 12L3 18M3 6L3 12M3 12L21 12M21 6L21 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                    Columns
+                    <svg
+                      className={`w-4 h-4 transition-transform ${showColumnsDropdown ? 'rotate-180' : ''}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  
+                  {showColumnsDropdown && (
+                    <div className="absolute right-0 top-full mt-2 w-48 bg-[#263042] border border-[rgba(255,255,255,0.1)] rounded-md shadow-lg z-50">
+                      <div className="p-2">
+                        {[
+                          { key: 'availableYields', label: 'Available Yields' },
+                          { key: 'baseApy', label: 'Base APY' },
+                          { key: 'incentives', label: 'Incentives' },
+                          { key: 'tvl', label: 'TVL' },
+                        ].map(({ key, label }) => (
+                          <label key={key} className="flex items-center gap-3 p-2 hover:bg-[rgba(255,255,255,0.05)] rounded cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={visibleColumns[key as keyof typeof visibleColumns]}
+                              onChange={() => toggleColumn(key as keyof typeof visibleColumns)}
+                              className="w-4 h-4 accent-[#B88AF8]"
+                            />
+                            <span className="text-[#D7E3EF] text-[12px]">{label}</span>
+                            <div className="ml-auto">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 5V19M5 12L19 12" stroke="#9C9DA2" strokeWidth="2" strokeLinecap="round"/>
+                              </svg>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -495,6 +560,10 @@ const MarketsSubpage: React.FC = () => {
                 onSort={handleSort}
                 onRowClick={handleRowClick}
                 selectedItemId={selectedItem?.id}
+                visibleColumns={visibleColumns}
+                showColumnsDropdown={showColumnsDropdown}
+                setShowColumnsDropdown={setShowColumnsDropdown}
+                toggleColumn={toggleColumn}
               />
             </div>
           </div>
