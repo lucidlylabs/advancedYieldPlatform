@@ -419,7 +419,7 @@ const MarketsSubpage: React.FC = () => {
             </div>
 
             {/* TVL Section */}
-            <div className="pl-4 sm:pl-[32px] mt-[32px] mb-[16px]">
+            <div className="pl-4 sm:pl-[32px] mt-[32px] mb-[12px]">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-[#9C9DA2] font-inter text-[11px] font-normal leading-[16px]">
                   TVL
