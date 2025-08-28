@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -7,6 +7,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import Image from "next/image";
+import { useAccount, useReadContract } from "wagmi";
+import { formatUnits } from "viem";
 import DepositView from "./deposit-view";
 import { USD_STRATEGIES } from "../config/env";
 import { IncentiveRewards } from "./ui/IncentiveRewards";
@@ -117,6 +119,42 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   const [activeBaseApyTab, setActiveBaseApyTab] = useState<
     "totalApy" | "bySource"
   >("totalApy");
+  
+  const [userDeposits, setUserDeposits] = useState<string>("0.00");
+  
+  // Get connected wallet address
+  const { address, isConnected } = useAccount();
+  
+  // Read user's syUSD token balance (vault shares)
+  const { data: userSyUSDTokens } = useReadContract({
+    address: contractAddress as `0x${string}`,
+    abi: [
+      {
+        name: 'balanceOf',
+        type: 'function',
+        stateMutability: 'view',
+        inputs: [{ name: 'account', type: 'address' }],
+        outputs: [{ name: '', type: 'uint256' }],
+      },
+    ],
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address && isConnected,
+    },
+  });
+
+  // Format user's syUSD token amount (same method as portfolio)
+  useEffect(() => {
+    if (userSyUSDTokens && typeof userSyUSDTokens === 'bigint') {
+      // Use same method as portfolio.tsx
+      const decimals = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.shareAddress_token_decimal ?? 6;
+      const formatted = Number(formatUnits(userSyUSDTokens, decimals));
+      setUserDeposits(formatted.toFixed(6));
+    } else if (!isConnected) {
+      setUserDeposits("0.000000");
+    }
+  }, [userSyUSDTokens, isConnected]);
 
   // Sub-components for each tab
   const renderDepositsTab = () => (
@@ -231,17 +269,19 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
             />
         ):( */}
       <div className="w-full pl-0 sm:pl-4 mt-2 sm:mt-10 px-4 sm:px-0">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-4 sm:gap-0">
-          <div className="flex items-center pl-0 w-full sm:w-auto">
-            <div className="inline-flex items-center gap-[6px] pl-0">
+        <div className="flex flex-col lg:flex-row justify-between items-start mb-2 gap-4">
+          <div className="flex items-center pl-0 w-full lg:w-auto">
+            <div className="inline-flex items-center gap-[8px] pl-0">
               <div className="flex items-baseline gap-2">
-                <h1 className="text-[18px] sm:text-[20px] font-semibold text-[#D7E3EF] leading-normal">
+              
+                <h1 className="text-[18px] sm:text-[20px] font-semibold text-[#D7E3EF] leading-none">
                   {name}
                 </h1>
+                
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="flex items-baseline">
+                      <div className="flex items-center">
                         <svg
                           width="14"
                           height="13"
@@ -267,13 +307,37 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <button
-              className="bg-[#B88AF8] hover:bg-[#9F6EE9] text-[#080B17] flex items-center gap-[8px] px-[16px] py-[6px] rounded-[4px] transition-colors text-[14px] font-normal leading-normal w-full sm:w-auto justify-center"
-              onClick={onOpenDepositView}
-            >
-              Deposit
-            </button>
+          
+          {/* Simple Your Deposits - Right Side */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-[4px] px-2 py-1.5">
+              <span className="text-[#9C9DA2] text-[12px]">Your Holdings:</span>
+              <span className="text-white text-[14px] font-medium">
+                {isConnected ? userDeposits : "0.00"}
+              </span>
+              {/* Circular icon next to deposit amount */}
+              <div className="w-4 h-4 rounded-full overflow-hidden flex items-center justify-center">
+                <Image
+                  src="/images/icons/syUSD.svg"
+                  alt="syUSD"
+                  width={16}
+                  height={16}
+                  className="object-contain"
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-2">
+              <button className="text-white border border-[rgba(255,255,255,0.1)] rounded-[4px] px-3 py-1.5 text-[12px] font-medium transition-colors cursor-default">
+                Liquid
+              </button>
+              <button
+                className="bg-[#B88AF8] hover:bg-[#9F6EE9] text-[#080B17] flex items-center gap-[8px] px-[16px] py-[6px] rounded-[4px] transition-colors text-[14px] font-normal leading-normal"
+                onClick={onOpenDepositView}
+              >
+                Deposit
+              </button>
+            </div>
           </div>
         </div>
 

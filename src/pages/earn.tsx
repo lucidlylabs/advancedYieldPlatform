@@ -107,6 +107,39 @@ interface YieldSubpageProps {
   } | null;
 }
 
+// Utility function to format currency values
+const formatTVL = (value: number): string => {
+  // Show exact value with commas, rounded to nearest dollar
+  return `$${Math.round(value).toLocaleString()}`;
+};
+
+// Function to fetch TVL data
+const fetchTVLData = async (tvlUrl: string): Promise<string> => {
+  try {
+    if (!tvlUrl || tvlUrl === "") {
+      return "--";
+    }
+    
+    const response = await fetch(tvlUrl);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    const tvlValue = data?.result;
+    
+    if (typeof tvlValue === "number") {
+      return formatTVL(tvlValue);
+    } else {
+      console.warn('Unexpected TVL data structure:', data);
+      return "--";
+    }
+  } catch (error) {
+    console.error('Error fetching TVL:', error);
+    return "--";
+  }
+};
+
 const getStrategyInfo = (duration: DurationType): StrategyData => {
   const getAssetStrategies = (asset: AssetType) => {
     const strategies: Record<
@@ -189,6 +222,9 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
   const [selectedStrategy, setSelectedStrategy] =
     useState<SelectedStrategy | null>(null);
   const [usdApy, setUsdApy] = useState<string | null>(null);
+  const [usdTvl, setUsdTvl] = useState<string>("--");
+  const [ethTvl, setEthTvl] = useState<string>("--");
+  const [btcTvl, setBtcTvl] = useState<string>("--");
   const [isVerified, setIsVerified] = useState(false);
   const [isCodePopupOpen, setIsCodePopupOpen] = useState(true);
   const [verificationError, setVerificationError] = useState("");
@@ -278,6 +314,25 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
       // If apyUrl is not a URL, use it directly (fallback value)
       setUsdApy(apyUrl);
     }
+  }, []);
+
+  // Fetch TVL data for all assets
+  useEffect(() => {
+    const fetchAllTVL = async () => {
+      // Fetch USD TVL
+      const usdTvlUrl = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.tvl;
+      if (usdTvlUrl) {
+        const usdTvlValue = await fetchTVLData(usdTvlUrl);
+        setUsdTvl(usdTvlValue);
+      }
+
+      // ETH and BTC are coming soon, so no TVL data for now
+      // When they become available, you can add their TVL fetching here
+      setEthTvl("--");
+      setBtcTvl("--");
+    };
+
+    fetchAllTVL();
   }, []);
 
   useEffect(() => {
@@ -594,6 +649,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
               availableDurations={["PERPETUAL_DURATION"]}
               className="w-[300px] h-[311px]"
               showRadialGradient={true}
+              tvl={usdTvl}
             />
             <CustomCard
               heading="Ethereum"
@@ -606,6 +662,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
               isComingSoon={true}
               className="w-[300px] h-[311px]"
               showRadialGradient={true}
+              tvl={ethTvl}
             />
             <CustomCard
               heading="Bitcoin"
@@ -618,6 +675,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
               isComingSoon={true}
               className="w-[300px] h-[311px]"
               showRadialGradient={true}
+              tvl={btcTvl}
             />
           </div>
         </div>

@@ -29,6 +29,7 @@ interface CustomCardProps {
   isComingSoon?: boolean;
   availableDurations?: DurationType[];
   showRadialGradient?: boolean;
+  tvl?: string;
 }
 
 const formatDuration = (duration: string) => {
@@ -53,6 +54,7 @@ const CustomCard: React.FC<CustomCardProps> = ({
   isComingSoon,
   availableDurations,
   showRadialGradient = false,
+  tvl,
   ...props
 }) => {
   const handleDurationClick = (duration: DurationType) => {
@@ -204,6 +206,14 @@ const CustomCard: React.FC<CustomCardProps> = ({
                   )}
                 >
                   {heading}
+                  {tvl && !selectedDuration && (
+                    <div className={cn(
+                      "text-[16px] font-normal opacity-60 mt-2 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                      !disableHover && "group-hover:text-[#1A1B1E] group-hover:opacity-80"
+                    )}>
+                      {tvl}
+                    </div>
+                  )}
                   {selectedDuration && onReset && (
                     <div className="flex flex-col items-center gap-4 mt-2">
                       <div
