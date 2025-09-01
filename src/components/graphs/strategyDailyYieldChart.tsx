@@ -390,79 +390,78 @@ export default function StrategyDailyYieldChart() {
   return (
     <div className="pt-2 pb-6 rounded-xl text-white w-full max-h-[600px] mb-12 [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
       <div className="flex justify-between items-center mb-4">
-        <div className="text-lg font-semibold text-white"></div>
-        <div className="flex gap-4 items-center">
+        <div className="flex items-center gap-6">
           {/* Main toggle: Percentage vs Yield Values */}
-          <div className="flex items-center gap-2">
-            <span
-              className={`text-sm font-medium ${
-                showPercentages ? "text-[#ffffff]" : "text-gray-400"
+          <div className="flex items-center bg-[#1A1A2C] rounded-md p-0.5">
+            <button
+              onClick={() => setShowPercentages(true)}
+              className={`px-3 py-1 text-xs font-medium rounded transition-all duration-200 ${
+                showPercentages
+                  ? "bg-[#7B5FFF] text-white shadow-sm"
+                  : "text-gray-400 hover:text-gray-300"
               }`}
             >
-              Annualized %
-            </span>
-            <label className="flex items-center cursor-pointer">
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  checked={!showPercentages}
-                  onChange={(e) => setShowPercentages(!e.target.checked)}
-                  className="sr-only"
-                />
-                <div
-                  className={`w-10 h-5 rounded-full transition-all duration-300 ease-in-out shadow-inner ${
-                    !showPercentages ? "bg-[#7B5FFF]" : "bg-[#2A2A3C]"
-                  }`}
-                >
-                  <div
-                    className={`w-5 h-5 bg-white rounded-full transition-all duration-300 ease-in-out transform shadow-md ${
-                      !showPercentages ? "translate-x-6" : "translate-x-0.5"
-                    } mt-0.5`}
-                  ></div>
-                </div>
-              </div>
-            </label>
-            <span
-              className={`text-sm font-medium ${
-                !showPercentages ? "text-[#ffffff]" : "text-gray-400"
+              Net Annualized Return (%)
+            </button>
+            <button
+              onClick={() => setShowPercentages(false)}
+              className={`px-3 py-1 text-xs font-medium rounded transition-all duration-200 ${
+                !showPercentages
+                  ? "bg-[#7B5FFF] text-white shadow-sm"
+                  : "text-gray-400 hover:text-gray-300"
               }`}
             >
-              Yield Values
-            </span>
+              Realized P&L ($)
+            </button>
           </div>
 
-          <div className="flex gap-1 items-center">
-            <button
-              onClick={() => setPeriod("daily")}
-              className={`px-2 py-1 rounded text-xs transition-colors ${
-                period === "daily"
-                  ? "bg-[#7B5FFF] text-white"
-                  : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
-              }`}
-            >
-              Daily
-            </button>
-            <button
-              onClick={() => setPeriod("weekly")}
-              className={`px-2 py-1 rounded text-xs transition-colors ${
-                period === "weekly"
-                  ? "bg-[#7B5FFF] text-white"
-                  : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
-              }`}
-            >
-              Weekly
-            </button>
-            <button
-              onClick={() => setPeriod("monthly")}
-              className={`px-2 py-1 rounded text-xs transition-colors ${
-                period === "monthly"
-                  ? "bg-[#7B5FFF] text-white"
-                  : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
-              }`}
-            >
-              Monthly
-            </button>
-          </div>
+          {/* Show Cumulative checkbox - only visible in yield values mode */}
+          {!showPercentages && (
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={showCumulative}
+                onChange={(e) => setShowCumulative(e.target.checked)}
+                className="w-4 h-4 text-[#7B5FFF] bg-[#2A2A3C] border-gray-600 rounded focus:ring-[#7B5FFF] focus:ring-2"
+              />
+              <span className="text-sm text-gray-300 font-medium">
+                Show Cumulative
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-1 items-center">
+          <button
+            onClick={() => setPeriod("daily")}
+            className={`px-2 py-1 rounded text-xs transition-colors ${
+              period === "daily"
+                ? "bg-[#7B5FFF] text-white"
+                : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
+            }`}
+          >
+            Daily
+          </button>
+          <button
+            onClick={() => setPeriod("weekly")}
+            className={`px-2 py-1 rounded text-xs transition-colors ${
+              period === "weekly"
+                ? "bg-[#7B5FFF] text-white"
+                : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
+            }`}
+          >
+            Weekly
+          </button>
+          <button
+            onClick={() => setPeriod("monthly")}
+            className={`px-2 py-1 rounded text-xs transition-colors ${
+              period === "monthly"
+                ? "bg-[#7B5FFF] text-white"
+                : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
+            }`}
+          >
+            Monthly
+          </button>
         </div>
       </div>
 
@@ -723,7 +722,7 @@ export default function StrategyDailyYieldChart() {
 
         {/* Strategy selector - moved to bottom */}
         <div className="flex flex-col gap-4">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 justify-center">
             {keys.map((key, index) => {
               // Check if this strategy has data for the current period
               const hasData = data.some(
@@ -760,50 +759,6 @@ export default function StrategyDailyYieldChart() {
                 </button>
               );
             })}
-          </div>
-
-          {/* Controls row */}
-          <div className="flex items-center gap-4">
-            {/* Cumulative toggle for yield values view */}
-            {!showPercentages && (
-              <label className="flex items-center gap-2 text-xs cursor-pointer">
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    checked={showCumulative}
-                    onChange={(e) => setShowCumulative(e.target.checked)}
-                    className="sr-only"
-                  />
-                  <div
-                    className={`w-8 h-4 rounded-full transition-all duration-300 ease-in-out shadow-inner ${
-                      showCumulative ? "bg-[#7B5FFF]" : "bg-[#2A2A3C]"
-                    }`}
-                  >
-                    <div
-                      className={`w-4 h-4 bg-white rounded-full transition-all duration-300 ease-in-out transform shadow-md ${
-                        showCumulative ? "translate-x-4" : "translate-x-0"
-                      } mt-0`}
-                    ></div>
-                  </div>
-                </div>
-                <span className="text-gray-300 font-medium">
-                  Show Cumulative
-                </span>
-              </label>
-            )}
-
-            {/* Cumulative line indicator for dollar view */}
-            {!showPercentages && showCumulative && (
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-6 h-1 rounded"
-                  style={{
-                    backgroundColor: "#7B5FFF",
-                  }}
-                />
-                <span className="text-xs text-white">Total Cumulative</span>
-              </div>
-            )}
           </div>
         </div>
       </div>
