@@ -377,7 +377,6 @@ export default function StrategyDailyYieldChart() {
   if (initialLoading && loading) {
     return (
       <div className="rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
-      
         <div className="w-full h-[300px] px-6 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
@@ -388,356 +387,385 @@ export default function StrategyDailyYieldChart() {
     );
   }
 
-
-
   return (
     <div className="pt-2 pb-6 rounded-xl text-white w-full max-h-[600px] mb-12 [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
       <div className="flex justify-between items-center mb-4">
-        <div className="text-lg font-semibold text-white">
-          {selectedStrategy ? `${selectedStrategy} Annualized Yield` : "Strategy Annualized Yield"}
-        </div>
+        <div className="text-lg font-semibold text-white"></div>
         <div className="flex gap-4 items-center">
-            {/* Main toggle: Percentage vs Yield Values */}
-            <div className="flex items-center gap-2">
-              <span
-                className={`text-sm font-medium ${
-                  showPercentages ? "text-[#ffffff]" : "text-gray-400"
-                }`}
-              >
-                Annualized %
-              </span>
-              <label className="flex items-center cursor-pointer">
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    checked={!showPercentages}
-                    onChange={(e) => setShowPercentages(!e.target.checked)}
-                    className="sr-only"
-                  />
+          {/* Main toggle: Percentage vs Yield Values */}
+          <div className="flex items-center gap-2">
+            <span
+              className={`text-sm font-medium ${
+                showPercentages ? "text-[#ffffff]" : "text-gray-400"
+              }`}
+            >
+              Annualized %
+            </span>
+            <label className="flex items-center cursor-pointer">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={!showPercentages}
+                  onChange={(e) => setShowPercentages(!e.target.checked)}
+                  className="sr-only"
+                />
+                <div
+                  className={`w-10 h-5 rounded-full transition-all duration-300 ease-in-out shadow-inner ${
+                    !showPercentages ? "bg-[#7B5FFF]" : "bg-[#2A2A3C]"
+                  }`}
+                >
                   <div
-                    className={`w-10 h-5 rounded-full transition-all duration-300 ease-in-out shadow-inner ${
-                      !showPercentages ? "bg-[#7B5FFF]" : "bg-[#2A2A3C]"
-                    }`}
-                  >
-                    <div
-                      className={`w-5 h-5 bg-white rounded-full transition-all duration-300 ease-in-out transform shadow-md ${
-                        !showPercentages ? "translate-x-6" : "translate-x-0.5"
-                      } mt-0.5`}
-                    ></div>
-                  </div>
+                    className={`w-5 h-5 bg-white rounded-full transition-all duration-300 ease-in-out transform shadow-md ${
+                      !showPercentages ? "translate-x-6" : "translate-x-0.5"
+                    } mt-0.5`}
+                  ></div>
                 </div>
-              </label>
-              <span
-                className={`text-sm font-medium ${
-                  !showPercentages ? "text-[#ffffff]" : "text-gray-400"
-                }`}
-              >
-                Yield Values
-              </span>
-            </div>
+              </div>
+            </label>
+            <span
+              className={`text-sm font-medium ${
+                !showPercentages ? "text-[#ffffff]" : "text-gray-400"
+              }`}
+            >
+              Yield Values
+            </span>
+          </div>
 
-            <div className="flex gap-1 items-center">
-              <button
-                onClick={() => setPeriod("daily")}
-                className={`px-2 py-1 rounded text-xs transition-colors ${
-                  period === "daily"
-                    ? "bg-[#7B5FFF] text-white"
-                    : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
-                }`}
-              >
-                Daily
-              </button>
-              <button
-                onClick={() => setPeriod("weekly")}
-                className={`px-2 py-1 rounded text-xs transition-colors ${
-                  period === "weekly"
-                    ? "bg-[#7B5FFF] text-white"
-                    : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
-                }`}
-              >
-                Weekly
-              </button>
-              <button
-                onClick={() => setPeriod("monthly")}
-                className={`px-2 py-1 rounded text-xs transition-colors ${
-                  period === "monthly"
-                    ? "bg-[#7B5FFF] text-white"
-                    : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
-                }`}
-              >
-                Monthly
-              </button>
-            </div>
+          <div className="flex gap-1 items-center">
+            <button
+              onClick={() => setPeriod("daily")}
+              className={`px-2 py-1 rounded text-xs transition-colors ${
+                period === "daily"
+                  ? "bg-[#7B5FFF] text-white"
+                  : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
+              }`}
+            >
+              Daily
+            </button>
+            <button
+              onClick={() => setPeriod("weekly")}
+              className={`px-2 py-1 rounded text-xs transition-colors ${
+                period === "weekly"
+                  ? "bg-[#7B5FFF] text-white"
+                  : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
+              }`}
+            >
+              Weekly
+            </button>
+            <button
+              onClick={() => setPeriod("monthly")}
+              className={`px-2 py-1 rounded text-xs transition-colors ${
+                period === "monthly"
+                  ? "bg-[#7B5FFF] text-white"
+                  : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
+              }`}
+            >
+              Monthly
+            </button>
           </div>
         </div>
+      </div>
 
-
-
-      <div className="flex gap-6">
+      <div className="flex flex-col gap-4">
         <div className="flex-1">
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height={320}>
             {showPercentages ? (
               // Area Chart for Percentage view
               <AreaChart
                 data={filteredData}
-                margin={{ top: 20, right: 0, left: -15, bottom: 20 }}
+                margin={{ top: 10, right: 0, left: -20, bottom: 20 }}
               >
-            <defs>
-              {/* Gradient for the selected strategy area */}
-              <linearGradient id="strategyGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor={colorMap[selectedStrategy] || "#7B5FFF"}
-                  stopOpacity={0.8}
+                <defs>
+                  {/* Gradient for the selected strategy area */}
+                  <linearGradient
+                    id="strategyGradient"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop
+                      offset="5%"
+                      stopColor={colorMap[selectedStrategy] || "#7B5FFF"}
+                      stopOpacity={0.8}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor={colorMap[selectedStrategy] || "#7B5FFF"}
+                      stopOpacity={0.1}
+                    />
+                  </linearGradient>
+                </defs>
+
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#374151"
+                  strokeOpacity={0.3}
                 />
-                <stop
-                  offset="95%"
-                  stopColor={colorMap[selectedStrategy] || "#7B5FFF"}
-                  stopOpacity={0.1}
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 12, fill: "#9CA3AF" }}
+                  axisLine={{ stroke: "#374151" }}
+                  tickLine={{ stroke: "#374151" }}
                 />
-              </linearGradient>
-            </defs>
-
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="#374151"
-              strokeOpacity={0.3}
-            />
-            <XAxis
-              dataKey="date"
-              tick={{ fontSize: 12, fill: "#9CA3AF" }}
-              axisLine={{ stroke: "#374151" }}
-              tickLine={{ stroke: "#374151" }}
-            />
-            <YAxis
-              tickFormatter={(val) => `${val.toFixed(1)}`}
-              tick={{ fontSize: 12, fill: "#9CA3AF" }}
-              axisLine={{ stroke: "#374151" }}
-              tickLine={{ stroke: "#374151" }}
-            />
-            <Tooltip content={({ active, payload, label }) => (
-              <CommonTooltip
-                active={active}
-                payload={payload}
-                label={String(label)}
-                title={String(label)}
-                showTotal={false}
-                showColoredCircles={false}
-                customContent={
-                  active && payload && payload.length ? (
-                    <div className="space-y-2 mb-3">
-                      {payload.map((item: any, idx: number) => (
-                        <div key={idx} className="flex items-center gap-2">
-                          <span className="text-sm text-gray-600 flex-1">
-                            {item.name}
-                          </span>
-                          <span className="text-sm font-medium text-gray-800">
-                            {`${item.value.toFixed(2)}% APY`}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null
-                }
-              />
-            )} />
-
-            {/* Single strategy area for percentage view */}
-            {selectedStrategy && (
-              <Area
-                key={selectedStrategy}
-                type="monotone"
-                dataKey={selectedStrategy}
-                stroke={colorMap[selectedStrategy] || "#7B5FFF"}
-                strokeWidth={2}
-                fill="url(#strategyGradient)"
-                name={selectedStrategy}
-              />
-            )}
-          </AreaChart>
-        ) : (
-          // Composed Chart (Bar + Line) for Yield Values view
-          <ComposedChart
-            data={filteredData}
-            margin={{ top: 20, right: -20, left: -30, bottom: 20 }}
-          >
-            <defs>
-              {/* Background fill for negative area */}
-              <linearGradient id="negativeGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#EF4444" stopOpacity={0.1} />
-                <stop offset="100%" stopColor="#EF4444" stopOpacity={0.05} />
-              </linearGradient>
-            </defs>
-
-            {/* Negative area background */}
-            <Area
-              type="monotone"
-              dataKey={() => 0}
-              stroke="none"
-              fill="url(#negativeGradient)"
-              yAxisId="right"
-            />
-
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="#374151"
-              strokeOpacity={0.3}
-            />
-            <XAxis
-              dataKey="date"
-              tick={{ fontSize: 12, fill: "#9CA3AF" }}
-              axisLine={{ stroke: "#374151" }}
-              tickLine={{ stroke: "#374151" }}
-            />
-            <YAxis
-              yAxisId="left"
-              tickFormatter={(val) => {
-                if (Math.abs(val) >= 1000) {
-                  return `$${(val / 1000).toFixed(0)}k`;
-                }
-                return `$${val.toFixed(0)}`;
-              }}
-              tick={{ fontSize: 12, fill: "#9CA3AF" }}
-              axisLine={{ stroke: "#374151" }}
-              tickLine={{ stroke: "#374151" }}
-            />
-            <YAxis
-              yAxisId="right"
-              orientation="right"
-              tickFormatter={(val) => {
-                if (Math.abs(val) >= 1000) {
-                  return `$${(val / 1000).toFixed(0)}k`;
-                }
-                return `$${val.toFixed(0)}`;
-              }}
-              tick={{ fontSize: 12, fill: "#9CA3AF" }}
-              axisLine={{ stroke: "#374151" }}
-              tickLine={{ stroke: "#374151" }}
-            />
-            <Tooltip content={({ active, payload, label }) => {
-              if (!active || !payload || payload.length === 0) return null;
-              
-              // Find the strategy data (bar) and cumulative data (line)
-              const strategyData = payload.find((item: any) => item.dataKey === selectedStrategy);
-              const cumulativeData = payload.find((item: any) => item.dataKey === "total_cumulative");
-              
-              return (
-                <div className="rounded-lg shadow-lg overflow-hidden border border-gray-200 relative z-50">
-                  {/* Header - Darker grey background */}
-                  <div className="bg-gray-300 border-b border-gray-400 px-4 py-3">
-                    <div className="text-sm font-semibold text-gray-700">
-                      {String(label)}
-                    </div>
-                  </div>
-                  
-                  {/* Content - Light grey background */}
-                  <div className="bg-gray-100 px-4 py-3 relative z-50">
-                    <div className="space-y-2 mb-3">
-                      {/* Strategy daily yield */}
-                      {strategyData && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-gray-600 flex-1">
-                            {strategyData.name}
-                          </span>
-                          <span className="text-sm font-medium text-gray-800">
-                            {Math.abs(strategyData.value) >= 1000
-                              ? `$${(strategyData.value / 1000).toFixed(1)}K`
-                              : `$${strategyData.value.toFixed(2)}`}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Footer - Same darker grey as header */}
-                  {cumulativeData && (
-                    <div className="bg-gray-300 border-t border-gray-400 px-4 py-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-semibold text-gray-700">
-                          Total Cumulative
-                        </span>
-                        <span className="text-sm font-semibold text-gray-700">
-                          {Math.abs(cumulativeData.value) >= 1000
-                            ? `$${(cumulativeData.value / 1000).toFixed(1)}K`
-                            : `$${cumulativeData.value.toFixed(2)}`}
-                        </span>
-                      </div>
-                    </div>
+                <YAxis
+                  tickFormatter={(val) => `${val.toFixed(1)}`}
+                  tick={{ fontSize: 12, fill: "#9CA3AF" }}
+                  axisLine={{ stroke: "#374151" }}
+                  tickLine={{ stroke: "#374151" }}
+                />
+                <Tooltip
+                  content={({ active, payload, label }) => (
+                    <CommonTooltip
+                      active={active}
+                      payload={payload}
+                      label={String(label)}
+                      title={String(label)}
+                      showTotal={false}
+                      showColoredCircles={false}
+                      customContent={
+                        active && payload && payload.length ? (
+                          <div className="space-y-2 mb-3">
+                            {payload.map((item: any, idx: number) => (
+                              <div
+                                key={idx}
+                                className="flex items-center gap-2"
+                              >
+                                <span className="text-sm text-gray-600 flex-1">
+                                  {item.name}
+                                </span>
+                                <span className="text-sm font-medium text-gray-800">
+                                  {`${item.value.toFixed(2)}% APY`}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null
+                      }
+                    />
                   )}
-                </div>
-              );
-            }} />
+                />
 
-            {/* Single strategy bar for yield values view */}
-            {selectedStrategy && (
-              <Bar
-                key={selectedStrategy}
-                yAxisId="right"
-                dataKey={selectedStrategy}
-                fill={colorMap[selectedStrategy] || "#7B5FFF"}
-                name={selectedStrategy}
-              />
-            )}
+                {/* Single strategy area for percentage view */}
+                {selectedStrategy && (
+                  <Area
+                    key={selectedStrategy}
+                    type="monotone"
+                    dataKey={selectedStrategy}
+                    stroke={colorMap[selectedStrategy] || "#7B5FFF"}
+                    strokeWidth={2}
+                    fill="url(#strategyGradient)"
+                    name={selectedStrategy}
+                  />
+                )}
+              </AreaChart>
+            ) : (
+              // Composed Chart (Bar + Line) for Yield Values view
+              <ComposedChart
+                data={filteredData}
+                margin={{ top: 20, right: -20, left: -30, bottom: 20 }}
+              >
+                <defs>
+                  {/* Background fill for negative area */}
+                  <linearGradient
+                    id="negativeGradient"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop offset="0%" stopColor="#EF4444" stopOpacity={0.1} />
+                    <stop
+                      offset="100%"
+                      stopColor="#EF4444"
+                      stopOpacity={0.05}
+                    />
+                  </linearGradient>
+                </defs>
 
-            {/* Cumulative line for yield values view */}
-            {showCumulative && (
-              <Line
-                yAxisId="left"
-                type="monotone"
-                dataKey="total_cumulative"
-                stroke="#7B5FFF"
-                strokeWidth={1.5}
-                dot={false}
-                name="Total Cumulative Yield"
-              />
+                {/* Negative area background */}
+                <Area
+                  type="monotone"
+                  dataKey={() => 0}
+                  stroke="none"
+                  fill="url(#negativeGradient)"
+                  yAxisId="right"
+                />
+
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#374151"
+                  strokeOpacity={0.3}
+                />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 12, fill: "#9CA3AF" }}
+                  axisLine={{ stroke: "#374151" }}
+                  tickLine={{ stroke: "#374151" }}
+                />
+                <YAxis
+                  yAxisId="left"
+                  tickFormatter={(val) => {
+                    if (Math.abs(val) >= 1000) {
+                      return `$${(val / 1000).toFixed(0)}k`;
+                    }
+                    return `$${val.toFixed(0)}`;
+                  }}
+                  tick={{ fontSize: 12, fill: "#9CA3AF" }}
+                  axisLine={{ stroke: "#374151" }}
+                  tickLine={{ stroke: "#374151" }}
+                />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  tickFormatter={(val) => {
+                    if (Math.abs(val) >= 1000) {
+                      return `$${(val / 1000).toFixed(0)}k`;
+                    }
+                    return `$${val.toFixed(0)}`;
+                  }}
+                  tick={{ fontSize: 12, fill: "#9CA3AF" }}
+                  axisLine={{ stroke: "#374151" }}
+                  tickLine={{ stroke: "#374151" }}
+                />
+                <Tooltip
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload || payload.length === 0)
+                      return null;
+
+                    // Find the strategy data (bar) and cumulative data (line)
+                    const strategyData = payload.find(
+                      (item: any) => item.dataKey === selectedStrategy
+                    );
+                    const cumulativeData = payload.find(
+                      (item: any) => item.dataKey === "total_cumulative"
+                    );
+
+                    return (
+                      <div className="rounded-lg shadow-lg overflow-hidden border border-gray-200 relative z-50">
+                        {/* Header - Darker grey background */}
+                        <div className="bg-gray-300 border-b border-gray-400 px-4 py-3">
+                          <div className="text-sm font-semibold text-gray-700">
+                            {String(label)}
+                          </div>
+                        </div>
+
+                        {/* Content - Light grey background */}
+                        <div className="bg-gray-100 px-4 py-3 relative z-50">
+                          <div className="space-y-2 mb-3">
+                            {/* Strategy daily yield */}
+                            {strategyData && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-600 flex-1">
+                                  {strategyData.name}
+                                </span>
+                                <span className="text-sm font-medium text-gray-800">
+                                  {Math.abs(strategyData.value) >= 1000
+                                    ? `$${(strategyData.value / 1000).toFixed(
+                                        1
+                                      )}K`
+                                    : `$${strategyData.value.toFixed(2)}`}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Footer - Same darker grey as header */}
+                        {cumulativeData && (
+                          <div className="bg-gray-300 border-t border-gray-400 px-4 py-3">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-semibold text-gray-700">
+                                Total Cumulative
+                              </span>
+                              <span className="text-sm font-semibold text-gray-700">
+                                {Math.abs(cumulativeData.value) >= 1000
+                                  ? `$${(cumulativeData.value / 1000).toFixed(
+                                      1
+                                    )}K`
+                                  : `$${cumulativeData.value.toFixed(2)}`}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }}
+                />
+
+                {/* Single strategy bar for yield values view */}
+                {selectedStrategy && (
+                  <Bar
+                    key={selectedStrategy}
+                    yAxisId="right"
+                    dataKey={selectedStrategy}
+                    fill={colorMap[selectedStrategy] || "#7B5FFF"}
+                    name={selectedStrategy}
+                  />
+                )}
+
+                {/* Cumulative line for yield values view */}
+                {showCumulative && (
+                  <Line
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="total_cumulative"
+                    stroke="#7B5FFF"
+                    strokeWidth={1.5}
+                    dot={false}
+                    name="Total Cumulative Yield"
+                  />
+                )}
+              </ComposedChart>
             )}
-          </ComposedChart>
-        )}
-      </ResponsiveContainer>
+          </ResponsiveContainer>
         </div>
 
-        {/* Strategy selector - moved to right side */}
-        <div className="flex flex-col gap-2 min-w-[200px]">
-          {keys.map((key, index) => {
-            // Check if this strategy has data for the current period
-            const hasData = data.some(
-              (item) => item[key] !== undefined && item[key] !== 0
-            );
-            const isSelected = selectedStrategy === key;
-            const strategyColor =
-              colorMap[key] || COLORS[index % COLORS.length];
+        {/* Strategy selector - moved to bottom */}
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap gap-2">
+            {keys.map((key, index) => {
+              // Check if this strategy has data for the current period
+              const hasData = data.some(
+                (item) => item[key] !== undefined && item[key] !== 0
+              );
+              const isSelected = selectedStrategy === key;
+              const strategyColor =
+                colorMap[key] || COLORS[index % COLORS.length];
 
-            return (
-              <button
-                key={key}
-                className={`px-3 py-2 rounded text-xs transition-colors text-left ${
-                  isSelected
-                    ? "text-white"
-                    : hasData
-                    ? "text-gray-400 hover:text-white"
-                    : "text-gray-600 cursor-not-allowed"
-                }`}
-                style={{
-                  backgroundColor: isSelected
-                    ? strategyColor
-                    : hasData
-                    ? "#2A2A3C"
-                    : "#1A1A2C",
-                  border: isSelected
-                    ? `2px solid ${strategyColor}`
-                    : "2px solid transparent",
-                }}
-                onClick={() => hasData && handleStrategySelect(key)}
-                disabled={!hasData}
-              >
-                {key}
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={key}
+                  className={`px-3 py-2 rounded text-xs transition-colors ${
+                    isSelected
+                      ? "text-white"
+                      : hasData
+                      ? "text-gray-400 hover:text-white"
+                      : "text-gray-600 cursor-not-allowed"
+                  }`}
+                  style={{
+                    backgroundColor: isSelected
+                      ? strategyColor
+                      : hasData
+                      ? "#2A2A3C"
+                      : "#1A1A2C",
+                    border: isSelected
+                      ? `2px solid ${strategyColor}`
+                      : "2px solid transparent",
+                  }}
+                  onClick={() => hasData && handleStrategySelect(key)}
+                  disabled={!hasData}
+                >
+                  {key}
+                </button>
+              );
+            })}
+          </div>
 
-          {/* Cumulative toggle for yield values view */}
-          {!showPercentages && (
-            <div className="mt-4 pt-4 border-t border-gray-600">
+          {/* Controls row */}
+          <div className="flex items-center gap-4">
+            {/* Cumulative toggle for yield values view */}
+            {!showPercentages && (
               <label className="flex items-center gap-2 text-xs cursor-pointer">
                 <div className="relative">
                   <input
@@ -758,23 +786,25 @@ export default function StrategyDailyYieldChart() {
                     ></div>
                   </div>
                 </div>
-                <span className="text-gray-300 font-medium">Show Cumulative</span>
+                <span className="text-gray-300 font-medium">
+                  Show Cumulative
+                </span>
               </label>
-            </div>
-          )}
+            )}
 
-          {/* Cumulative line indicator for dollar view */}
-          {!showPercentages && showCumulative && (
-            <div className="flex items-center gap-2 mt-2">
-              <div
-                className="w-6 h-1 rounded"
-                style={{
-                  backgroundColor: "#7B5FFF",
-                }}
-              />
-              <span className="text-xs text-white">Total Cumulative</span>
-            </div>
-          )}
+            {/* Cumulative line indicator for dollar view */}
+            {!showPercentages && showCumulative && (
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-6 h-1 rounded"
+                  style={{
+                    backgroundColor: "#7B5FFF",
+                  }}
+                />
+                <span className="text-xs text-white">Total Cumulative</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
