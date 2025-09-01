@@ -214,18 +214,19 @@ export const ETH_STRATEGIES = {};
 // Strategy address to name mapping configuration for charts and UI
 export const STRATEGY_NAMES: { [address: string]: string } = {
   // Stable USD Strategy Names - Using the actual full addresses from your API
-  
+
   // Main strategies based on your allocation chart - these are placeholder mappings
   // You need to replace these with the actual full addresses from your API response
-  "0x7985...15bb": "RLP/USDC Morpho",
   "0x2fA9...cDCC": "PT-sUSDF/USDC SiloV2 (7.5x)",
-  "0xa32B...9BB1": "sUSDe",
-  "0x1ed0...BD01": "sUSDe/USDC AaveV3 (7x)",
-  "0xd0bc...b89E": "PT-iUSD/USDC Morpho (4x)",
-  "0x34a0...Ea14": "Gauntlet Frontier USDC",
-  "0x914f...Af86": "Compound V3 USDC",
-  "0x56B3...813A": "Aave V3 USDC",
-  
+  "0xa32B...9BB1": "PT-iUSD/USDC Morpho (4x)",
+  "0xd0bc...b89E": "Gauntlet Frontier USDC",
+  "0x914f...Af86": "USR",
+  "0x7985...15bb": "sUSDe/USDC AaveV3 (7x)",
+  "0x1ed0...BD01": "RLP/USDC Morpho (4x)",
+  "0x34a0...Ea14": "RLP",
+  "0x56B3...813A": "sUSDe",
+  "0x24a56bdA1e697Dc5b9802770DE476D509f02Ff8e": "WsUSR",
+
   // Add more strategy mappings as needed
   // "0x1234567890abcdef1234567890abcdef12345678": "Strategy Name Here",
 };
@@ -242,17 +243,18 @@ export function getStrategyDisplayName(address: string): string {
   if (exactName !== address) {
     return exactName;
   }
-  
+
   // If no exact match, try partial matching with truncated addresses
-  const truncatedAddress = address.length > 10 
-    ? `${address.slice(0, 6)}...${address.slice(-4)}` 
-    : address;
-  
+  const truncatedAddress =
+    address.length > 10
+      ? `${address.slice(0, 6)}...${address.slice(-4)}`
+      : address;
+
   const partialName = STRATEGY_NAMES[truncatedAddress];
   if (partialName) {
     return partialName;
   }
-  
+
   // If no mapping exists, return truncated address
   return truncatedAddress;
 }
