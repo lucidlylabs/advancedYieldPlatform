@@ -563,7 +563,7 @@ export default function StrategyDailyYieldChart() {
               // Composed Chart (Bar + Line) for Yield Values view
               <ComposedChart
                 data={filteredData}
-                margin={{ top: 20, right: -20, left: -30, bottom: 20 }}
+                margin={{ top: 12, right: -10, left: -20, bottom: 20 }}
               >
                 <defs>
                   {/* Background fill for negative area */}
