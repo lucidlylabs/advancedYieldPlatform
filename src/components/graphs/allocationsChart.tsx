@@ -9,6 +9,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import CommonTooltip from "../ui/CommonTooltip";
+import { getStrategyDisplayName } from "../../config/env";
 
 interface Strategy {
   strategy: string;
@@ -45,7 +46,7 @@ export default function AllocationChart({}: AllocationChartProps) {
 
         console.log("Fetching allocation data...");
         const response = await fetch(
-          "http://localhost:3001/api/allocation/daily-allocation"
+          "https://ow5g1cjqsd.execute-api.ap-south-1.amazonaws.com/dev/api/allocation/daily-allocation"
         );
 
         console.log("Response status:", response.status);
@@ -81,6 +82,8 @@ export default function AllocationChart({}: AllocationChartProps) {
           const extractedKeys = firstEntry.strategies.map(
             (strategy: Strategy) => strategy.strategy
           );
+          console.log("Extracted strategy addresses:", extractedKeys);
+          console.log("Strategy names from config:", extractedKeys.map((addr: string) => getStrategyDisplayName(addr)));
           setKeys(extractedKeys);
           setSelectedKeys(new Set(extractedKeys));
         }
@@ -121,6 +124,7 @@ export default function AllocationChart({}: AllocationChartProps) {
 
     if (item.strategies && Array.isArray(item.strategies)) {
       item.strategies.forEach((strategy: Strategy) => {
+        // Keep original address as key for data consistency
         transformed[strategy.strategy] = strategy.allocationPercentage / 100; // Convert percentage to decimal
         transformed[`${strategy.strategy}_tvl`] = strategy.tvl;
       });
@@ -146,10 +150,14 @@ export default function AllocationChart({}: AllocationChartProps) {
     return filtered;
   });
 
+  // Debug logging
+  console.log("Selected keys:", Array.from(selectedKeys));
+  console.log("Filtered data keys:", filteredData.length > 0 ? Object.keys(filteredData[0]) : []);
+  console.log("Transformed data keys:", transformedData.length > 0 ? Object.keys(transformedData[0]) : []);
+
   if (initialLoading && loading) {
     return (
       <div className="rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
-      
         <div className="w-full h-[300px] px-6 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
@@ -173,17 +181,20 @@ export default function AllocationChart({}: AllocationChartProps) {
     "#98D8C8", // mint
   ];
 
-
-
   return (
     <div className="pb-6 rounded-xl text-white w-full max-h-[600px] mb-12 [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
-      <div className="w-full h-[400px] focus:outline-none focus:ring-0 focus:border-0">
-        <ResponsiveContainer width="100%" height="100%" className="focus:outline-none focus:ring-0 focus:border-0">
-                      <AreaChart
+            <div className="w-full h-[345px] focus:outline-none focus:ring-0 focus:border-0">
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
+          className="focus:outline-none focus:ring-0 focus:border-0"
+        >
+          {filteredData.length > 0 ? (
+            <AreaChart
               data={[...filteredData].reverse()}
               margin={{ top: 10, right: 0, left: -25, bottom: 0 }}
               stackOffset="expand"
-              style={{ outline: 'none', border: 'none' }}
+              style={{ outline: "none", border: "none" }}
               className="focus:outline-none focus:ring-0 focus:border-0"
             >
             <CartesianGrid strokeDasharray="3 3" stroke="#2A2A3C" />
@@ -212,80 +223,126 @@ export default function AllocationChart({}: AllocationChartProps) {
                   valueFormatter={(value) => `${(value * 100).toFixed(2)}%`}
                   totalFormatter={(value) => {
                     const totalTvl = payload?.[0]?.payload?.totalTvl || 0;
-                    return totalTvl >= 1000 
-                      ? `$${(totalTvl / 1000).toFixed(1)}K` 
+                    return totalTvl >= 1000
+                      ? `$${(totalTvl / 1000).toFixed(1)}K`
                       : `$${totalTvl.toFixed(0)}`;
                   }}
                   showColoredCircles={true}
                   monetaryValueFormatter={(item) => {
-                    const tvlKey = `${item.name}_tvl`;
-                    const tvlValue = item.payload[tvlKey];
-                    if (tvlValue !== undefined && tvlValue !== null) {
-                      const numValue = Number(tvlValue);
+                    // The item.name is now the strategy name, but we need the original address to get TVL
+                    // We need to find the original address that corresponds to this strategy name
+                    const strategyAddress = keys.find(key => getStrategyDisplayName(key) === item.name);
+                    
+                    if (strategyAddress) {
+                      const tvlKey = `${strategyAddress}_tvl`;
+                      const tvlValue = item.payload[tvlKey];
+                      
+                      if (tvlValue !== undefined && tvlValue !== null) {
+                        const numValue = Number(tvlValue);
+                        if (!isNaN(numValue)) {
+                          return numValue >= 1000
+                            ? `$${(numValue / 1000).toFixed(1)}K`
+                            : `$${numValue.toFixed(0)}`;
+                        }
+                      }
+                    }
+                    
+                    // Fallback: try to get TVL from the item payload directly
+                    const directTvlValue = item.payload?.tvl || item.payload?.value;
+                    if (directTvlValue !== undefined && directTvlValue !== null) {
+                      const numValue = Number(directTvlValue);
                       if (!isNaN(numValue)) {
                         return numValue >= 1000
                           ? `$${(numValue / 1000).toFixed(1)}K`
                           : `$${numValue.toFixed(0)}`;
                       }
                     }
+                    
                     return "$0";
                   }}
+                  // Use strategy names in tooltip
+                  nameFormatter={(name) => getStrategyDisplayName(name)}
                 />
               )}
               labelFormatter={(label: string) => label}
             />
             {keys
               .filter((k) => selectedKeys.has(k))
-              .map((key, idx) => (
-                <Area
-                  key={key}
-                  type="monotone"
-                  dataKey={key}
-                  stackId="1"
-                  stroke={colors[idx % colors.length]}
-                  fill={colors[idx % colors.length]}
-                  fillOpacity={0.8}
-                  name={key}
-                />
-              ))}
-          </AreaChart>
+              .map((key, idx) => {
+                console.log(`Rendering Area for key: ${key}, name: ${getStrategyDisplayName(key)}`);
+                return (
+                  <Area
+                    key={key}
+                    type="monotone"
+                    dataKey={key}
+                    stackId="1"
+                    stroke={colors[idx % colors.length]}
+                    fill={colors[idx % colors.length]}
+                    fillOpacity={0.8}
+                    name={getStrategyDisplayName(key)}
+                  />
+                );
+              })}
+                      </AreaChart>
+          ) : (
+            <div className="flex items-center justify-center h-full text-gray-400">
+              <div>Chart data loading...</div>
+              <div className="text-xs mt-2">Filtered data length: {filteredData.length}</div>
+              <div className="text-xs">Selected keys: {Array.from(selectedKeys).join(', ')}</div>
+            </div>
+          )}
         </ResponsiveContainer>
       </div>
 
       {/* Custom legend */}
       {data.length > 0 && (
-        <div className="flex flex-wrap justify-center gap-6 mt-6">
-          {keys.map((key, idx) => {
-            const isSelected = selectedKeys.has(key);
-            // Truncate long addresses for display
-            const displayName =
-              key.length > 10 ? `${key.slice(0, 6)}...${key.slice(-4)}` : key;
+        <div className="w-full mt-6">
+          <div
+            className="grid grid-cols-4 gap-6 justify-items-start"
+            style={{
+              width: "100%",
+              marginLeft: "24px",
+              marginRight: "24px",
+            }}
+          >
+            {keys.map((key, idx) => {
+              const isSelected = selectedKeys.has(key);
+              // Convert address to strategy name for display
+              const displayName = getStrategyDisplayName(key);
+              const buttonColor = colors[idx % colors.length];
+              
+              console.log(`Legend item - key: ${key}, displayName: ${displayName}, isSelected: ${isSelected}`);
 
-            return (
-              <div
-                key={key}
-                className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
-                onClick={() => handleLegendClick(key)}
-              >
+              return (
                 <div
-                  className="w-4 h-4 rounded-full transition-all duration-200"
+                  key={key}
+                  className="flex items-start gap-3 cursor-pointer transition-opacity duration-200 w-full"
+                  onClick={() => handleLegendClick(key)}
                   style={{
-                    backgroundColor: isSelected
-                      ? colors[idx % colors.length]
-                      : "#666666",
                     opacity: isSelected ? 1 : 0.5,
                   }}
-                />
-                <span
-                  className={`text-sm font-medium transition-colors duration-200 ${
-                    isSelected ? "text-white" : "text-gray-400"
-                  }`}
                 >
-                  {displayName}
-                </span>
-              </div>
-            );
-          })}
+                  <div
+                    className="w-4 h-4 rounded-full flex-shrink-0 mt-0.5"
+                    style={{
+                      backgroundColor: buttonColor,
+                    }}
+                  />
+                  <span
+                    className={`text-xs font-medium leading-tight ${
+                      isSelected ? "text-white" : "text-gray-400"
+                    }`}
+                    style={{
+                      wordBreak: "break-word",
+                      maxWidth: "120px",
+                    }}
+                  >
+                    {displayName}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

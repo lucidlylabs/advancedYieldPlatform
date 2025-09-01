@@ -95,7 +95,7 @@ export default function StrategyDailyYieldChart() {
 
         // Fetch yield data
         const res = await fetch(
-          `http://localhost:3001/api/strategy/yield?period=${period}`
+          `https://ow5g1cjqsd.execute-api.ap-south-1.amazonaws.com/dev/api/strategy/yield?period=${period}`
         );
         const json = await res.json();
         console.log("Fetched yield data:", json);

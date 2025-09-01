@@ -11,7 +11,6 @@ export const USD_STRATEGIES = {
       shareAddress_token_decimal: 6,
       rateProvider: "0x03D9a9cE13D16C7cFCE564f41bd7E85E5cde8Da6",
       image: "/images/icons/syUSD.svg",
-      daily_deposits: "http://localhost:3001/api/syUSD/daily-deposits",
 
       base: {
         image: "/images/logo/base.svg",
@@ -211,3 +210,54 @@ export const USD_STRATEGIES = {
 export const BTC_STRATEGIES = {};
 
 export const ETH_STRATEGIES = {};
+
+// Strategy address to name mapping configuration for charts and UI
+export const STRATEGY_NAMES: { [address: string]: string } = {
+  // Stable USD Strategy Names - Using the actual full addresses from your API
+  
+  // Main strategies based on your allocation chart - these are placeholder mappings
+  // You need to replace these with the actual full addresses from your API response
+  "0x7985...15bb": "RLP/USDC Morpho",
+  "0x2fA9...cDCC": "PT-sUSDF/USDC SiloV2 (7.5x)",
+  "0xa32B...9BB1": "sUSDe",
+  "0x1ed0...BD01": "sUSDe/USDC AaveV3 (7x)",
+  "0xd0bc...b89E": "PT-iUSD/USDC Morpho (4x)",
+  "0x34a0...Ea14": "Gauntlet Frontier USDC",
+  "0x914f...Af86": "Compound V3 USDC",
+  "0x56B3...813A": "Aave V3 USDC",
+  
+  // Add more strategy mappings as needed
+  // "0x1234567890abcdef1234567890abcdef12345678": "Strategy Name Here",
+};
+
+// Helper function to get strategy name by address
+export function getStrategyName(address: string): string {
+  return STRATEGY_NAMES[address] || address;
+}
+
+// Helper function to get display name (truncated if no mapping exists)
+export function getStrategyDisplayName(address: string): string {
+  // First try exact match
+  const exactName = getStrategyName(address);
+  if (exactName !== address) {
+    return exactName;
+  }
+  
+  // If no exact match, try partial matching with truncated addresses
+  const truncatedAddress = address.length > 10 
+    ? `${address.slice(0, 6)}...${address.slice(-4)}` 
+    : address;
+  
+  const partialName = STRATEGY_NAMES[truncatedAddress];
+  if (partialName) {
+    return partialName;
+  }
+  
+  // If no mapping exists, return truncated address
+  return truncatedAddress;
+}
+
+// Helper function to check if an address has a name mapping
+export function hasStrategyName(address: string): boolean {
+  return STRATEGY_NAMES.hasOwnProperty(address);
+}

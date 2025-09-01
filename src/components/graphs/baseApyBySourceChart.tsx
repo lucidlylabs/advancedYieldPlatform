@@ -41,10 +41,10 @@ export default function BaseApyBySourceChart({}: BaseApyBySourceChartProps) {
 
         console.log(`Fetching base APY by source data for period: ${period}`);
         const response = await fetch(
-          `http://localhost:3001/api/syUSD/base-apy-by-source?period=${period}`
+          `https://ow5g1cjqsd.execute-api.ap-south-1.amazonaws.com/dev/api/syUSD/base-apy-by-source?period=${period}`
         );
 
-        console.log("Response status:", response.status);
+        console.log("Response status hosted allocation apy :", response.status);
         console.log("Response headers:", response.headers);
 
         if (!response.ok) {
@@ -320,16 +320,16 @@ export default function BaseApyBySourceChart({}: BaseApyBySourceChartProps) {
       {/* Custom legend */}
       {data.length > 0 && (
         <div className="w-full mt-6">
-          <div 
-            className="grid grid-cols-auto-fit gap-4" 
-            style={{ 
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              justifyContent: 'center',
-              alignItems: 'center',
-              width: '100%',
-              marginLeft: '24px',
-              marginRight: '24px'
+          <div
+            className="grid grid-cols-auto-fit gap-4"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              justifyContent: "center",
+              alignItems: "center",
+              width: "100%",
+              marginLeft: "24px",
+              marginRight: "24px",
             }}
           >
             {keys.map((key, idx) => {
@@ -343,7 +343,6 @@ export default function BaseApyBySourceChart({}: BaseApyBySourceChartProps) {
                   key={key}
                   className="flex items-center gap-6 cursor-pointer px-3 py-2 rounded bg-[#2A2A3C] hover:bg-[#3A3A4C] transition-colors"
                   onClick={() => handleLegendClick(key)}
-                  
                 >
                   <div
                     className="w-3 h-3 rounded-full flex-shrink-0 ml-6"

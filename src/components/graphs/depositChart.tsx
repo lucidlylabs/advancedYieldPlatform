@@ -42,7 +42,7 @@ async function fetchData(
 ): Promise<ChartDataItem[]> {
   try {
     console.log(`Fetching deposit data for period: ${period}`);
-    const apiUrl = `http://localhost:3001/api/syUSD/deposits?period=${period}`;
+    const apiUrl = `https://ow5g1cjqsd.execute-api.ap-south-1.amazonaws.com/dev/api/syUSD/deposits?period=${period}`;
     console.log(`API URL: ${apiUrl}`);
     
     const res = await fetch(apiUrl);
@@ -200,7 +200,7 @@ export default function TotalDepositsChart({}: DepositBarChartProps) {
   return (
     <div className="pt-2 pb-6 rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 mb-12 [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
       <div className="flex justify-between items-center mb-4">
-        <div className="text-lg font-semibold text-white">Total Deposits</div>
+        <div className="text-lg font-semibold text-white"></div>
         <div className="flex gap-1 items-center">
           <button
             onClick={() => setPeriod("daily")}
