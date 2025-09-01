@@ -30,7 +30,7 @@ export default function BaseApyTotalChart({}: BaseApyTotalChartProps) {
         setLoading(true);
         console.log(`Fetching base APY total data for period: ${period}`);
 
-        const response = await fetch(`http://localhost:3001/api/apy/daily-apy`);
+        const response = await fetch(`https://ow5g1cjqsd.execute-api.ap-south-1.amazonaws.com/dev/api/apy/exchange-rates-apy-simple`);
 
         console.log("Response status:", response.status);
         console.log("Response headers:", response.headers);
@@ -141,18 +141,25 @@ export default function BaseApyTotalChart({}: BaseApyTotalChartProps) {
       const formattedValue = `${value.toFixed(2)}%`;
 
       return (
-        <div
-          style={{
-            backgroundColor: "#1C1D2A",
-            border: "none",
-            padding: "8px 12px",
-            borderRadius: "4px",
-          }}
-        >
-          <p style={{ color: "#A3A3A3", margin: "0 0 4px 0" }}>{label}</p>
-          <p style={{ color: "#FFFFFF", margin: "0" }}>
-            Total APY: {formattedValue}
-          </p>
+        <div className="rounded-lg shadow-lg overflow-hidden border border-gray-200 relative z-50">
+          {/* Header - Darker grey background */}
+          <div className="bg-gray-300 border-b border-gray-400 px-4 py-3">
+            <div className="text-sm font-semibold text-gray-700">
+              {label}
+            </div>
+          </div>
+          
+          {/* Content - Light grey background */}
+          <div className="bg-gray-100 px-4 py-3 relative z-50">
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-600 flex-1">
+                Total APY:
+              </span>
+              <span className="text-sm font-semibold text-gray-700 text-right">
+                {formattedValue}
+              </span>
+            </div>
+          </div>
         </div>
       );
     }
@@ -176,6 +183,41 @@ export default function BaseApyTotalChart({}: BaseApyTotalChartProps) {
 
   return (
     <div className="pt-2 pl-6 pb-6 rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 mb-12 chart-container">
+      <div className="flex justify-between items-center mb-4">
+        <div className="text-lg font-semibold text-white"></div>
+        <div className="flex gap-1 items-center">
+          <button
+            onClick={() => setPeriod("daily")}
+            className={`px-2 py-1 rounded text-xs transition-colors ${
+              period === "daily"
+                ? "bg-[#7B5FFF] text-white"
+                : "bg-[#2A2A3C] text-gray-400 hover:bg-gray-100 hover:text-gray-800"
+            }`}
+          >
+            Daily
+          </button>
+          <button
+            onClick={() => setPeriod("weekly")}
+            className={`px-2 py-1 rounded text-xs transition-colors ${
+              period === "weekly"
+                ? "bg-[#7B5FFF] text-white"
+                : "bg-[#2A2A3C] text-gray-400 hover:bg-gray-100 hover:text-gray-800"
+            }`}
+          >
+            Weekly
+          </button>
+          <button
+            onClick={() => setPeriod("monthly")}
+            className={`px-2 py-1 rounded text-xs transition-colors ${
+              period === "monthly"
+                ? "bg-[#7B5FFF] text-white"
+                : "bg-[#2A2A3C] text-gray-400 hover:bg-gray-100 hover:text-gray-800"
+            }`}
+          >
+            Monthly
+          </button>
+        </div>
+      </div>
       <div className="w-full h-[400px]">
         <ResponsiveContainer width="100%" height="70%">
           <AreaChart
