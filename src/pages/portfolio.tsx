@@ -328,6 +328,12 @@ const chainConfigs = {
 
 const PortfolioSubpage: React.FC = () => {
   const { address, isConnected, chain } = useAccount();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const formatDuration = (duration: string) => {
     if (duration === "PERPETUAL_DURATION") return "Liquid";
     const [number, period] = duration.split("_");
@@ -1347,7 +1353,7 @@ const PortfolioSubpage: React.FC = () => {
             Wallet Address
           </div>
           <div className="text-[#D7E3EF] font-mono opacity-80 text-[12px] sm:text-[14px] font-normal text-center sm:text-left">
-            {isConnected ? address : "Not connected"}
+            {!isClient ? "Loading..." : (isConnected ? address : "Not connected")}
           </div>
         </div>
       </div>

@@ -119,25 +119,30 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   const [activeBaseApyTab, setActiveBaseApyTab] = useState<
     "totalApy" | "bySource"
   >("totalApy");
-  
+
   const [userDeposits, setUserDeposits] = useState<string>("0.00");
-  
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   // Get connected wallet address
   const { address, isConnected } = useAccount();
-  
+
   // Read user's syUSD token balance (vault shares)
   const { data: userSyUSDTokens } = useReadContract({
     address: contractAddress as `0x${string}`,
     abi: [
       {
-        name: 'balanceOf',
-        type: 'function',
-        stateMutability: 'view',
-        inputs: [{ name: 'account', type: 'address' }],
-        outputs: [{ name: '', type: 'uint256' }],
+        name: "balanceOf",
+        type: "function",
+        stateMutability: "view",
+        inputs: [{ name: "account", type: "address" }],
+        outputs: [{ name: "", type: "uint256" }],
       },
     ],
-    functionName: 'balanceOf',
+    functionName: "balanceOf",
     args: address ? [address] : undefined,
     query: {
       enabled: !!address && isConnected,
@@ -146,9 +151,11 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
   // Format user's syUSD token amount (same method as portfolio)
   useEffect(() => {
-    if (userSyUSDTokens && typeof userSyUSDTokens === 'bigint') {
+    if (userSyUSDTokens && typeof userSyUSDTokens === "bigint") {
       // Use same method as portfolio.tsx
-      const decimals = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.shareAddress_token_decimal ?? 6;
+      const decimals =
+        USD_STRATEGIES.PERPETUAL_DURATION.STABLE.shareAddress_token_decimal ??
+        6;
       const formatted = Number(formatUnits(userSyUSDTokens, decimals));
       setUserDeposits(formatted.toFixed(6));
     } else if (!isConnected) {
@@ -250,10 +257,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   );
 
   const renderIncentivesTab = () => (
-    <IncentiveRewards 
-      strategyName={name}
-      className="w-full"
-    />
+    <IncentiveRewards strategyName={name} className="w-full" />
   );
 
   return (
@@ -273,11 +277,10 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
           <div className="flex items-center pl-0 w-full lg:w-auto">
             <div className="inline-flex items-center gap-[8px] pl-0">
               <div className="flex items-baseline gap-2">
-              
                 <h1 className="text-[18px] sm:text-[20px] font-semibold text-[#D7E3EF] leading-none">
                   {name}
                 </h1>
-                
+
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -307,13 +310,13 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
               </div>
             </div>
           </div>
-          
+
           {/* Simple Your Deposits - Right Side */}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-[4px] px-2 py-1.5">
               <span className="text-[#9C9DA2] text-[12px]">Your Holdings:</span>
               <span className="text-white text-[14px] font-medium">
-                {isConnected ? userDeposits : "0.00"}
+                {!isClient ? "Loading..." : isConnected ? userDeposits : "0.00"}
               </span>
               {/* Circular icon next to deposit amount */}
               <div className="w-4 h-4 rounded-full overflow-hidden flex items-center justify-center">
@@ -326,7 +329,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                 />
               </div>
             </div>
-            
+
             <div className="flex gap-2">
               <button className="text-white border border-[rgba(255,255,255,0.1)] rounded-[4px] px-3 py-1.5 text-[12px] font-medium transition-colors cursor-default">
                 Liquid
