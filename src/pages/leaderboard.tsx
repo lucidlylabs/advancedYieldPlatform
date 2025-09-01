@@ -155,11 +155,6 @@ const LeaderboardPage: React.FC = () => {
                     
                     {/* Address with Avatar */}
                     <div className="flex items-center gap-3 flex-1">
-                      <div className="w-10 h-10 bg-gradient-to-br from-[#B88AF8] to-[#9F6EE9] rounded-full flex items-center justify-center">
-                        <span className="text-white text-sm font-medium">
-                          {entry.address.slice(2, 4).toUpperCase()}
-                        </span>
-                      </div>
                       <span className="text-white font-mono text-sm">
                         {entry.address.slice(0, 6)}...{entry.address.slice(-4)}
                       </span>
