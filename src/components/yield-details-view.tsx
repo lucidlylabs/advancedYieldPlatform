@@ -151,9 +151,9 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
       // Use same method as portfolio.tsx
       const decimals = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.shareAddress_token_decimal ?? 6;
       const formatted = Number(formatUnits(userSyUSDTokens, decimals));
-      setUserDeposits(formatted.toFixed(6));
+      setUserDeposits(formatted.toFixed(2));
     } else if (!isConnected) {
-      setUserDeposits("0.000000");
+      setUserDeposits("0.00");
     }
   }, [userSyUSDTokens, isConnected]);
 
@@ -350,6 +350,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
               <span className="text-[#9C9DA2] text-[12px]">Your Holdings:</span>
               <span className="text-white text-[14px] font-medium">
                 {isConnected ? userDeposits : "0.00"}
+                
               </span>
               {/* Circular icon next to deposit amount */}
               <div className="w-4 h-4 rounded-full overflow-hidden flex items-center justify-center">
@@ -435,7 +436,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
           </div>
 
           {/* Network */}
-          <div className="flex flex-col justify-center items-start h-[35px] gap-[5px] min-w-[80px]">
+          <div className="flex flex-col justify-center items-start h-[40px] gap-[5px] min-w-[80px]">
             <div className="text-[#9C9DA2] text-xs leading-none">Network</div>
             <div className="relative mt-0 text-[14px] flex items-center cursor-pointer group">
               {(

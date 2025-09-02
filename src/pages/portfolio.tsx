@@ -997,7 +997,7 @@ const PortfolioSubpage: React.FC = () => {
 
   const handlePercentageClick = (percentage: number) => {
     if (selectedStrategy) {
-      const amount = (selectedStrategy.balance * percentage).toFixed(6);
+      const amount = (selectedStrategy.balance * percentage).toFixed(2);
       setWithdrawAmount(amount);
     }
   };

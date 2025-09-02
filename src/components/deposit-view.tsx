@@ -321,10 +321,10 @@ const ExchangeRate: React.FC<ExchangeRateProps> = ({ selectedAssetOption }) => {
           rateFormatted,
           rateNumber,
           exchangeRate: exchangeRateNumber,
-          final: exchangeRateNumber.toFixed(4)
+          final: exchangeRateNumber.toFixed(2)
         });
         
-        setExchangeRate(exchangeRateNumber > 0 ? exchangeRateNumber.toFixed(4) : "1.0000");
+        setExchangeRate(exchangeRateNumber > 0 ? exchangeRateNumber.toFixed(2) : "1.00");
       } catch (error) {
         console.error(`Error fetching rate for ${selectedAssetOption.name}:`, error);
         setExchangeRate("0.98"); // Fallback to default
