@@ -472,7 +472,7 @@ const PortfolioSubpage: React.FC = () => {
         })
         .catch((error) => {
           console.error('Error fetching APY:', error);
-          setUsdApy(USD_STRATEGIES.PERPETUAL_DURATION.STABLE.fallbackApy || "N/A");
+          setUsdApy("N/A");
         });
     } else if (typeof apyUrl === "string" && !apyUrl.startsWith("http")) {
       // If apyUrl is not a URL, use it directly (fallback value)

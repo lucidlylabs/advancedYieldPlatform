@@ -159,7 +159,7 @@ const MarketsSubpage: React.FC = () => {
           ticker: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.name, // syUSD
           type: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.type,
           baseYield:
-            usdApy || USD_STRATEGIES.PERPETUAL_DURATION.STABLE.fallbackApy,
+            usdApy || "N/A",
           incentives: (() => {
             const incentives =
               USD_STRATEGIES.PERPETUAL_DURATION.STABLE.incentives;
@@ -260,9 +260,7 @@ const MarketsSubpage: React.FC = () => {
         })
         .catch((error) => {
           console.error("Error fetching APY:", error);
-          setUsdApy(
-            USD_STRATEGIES.PERPETUAL_DURATION.STABLE.fallbackApy || "N/A"
-          );
+          setUsdApy("N/A");
         });
     } else if (typeof apyUrl === "string" && !apyUrl.startsWith("http")) {
       // If apyUrl is not a URL, use it directly (fallback value)

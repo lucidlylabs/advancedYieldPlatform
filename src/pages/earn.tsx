@@ -309,7 +309,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
         })
         .catch((error) => {
           console.error('Error fetching APY:', error);
-          setUsdApy(USD_STRATEGIES.PERPETUAL_DURATION.STABLE.fallbackApy || "N/A");
+          setUsdApy("N/A");
         });
     } else if (typeof apyUrl === "string" && !apyUrl.startsWith("http")) {
       // If apyUrl is not a URL, use it directly (fallback value)
@@ -420,7 +420,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
           selectedAsset={selectedStrategy.asset}
           duration={selectedStrategy.duration}
           strategy={selectedStrategy.type}
-          apy={usdApy || USD_STRATEGIES.PERPETUAL_DURATION.STABLE.fallbackApy || "--"}
+          apy={usdApy || "--"}
           onBack={() => setSelectedStrategy(null)}
           onReset={handleReset}
         />

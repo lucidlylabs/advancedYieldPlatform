@@ -214,7 +214,7 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
                 className="cursor-pointer flex items-center justify-end text-white font-inter text-[11px] font-normal leading-[14px]"
                 onClick={() => onSort("baseYield")}
               >
-                <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
+                <div className="flex justify-end text-[#9C9DA2] text-[11px] font-normal items-center">
                   Base APY
                   <Tooltip content="7 Day trailing" side="top">
                     <svg
