@@ -182,8 +182,9 @@ export default function AllocationChart({}: AllocationChartProps) {
   ];
 
   return (
-    <div className="pb-6 rounded-xl text-white w-full max-h-[600px] mb-12 [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
-            <div className="w-full h-[345px] focus:outline-none focus:ring-0 focus:border-0" style={{ overflow: 'visible' }}>
+    <div className="w-full mb-12 overflow-x-hidden" style={{ overflowY: 'visible' }}>
+      <div className="pb-6 rounded-xl text-white w-full max-h-[600px] [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0" style={{ overflow: 'visible' }}>
+        <div className="w-full h-[345px] focus:outline-none focus:ring-0 focus:border-0" style={{ overflow: 'visible' }}>
         <ResponsiveContainer
           width="100%"
           height="100%"
@@ -346,6 +347,7 @@ export default function AllocationChart({}: AllocationChartProps) {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
