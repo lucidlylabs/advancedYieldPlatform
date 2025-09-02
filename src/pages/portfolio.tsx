@@ -1275,28 +1275,34 @@ const PortfolioSubpage: React.FC = () => {
                 PNL
               </div>
               <div className="text-[#00D1A0] text-[16px] font-normal leading-normal mt-1 sm:mt-3">
-                {strategiesWithBalance
-                  .reduce(
-                    (sum, s) =>
-                      sum +
-                      (s.balance * parseFloat(s.apy?.replace("%", "") || "0")) /
-                        100,
-                    0
-                  )
-                  .toFixed(2)}
-                (
-                {strategiesWithBalance.length > 0
-                  ? "" +
-                    (
-                      strategiesWithBalance.reduce(
-                        (sum, s) =>
-                          sum + parseFloat(s.apy?.replace("%", "") || "0"),
-                        0
-                      ) / strategiesWithBalance.length
-                    ).toFixed(1) +
-                    "%"
-                  : "0%"}
-                )
+                {(() => {
+                  const totalPnl = strategiesWithBalance.reduce((sum, s) => {
+                    // Use the correct APY value for calculations
+                    let apyToUse = s.apy;
+                    if (s.asset === "USD" && s.type === "stable") {
+                      apyToUse = usdApy || s.apy;
+                    }
+                    
+                    const apyValue = parseFloat(apyToUse?.replace("%", "") || "0");
+                    if (isNaN(apyValue)) return sum;
+                    return sum + (s.balance * apyValue) / 100;
+                  }, 0);
+                  
+                  const avgApy = strategiesWithBalance.length > 0 
+                    ? strategiesWithBalance.reduce((sum, s) => {
+                        // Use the correct APY value for calculations
+                        let apyToUse = s.apy;
+                        if (s.asset === "USD" && s.type === "stable") {
+                          apyToUse = usdApy || s.apy;
+                        }
+                        
+                        const apyValue = parseFloat(apyToUse?.replace("%", "") || "0");
+                        return sum + (isNaN(apyValue) ? 0 : apyValue);
+                      }, 0) / strategiesWithBalance.length
+                    : 0;
+                  
+                  return `${totalPnl.toFixed(2)} (${avgApy.toFixed(1)}%)`;
+                })()}
               </div>
             </div>
           </div>
@@ -1493,14 +1499,62 @@ const PortfolioSubpage: React.FC = () => {
                       </div>
                       <div className="text-[#00D1A0]   text-[12px] font-normal">
                         +
-                        {(
-                          (strategy.balance *
-                            parseFloat(strategy.apy?.replace("%", "") || "0")) /
-                          100
-                        ).toFixed(2)}{" "}
+                        {(() => {
+                          // Use the correct APY value for calculations
+                          let apyToUse = strategy.apy;
+                          if (strategy.asset === "USD" && strategy.type === "stable") {
+                            apyToUse = usdApy || strategy.apy;
+                          }
+                          
+                          const apyValue = parseFloat(apyToUse?.replace("%", "") || "0");
+                          if (isNaN(apyValue)) return "0.00";
+                          return ((strategy.balance * apyValue) / 100).toFixed(2);
+                        })()}{" "}
                         in 1 year
                       </div>
                     </div>
+                  </div>
+
+                  {/* Deposited on */}
+                  <div className="flex justify-end text-[#EDF2F8] text-[12px] font-normal">
+                    {depositedChains.length > 0 ? (
+                      <div className="flex items-center gap-1">
+                        {depositedChains.map((chain, idx) => (
+                          <div key={chain} className="flex items-center">
+                            <img
+                              src={chainIconMap[chain]?.src || "/images/logo/base.svg"}
+                              alt={chain}
+                              className="w-4 h-4 rounded-full"
+                            />
+                            {idx < depositedChains.length - 1 && <span className="mx-1">,</span>}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      "-"
+                    )}
+                  </div>
+
+                  {/* Expiry */}
+                  <div className="flex justify-end text-[#EDF2F8] text-[12px] font-normal">
+                    {strategy.duration === "PERPETUAL_DURATION" ? "Liquid" : formatDuration(strategy.duration)}
+                  </div>
+
+                  {/* Base APY */}
+                  <div className="flex justify-end text-[#EDF2F8] text-[12px] font-normal">
+                    {(() => {
+                      // For USD strategies, use the fetched APY data
+                      if (strategy.asset === "USD" && strategy.type === "stable") {
+                        return usdApy || "N/A";
+                      }
+                      // For other strategies, use the strategy APY or fallback
+                      return strategy.apy || "N/A";
+                    })()}
+                  </div>
+
+                  {/* Current Balance */}
+                  <div className="flex justify-end text-[#EDF2F8] text-[12px] font-normal">
+                    ${strategy.balance.toFixed(2)}
                   </div>
 
                 </div>
