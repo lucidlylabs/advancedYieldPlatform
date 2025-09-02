@@ -368,7 +368,7 @@ const MarketsSubpage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col pt-[52px]">
+    <div className="min-h-screen flex flex-col pt-[0px]">
       <Header onNavigateToDeposit={() => {}}>
         <Navigation currentPage="yields" />
       </Header>
@@ -384,7 +384,7 @@ const MarketsSubpage: React.FC = () => {
               onReset={() => setShowDepositView(false)}
             />
           ) : (
-            <div className="flex min-h-screen text-white overflow-y-auto mt-8 sm:mt-0">
+            <div className="flex min-h-screen text-white overflow-y-auto mt-0 sm:mt-0">
               {/* Left side - 50% */}
               <div className="w-full flex flex-col relative">
                 <div className="w-full h-[124px] flex flex-col justify-center items-start relative pl-4 sm:pl-[32px]">
