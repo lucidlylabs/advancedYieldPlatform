@@ -349,22 +349,25 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
           {/* Simple Your Deposits - Right Side */}
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-[4px] px-2 py-1.5">
-              <span className="text-[#9C9DA2] text-[12px]">Your Holdings:</span>
-              <span className="text-white text-[14px] font-medium">
-                {!isClient ? "Loading..." : isConnected ? userDeposits : "0.00"}
-              </span>
-              {/* Circular icon next to deposit amount */}
-              <div className="w-4 h-4 rounded-full overflow-hidden flex items-center justify-center">
-                <Image
-                  src="/images/icons/syUSD.svg"
-                  alt="syUSD"
-                  width={16}
-                  height={16}
-                  className="object-contain"
-                />
+            {/* Only show holdings component if user has actual holdings */}
+            {isClient && isConnected && userDeposits !== "0.00" && (
+              <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-[4px] px-2 py-1.5">
+                <span className="text-[#9C9DA2] text-[12px]">Your Holdings:</span>
+                <span className="text-white text-[14px] font-medium">
+                  {userDeposits}
+                </span>
+                {/* Circular icon next to deposit amount */}
+                <div className="w-4 h-4 rounded-full overflow-hidden flex items-center justify-center">
+                  <Image
+                    src="/images/icons/syUSD.svg"
+                    alt="syUSD"
+                    width={16}
+                    height={16}
+                    className="object-contain"
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="flex gap-2">
               <button className="text-white border border-[rgba(255,255,255,0.1)] rounded-[4px] px-3 py-1.5 text-[12px] font-medium transition-colors cursor-default">
