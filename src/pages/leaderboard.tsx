@@ -137,7 +137,7 @@ const LeaderboardPage: React.FC = () => {
         <Navigation currentPage="leaderboard" />
       </Header>
 
-      <main className="flex-1 overflow-y-auto bg-[#0A0B0F]">
+      <main className="flex-1 overflow-y-auto">
         <div className="w-full px-12 py-12">
           {/* Header Section */}
           <div className="mb-16">
