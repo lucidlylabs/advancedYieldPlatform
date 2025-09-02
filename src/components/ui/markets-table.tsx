@@ -205,7 +205,7 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
             >
               Base APY
               <Tooltip content="Annual Percentage Yield based on current market conditions">
-                <button className="ml-1 text-white opacity-60 hover:opacity-100 transition-all duration-200 flex items-center">
+                <button>
                   <InfoIcon />
                 </button>
               </Tooltip>

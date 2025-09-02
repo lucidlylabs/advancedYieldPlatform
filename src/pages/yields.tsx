@@ -379,7 +379,7 @@ const MarketsSubpage: React.FC = () => {
               selectedAsset="USD"
               duration="PERPETUAL_DURATION"
               strategy="stable"
-              apy="4.5%"
+              apy={usdApy || "4.5%"}
               onBack={() => setShowDepositView(false)}
               onReset={() => setShowDepositView(false)}
             />
