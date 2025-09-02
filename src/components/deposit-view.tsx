@@ -481,6 +481,9 @@ const DepositView: React.FC<DepositViewProps> = ({
     strategy === "stable" ? "STABLE" : "INCENTIVE"
   ] as StrategyConfig;
 
+  // Get the actual APY from prop and extract numeric value
+  const actualApy = apy ? apy.replace('%', '') : '0';
+
   // Helper to extract unique chain configurations
   const getUniqueChainConfigs = useMemo(() => {
     const uniqueChains = new Map<
@@ -1864,7 +1867,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                               </svg>
 
                               <span className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
-                                APY {apy}
+                                APY {actualApy}
                               </span>
                             </div>
                           </div>
