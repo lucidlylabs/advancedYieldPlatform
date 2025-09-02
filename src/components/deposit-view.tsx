@@ -1601,6 +1601,31 @@ const DepositView: React.FC<DepositViewProps> = ({
           <div className="flex flex-col gap-6 items-center w-full">
             <div className="w-full max-w-[280px] md:max-w-[580px]">
               <div className="flex flex-col gap-6">
+                {/* Back Arrow - positioned above Exchange Rate */}
+                <div className="w-full flex justify-start">
+                  <button
+                    onClick={onBack}
+                    className="flex items-center justify-center w-8 h-8 bg-[#121420] hover:bg-[#1A1B1E] rounded border border-[rgba(255,255,255,0.05)] hover:border-[#B88AF8] transition-all duration-200 group"
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="text-[#9C9DA2] group-hover:text-[#B88AF8] transition-colors duration-200"
+                    >
+                      <path
+                        d="M19 12H5M12 19L5 12L12 5"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                
               <ExchangeRate 
                 selectedAssetOption={selectedAssetOption} 
                 targetChain={targetChain}
@@ -1610,6 +1635,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                 {/* Two Cards Row */}
                 <div className="flex flex-col gap-6 md:flex-row justify-center items-start">
                   <div className="flex flex-col justify-center items-center w-full">
+                    
                     {/* Deposit Chain Dropdown */}
                     <div className="w-full max-w-[280px] bg-[#121420] p-4 border-l border-r border-t border-[rgba(255,255,255,0.05)]">
                       <div className="flex items-center justify-between gap-2">
