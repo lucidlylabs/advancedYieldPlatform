@@ -24,7 +24,7 @@ export function Navigation({
             <div
               className="cursor-pointer"
               onClick={() => {
-                window.location.href = "https://lucidly.finance";
+                router.push('/yields');
               }}
             >
               <Image
@@ -39,7 +39,7 @@ export function Navigation({
           <div className="w-[1px] bg-[rgba(255,255,255,0.1)] ml-4 hidden sm:block"></div>
           <nav className="hidden md:flex">
             <div className="relative flex">
-              <button
+              {/* <button
                 className={`px-8 py-[18px] text-sm transition-colors relative ${
                   currentPage === 'earn'
                     ? "text-white"
@@ -53,7 +53,7 @@ export function Navigation({
                 {currentPage === 'earn' && (
                   <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#B88AF8]"></div>
                 )}
-              </button>
+              </button> */}
 
               <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
 

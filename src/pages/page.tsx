@@ -19,17 +19,17 @@ enum SubPage {
 export default function Page() {
   const router = useRouter();
   const [selectedSubPage, setSelectedSubPage] = useState<SubPage>(
-    SubPage.Yield
+    SubPage.Markets
   );
 
   // Check the current route and set the appropriate subpage
   useEffect(() => {
     const path = router.pathname;
-    if (path === '/portfolio') {
+    if (path === "/portfolio") {
       setSelectedSubPage(SubPage.Portfolio);
-    } else if (path === '/yields') {
+    } else if (path === "/yields") {
       setSelectedSubPage(SubPage.Markets);
-    } else if (path === '/earn') {
+    } else if (path === "/earn") {
       setSelectedSubPage(SubPage.Yield);
     }
   }, [router.pathname]);
@@ -96,12 +96,12 @@ export default function Page() {
   const renderSubPage = () => {
     // Check the current route and render appropriate component
     const path = router.pathname;
-    
-    if (path === '/portfolio') {
+
+    if (path === "/portfolio") {
       return <PortfolioSubpage />;
-    } else if (path === '/yields') {
+    } else if (path === "/yields") {
       return <MarketsSubpage />;
-    } else if (path === '/earn') {
+    } else if (path === "/earn") {
       if (!isVerified) {
         return (
           <CodeVerificationPopup
@@ -114,7 +114,7 @@ export default function Page() {
       }
       return <Yieldsubpage depositParams={depositParams} />;
     }
-    
+
     // Default behavior for the main page
     switch (selectedSubPage) {
       case SubPage.Portfolio:
@@ -134,31 +134,39 @@ export default function Page() {
       case SubPage.Markets:
         return <MarketsSubpage />;
       default:
-        return null;
+        return <MarketsSubpage />; // Default to yields page
     }
   };
 
   // Determine current page based on route
   const getCurrentPage = () => {
     const path = router.pathname;
-    if (path === '/earn') return 'earn';
-    if (path === '/yields') return 'yields';
-    if (path === '/portfolio') return 'portfolio';
-    if (path === '/leaderboard') return 'leaderboard';
-    return 'earn'; // default
+    if (path === "/earn") return "earn";
+    if (path === "/yields") return "yields";
+    if (path === "/portfolio") return "portfolio";
+    if (path === "/leaderboard") return "leaderboard";
+    return "yields"; // default
   };
 
   return (
     <div className="min-h-screen flex flex-col pt-[52px]">
       <Header onNavigateToDeposit={handleNavigateToDeposit}>
-        <Navigation 
-          currentPage={getCurrentPage() as 'earn' | 'yields' | 'portfolio' | 'leaderboard'}
+        <Navigation
+          currentPage={
+            getCurrentPage() as "yields" | "portfolio" | "leaderboard"
+          }
           isMobileMenuOpen={isMobileMenuOpen}
           setIsMobileMenuOpen={setIsMobileMenuOpen}
         />
       </Header>
 
-      <main className={`flex-1 overflow-y-auto ${isMobileMenuOpen ? 'pt-[200px]' : ''}`}>{renderSubPage()}</main>
+      <main
+        className={`flex-1 overflow-y-auto ${
+          isMobileMenuOpen ? "pt-[200px]" : ""
+        }`}
+      >
+        {renderSubPage()}
+      </main>
     </div>
   );
 }
