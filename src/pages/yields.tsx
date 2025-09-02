@@ -91,6 +91,7 @@ const AssetButton: React.FC<{
 };
 
 const MarketsSubpage: React.FC = () => {
+
   const [selectedAsset, setSelectedAsset] = useState<AssetType>("All");
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
@@ -367,12 +368,11 @@ const MarketsSubpage: React.FC = () => {
     setShowDepositView(false);
   }
 
-  return (
-    <div className="min-h-screen flex flex-col pt-[52px]">
-      <Header onNavigateToDeposit={() => {}}>
-        <Navigation currentPage="yields" />
-      </Header>
-      <main className="flex-1 overflow-y-auto">
+  // Check if this is being rendered as a standalone page or as a subpage
+  const isStandalonePage = router.pathname === '/yields';
+  
+  const renderContent = () => (
+    <div className="w-full">
         <>
           {showDepositView ? (
             <DepositView
@@ -602,9 +602,24 @@ const MarketsSubpage: React.FC = () => {
             </div>
           )}
         </>
-      </main>
     </div>
   );
+  
+  if (isStandalonePage) {
+    return (
+      <div className="min-h-screen flex flex-col pt-[52px]">
+        <Header onNavigateToDeposit={() => {}}>
+          <Navigation currentPage="yields" />
+        </Header>
+        <main className="flex-1 overflow-y-auto">
+          {renderContent()}
+        </main>
+      </div>
+    );
+  }
+
+  // Render as subpage without header
+  return renderContent();
 };
 
 export default MarketsSubpage;
