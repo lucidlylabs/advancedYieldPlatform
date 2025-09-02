@@ -96,8 +96,8 @@ const MarketsSubpage: React.FC = () => {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [selectedItem, setSelectedItem] = useState<MarketItem | null>(null);
   const [showDepositView, setShowDepositView] = useState(false);
-  const [usdTvl, setUsdTvl] = useState<string | null>(null);
-  const [usdApy, setUsdApy] = useState<string | null>(null);
+  const [usdTvl, setUsdTvl] = useState<string>("Loading...");
+  const [usdApy, setUsdApy] = useState<string>("Loading...");
   const [showColumnsDropdown, setShowColumnsDropdown] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState({
     availableYields: true,
@@ -158,8 +158,7 @@ const MarketsSubpage: React.FC = () => {
           name: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.displayName,
           ticker: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.name, // syUSD
           type: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.type,
-          baseYield:
-            usdApy || "N/A",
+          baseYield: usdApy,
           incentives: (() => {
             const incentives =
               USD_STRATEGIES.PERPETUAL_DURATION.STABLE.incentives;
@@ -183,7 +182,7 @@ const MarketsSubpage: React.FC = () => {
             console.log("Incentive data:", incentiveData);
             return incentiveData;
           })(),
-          tvl: usdTvl || USD_STRATEGIES.PERPETUAL_DURATION.STABLE.tvl,
+          tvl: usdTvl,
           description: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.description,
           riskLevel: "Very Low",
           network: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.network,
@@ -236,6 +235,9 @@ const MarketsSubpage: React.FC = () => {
     } else if (typeof tvlUrl === "string" && !tvlUrl.startsWith("http")) {
       // If tvlUrl is not a URL, use it directly (fallback value)
       setUsdTvl(tvlUrl);
+    } else {
+      // If no TVL URL is available, set to N/A
+      setUsdTvl("N/A");
     }
   }, []);
 
@@ -377,7 +379,7 @@ const MarketsSubpage: React.FC = () => {
               selectedAsset="USD"
               duration="PERPETUAL_DURATION"
               strategy="stable"
-              apy={usdApy || "4.5%"}
+              apy={usdApy === "Loading..." ? "N/A" : usdApy}
               onBack={() => setShowDepositView(false)}
               onReset={() => setShowDepositView(false)}
             />
