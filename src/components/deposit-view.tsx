@@ -255,9 +255,11 @@ const InfoIcon = () => (
 // Exchange Rate Component
 interface ExchangeRateProps {
   selectedAssetOption?: TokenConfig | null;
+  targetChain: string;
+  strategyConfig: StrategyConfig;
 }
 
-const ExchangeRate: React.FC<ExchangeRateProps> = ({ selectedAssetOption }) => {
+const ExchangeRate: React.FC<ExchangeRateProps> = ({ selectedAssetOption, targetChain, strategyConfig }) => {
   const [exchangeRate, setExchangeRate] = useState<string>("0.98");
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -272,10 +274,28 @@ const ExchangeRate: React.FC<ExchangeRateProps> = ({ selectedAssetOption }) => {
 
       setIsLoading(true);
       try {
-        const rateProviderAddress = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.rateProvider;
+        // Get rate provider address and network config based on selected target chain
+        const rateProviderAddress = strategyConfig.rateProvider;
+        
+        // Helper function to get chain config based on target chain
+        const getChainConfig = (chainName: string) => {
+          switch (chainName) {
+            case "arbitrum":
+              return strategyConfig.arbitrum;
+            case "ethereum":
+              return strategyConfig.ethereum;
+            case "katana":
+              return strategyConfig.katana;
+            case "base":
+            default:
+              return strategyConfig.base;
+          }
+        };
+        
+        const chainData = getChainConfig(targetChain);
         const { rpcUrl, chain } = {
-          rpcUrl: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.base.rpc,
-          chain: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.base.chainObject
+          rpcUrl: chainData.rpc,
+          chain: chainData.chainObject
         };
 
         const client = createPublicClient({
@@ -334,7 +354,7 @@ const ExchangeRate: React.FC<ExchangeRateProps> = ({ selectedAssetOption }) => {
     };
 
     fetchExchangeRate();
-  }, [selectedAssetOption]);
+  }, [selectedAssetOption, targetChain, strategyConfig]);
 
   // Don't show anything if no asset is selected
   if (!selectedAssetOption) {
@@ -1581,7 +1601,11 @@ const DepositView: React.FC<DepositViewProps> = ({
           <div className="flex flex-col gap-6 items-center w-full">
             <div className="w-full max-w-[280px] md:max-w-[580px]">
               <div className="flex flex-col gap-6">
-              <ExchangeRate selectedAssetOption={selectedAssetOption} />
+              <ExchangeRate 
+                selectedAssetOption={selectedAssetOption} 
+                targetChain={targetChain}
+                strategyConfig={strategyConfig}
+              />
 
                 {/* Two Cards Row */}
                 <div className="flex flex-col gap-6 md:flex-row justify-center items-start">
