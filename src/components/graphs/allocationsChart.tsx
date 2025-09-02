@@ -182,12 +182,13 @@ export default function AllocationChart({}: AllocationChartProps) {
   ];
 
   return (
-    <div className="pb-6 rounded-xl text-white w-full max-h-[600px] mb-12 overflow-hidden [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
-            <div className="w-full h-[345px] overflow-hidden focus:outline-none focus:ring-0 focus:border-0">
+    <div className="pb-6 rounded-xl text-white w-full max-h-[600px] mb-12 [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
+            <div className="w-full h-[345px] focus:outline-none focus:ring-0 focus:border-0" style={{ overflow: 'visible' }}>
         <ResponsiveContainer
           width="100%"
           height="100%"
           className="focus:outline-none focus:ring-0 focus:border-0"
+          style={{ overflow: 'visible' }}
         >
           {filteredData.length > 0 ? (
             <AreaChart
