@@ -382,7 +382,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
             <div className="text-[#9C9DA2] text-xs leading-none flex items-center gap-1">
               Base APY
               <Tooltip content="7d moving average" side="top">
-                <div className="cursor-help">
+                <div className="cursor-pointer">
                   <InfoIcon />
                 </div>
               </Tooltip>
