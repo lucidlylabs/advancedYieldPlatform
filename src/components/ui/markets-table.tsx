@@ -28,7 +28,7 @@ interface MarketsTableProps {
   };
   showColumnsDropdown: boolean;
   setShowColumnsDropdown: (show: boolean) => void;
-  toggleColumn: (column: keyof MarketsTableProps['visibleColumns']) => void;
+  toggleColumn: (column: keyof MarketsTableProps["visibleColumns"]) => void;
 }
 
 const InfoIcon = () => (
@@ -91,7 +91,6 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
   setShowColumnsDropdown,
   toggleColumn,
 }) => {
-
   // Function to get icon based on asset type
   const getAssetIcon = (type: string) => {
     switch (type) {
@@ -188,30 +187,58 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
     <div className="w-full">
       {/* Table Header */}
       <div className="sm:pl-[32px]">
-        <div className={`grid px-4 py-1 border-y-[0.5px] border-[rgba(255,255,255,0.15)] gap-4`} style={{ height: '38px', gridTemplateColumns: `${visibleColumns.availableYields ? '1fr' : ''} ${visibleColumns.baseApy ? '0.75fr' : ''} ${visibleColumns.incentives ? '0.75fr' : ''} ${visibleColumns.tvl ? '0.5fr' : ''}`.trim() }}>
+        <div
+          className={`grid px-4 py-1 border-y-[0.5px] border-[rgba(255,255,255,0.15)] gap-4`}
+          style={{
+            height: "38px",
+            gridTemplateColumns: `${
+              visibleColumns.availableYields ? "1fr" : ""
+            } ${visibleColumns.baseApy ? "0.75fr" : ""} ${
+              visibleColumns.incentives ? "0.75fr" : ""
+            } ${visibleColumns.tvl ? "0.5fr" : ""}`.trim(),
+          }}
+        >
           {visibleColumns.availableYields && (
             <div
               className="cursor-pointer flex items-center text-white opacity-60 font-inter text-[11px] font-normal leading-[14px] py-[5px]"
               onClick={() => onSort("name")}
             >
               Available Yields
-              <SortIcon direction={sortColumn === "name" ? sortDirection : null} />
+              <SortIcon
+                direction={sortColumn === "name" ? sortDirection : null}
+              />
             </div>
           )}
-          {visibleColumns.baseApy && (
-            <div
-              className="cursor-pointer flex items-center justify-end text-white opacity-60 font-inter text-[11px] font-normal leading-[14px]"
-              onClick={() => onSort("baseYield")}
-            >
-              Base APY
-              <Tooltip content="Annual Percentage Yield based on current market conditions">
-                <button>
-                  <InfoIcon />
-                </button>
-              </Tooltip>
-              <SortIcon direction={sortColumn === "baseYield" ? sortDirection : null} />
-            </div>
-          )}
+                      {visibleColumns.baseApy && (
+              <div
+                className="cursor-pointer flex items-center justify-end text-white font-inter text-[11px] font-normal leading-[14px]"
+                onClick={() => onSort("baseYield")}
+              >
+                <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
+                  Base APY
+                  <Tooltip content="7 Day trailing" side="top">
+                    <svg
+                      className="ml-1 cursor-pointer"
+                      width="12"
+                      height="12"
+                      viewBox="0 0 10 10"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M4.9987 6.66659V4.99992M4.9987 3.33325H5.00286M9.16536 4.99992C9.16536 7.30111 7.29988 9.16659 4.9987 9.16659C2.69751 9.16659 0.832031 7.30111 0.832031 4.99992C0.832031 2.69873 2.69751 0.833252 4.9987 0.833252C7.29988 0.833252 9.16536 2.69873 9.16536 4.99992Z"
+                        stroke="#9C9DA2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </Tooltip>
+                </div>
+                <SortIcon
+                  direction={sortColumn === "baseYield" ? sortDirection : null}
+                />
+              </div>
+            )}
           {visibleColumns.incentives && (
             <div className="flex items-center justify-end text-white opacity-60 font-inter text-[11px] font-normal leading-[14px]">
               Incentives
@@ -224,7 +251,9 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
               onClick={() => onSort("tvl")}
             >
               TVL
-              <SortIcon direction={sortColumn === "tvl" ? sortDirection : null} />
+              <SortIcon
+                direction={sortColumn === "tvl" ? sortDirection : null}
+              />
             </div>
           )}
         </div>
@@ -247,7 +276,16 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
                   "bg-[linear-gradient(90deg,rgba(0,209,160,0.15)_0%,rgba(0,209,160,0)_15%,rgba(0,209,160,0)_85%,rgba(0,209,160,0.15)_100%)]"
               )}
             >
-              <div className={`grid pr-6 py-4 pl-4 gap-4`} style={{ gridTemplateColumns: `${visibleColumns.availableYields ? '1fr' : ''} ${visibleColumns.baseApy ? '0.75fr' : ''} ${visibleColumns.incentives ? '0.75fr' : ''} ${visibleColumns.tvl ? '0.5fr' : ''}`.trim() }}>
+              <div
+                className={`grid pr-6 py-4 pl-4 gap-4`}
+                style={{
+                  gridTemplateColumns: `${
+                    visibleColumns.availableYields ? "1fr" : ""
+                  } ${visibleColumns.baseApy ? "0.75fr" : ""} ${
+                    visibleColumns.incentives ? "0.75fr" : ""
+                  } ${visibleColumns.tvl ? "0.5fr" : ""}`.trim(),
+                }}
+              >
                 {visibleColumns.availableYields && (
                   <div className="flex items-center">
                     {getAssetIcon(item.type)}
@@ -268,51 +306,64 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
                 )}
                 {visibleColumns.incentives && (
                   <div className="flex items-center justify-end">
-                  {(() => {
-                    console.log('Incentives for', item.name, ':', item.incentives);
-                    const hasValidIncentives = item.incentives && 
-                      item.incentives.length > 0 && 
-                      item.incentives.some(incentive => incentive && incentive.image);
-                    
-                    return hasValidIncentives ? (
-                      item.incentives
-                        .filter(incentive => incentive && incentive.image)
-                        .map((incentive, index) => (
-                          <div key={index} className={index === 0 ? "" : "ml-2"}>
-                            <Tooltip content={incentive.name}>
-                              {incentive.link && incentive.link !== "#" ? (
-                                <a 
-                                  href={incentive.link} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="cursor-pointer hover:opacity-80 transition-opacity"
-                                >
-                                  <Image
-                                    src={incentive.image}
-                                    alt={incentive.name}
-                                    width={16}
-                                    height={16}
-                                    className="object-contain"
-                                  />
-                                </a>
-                              ) : (
-                                <div>
-                                  <Image
-                                    src={incentive.image}
-                                    alt={incentive.name}
-                                    width={16}
-                                    height={16}
-                                    className="object-contain"
-                                  />
-                                </div>
-                              )}
-                            </Tooltip>
-                          </div>
-                        ))
-                    ) : (
-                      <span className="text-white font-inter text-xs font-normal leading-4">---</span>
-                    );
-                  })()}
+                    {(() => {
+                      console.log(
+                        "Incentives for",
+                        item.name,
+                        ":",
+                        item.incentives
+                      );
+                      const hasValidIncentives =
+                        item.incentives &&
+                        item.incentives.length > 0 &&
+                        item.incentives.some(
+                          (incentive) => incentive && incentive.image
+                        );
+
+                      return hasValidIncentives ? (
+                        item.incentives
+                          .filter((incentive) => incentive && incentive.image)
+                          .map((incentive, index) => (
+                            <div
+                              key={index}
+                              className={index === 0 ? "" : "ml-2"}
+                            >
+                              <Tooltip content={incentive.name}>
+                                {incentive.link && incentive.link !== "#" ? (
+                                  <a
+                                    href={incentive.link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="cursor-pointer hover:opacity-80 transition-opacity"
+                                  >
+                                    <Image
+                                      src={incentive.image}
+                                      alt={incentive.name}
+                                      width={16}
+                                      height={16}
+                                      className="object-contain"
+                                    />
+                                  </a>
+                                ) : (
+                                  <div>
+                                    <Image
+                                      src={incentive.image}
+                                      alt={incentive.name}
+                                      width={16}
+                                      height={16}
+                                      className="object-contain"
+                                    />
+                                  </div>
+                                )}
+                              </Tooltip>
+                            </div>
+                          ))
+                      ) : (
+                        <span className="text-white font-inter text-xs font-normal leading-4">
+                          ---
+                        </span>
+                      );
+                    })()}
                   </div>
                 )}
                 {visibleColumns.tvl && (
