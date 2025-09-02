@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import { CustomCard } from "@/components/ui/card";
 import DepositView from "@/components/deposit-view";
 import { USD_STRATEGIES, BTC_STRATEGIES, ETH_STRATEGIES } from "../config/env";
 import { useRouter } from "next/router";
+import { CustomConnectButton } from "../components/ui/ConnectButton/CustomConnectButton";
+import { Header } from "../components/ui/header";
+import { Navigation } from "../components/ui/navigation";
+import CodeVerificationPopup from "@/components/ui/CodeVerificationPopup";
 
 type DurationType = "30_DAYS" | "60_DAYS" | "180_DAYS" | "PERPETUAL_DURATION";
 type StrategyType = "STABLE" | "INCENTIVE";
@@ -103,6 +108,39 @@ interface YieldSubpageProps {
   } | null;
 }
 
+// Utility function to format currency values
+const formatTVL = (value: number): string => {
+  // Show exact value with commas, rounded to nearest dollar
+  return `$${Math.round(value).toLocaleString()}`;
+};
+
+// Function to fetch TVL data
+const fetchTVLData = async (tvlUrl: string): Promise<string> => {
+  try {
+    if (!tvlUrl || tvlUrl === "") {
+      return "--";
+    }
+    
+    const response = await fetch(tvlUrl);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    const tvlValue = data?.result;
+    
+    if (typeof tvlValue === "number") {
+      return formatTVL(tvlValue);
+    } else {
+      console.warn('Unexpected TVL data structure:', data);
+      return "--";
+    }
+  } catch (error) {
+    console.error('Error fetching TVL:', error);
+    return "--";
+  }
+};
+
 const getStrategyInfo = (duration: DurationType): StrategyData => {
   const getAssetStrategies = (asset: AssetType) => {
     const strategies: Record<
@@ -185,22 +223,117 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
   const [selectedStrategy, setSelectedStrategy] =
     useState<SelectedStrategy | null>(null);
   const [usdApy, setUsdApy] = useState<string | null>(null);
+  const [usdTvl, setUsdTvl] = useState<string>("--");
+  const [ethTvl, setEthTvl] = useState<string>("--");
+  const [btcTvl, setBtcTvl] = useState<string>("--");
+  const [isVerified, setIsVerified] = useState(false);
+  const [isCodePopupOpen, setIsCodePopupOpen] = useState(true);
+  const [verificationError, setVerificationError] = useState("");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const router = useRouter();
+
+  // Check if user is already verified from localStorage
+  useEffect(() => {
+    const verified = localStorage.getItem("isVerified");
+    if (verified === "true") {
+      setIsVerified(true);
+      setIsCodePopupOpen(false);
+    }
+  }, []);
+
+  const handleVerifyCode = async (code: string) => {
+    try {
+      const response = await fetch("/api/verify-code", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ accessCode: code }),
+      });
+
+      if (response.ok) {
+        setIsVerified(true);
+        setIsCodePopupOpen(false);
+        setVerificationError("");
+        localStorage.setItem("isVerified", "true");
+      } else {
+        const data = await response.json();
+        setVerificationError(
+          data.message || "Incorrect code. Please try again."
+        );
+        setIsVerified(false);
+        setIsCodePopupOpen(true);
+      }
+    } catch (error) {
+      setVerificationError("An error occurred during verification.");
+      setIsVerified(false);
+      setIsCodePopupOpen(true);
+    }
+  };
+
+  const handleNavigateToDeposit = (params: {
+    asset: string;
+    duration: string;
+    strategy: string;
+  }) => {
+    setSelectedAsset({ asset: params.asset, duration: params.duration as DurationType });
+    setSelectedStrategy({
+      type: params.strategy as "stable" | "incentive",
+      asset: params.asset,
+      duration: params.duration as DurationType,
+      apy: getStrategyInfo(params.duration as DurationType)[
+        params.strategy === "stable" ? "stable" : "incentives"
+      ][params.asset as AssetType].apy.value,
+    });
+  };
 
   useEffect(() => {
     const apyUrl = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.apy;
     if (typeof apyUrl === "string" && apyUrl.startsWith("http")) {
       fetch(apyUrl)
-        .then((res) => res.json())
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          return res.json();
+        })
         .then((data) => {
           const trailingApy = data?.result?.trailing_total_APY;
           if (typeof trailingApy === "number") {
             setUsdApy(`${trailingApy.toFixed(2)}%`);
+          } else {
+            console.warn('Unexpected APY data structure:', data);
+            setUsdApy("N/A");
           }
         })
-        .catch(() => setUsdApy(null));
+        .catch((error) => {
+          console.error('Error fetching APY:', error);
+          setUsdApy("N/A");
+        });
+    } else if (typeof apyUrl === "string" && !apyUrl.startsWith("http")) {
+      // If apyUrl is not a URL, use it directly (fallback value)
+      setUsdApy(apyUrl);
     }
+  }, []);
+
+  // Fetch TVL data for all assets
+  useEffect(() => {
+    const fetchAllTVL = async () => {
+      // Fetch USD TVL
+      const usdTvlUrl = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.tvl;
+      if (usdTvlUrl) {
+        const usdTvlValue = await fetchTVLData(usdTvlUrl);
+        setUsdTvl(usdTvlValue);
+      }
+
+      // ETH and BTC are coming soon, so no TVL data for now
+      // When they become available, you can add their TVL fetching here
+      setEthTvl("--");
+      setBtcTvl("--");
+    };
+
+    fetchAllTVL();
   }, []);
 
   useEffect(() => {
@@ -250,18 +383,38 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
 
   console.log("Selected Strategy:", selectedStrategy);
 
-  // Always render the main content, assuming verification is handled by parent
+  if (!isVerified) {
+    return (
+      <div className="min-h-screen flex flex-col pt-[52px]">
+        <Header onNavigateToDeposit={handleNavigateToDeposit}>
+          <Navigation currentPage="earn" />
+        </Header>
+        <CodeVerificationPopup
+          isOpen={isCodePopupOpen}
+          onClose={() => {}}
+          onVerify={handleVerifyCode}
+          error={verificationError}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div
-      className="min-h-[calc(100vh)] relative w-full"
-      style={{
-        backgroundImage: "url('/images/background/earn-page-bg.svg')",
-        backgroundPosition: "center bottom -50px",
-        backgroundRepeat: "no-repeat",
-        backgroundSize: "100% auto",
-        backgroundAttachment: "fixed",
-      }}
-    >
+    <div className="min-h-screen flex flex-col pt-[52px]">
+      <Header onNavigateToDeposit={handleNavigateToDeposit}>
+          <Navigation currentPage="earn" />
+        </Header>
+      <main className="flex-1 overflow-y-auto">
+        <div
+          className="min-h-[calc(100vh)] relative w-full"
+          style={{
+            backgroundImage: "url('/images/background/earn-page-bg.svg')",
+            backgroundPosition: "center bottom -50px",
+            backgroundRepeat: "no-repeat",
+            backgroundSize: "100% auto",
+            backgroundAttachment: "fixed",
+          }}
+        >
       {selectedStrategy ? (
         <DepositView
           selectedAsset={selectedStrategy.asset}
@@ -401,6 +554,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
               availableDurations={["PERPETUAL_DURATION"]}
               className="w-[300px] h-[311px]"
               showRadialGradient={true}
+              tvl={usdTvl}
             />
             <CustomCard
               heading="Ethereum"
@@ -413,6 +567,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
               isComingSoon={true}
               className="w-[300px] h-[311px]"
               showRadialGradient={true}
+              tvl={ethTvl}
             />
             <CustomCard
               heading="Bitcoin"
@@ -425,10 +580,13 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
               isComingSoon={true}
               className="w-[300px] h-[311px]"
               showRadialGradient={true}
+              tvl={btcTvl}
             />
           </div>
         </div>
-      )}
+        )}
+        </div>
+      </main>
     </div>
   );
 };

@@ -1,21 +1,21 @@
 {
-    "name": "Lucidly Finance",
-    "short_name": "Lucidly",
-    "description": "Advanced Yield Platform for DeFi",
-    "start_url": "/",
-    "display": "standalone",
-    "background_color": "#0a0a0a",
-    "theme_color": "#7B5FFF",
-    "icons": [
-      {
-        "src": "/images/logo/Dark_Logomark_200_200.png",
-        "sizes": "200x200",
-        "type": "image/png"
-      },
-      {
-        "src": "/images/logo/Dark_Logomark_1024_1024.png",
-        "sizes": "1024x1024",
-        "type": "image/png"
-      }
-    ]
-  }
+  "name": "Lucidly Finance",
+  "short_name": "Lucidly",
+  "description": "Advanced Yield Platform for DeFi",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#7B5FFF",
+  "icons": [
+    {
+      "src": "/images/logo/Dark_Logomark_200_200.png",
+      "sizes": "200x200",
+      "type": "image/png"
+    },
+    {
+      "src": "/images/logo/Dark_Logomark_1024_1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,14 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip } from "@/components/ui/tooltip";
 import Image from "next/image";
+import { useAccount, useReadContract } from "wagmi";
+import { formatUnits } from "viem";
 import DepositView from "./deposit-view";
-import { USD_STRATEGIES } from "../config/env";
+import { USD_STRATEGIES, ETH_STRATEGIES, BTC_STRATEGIES } from "../config/env";
+import { IncentiveRewards } from "./ui/IncentiveRewards";
+import { FAQs, type FAQItemProps } from "./ui/FAQs";
+import DepositBarChart from "./graphs/depositChart";
+import AllocationChart from "./graphs/allocationsChart";
+import StrategyDailyYieldChart from "./graphs/strategyDailyYieldChart";
+import BaseApyTotalChart from "./graphs/baseApyTotalChart";
 
 interface MarketItem {
   id: number;
@@ -37,8 +40,8 @@ interface YieldDetailsViewProps {
 // Helper components
 const InfoIcon = () => (
   <svg
-    width="16"
-    height="16"
+    width="12"
+    height="12"
     viewBox="0 0 24 24"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
@@ -80,9 +83,9 @@ interface TabProps {
 const Tab: React.FC<TabProps> = ({ label, icon, active, onClick }) => (
   <button
     className={cn(
-      "flex items-center gap-2 px-4 pt-6 pb-4 border-b-2 transition-colors",
+      "flex items-center gap-2 px-4 pt-6 pb-4 border-b transition-colors",
       active
-        ? "border-white text-white"
+        ? "border-white text-white border-b-[0.75px]"
         : "border-transparent text-gray-400 hover:text-gray-300"
     )}
     onClick={onClick}
@@ -104,205 +107,187 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   onOpenDepositView,
 }) => {
   const [activeTab, setActiveTab] = useState<
-    "deposits" | "baseApy" | "incentives"
+    "deposits" | "baseApy" | "incentives" | "faqs"
   >("deposits");
-  const [showDepositView, setShowDepositView] = useState<boolean>(false);
+  const [activeDepositTab, setActiveDepositTab] = useState<
+    "deposits" | "allocation"
+  >("deposits");
+  const [activeBaseApyTab, setActiveBaseApyTab] = useState<
+    "totalApy" | "bySource"
+  >("totalApy");
 
-  // Mock data for the chart - This data will only be used if hasRealData is true
-  const chartData = [
-    { month: "FEB 24", value: 20 },
-    { month: "MAR 24", value: 15 },
-    { month: "APR 24", value: 25 },
-    { month: "MAY 24", value: 30 },
-    { month: "JUN 24", value: 28 },
-    { month: "JUL 24", value: 18 },
-    { month: "AUG 24", value: 32 },
-    { month: "SEP 24", value: 24 },
-    { month: "OCT 24", value: 26 },
-    { month: "NOV 24", value: 30 },
-    { month: "DEC 24", value: 24 },
-    { month: "JAN 24", value: 28 },
+  const [userDeposits, setUserDeposits] = useState<string>("0.00");
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Get connected wallet address
+  const { address, isConnected } = useAccount();
+
+  // Read user's syUSD token balance (vault shares)
+  const { data: userSyUSDTokens } = useReadContract({
+    address: contractAddress as `0x${string}`,
+    abi: [
+      {
+        name: "balanceOf",
+        type: "function",
+        stateMutability: "view",
+        inputs: [{ name: "account", type: "address" }],
+        outputs: [{ name: "", type: "uint256" }],
+      },
+    ],
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address && isConnected,
+    },
+  });
+
+  // Format user's syUSD token amount (same method as portfolio)
+  useEffect(() => {
+    if (userSyUSDTokens && typeof userSyUSDTokens === "bigint") {
+      // Use same method as portfolio.tsx
+      const decimals =
+        USD_STRATEGIES.PERPETUAL_DURATION.STABLE.shareAddress_token_decimal ??
+        6;
+      const formatted = Number(formatUnits(userSyUSDTokens, decimals));
+      setUserDeposits(formatted.toFixed(2));
+    } else if (!isConnected) {
+      setUserDeposits("0.00");
+    }
+  }, [userSyUSDTokens, isConnected]);
+
+  // FAQ data
+  const faqItems: FAQItemProps[] = [
+    {
+      question: "What is syUSD?",
+      answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore."
+    },
+    {
+      question: "Difference b/w syAssets and ryAssets.",
+      answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+    },
+    {
+      question: "Is is secure?",
+      answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Security is our top priority with multiple audits and safety measures in place."
+    },
+    {
+      question: "How are fixed yield positions created?",
+      answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Fixed yield positions are created through smart contract mechanisms that lock in rates."
+    },
+    {
+      question: "Where is the yield coming from?",
+      answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Yield is generated through various DeFi strategies and protocols."
+    },
+    {
+      question: "Who is the curator?",
+      answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. The curator is responsible for managing and optimizing the yield strategies."
+    }
   ];
 
   // Sub-components for each tab
+
   const renderDepositsTab = () => (
-    // <div>
-    //     <div className="flex justify-between items-center mb-6">
-    //         <h2 className="text-[rgba(255,255,255,0.70)]  text-[16px] font-bold">
-    //             TOTAL DEPOSITS IN {name}
-    //         </h2>
+    <div className="w-full">
+      <div className="flex justify-between items-center mb-3 mt-4">
+        <h2 className="text-[rgba(255,255,255,0.70)] text-[16px] font-extrabold ">
+          TOTAL DEPOSITS IN {name}
+        </h2>
 
-    //         {/* Toggle buttons */}
-    //         <div className="inline-flex overflow-hidden border border-gray-700 rounded-md">
-    //             <button className="text-[#D7E3EF]  text-[12px] font-normal leading-[16px] px-4 py-2 rounded-[6px_0px_0px_6px] border border-[rgba(184,138,248,0.50)] bg-[rgba(184,138,248,0.15)]">
-    //                 Total Deposits
-    //             </button>
-    //             <button className="text-[#D7E3EF]  text-[12px] font-normal leading-[16px] px-4 py-2 hover:text-white transition-colors">
-    //                 Allocation
-    //             </button>
-    //         </div>
-    //     </div>
+        {/* Toggle buttons */}
+        <div className="flex overflow-hidden border border-[rgba(184,138,248,0.2)] rounded-md">
+          <button
+            className={`px-3 py-1.5 w-28 text-xs transition-colors duration-150 ${
+              activeDepositTab === "deposits"
+                ? "bg-[rgba(184,138,248,0.1)] text-white"
+                : "bg-transparent text-gray-400 hover:text-gray-300"
+            }`}
+            onClick={() => setActiveDepositTab("deposits")}
+          >
+            Total Deposits
+          </button>
+          <button
+            className={`px-3 py-1.5 w-28 text-xs transition-colors duration-150 ${
+              activeDepositTab === "allocation"
+                ? "bg-[rgba(184,138,248,0.1)] text-white"
+                : "bg-transparent text-gray-400 hover:text-gray-300"
+            }`}
+            onClick={() => setActiveDepositTab("allocation")}
+          >
+            Allocation
+          </button>
+        </div>
+      </div>
 
-    //     {/* Chart */}
-    //     <div className="w-full h-64 relative">
-    //         {/* Y-axis labels */}
-    //         <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-between text-right text-xs text-gray-400">
-    //             <span>$100M</span>
-    //             <span>$80M</span>
-    //             <span>$60M</span>
-    //             <span>$40M</span>
-    //             <span>$20M</span>
-    //             <span>$0</span>
-    //         </div>
+      {activeDepositTab === "deposits" && (
+        <div className="h-[800px] overflow-y-auto pb-2">
+          <DepositBarChart />
+        </div>
+      )}
 
-    //         {/* Chart bars */}
-    //         <div className="flex justify-between items-end h-full pr-12">
-    //             {chartData.map((month, index) => (
-    //                 <div key={index} className="flex-1 flex flex-col items-center">
-    //                     <div
-    //                         className="w-4/5 bg-blue-500 mb-1"
-    //                         style={{ height: `${month.value * 2}px` }}
-    //                     ></div>
-    //                     <div
-    //                         className="w-4/5 bg-teal-300 mb-1"
-    //                         style={{ height: `${month.value * 1.5}px` }}
-    //                     ></div>
-    //                     <div
-    //                         className="w-4/5 bg-yellow-300 mb-1"
-    //                         style={{ height: `${month.value}px` }}
-    //                     ></div>
-    //                 </div>
-    //             ))}
-    //         </div>
-
-    //         {/* X-axis labels */}
-    //         <div className="flex justify-between pr-12 mt-2 text-xs text-gray-400">
-    //             {chartData.map((month, index) => (
-    //                 <div key={index} className="flex-1 text-center">
-    //                     {month.month}
-    //                 </div>
-    //             ))}
-    //         </div>
-    //     </div>
-    // </div>
-    <div className="relative w-full mb-6">
-      <h2 className="absolute top-48 left-1/2 -translate-x-1/2 text-lg text-white z-10">
-        Collecting data...
-      </h2>
-      <Image
-        src="/images/background/yields-blurred.jpg"
-        alt="Deposits Chart"
-        width={600}
-        height={300}
-        className="w-full h-auto"
-      />
+      {activeDepositTab === "allocation" && (
+        <div className="overflow-y-auto pb-2">
+          <AllocationChart />
+        </div>
+      )}
     </div>
   );
 
   const renderBaseApyTab = () => (
-    // <div>
-    //     <h2 className="text-[rgba(255,255,255,0.70)]  text-[16px] font-bold my-6">
-    //         BASE APY HISTORY
-    //     </h2>
+    <div className="w-full">
+      <div className="flex justify-between items-center mb-3 mt-4">
+        <h2 className="text-[rgba(255,255,255,0.70)] text-[16px] font-extrabold ">
+          BASE APY HISTORY
+        </h2>
 
-    //     {/* APY History Chart (simplified for example) */}
-    //     <div className="w-full h-64 bg-gray-800 rounded-md flex items-end">
-    //         <div className="w-full flex items-end justify-between p-4">
-    //             {[15, 18, 22, 25, 20, 24, 28, 30, 27, 25, 27, 25].map((val, i) => (
-    //                 <div
-    //                     key={i}
-    //                     className="w-2 bg-purple-500 rounded-t"
-    //                     style={{ height: `${val * 2}px` }}
-    //                 ></div>
-    //             ))}
-    //         </div>
-    //     </div>
-    // </div>
-    <div className="relative w-full mb-6">
-      <h2 className="absolute top-48 left-1/2 -translate-x-1/2 text-lg text-white z-10">
-        Collecting data...
-      </h2>
-      <Image
-        src="/images/background/yields-blurred.jpg"
-        alt="Deposits Chart"
-        width={600}
-        height={300}
-        className="w-full h-auto"
-      />
+        {/* Toggle buttons */}
+        <div className="flex overflow-hidden border border-[rgba(184,138,248,0.2)] rounded-md">
+          <button
+            className={`px-3 py-1.5 w-28 text-xs transition-colors duration-150 ${
+              activeBaseApyTab === "totalApy"
+                ? "bg-[rgba(184,138,248,0.1)] text-white"
+                : "bg-transparent text-gray-400 hover:text-gray-300"
+            }`}
+            onClick={() => setActiveBaseApyTab("totalApy")}
+          >
+            Total APY
+          </button>
+          <button
+            className={`px-3 py-1.5 w-28 text-xs transition-colors duration-150 ${
+              activeBaseApyTab === "bySource"
+                ? "bg-[rgba(184,138,248,0.1)] text-white"
+                : "bg-transparent text-gray-400 hover:text-gray-300"
+            }`}
+            onClick={() => setActiveBaseApyTab("bySource")}
+          >
+            By Source
+          </button>
+        </div>
+      </div>
+
+      {activeBaseApyTab === "totalApy" && (
+        <div className="h-[800px] overflow-y-auto pb-2">
+          <BaseApyTotalChart />
+        </div>
+      )}
+
+      {activeBaseApyTab === "bySource" && (
+        <div className="h-[800px] overflow-y-auto pb-2">
+          <StrategyDailyYieldChart />
+        </div>
+      )}
     </div>
   );
 
   const renderIncentivesTab = () => (
-    // <div>
-    //     <h2 className="text-[rgba(255,255,255,0.70)]  text-[16px] font-bold my-6">
-    //         INCENTIVE REWARDS
-    //     </h2>
+    <IncentiveRewards strategyName={name} className="w-full" />
+  );
 
-    //     <div className="bg-gray-800 rounded-md p-6">
-    //         <div className="grid grid-cols-2 gap-4">
-    //             <div className="border border-gray-700 rounded-md p-4">
-    //                 <div className="flex items-center gap-2 mb-4">
-    //                     <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-    //                         <svg
-    //                             width="16"
-    //                             height="16"
-    //                             viewBox="0 0 24 24"
-    //                             fill="none"
-    //                             xmlns="http://www.w3.org/2000/svg"
-    //                         >
-    //                             <path
-    //                                 d="M12 2L12 9.5M12 2L6 5M12 2L18 5M12 22L12 15M12 22L6 19M12 22L18 19"
-    //                                 stroke="white"
-    //                                 strokeWidth="2"
-    //                                 strokeLinecap="round"
-    //                                 strokeLinejoin="round"
-    //                             />
-    //                         </svg>
-    //                     </div>
-    //                     <span className="font-medium">ETH Rewards</span>
-    //                 </div>
-    //                 <div className="text-2xl font-bold mb-1">0.25 ETH</div>
-    //                 <div className="text-gray-400 text-sm">~$625.00 USD</div>
-    //             </div>
-
-    //             <div className="border border-gray-700 rounded-md p-4">
-    //                 <div className="flex items-center gap-2 mb-4">
-    //                     <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
-    //                         <svg
-    //                             width="16"
-    //                             height="16"
-    //                             viewBox="0 0 24 24"
-    //                             fill="none"
-    //                             xmlns="http://www.w3.org/2000/svg"
-    //                         >
-    //                             <path
-    //                                 d="M12 2V22M17 5H9.5C7.567 5 6 6.567 6 8.5C6 10.433 7.567 12 9.5 12H14.5C16.433 12 18 13.567 18 15.5C18 17.433 16.433 19 14.5 19H7"
-    //                                 stroke="white"
-    //                                 strokeWidth="2"
-    //                                 strokeLinecap="round"
-    //                                 strokeLinejoin="round"
-    //                             />
-    //                         </svg>
-    //                     </div>
-    //                     <span className="font-medium">Platform Token</span>
-    //                 </div>
-    //                 <div className="text-2xl font-bold mb-1">150 LCY</div>
-    //                 <div className="text-gray-400 text-sm">$75 USD</div>
-    //             </div>
-    //         </div>
-    //     </div>
-    // </div>
-    <div className="relative w-full mb-6">
-      <h2 className="absolute top-48 left-1/2 -translate-x-1/2 text-lg text-white z-10">
-        Collecting data...
-      </h2>
-      <Image
-        src="/images/background/yields-blurred.jpg"
-        alt="Deposits Chart"
-        width={600}
-        height={300}
-        className="w-full h-auto"
-      />
+  const renderFAQsTab = () => (
+    <div className="w-full mt-6">
+      <FAQs items={faqItems} className="w-full max-w-4xl" />
     </div>
   );
 
@@ -319,37 +304,69 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
             />
         ):( */}
       <div className="w-full pl-0 sm:pl-4 mt-2 sm:mt-10 px-4 sm:px-0">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-4 sm:gap-0">
-          <div className="flex items-center pl-0 w-full sm:w-auto">
-            <div className="inline-flex items-center gap-[6px] pl-0">
+        <div className="flex flex-col lg:flex-row justify-between items-start mb-2 gap-4">
+          <div className="flex items-center pl-0 w-full lg:w-auto">
+            <div className="inline-flex items-center gap-[8px] pl-0">
               <div className="flex items-baseline gap-2">
-                <h1 className="text-[18px] sm:text-[20px] font-semibold text-[#D7E3EF] leading-normal">
+                <h1 className="text-[18px] sm:text-[20px] font-semibold text-[#D7E3EF] leading-none">
                   {name}
                 </h1>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-baseline">
-                        <svg width="14" height="13" viewBox="0 0 14 13" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M6.99935 8.83341V6.50008M6.99935 4.16675H7.00518M12.8327 6.50008C12.8327 9.72174 10.221 12.3334 6.99935 12.3334C3.77769 12.3334 1.16602 9.72174 1.16602 6.50008C1.16602 3.27842 3.77769 0.666748 6.99935 0.666748C10.221 0.666748 12.8327 3.27842 12.8327 6.50008Z" stroke="#9C9DA2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent className="text-xs" side="top">
-                      syUSD is a synthetic USD stablecoin that provides yield through various DeFi strategies
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+
+                <Tooltip content="syUSD is a synthetic USD stablecoin that provides yield through various DeFi strategies" side="top">
+                  <div className="flex items-center">
+                    <svg
+                      width="14"
+                      height="13"
+                      viewBox="0 0 14 13"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M6.99935 8.83341V6.50008M6.99935 4.16675H7.00518M12.8327 6.50008C12.8327 9.72174 10.221 12.3334 6.99935 12.3334C3.77769 12.3334 1.16602 9.72174 1.16602 6.50008C1.16602 3.27842 3.77769 0.666748 6.99935 0.666748C10.221 0.666748 12.8327 3.27842 12.8327 6.50008Z"
+                        stroke="#9C9DA2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
+                </Tooltip>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <button
-              className="bg-[#B88AF8] hover:bg-[#9F6EE9] text-[#080B17] flex items-center gap-[8px] px-[16px] py-[6px] rounded-[4px] transition-colors text-[14px] font-normal leading-normal w-full sm:w-auto justify-center"
-              onClick={onOpenDepositView}
-            >
-              Deposit
-            </button>
+
+          {/* Simple Your Deposits - Right Side */}
+          <div className="flex items-center gap-3">
+            {/* Only show holdings component if user has actual holdings */}
+            {isClient && isConnected && userDeposits !== "0.00" && (
+              <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-[4px] px-2 py-1.5">
+                <span className="text-[#9C9DA2] text-[12px]">Your Holdings:</span>
+                <span className="text-white text-[14px] font-medium">
+                  {userDeposits}
+                </span>
+                {/* Circular icon next to deposit amount */}
+                <div className="w-4 h-4 rounded-full overflow-hidden flex items-center justify-center">
+                  <Image
+                    src="/images/icons/syUSD.svg"
+                    alt="syUSD"
+                    width={16}
+                    height={16}
+                    className="object-contain"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <button className="text-white border border-[rgba(255,255,255,0.1)] rounded-[4px] px-3 py-1.5 text-[12px] font-medium transition-colors cursor-default">
+                Liquid
+              </button>
+              <button
+                className="bg-[#B88AF8] hover:bg-[#9F6EE9] text-[#080B17] flex items-center gap-[8px] px-[16px] py-[6px] rounded-[4px] transition-colors text-[14px] font-normal leading-normal"
+                onClick={onOpenDepositView}
+              >
+                Deposit
+              </button>
+            </div>
           </div>
         </div>
 
@@ -362,10 +379,25 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
           {/* Base APY */}
           <div className="flex flex-col justify-center items-start relative pr-4 sm:pr-6 h-[35px] gap-[10px] after:content-[''] after:absolute after:right-0 after:top-1/2 after:-translate-y-1/2 after:w-px after:h-[35px] after:bg-gray-700 min-w-[80px]">
-            <div className="text-[#9C9DA2] text-xs leading-none">Base APY</div>
-            <div className="font-semibold text-sm leading-none">---</div>
+            <div className="text-[#9C9DA2] text-xs leading-none flex items-center gap-1">
+              Base APY
+              <Tooltip content="7d moving average" side="top">
+                <div className="cursor-pointer">
+                  <InfoIcon />
+                </div>
+              </Tooltip>
+            </div>
+            <div className="font-semibold text-sm leading-none">{baseApy}</div>
           </div>
 
+          {/* Content */}
+          {/* <div className="mt-2 pl-0">
+                {activeTab === "deposits" && (
+                  <DailyDeposits endpoint="http://localhost:3001/api/syUSD/daily-deposits" />
+                )}
+                {activeTab === "baseApy" && renderBaseApyTab()}
+                {activeTab === "incentives" && renderIncentivesTab()}
+          </div> */}
           {/* Contract Address */}
           <div className="flex flex-col justify-center items-start relative pr-4 sm:pr-6 h-[35px] gap-[10px] after:content-[''] after:absolute after:right-0 after:top-1/2 after:-translate-y-1/2 after:w-px after:h-[35px] after:bg-gray-700 min-w-[120px] sm:min-w-[140px]">
             <div className="text-[#9C9DA2] text-xs leading-none">
@@ -373,7 +405,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
             </div>
             <div className="font-semibold text-sm leading-none flex items-center gap-1">
               {contractAddress
-                ? `${contractAddress.slice(0, 6)}...${contractAddress.slice(
+                ? `${contractAddress.slice(0, 4)}...${contractAddress.slice(
                     -4
                   )}`
                 : "N/A"}
@@ -389,7 +421,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
           </div>
 
           {/* Network */}
-          <div className="flex flex-col justify-center items-start h-[35px] gap-[5px] min-w-[80px]">
+          <div className="flex flex-col justify-center items-start h-[40px] gap-[5px] min-w-[80px]">
             <div className="text-[#9C9DA2] text-xs leading-none">Network</div>
             <div className="relative mt-0 text-[14px] flex items-center cursor-pointer group">
               {(
@@ -402,28 +434,21 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
               )
                 .filter(Boolean)
                 .map((networkConfig, index) => (
-                  <TooltipProvider key={networkConfig.chainObject.name}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div
-                          className={cn(
-                            "relative z-10 transition-transform duration-300 hover:scale-110",
-                            index > 0 && "-ml-2"
-                          )}
-                        >
-                          <Image
-                            src={networkConfig.image}
-                            alt={networkConfig.chainObject.name}
-                            width={24}
-                            height={24}
-                          />
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent className="text-xs" side="top">
-                        {networkConfig.chainObject.name}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip key={networkConfig.chainObject.name} content={networkConfig.chainObject.name} side="top">
+                    <div
+                      className={cn(
+                        "relative z-10 transition-transform duration-300 hover:scale-110",
+                        index > 0 && "-ml-2"
+                      )}
+                    >
+                      <Image
+                        src={networkConfig.image}
+                        alt={networkConfig.chainObject.name}
+                        width={24}
+                        height={24}
+                      />
+                    </div>
+                  </Tooltip>
                 ))}
             </div>
           </div>
@@ -469,6 +494,19 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
             active={activeTab === "incentives"}
             onClick={() => setActiveTab("incentives")}
           />
+          {/* <Tab
+            label="FAQs"
+            icon={
+              <img
+                src="/images/icons/faqs.svg"
+                alt="Incentives"
+                width={16}
+                height={16}
+              />
+            }
+            active={activeTab === "faqs"}
+            onClick={() => setActiveTab("faqs")}
+          /> */}
         </div>
 
         {/* Content */}
@@ -476,6 +514,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
           {activeTab === "deposits" && renderDepositsTab()}
           {activeTab === "baseApy" && renderBaseApyTab()}
           {activeTab === "incentives" && renderIncentivesTab()}
+          {activeTab === "faqs" && renderFAQsTab()}
         </div>
       </div>
       {/* )} */}

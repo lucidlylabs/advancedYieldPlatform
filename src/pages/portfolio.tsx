@@ -18,6 +18,9 @@ import {
   getAddress,
 } from "viem";
 import { useRouter } from "next/router";
+import { CustomConnectButton } from "../components/ui/ConnectButton/CustomConnectButton";
+import { Header } from "../components/ui/header";
+import { Navigation } from "../components/ui/navigation";
 
 const InfoIcon = () => (
   <svg
@@ -47,12 +50,8 @@ const isMobile = () => typeof window !== "undefined" && window.innerWidth < 640;
 //   ResponsiveContainer,
 //   CartesianGrid,
 // } from "recharts";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip } from "@/components/ui/tooltip";
+// import PortfolioChart from "@/components/graphs/portfolioChart";
 
 
 interface NetworkConfig {
@@ -225,6 +224,32 @@ interface StrategyAsset {
   [key: string]: StrategyDuration;
 }
 
+// Add interface for strategy with balance
+interface StrategyWithBalance {
+  network: string;
+  contract: string;
+  boringVaultAddress: string;
+  solverAddress: string;
+  shareAddress: string;
+  shareAddress_token_decimal: number;
+  rateProvider: string;
+  base: NetworkConfig;
+  ethereum: NetworkConfig;
+  arbitrum: NetworkConfig;
+  description: string;
+  apy: string;
+  incentives: string;
+  tvl: string;
+  rpc: string;
+  show_cap: boolean;
+  filled_cap: string;
+  cap_limit: string;
+  duration: string;
+  type: string;
+  asset: string;
+  balance: number;
+}
+
 const requests = [
   {
     date: "18th May'25",
@@ -299,6 +324,12 @@ const chainConfigs = {
 
 const PortfolioSubpage: React.FC = () => {
   const { address, isConnected, chain } = useAccount();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const formatDuration = (duration: string) => {
     if (duration === "PERPETUAL_DURATION") return "Liquid";
     const [number, period] = duration.split("_");
@@ -312,8 +343,8 @@ const PortfolioSubpage: React.FC = () => {
   const [isApproved, setIsApproved] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
   const [approvalHash, setApprovalHash] = useState<`0x${string}` | null>(null);
-  const [strategiesWithBalance, setStrategiesWithBalance] = useState<any[]>([]);
-  const [selectedStrategy, setSelectedStrategy] = useState<any | null>(null);
+  const [strategiesWithBalance, setStrategiesWithBalance] = useState<StrategyWithBalance[]>([]);
+  const [selectedStrategy, setSelectedStrategy] = useState<StrategyWithBalance | null>(null);
   const [withdrawAmount, setWithdrawAmount] = useState<string>("");
   const [slippage, setSlippage] = useState<string>("0.03");
   const [isWithdrawing, setIsWithdrawing] = useState(false);
@@ -349,7 +380,7 @@ const PortfolioSubpage: React.FC = () => {
   const chainId = useChainId();
   const isBase = chainId === 8453;
 
-  const router = useRouter();
+  const router = useRouter() as any;
 
   const strategyConfigs = {
     USD: USD_STRATEGIES,
@@ -424,14 +455,28 @@ const PortfolioSubpage: React.FC = () => {
     const apyUrl = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.apy;
     if (typeof apyUrl === "string" && apyUrl.startsWith("http")) {
       fetch(apyUrl)
-        .then((res) => res.json())
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          return res.json();
+        })
         .then((data) => {
           const trailingApy = data?.result?.trailing_total_APY;
           if (typeof trailingApy === "number") {
             setUsdApy(`${trailingApy.toFixed(2)}%`);
+          } else {
+            console.warn('Unexpected APY data structure:', data);
+            setUsdApy("N/A");
           }
         })
-        .catch(() => setUsdApy(null));
+        .catch((error) => {
+          console.error('Error fetching APY:', error);
+          setUsdApy("N/A");
+        });
+    } else if (typeof apyUrl === "string" && !apyUrl.startsWith("http")) {
+      // If apyUrl is not a URL, use it directly (fallback value)
+      setUsdApy(apyUrl);
     }
   }, []);
 
@@ -616,7 +661,7 @@ const PortfolioSubpage: React.FC = () => {
       const balances = await Promise.all(
         allStrategies.map(async (strategy) => {
           const balance = await checkStrategyBalance(strategy);
-          return { ...strategy, balance };
+          return { ...strategy, balance } as StrategyWithBalance;
         })
       );
       setStrategiesWithBalance(balances.filter((s) => s.balance > 0));
@@ -918,7 +963,7 @@ const PortfolioSubpage: React.FC = () => {
   };
 
   // Handler for row clicks
-  const handleStrategySelect = (strategy: any) => {
+  const handleStrategySelect = (strategy: StrategyWithBalance) => {
     console.log("strategy", strategy);
     if (isMobile()) {
       router.push({
@@ -953,7 +998,7 @@ const PortfolioSubpage: React.FC = () => {
 
   const handlePercentageClick = (percentage: number) => {
     if (selectedStrategy) {
-      const amount = (selectedStrategy.balance * percentage).toFixed(6);
+      const amount = (selectedStrategy.balance * percentage).toFixed(2);
       setWithdrawAmount(amount);
     }
   };
@@ -1173,7 +1218,11 @@ const PortfolioSubpage: React.FC = () => {
   }, [isWithdrawSuccess, withdrawTxHash, address]);
 
   return (
-    <div className="flex flex-col min-h-screen text-white overflow-y-auto">
+    <div className="min-h-screen flex flex-col pt-[52px]">
+      <Header onNavigateToDeposit={() => {}}>
+        <Navigation currentPage="portfolio" />
+      </Header>
+      <main className="flex-1 overflow-y-auto">
       {/* Top Section - Portfolio Value, PNL, and Wallet */}
       <div className="flex flex-col sm:flex-row w-full py-6 sm:py-10 items-center justify-between px-4 sm:px-8 bg-[#0D101C] border-b border-[rgba(255,255,255,0.1)]">
         <div className="w-full sm:w-auto">
@@ -1221,28 +1270,34 @@ const PortfolioSubpage: React.FC = () => {
                 PNL
               </div>
               <div className="text-[#00D1A0] text-[16px] font-normal leading-normal mt-1 sm:mt-3">
-                {strategiesWithBalance
-                  .reduce(
-                    (sum, s) =>
-                      sum +
-                      (s.balance * parseFloat(s.apy?.replace("%", "") || "0")) /
-                        100,
-                    0
-                  )
-                  .toFixed(2)}
-                (
-                {strategiesWithBalance.length > 0
-                  ? "" +
-                    (
-                      strategiesWithBalance.reduce(
-                        (sum, s) =>
-                          sum + parseFloat(s.apy?.replace("%", "") || "0"),
-                        0
-                      ) / strategiesWithBalance.length
-                    ).toFixed(1) +
-                    "%"
-                  : "0%"}
-                )
+                {(() => {
+                  const totalPnl = strategiesWithBalance.reduce((sum, s) => {
+                    // Use the correct APY value for calculations
+                    let apyToUse = s.apy;
+                    if (s.asset === "USD" && s.type === "stable") {
+                      apyToUse = usdApy || s.apy;
+                    }
+                    
+                    const apyValue = parseFloat(apyToUse?.replace("%", "") || "0");
+                    if (isNaN(apyValue)) return sum;
+                    return sum + (s.balance * apyValue) / 100;
+                  }, 0);
+                  
+                  const avgApy = strategiesWithBalance.length > 0 
+                    ? strategiesWithBalance.reduce((sum, s) => {
+                        // Use the correct APY value for calculations
+                        let apyToUse = s.apy;
+                        if (s.asset === "USD" && s.type === "stable") {
+                          apyToUse = usdApy || s.apy;
+                        }
+                        
+                        const apyValue = parseFloat(apyToUse?.replace("%", "") || "0");
+                        return sum + (isNaN(apyValue) ? 0 : apyValue);
+                      }, 0) / strategiesWithBalance.length
+                    : 0;
+                  
+                  return `${totalPnl.toFixed(2)} (${avgApy.toFixed(1)}%)`;
+                })()}
               </div>
             </div>
           </div>
@@ -1252,56 +1307,23 @@ const PortfolioSubpage: React.FC = () => {
             Wallet Address
           </div>
           <div className="text-[#D7E3EF] font-mono opacity-80 text-[12px] sm:text-[14px] font-normal text-center sm:text-left">
-            {isConnected ? address : "Not connected"}
+            {!isClient ? "Loading..." : (isConnected ? address : "Not connected")}
           </div>
         </div>
       </div>
 
       {/* Main Content - Split View */}
-      <div className="flex flex-col sm:flex-row flex-1">
-        {/* Left Side - Assets Table */}
-        <div className="w-full sm:w-1/2 border-r border-[rgba(255,255,255,0.1)] pt-4 sm:pt-8 px-4 sm:pl-8">
-          <div className="mb-6">
-            <div className="text-[rgba(255,255,255,0.70)] text-[16px] font-medium uppercase">
+      <div className="flex flex-1">
+        {/* Left Side - Assets Table */}  
+        <div className="w-1/2 border-r border-[rgba(255,255,255,0.1)] pt-8 pl-8 overflow-y-auto pb-36">
+          {/* <PortfolioChart userAddress={address ?? ""} /> */}
+          <div className="mt-8">      
+            <div className="mb-6">
+                          <div className="text-[rgba(255,255,255,0.70)]   text-[16px] font-bold uppercase">
               Total Portfolio Value
             </div>
           </div>
-
-          {/* Graph */}
-          {/* <div className="w-full h-[350px] rounded-xl">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={chartData}
-                barCategoryGap={1} 
-                barGap={0}
-              >
-                <CartesianGrid vertical={false} stroke="#1F1F2B" />
-                <XAxis
-                  dataKey="date"
-                  stroke="#9C9DA2"
-                  fontSize={8}
-                  tickMargin={4}
-                  interval={2}
-                  tick={(props) => <CustomXAxisTick {...props} data={chartData} />}
-                />
-                <YAxis
-                  orientation="right"
-                  stroke="#9C9DA2"
-                  tickFormatter={(value) => `$${value}`}
-                  domain={[0, 100]}
-                  fontSize={12}
-                  axisLine={false}
-                />
-                <Tooltip
-                  contentStyle={{ backgroundColor: "#1A1A2F", border: "none", color: "#fff" }}
-                  labelStyle={{ color: "#9C9DA2" }}
-                  formatter={(value: number) => [`$${value.toFixed(2)}`, "Value"]}
-                />
-                <Bar dataKey="base" stackId="a" fill="#00E8C2" radius={[2, 2, 0, 0]} />
-                <Bar dataKey="incentive" stackId="a" fill="#7155FF" radius={[2, 2, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div> */}
+        </div>
 
           {/* Column Headers */}
           <div className="grid grid-cols-5 sm:pl-4 sm:pr-6 py-2 border-b border-[rgba(255,255,255,0.15)]">
@@ -1350,30 +1372,23 @@ const PortfolioSubpage: React.FC = () => {
             </div>
             <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
               Base APY
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <svg
-                      className="ml-1 cursor-pointer"
-                      width="12"
-                      height="12"
-                      viewBox="0 0 10 10"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M4.9987 6.66659V4.99992M4.9987 3.33325H5.00286M9.16536 4.99992C9.16536 7.30111 7.29988 9.16659 4.9987 9.16659C2.69751 9.16659 0.832031 7.30111 0.832031 4.99992C0.832031 2.69873 2.69751 0.833252 4.9987 0.833252C7.29988 0.833252 9.16536 2.69873 9.16536 4.99992Z"
-                        stroke="#9C9DA2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </TooltipTrigger>
-                  <TooltipContent className="text-xs" side="top">
-                    7 Day trailing
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip content="7 Day trailing" side="top">
+                <svg
+                  className="ml-1 cursor-pointer"
+                  width="12"
+                  height="12"
+                  viewBox="0 0 10 10"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M4.9987 6.66659V4.99992M4.9987 3.33325H5.00286M9.16536 4.99992C9.16536 7.30111 7.29988 9.16659 4.9987 9.16659C2.69751 9.16659 0.832031 7.30111 0.832031 4.99992C0.832031 2.69873 2.69751 0.833252 4.9987 0.833252C7.29988 0.833252 9.16536 2.69873 9.16536 4.99992Z"
+                    stroke="#9C9DA2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </Tooltip>
               <svg
                 className="ml-1"
                 width="14"
@@ -1456,7 +1471,7 @@ const PortfolioSubpage: React.FC = () => {
                     }`}
                   ></div>
                   {/* Strategy Name */}
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className="flex items-center gap-4">
                     <Image
                       src={`/images/icons/${strategy.asset.toLowerCase()}-${
                         strategy.type === "stable" ? "stable" : "incentive"
@@ -1466,104 +1481,78 @@ const PortfolioSubpage: React.FC = () => {
                       height={32}
                     />
                     <div>
-                      <div className="text-[#EDF2F8] text-[12px] font-normal leading-normal">
+                      <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
                         {strategy.type === "stable" ? "sy" : "Incentive Maxi"}
                         {strategy.asset}
                       </div>
-                      <div className="text-[#00D1A0] text-[12px] font-normal">
+                      <div className="text-[#00D1A0]   text-[12px] font-normal">
                         +
-                        {(
-                          (strategy.balance *
-                            parseFloat(usdApy?.replace("%", "") || "0")) /
-                          100
-                        ).toFixed(2)}{" "}
+                        {(() => {
+                          // Use the correct APY value for calculations
+                          let apyToUse = strategy.apy;
+                          if (strategy.asset === "USD" && strategy.type === "stable") {
+                            apyToUse = usdApy || strategy.apy;
+                          }
+                          
+                          const apyValue = parseFloat(apyToUse?.replace("%", "") || "0");
+                          if (isNaN(apyValue)) return "0.00";
+                          return ((strategy.balance * apyValue) / 100).toFixed(2);
+                        })()}{" "}
                         in 1 year
                       </div>
                     </div>
                   </div>
 
-                  {/* Deposited On */}
-                  {depositedChains.length === 0 ? (
-                    <div className="flex flex-col items-end justify-end">
-                      <div className="text-[#EDF2F8] text-[12px] font-normal leading-normal">
-                        -
+                  {/* Deposited on */}
+                  <div className="flex justify-end text-[#EDF2F8] text-[12px] font-normal">
+                    {depositedChains.length > 0 ? (
+                      <div className="flex items-center gap-1">
+                        {depositedChains.map((chain, idx) => (
+                          <div key={chain} className="flex items-center">
+                            <img
+                              src={chainIconMap[chain]?.src || "/images/logo/base.svg"}
+                              alt={chain}
+                              className="w-4 h-4 rounded-full"
+                            />
+                            {idx < depositedChains.length - 1 && <span className="mx-1">,</span>}
+                          </div>
+                        ))}
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-end gap-0 flex-wrap -space-x-2">
-                      {depositedChains.map((chainKey) => {
-                        const chain = chainIconMap[chainKey];
-                        if (!chain) return null;
-
-                        return (
-                          <TooltipProvider key={chainKey}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className="transition-transform duration-300 hover:scale-110">
-                                  <Image
-                                    src={chain.src}
-                                    alt={chain.label}
-                                    width={24}
-                                    height={24}
-                                  />
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent className="text-xs" side="top">
-                                {chain.label}
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        );
-                      })}
-                    </div>
-                  )}
+                    ) : (
+                      "-"
+                    )}
+                  </div>
 
                   {/* Expiry */}
-                  <div className="flex flex-col items-end justify-end">
-                    <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
-                      {strategy.duration === "PERPETUAL_DURATION"
-                        ? "No Expiry"
-                        : "29th March 2025"}
-                    </div>
-                    <div className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
-                      {strategy.duration === "PERPETUAL_DURATION"
-                        ? "Perpetual"
-                        : "20 days to Expire"}
-                    </div>
+                  <div className="flex justify-end text-[#EDF2F8] text-[12px] font-normal">
+                    {strategy.duration === "PERPETUAL_DURATION" ? "Liquid" : formatDuration(strategy.duration)}
                   </div>
 
-                  {/* APY */}
-                  <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal flex items-center justify-end">
-                    {usdApy}
+                  {/* Base APY */}
+                  <div className="flex justify-end text-[#EDF2F8] text-[12px] font-normal">
+                    {(() => {
+                      // For USD strategies, use the fetched APY data
+                      if (strategy.asset === "USD" && strategy.type === "stable") {
+                        return usdApy || "N/A";
+                      }
+                      // For other strategies, use the strategy APY or fallback
+                      return strategy.apy || "N/A";
+                    })()}
                   </div>
 
-                  {/* Balance */}
-                  <div className="flex flex-col text-right">
-                    <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
-                      ${strategy.balance.toFixed(2)}
-                    </div>
-                    <div
-                      className={`${
-                        parseFloat(usdApy?.replace("%", "") || "0") >= 0
-                          ? "text-[#00D1A0]"
-                          : "text-[#EF4444]"
-                      }   text-[12px] font-normal leading-normal`}
-                    >
-                      $
-                      {(
-                        (strategy.balance *
-                          parseFloat(usdApy?.replace("%", "") || "0")) /
-                        100
-                      ).toFixed(2)}{" "}
-                      ({usdApy})
-                    </div>
+                  {/* Current Balance */}
+                  <div className="flex justify-end text-[#EDF2F8] text-[12px] font-normal">
+                    ${strategy.balance.toFixed(2)}
                   </div>
+
                 </div>
               ))
             ) : (
-              <div className="text-center py-12 text-[#9C9DA2]">
-                No assets found in your portfolio. Deposit assets to get
-                started.
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="text-[#9C9DA2] text-center">
+                  <div className="text-lg font-medium mb-2">No yields found</div>
+                  <div className="text-sm">Start depositing to see your yields here</div>
+                </div>
               </div>
             )}
           </div>
@@ -1630,23 +1619,14 @@ const PortfolioSubpage: React.FC = () => {
                             <span className="capitalize text-[12px]">
                               {targetChain}
                             </span>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="ml-1">
-                                    <InfoIcon />
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent
-                                  className="text-xs max-w-[240px]"
-                                  side="top"
-                                >
-                                  To reduce bridging risks and ensure accurate
-                                  yield tracking, deposits and withdrawals are
-                                  limited to the Base network.
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Tooltip 
+                              content="To reduce bridging risks and ensure accurate yield tracking, deposits and withdrawals are limited to the Base network."
+                              side="top"
+                            >
+                              <div className="ml-1">
+                                <InfoIcon />
+                              </div>
+                            </Tooltip>
                           </div>
                           {/* Dropdown arrow */}
                           {/* <svg
@@ -1767,9 +1747,9 @@ const PortfolioSubpage: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex justify-between py-4 mb-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] p-4 items-center">
-                      <div className="text-[#9C9DA2] text-[12px] font-normal leading-normal">
-                        You Will Receive
+                    <div className="flex justify-between py-4 mb-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] px-6 items-center">
+                      <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
+                        You Will Receive 
                       </div>
                       <div className="flex justify-end items-center gap-4">
                         <div className="text-[#EDF2F8] text-[16px] font-medium leading-normal">
@@ -2294,6 +2274,7 @@ const PortfolioSubpage: React.FC = () => {
           )}
         </div>
       </div>
+      </main>
     </div>
   );
 };

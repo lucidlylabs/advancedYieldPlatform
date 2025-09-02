@@ -2,6 +2,7 @@ export const USD_STRATEGIES = {
   PERPETUAL_DURATION: {
     STABLE: {
       name: "syUSD",
+      displayName: "Stable Yield USD",
       type: "usd",
       network: "Base",
       contract: "0xaefc11908fF97c335D16bdf9F2Bf720817423825",
@@ -158,22 +159,26 @@ export const USD_STRATEGIES = {
         enabled: true,
         points: [
           {
-            name: "1.5x boost Liquidity Land",
+            name: "Liquidity Land",
             image: "/images/icons/syUSD/liquidity_land.png",
-            multiplier: 1.0,
+            multiplier: 1.5,
+            description:
+              "Earn 1.5x Lucildy Drops  as bonus for Liquidity Land users ",
             link: "https://app.liquidity.land/project/Lucidly",
           },
           {
             name: "Ethena Sats",
             image: "/images/icons/syUSD/ethena.svg",
-            description: "Earn loyalty points for long-term staking",
             multiplier: 1,
+            description:
+              "Points earned through protocol fund allocation strategies",
           },
           {
             name: "Resolv Points",
             image: "/images/icons/syUSD/resolv.svg",
-            description: "Earn referral points for bringing new users",
-            multiplier: 2.0,
+            multiplier: 1,
+            description:
+              "Points earned through protocol fund allocation strategies",
           },
         ],
       },
@@ -202,6 +207,58 @@ export const USD_STRATEGIES = {
   },
 };
 
+export const ETH_STRATEGIES = {};
 export const BTC_STRATEGIES = {};
 
-export const ETH_STRATEGIES = {};
+// Strategy address to name mapping configuration for charts and UI
+export const STRATEGY_NAMES: { [address: string]: string } = {
+  // Stable USD Strategy Names - Using the actual full addresses from your API
+
+  // Main strategies based on your allocation chart - these are placeholder mappings
+  // You need to replace these with the actual full addresses from your API response
+  "0x2fA9...cDCC": "PT-sUSDF/USDC SiloV2 (7.5x)",
+  "0xa32B...9BB1": "PT-iUSD/USDC Morpho (4x)",
+  "0xd0bc...b89E": "Gauntlet Frontier USDC",
+  "0x914f...Af86": "USR",
+  "0x7985...15bb": "sUSDe/USDC AaveV3 (7x)",
+  "0x1ed0...BD01": "RLP/USDC Morpho (4x)",
+  "0x34a0...Ea14": "RLP",
+  "0x56B3...813A": "sUSDe",
+  "0x24a56bdA1e697Dc5b9802770DE476D509f02Ff8e": "WsUSR",
+
+  // Add more strategy mappings as needed
+  // "0x1234567890abcdef1234567890abcdef12345678": "Strategy Name Here",
+};
+
+// Helper function to get strategy name by address
+export function getStrategyName(address: string): string {
+  return STRATEGY_NAMES[address] || address;
+}
+
+// Helper function to get display name (truncated if no mapping exists)
+export function getStrategyDisplayName(address: string): string {
+  // First try exact match
+  const exactName = getStrategyName(address);
+  if (exactName !== address) {
+    return exactName;
+  }
+
+  // If no exact match, try partial matching with truncated addresses
+  const truncatedAddress =
+    address.length > 10
+      ? `${address.slice(0, 6)}...${address.slice(-4)}`
+      : address;
+
+  const partialName = STRATEGY_NAMES[truncatedAddress];
+  if (partialName) {
+    return partialName;
+  }
+
+  // If no mapping exists, return truncated address
+  return truncatedAddress;
+}
+
+// Helper function to check if an address has a name mapping
+export function hasStrategyName(address: string): boolean {
+  return STRATEGY_NAMES.hasOwnProperty(address);
+}

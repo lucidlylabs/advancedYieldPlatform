@@ -1,11 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip } from "@/components/ui/tooltip";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import {
   useAccount,
@@ -251,6 +247,165 @@ const InfoIcon = () => (
   </svg>
 );
 
+// Exchange Rate Component
+interface ExchangeRateProps {
+  selectedAssetOption?: TokenConfig | null;
+  targetChain: string;
+  strategyConfig: StrategyConfig;
+}
+
+const ExchangeRate: React.FC<ExchangeRateProps> = ({ selectedAssetOption, targetChain, strategyConfig }) => {
+  const [exchangeRate, setExchangeRate] = useState<string>("0.98");
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Fetch exchange rate for the selected asset only
+  useEffect(() => {
+    const fetchExchangeRate = async () => {
+      if (!selectedAssetOption) {
+        setExchangeRate("0.98");
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        // Get rate provider address and network config based on selected target chain
+        const rateProviderAddress = strategyConfig.rateProvider;
+        
+        // Helper function to get chain config based on target chain
+        const getChainConfig = (chainName: string) => {
+          switch (chainName) {
+            case "arbitrum":
+              return strategyConfig.arbitrum;
+            case "ethereum":
+              return strategyConfig.ethereum;
+            case "katana":
+              return strategyConfig.katana;
+            case "base":
+            default:
+              return strategyConfig.base;
+          }
+        };
+        
+        const chainData = getChainConfig(targetChain);
+        const { rpcUrl, chain } = {
+          rpcUrl: chainData.rpc,
+          chain: chainData.chainObject
+        };
+
+        const client = createPublicClient({
+          transport: http(rpcUrl),
+          chain,
+        });
+
+        // Get rate from rate provider using selected token address
+        const rate = await client.readContract({
+          address: rateProviderAddress as Address,
+          abi: RATE_PROVIDER_ABI,
+          functionName: "getRateInQuoteSafe",
+          args: [selectedAssetOption.contract as Address],
+        });
+
+        console.log("Exchange rate debug:", {
+          token: selectedAssetOption.name,
+          tokenContract: selectedAssetOption.contract,
+          rateProviderAddress,
+          rawRate: rate.toString(),
+          rateLength: rate.toString().length
+        });
+
+        // Based on Basescan results:
+        // USDC: 1010566 (6 decimals) = 1.010566 USDC per 1 syUSD
+        // USDS: 1010566000000000000 (18 decimals) = 1.010566 USDS per 1 syUSD  
+        // sUSDS: 948812511572256076 (18 decimals) = 0.948812 sUSDS per 1 syUSD
+        
+        // The rate is returned in the same decimals as the deposit token
+        // Use the deposit token's decimals to format the rate correctly
+        const rateFormatted = formatUnits(rate, selectedAssetOption.decimal);
+        const rateNumber = parseFloat(rateFormatted);
+        
+        // This rate represents: how many deposit tokens = 1 vault share
+        // For display, we want: 1 deposit token = X vault shares
+        // So exchange rate = 1 / rate
+        const exchangeRateNumber = rateNumber > 0 ? 1 / rateNumber : 0;
+        
+        console.log("Rate conversion:", {
+          token: selectedAssetOption.name,
+          tokenDecimals: selectedAssetOption.decimal,
+          rawRate: rate.toString(),
+          rateFormatted,
+          rateNumber,
+          exchangeRate: exchangeRateNumber,
+          final: exchangeRateNumber.toFixed(2)
+        });
+        
+        setExchangeRate(exchangeRateNumber > 0 ? exchangeRateNumber.toFixed(2) : "1.00");
+      } catch (error) {
+        console.error(`Error fetching rate for ${selectedAssetOption.name}:`, error);
+        setExchangeRate("0.98"); // Fallback to default
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchExchangeRate();
+  }, [selectedAssetOption, targetChain, strategyConfig]);
+
+  // Don't show anything if no asset is selected
+  if (!selectedAssetOption) {
+    return null;
+  }
+
+  return (
+    <div className="flex items-center justify-center py-3 px-4 bg-[rgba(255,255,255,0.02)]">
+      <div className="flex items-center justify-between w-full max-w-[580px]">
+        <div className="flex items-center gap-2">
+          <span className="text-[#9C9DA2] text-[14px] font-normal">
+            Exchange rate
+          </span>
+          <Tooltip content={`Current exchange rate between ${selectedAssetOption.name} and syUSD vault shares`} side="top">
+            <div className="w-4 h-4 rounded-full flex items-center justify-center">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="8" cy="8" r="7" stroke="#9C9DA2" strokeWidth="1"/>
+                <path d="M8 5v3M8 11h.01" stroke="#9C9DA2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+          </Tooltip>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-[#1e202c] rounded-full px-2 py-1">
+            <span className="text-white text-[14px] font-medium">1</span>
+            <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center">
+              <Image
+                src={selectedAssetOption.image}
+                alt={selectedAssetOption.name}
+                width={20}
+                height={20}
+                className="object-contain"
+              />
+            </div>
+          </div>
+          <span className="text-[#9C9DA2] text-[14px]">=</span>
+          <div className="flex items-center gap-2 bg-[#1e202c] rounded-full px-2 py-1">
+            <span className="text-white text-[14px] font-medium">
+              {isLoading ? "..." : exchangeRate}
+            </span>
+            <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center bg-[#1A1B1E]">
+              <Image
+                src="/images/icons/syUSD.svg"
+                alt="syUSD"
+                width={20}
+                height={20}
+                className="object-contain"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const DepositView: React.FC<DepositViewProps> = ({
   selectedAsset,
   duration,
@@ -325,6 +480,9 @@ const DepositView: React.FC<DepositViewProps> = ({
   const strategyConfig = (assetStrategies as any)[duration][
     strategy === "stable" ? "STABLE" : "INCENTIVE"
   ] as StrategyConfig;
+
+  // Get the actual APY from prop and extract numeric value
+  const actualApy = apy ? apy.replace('%', '') : '0';
 
   // Helper to extract unique chain configurations
   const getUniqueChainConfigs = useMemo(() => {
@@ -1292,7 +1450,7 @@ const DepositView: React.FC<DepositViewProps> = ({
 
   return (
     <>
-      <div className="relative overflow-hidden pt-20 sm:pt-40 px-4 sm:px-0">
+      <div className="relative overflow-hidden pt-20 sm:pt-20 px-4 sm:px-0">
         {depositSuccess ? (
           <div className="flex flex-col items-center justify-center h-full pt-12 px-4 sm:px-0">
             <div className="w-full max-w-[580px] bg-[#0D101C] rounded-lg p-6 sm:p-8 text-center">
@@ -1434,27 +1592,51 @@ const DepositView: React.FC<DepositViewProps> = ({
           <div className="flex flex-col gap-6 items-center w-full">
             <div className="w-full max-w-[280px] md:max-w-[580px]">
               <div className="flex flex-col gap-6">
+                {/* Back Arrow - positioned above Exchange Rate */}
+                <div className="w-full flex justify-start">
+                  <button
+                    onClick={onBack}
+                    className="flex items-center justify-center w-8 h-8 bg-[#121420] hover:bg-[#1A1B1E] rounded border border-[rgba(255,255,255,0.05)] hover:border-[#B88AF8] transition-all duration-200 group"
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="text-[#9C9DA2] group-hover:text-[#B88AF8] transition-colors duration-200"
+                    >
+                      <path
+                        d="M19 12H5M12 19L5 12L12 5"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                
+              <ExchangeRate 
+                selectedAssetOption={selectedAssetOption} 
+                targetChain={targetChain}
+                strategyConfig={strategyConfig}
+              />
+
                 {/* Two Cards Row */}
                 <div className="flex flex-col gap-6 md:flex-row justify-center items-start">
                   <div className="flex flex-col justify-center items-center w-full">
+                    
                     {/* Deposit Chain Dropdown */}
                     <div className="w-full max-w-[280px] bg-[#121420] p-4 border-l border-r border-t border-[rgba(255,255,255,0.05)]">
                       <div className="flex items-center justify-between gap-2">
                         <label className="text-[#9C9DA2] font-inter text-[12px] whitespace-nowrap flex items-center gap-1">
                           Deposit Network
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div>
-                                  <InfoIcon />
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent className="text-xs" side="top">
-                                Select the network you'll be depositing funds
-                                from.
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip content="Select the network you'll be depositing funds from." side="top">
+                            <div>
+                              <InfoIcon />
+                            </div>
+                          </Tooltip>
                         </label>
                         <div className="relative w-fit">
                           <button
@@ -1600,19 +1782,11 @@ const DepositView: React.FC<DepositViewProps> = ({
                       <div className="flex items-center justify-between gap-2">
                         <label className="text-[#9C9DA2] font-inter text-[12px] whitespace-nowrap flex items-center gap-1">
                           Destination Network
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div>
-                                  <InfoIcon />
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent className="text-xs" side="top">
-                                This is the network where you'll receive your
-                                syUSD vault tokens
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip content="This is the network where you'll receive your syUSD vault tokens" side="top">
+                            <div>
+                              <InfoIcon />
+                            </div>
+                          </Tooltip>
                         </label>
                         <div className="relative w-fit">
                           <div className="flex items-center justify-between w-fit bg-[#1e202c] text-[#EDF2F8] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] pr-2">
@@ -1693,7 +1867,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                               </svg>
 
                               <span className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
-                                APY {apy}
+                                APY {actualApy}
                               </span>
                             </div>
                           </div>

@@ -74,6 +74,121 @@ h3 {
   .container-main {
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
   }
+
+  /* Chart selection styling removal */
+  .chart-container svg {
+    outline: none !important;
+    border: none !important;
+  }
+  
+  .chart-container svg * {
+    outline: none !important;
+    border: none !important;
+  }
+  
+  .chart-container *:focus {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    ring: none !important;
+  }
+  
+  .chart-container *:focus-visible {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  
+  .chart-container *:active {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  
+  .chart-container *:hover {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  
+  /* Recharts specific overrides */
+  .recharts-wrapper,
+  .recharts-wrapper *,
+  .recharts-wrapper *:focus,
+  .recharts-wrapper *:focus-visible,
+  .recharts-wrapper *:active,
+  .recharts-wrapper *:hover,
+  .recharts-wrapper *:visited {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-drag: none !important;
+    -khtml-user-select: none !important;
+  }
+  
+  /* Additional Recharts element overrides */
+  .recharts-surface,
+  .recharts-legend-wrapper,
+  .recharts-tooltip-wrapper,
+  .recharts-cartesian-axis,
+  .recharts-cartesian-grid-horizontal,
+  .recharts-cartesian-grid-vertical {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  
+  /* Override any browser default selection styles globally */
+  *::selection,
+  *::-moz-selection {
+    background: transparent !important;
+    color: inherit !important;
+  }
+  
+  /* Remove focus rings from all elements */
+  *:focus {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  
+  *:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  
+  /* Aggressive override for any blue borders or white highlights */
+  *[style*="border"],
+  *[style*="outline"],
+  *[style*="box-shadow"] {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  
+  /* Target any elements that might have focus styles */
+  div:focus,
+  svg:focus,
+  g:focus,
+  path:focus,
+  rect:focus,
+  circle:focus {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  
+  /* Override any CSS variables that might be setting borders */
+  :root {
+    --chart-border: none !important;
+    --chart-outline: none !important;
+    --chart-focus: none !important;
+  }
 }
 
 @layer base {
