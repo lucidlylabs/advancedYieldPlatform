@@ -157,7 +157,7 @@ export default function AllocationChart({}: AllocationChartProps) {
 
   if (initialLoading && loading) {
     return (
-      <div className="rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
+      <div className="rounded-xl text-white w-full max-h-[600px] [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
         <div className="w-full h-[300px] px-6 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
@@ -182,20 +182,20 @@ export default function AllocationChart({}: AllocationChartProps) {
   ];
 
   return (
-    <div className="pb-6 rounded-xl text-white w-full max-h-[600px] mb-12 [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
-            <div className="w-full h-[345px] focus:outline-none focus:ring-0 focus:border-0">
+    <div className="pb-6 rounded-xl text-white w-full max-h-[600px] mb-12 overflow-hidden [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
+            <div className="w-full h-[345px] overflow-hidden focus:outline-none focus:ring-0 focus:border-0">
         <ResponsiveContainer
           width="100%"
           height="100%"
-          className="focus:outline-none focus:ring-0 focus:border-0"
+          className="overflow-hidden focus:outline-none focus:ring-0 focus:border-0"
         >
           {filteredData.length > 0 ? (
             <AreaChart
               data={[...filteredData].reverse()}
               margin={{ top: 10, right: 0, left: -25, bottom: 0 }}
               stackOffset="expand"
-              style={{ outline: "none", border: "none" }}
-              className="focus:outline-none focus:ring-0 focus:border-0"
+              style={{ outline: "none", border: "none", overflow: "hidden" }}
+              className="overflow-hidden focus:outline-none focus:ring-0 focus:border-0"
             >
             <CartesianGrid strokeDasharray="3 3" stroke="#2A2A3C" />
             <XAxis
