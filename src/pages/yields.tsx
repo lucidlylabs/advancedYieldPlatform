@@ -504,7 +504,7 @@ const MarketsSubpage: React.FC = () => {
                       </button>
 
                       {showColumnsDropdown && (
-                        <div className="absolute right-0 top-full mt-2 w-48 bg-[#263042] border border-[rgba(255,255,255,0.1)] rounded-md shadow-lg z-50">
+                        <div className="absolute right-0 top-full mt-2 w-32 bg-[#263042] border border-[rgba(255,255,255,0.1)] rounded-md shadow-lg z-50">
                           <div className="p-2">
                             {[
                               { key: "baseApy", label: "Base APY" },
@@ -532,22 +532,6 @@ const MarketsSubpage: React.FC = () => {
                                 <span className="text-[#D7E3EF] text-[12px]">
                                   {label}
                                 </span>
-                                <div className="ml-auto">
-                                  <svg
-                                    width="12"
-                                    height="12"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                  >
-                                    <path
-                                      d="M12 5V19M5 12L19 12"
-                                      stroke="#9C9DA2"
-                                      strokeWidth="2"
-                                      strokeLinecap="round"
-                                    />
-                                  </svg>
-                                </div>
                               </label>
                             ))}
                           </div>
