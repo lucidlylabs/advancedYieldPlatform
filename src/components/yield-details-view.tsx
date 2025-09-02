@@ -521,7 +521,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
             active={activeTab === "incentives"}
             onClick={() => setActiveTab("incentives")}
           />
-          <Tab
+          {/* <Tab
             label="FAQs"
             icon={
               <img
@@ -533,7 +533,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
             }
             active={activeTab === "faqs"}
             onClick={() => setActiveTab("faqs")}
-          />
+          /> */}
         </div>
 
         {/* Content */}
