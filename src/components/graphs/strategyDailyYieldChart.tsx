@@ -16,7 +16,7 @@ import {
 } from "recharts";
 import dayjs from "dayjs";
 import { USD_STRATEGIES } from "../../config/env";
-import CommonTooltip from "../ui/CommonTooltip";
+import { CommonTooltip } from "../ui/tooltip";
 
 interface RawYield {
   date: string;

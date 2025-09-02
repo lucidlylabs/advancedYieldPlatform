@@ -8,7 +8,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
-import CommonTooltip from "../ui/CommonTooltip";
+import { CommonTooltip } from "../ui/tooltip";
 import { getStrategyDisplayName } from "../../config/env";
 
 interface Strategy {

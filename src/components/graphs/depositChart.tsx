@@ -9,7 +9,7 @@ import {
 } from "recharts";
 import { useEffect, useState } from "react";
 import dayjs from "dayjs";
-import CommonTooltip from "../ui/CommonTooltip";
+import { CommonTooltip } from "../ui/tooltip";
 
 const tokenAddressMap: Record<string, string> = {
   "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913": "USDC",

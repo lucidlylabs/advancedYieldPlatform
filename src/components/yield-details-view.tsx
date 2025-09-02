@@ -337,7 +337,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                         </svg>
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent className="text-xs" side="top">
+                    <TooltipContent title="syUSD" side="top">
                       syUSD is a synthetic USD stablecoin that provides yield
                       through various DeFi strategies
                     </TooltipContent>
@@ -398,7 +398,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                       <InfoIcon />
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent className="text-xs" side="top">
+                  <TooltipContent title="Base APY" side="top">
                     7d moving average
                   </TooltipContent>
                 </Tooltip>

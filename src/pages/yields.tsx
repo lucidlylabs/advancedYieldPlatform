@@ -391,31 +391,24 @@ const MarketsSubpage: React.FC = () => {
                 <span className="text-[#9C9DA2] font-inter text-[11px] font-normal leading-[16px]">
                   TVL
                 </span>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="cursor-help">
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 14 14"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M6.99935 9.33341V7.00008M6.99935 4.66675H7.00518M12.8327 7.00008C12.8327 10.2217 10.221 12.8334 6.99935 12.8334C3.77769 12.8334 1.16602 10.2217 1.16602 7.00008C1.16602 3.77842 3.77769 1.16675 6.99935 1.16675C10.221 1.16675 12.8327 3.77842 12.8327 7.00008Z"
-                            stroke="#9C9DA2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent className="text-xs" side="top">
-                      Total Value Locked across all strategies
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <Tooltip content="Total Value Locked across all strategies" side="top">
+                  <div className="cursor-help">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 14 14"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M6.99935 9.33341V7.00008M6.99935 4.66675H7.00518M12.8327 7.00008C12.8327 10.2217 10.221 12.8334 6.99935 12.8334C3.77769 12.8334 1.16602 10.2217 1.16602 7.00008C1.16602 3.77842 3.77769 1.16675 6.99935 1.16675C10.221 1.16675 12.8327 3.77842 12.8327 7.00008Z"
+                        stroke="#9C9DA2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
+                </Tooltip>
               </div>
               <div className="flex flex-col">
                 <span className="text-white font-inter text-[16px] font-semibold leading-[40px]">

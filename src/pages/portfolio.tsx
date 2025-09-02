@@ -50,12 +50,7 @@ const isMobile = () => typeof window !== "undefined" && window.innerWidth < 640;
 //   ResponsiveContainer,
 //   CartesianGrid,
 // } from "recharts";
-import {
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-  Tooltip,
-} from "@/components/ui/tooltip";
+import { Tooltip } from "@/components/ui/tooltip";
 // import PortfolioChart from "@/components/graphs/portfolioChart";
 
 
@@ -1377,30 +1372,23 @@ const PortfolioSubpage: React.FC = () => {
             </div>
             <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
               Base APY
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <svg
-                      className="ml-1 cursor-pointer"
-                      width="12"
-                      height="12"
-                      viewBox="0 0 10 10"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M4.9987 6.66659V4.99992M4.9987 3.33325H5.00286M9.16536 4.99992C9.16536 7.30111 7.29988 9.16659 4.9987 9.16659C2.69751 9.16659 0.832031 7.30111 0.832031 4.99992C0.832031 2.69873 2.69751 0.833252 4.9987 0.833252C7.29988 0.833252 9.16536 2.69873 9.16536 4.99992Z"
-                        stroke="#9C9DA2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </TooltipTrigger>
-                  <TooltipContent className="text-xs" side="top">
-                    7 Day trailing
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip content="7 Day trailing" side="top">
+                <svg
+                  className="ml-1 cursor-pointer"
+                  width="12"
+                  height="12"
+                  viewBox="0 0 10 10"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M4.9987 6.66659V4.99992M4.9987 3.33325H5.00286M9.16536 4.99992C9.16536 7.30111 7.29988 9.16659 4.9987 9.16659C2.69751 9.16659 0.832031 7.30111 0.832031 4.99992C0.832031 2.69873 2.69751 0.833252 4.9987 0.833252C7.29988 0.833252 9.16536 2.69873 9.16536 4.99992Z"
+                    stroke="#9C9DA2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </Tooltip>
               <svg
                 className="ml-1"
                 width="14"
@@ -1631,23 +1619,14 @@ const PortfolioSubpage: React.FC = () => {
                             <span className="capitalize text-[12px]">
                               {targetChain}
                             </span>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="ml-1">
-                                    <InfoIcon />
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent
-                                  className="text-xs max-w-[240px]"
-                                  side="top"
-                                >
-                                  To reduce bridging risks and ensure accurate
-                                  yield tracking, deposits and withdrawals are
-                                  limited to the Base network.
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Tooltip 
+                              content="To reduce bridging risks and ensure accurate yield tracking, deposits and withdrawals are limited to the Base network."
+                              side="top"
+                            >
+                              <div className="ml-1">
+                                <InfoIcon />
+                              </div>
+                            </Tooltip>
                           </div>
                           {/* Dropdown arrow */}
                           {/* <svg

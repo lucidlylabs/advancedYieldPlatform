@@ -2,30 +2,192 @@
 
 import * as React from "react"
 import * as TooltipPrimitive from "@radix-ui/react-tooltip"
-import { cn } from "@/lib/utils"
 
-const TooltipProvider = TooltipPrimitive.Provider
+// Simple tooltip for text content (info buttons, etc.)
+interface SimpleTooltipProps {
+  children: React.ReactNode;
+  content: string | React.ReactNode;
+  side?: "top" | "right" | "bottom" | "left";
+  sideOffset?: number;
+}
 
-const Tooltip = ({ delayDuration = 0, ...props }) => (
-  <TooltipPrimitive.Root delayDuration={delayDuration} {...props} />
-)
+function SimpleTooltip({ children, content, side = "top", sideOffset = 4 }: SimpleTooltipProps) {
+  return (
+    <TooltipPrimitive.Provider>
+      <TooltipPrimitive.Root delayDuration={0}>
+        <TooltipPrimitive.Trigger asChild>
+          {children}
+        </TooltipPrimitive.Trigger>
+        <TooltipPrimitive.Content
+          side={side}
+          sideOffset={sideOffset}
+          className="z-50"
+          style={{ 
+            '--radix-tooltip-arrow-width': '0px',
+            '--radix-tooltip-arrow-height': '0px'
+          } as React.CSSProperties}
+        >
+          <div className="rounded-lg shadow-lg overflow-hidden border border-gray-200 relative z-50">
+            <div className="bg-gray-100 px-4 py-3 relative z-50">
+              <div className="text-sm text-gray-700">
+                {content}
+              </div>
+            </div>
+          </div>
+        </TooltipPrimitive.Content>
+      </TooltipPrimitive.Root>
+    </TooltipPrimitive.Provider>
+  );
+}
 
-const TooltipTrigger = TooltipPrimitive.Trigger
+// Graph tooltip interfaces
+interface TooltipItem {
+  name: string;
+  value: number;
+  fill: string;
+  payload: any;
+}
 
-const TooltipContent = React.forwardRef<
-  React.ElementRef<typeof TooltipPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
->(({ className, sideOffset = 4, ...props }, ref) => (
-  <TooltipPrimitive.Content
-    ref={ref}
-    sideOffset={sideOffset}
-    className={cn(
-      "z-50 overflow-hidden rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-950 shadow-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50",
-      className
-    )}
-    {...props}
-  />
-))
-TooltipContent.displayName = TooltipPrimitive.Content.displayName
+interface GraphTooltipProps {
+  active?: boolean;
+  payload?: TooltipItem[];
+  label?: string;
+  title?: string;
+  showTotal?: boolean;
+  totalLabel?: string;
+  valueFormatter?: (value: number, item: TooltipItem) => string;
+  nameFormatter?: (name: string) => string;
+  totalValue?: number;
+  totalFormatter?: (value: number) => string;
+  showColoredCircles?: boolean;
+  customContent?: React.ReactNode;
+  monetaryValueFormatter?: (item: TooltipItem) => string;
+}
 
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } 
+// Graph tooltip component (for charts)
+function GraphTooltip({
+  active,
+  payload,
+  label,
+  title,
+  showTotal = true,
+  totalLabel = "Total",
+  valueFormatter,
+  nameFormatter,
+  totalValue,
+  totalFormatter,
+  showColoredCircles = true,
+  customContent,
+  monetaryValueFormatter
+}: GraphTooltipProps) {
+  if (!active || !payload || payload.length === 0) {
+    return null;
+  }
+
+  // Default formatters
+  const defaultValueFormatter = (value: number) => `${(value * 100).toFixed(2)}%`;
+  const defaultNameFormatter = (name: string) => 
+    name.length > 10 ? `${name.slice(0, 6)}...${name.slice(-4)}` : name;
+  const defaultTotalFormatter = (value: number) => 
+    value >= 1000 ? `$${(value / 1000).toFixed(1)}K` : `$${value.toFixed(0)}`;
+  const defaultMonetaryFormatter = (item: TooltipItem) => {
+    const tvlKey = `${item.name}_tvl`;
+    const tvlValue = item.payload[tvlKey];
+    if (tvlValue !== undefined && tvlValue !== null) {
+      const numValue = Number(tvlValue);
+      if (!isNaN(numValue)) {
+        return numValue >= 1000
+          ? `$${(numValue / 1000).toFixed(1)}K`
+          : `$${numValue.toFixed(0)}`;
+      }
+    }
+    return "$0";
+  };
+
+  // Use provided formatters or defaults
+  const formatValue = valueFormatter || defaultValueFormatter;
+  const formatName = nameFormatter || defaultNameFormatter;
+  const formatTotal = totalFormatter || defaultTotalFormatter;
+  const formatMonetary = monetaryValueFormatter || defaultMonetaryFormatter;
+
+  // Calculate total if not provided
+  const calculatedTotal = totalValue !== undefined ? totalValue : 
+    payload.reduce((sum, item) => sum + (item.value * 100), 0);
+
+  return (
+    <div className="rounded-lg shadow-lg overflow-hidden border border-gray-200 relative z-50">
+      {/* Header - Darker grey background */}
+      {(title || label) && (
+        <div className="bg-gray-300 border-b border-gray-400 px-4 py-3">
+          <div className="text-sm font-semibold text-gray-700">
+            {title || label}
+          </div>
+        </div>
+      )}
+      
+      {/* Content - Light grey background */}
+      <div className="bg-gray-100 px-4 py-3 relative z-50">
+        {customContent ? (
+          customContent
+        ) : (
+          <div className="space-y-3">
+            {payload.map((item: TooltipItem, index: number) => {
+              const displayName = formatName(item.name);
+              const displayValue = formatValue(item.value, item);
+              const monetaryValue = formatMonetary(item);
+
+              return (
+                <div key={index} className="flex items-center gap-3">
+                  {showColoredCircles && (
+                    <div 
+                      className="w-5 h-5 rounded-full flex-shrink-0 relative z-50 bg-white border-2 border-white shadow-md"
+                      style={{ 
+                        backgroundColor: item.fill,
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                      }}
+                    />
+                  )}
+                  <span className="text-sm text-gray-600 flex-1 min-w-0">
+                    {displayName}
+                  </span>
+                  <span className="text-sm font-semibold text-gray-700 text-right min-w-[80px]">
+                    {monetaryValue}
+                  </span>
+                  <span className="text-sm font-semibold text-gray-700 text-right min-w-[60px]">
+                    {displayValue}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      
+      {/* Footer - Same darker grey as header */}
+      {showTotal && (
+        <div className="bg-gray-300 border-t border-gray-400 px-4 py-3">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-semibold text-gray-700">
+              {totalLabel}
+            </span>
+            <span className="text-sm font-semibold text-gray-700">
+              {formatTotal(calculatedTotal)}
+            </span>
+            {totalValue === undefined && (
+              <span className="text-sm font-semibold text-gray-700">
+                {calculatedTotal.toFixed(0)}%
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Export the components
+export { SimpleTooltip as Tooltip, GraphTooltip, type TooltipItem, type GraphTooltipProps }
+
+// Export GraphTooltip as CommonTooltip for backward compatibility with graphs
+export const CommonTooltip = GraphTooltip
+export default SimpleTooltip

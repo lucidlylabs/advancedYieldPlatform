@@ -1,4 +1,3 @@
-import { TooltipProvider } from "@/components/ui/tooltip"
 import { ReactNode } from "react"
 
 export const metadata = {
@@ -67,9 +66,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <meta name="twitter:creator" content="@LucidlyFinance" />
       </head>
       <body>
-        <TooltipProvider>
-          {children}
-        </TooltipProvider>
+        {children}
       </body>
     </html>
   )

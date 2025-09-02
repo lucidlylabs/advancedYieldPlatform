@@ -2,9 +2,6 @@ import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
 } from "@/components/ui/tooltip";
 import Image from "next/image";
 
@@ -209,20 +206,11 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
               onClick={() => onSort("baseYield")}
             >
               Base APY
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button className="ml-1 text-white opacity-60 hover:opacity-100 transition-all duration-200 flex items-center">
-                      <InfoIcon />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>
-                      Annual Percentage Yield based on current market conditions
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip content="Annual Percentage Yield based on current market conditions">
+                <button className="ml-1 text-white opacity-60 hover:opacity-100 transition-all duration-200 flex items-center">
+                  <InfoIcon />
+                </button>
+              </Tooltip>
               <SortIcon direction={sortColumn === "baseYield" ? sortDirection : null} />
             </div>
           )}
@@ -293,41 +281,34 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
                         .filter(incentive => incentive && incentive.image)
                         .map((incentive, index) => (
                           <div key={index} className={index === 0 ? "" : "ml-2"}>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  {incentive.link && incentive.link !== "#" ? (
-                                    <a 
-                                      href={incentive.link} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="cursor-pointer hover:opacity-80 transition-opacity"
-                                    >
-                                      <Image
-                                        src={incentive.image}
-                                        alt={incentive.name}
-                                        width={16}
-                                        height={16}
-                                        className="object-contain"
-                                      />
-                                    </a>
-                                  ) : (
-                                    <div>
-                                      <Image
-                                        src={incentive.image}
-                                        alt={incentive.name}
-                                        width={16}
-                                        height={16}
-                                        className="object-contain"
-                                      />
-                                    </div>
-                                  )}
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>{incentive.name}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Tooltip content={incentive.name}>
+                              {incentive.link && incentive.link !== "#" ? (
+                                <a 
+                                  href={incentive.link} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="cursor-pointer hover:opacity-80 transition-opacity"
+                                >
+                                  <Image
+                                    src={incentive.image}
+                                    alt={incentive.name}
+                                    width={16}
+                                    height={16}
+                                    className="object-contain"
+                                  />
+                                </a>
+                              ) : (
+                                <div>
+                                  <Image
+                                    src={incentive.image}
+                                    alt={incentive.name}
+                                    width={16}
+                                    height={16}
+                                    className="object-contain"
+                                  />
+                                </div>
+                              )}
+                            </Tooltip>
                           </div>
                         ))
                     ) : (
