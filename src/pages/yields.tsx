@@ -112,22 +112,22 @@ const MarketsSubpage: React.FC = () => {
   });
 
   const toggleColumn = (column: keyof typeof visibleColumns) => {
-    setVisibleColumns(prev => ({
+    setVisibleColumns((prev) => ({
       ...prev,
-      [column]: !prev[column]
+      [column]: !prev[column],
     }));
   };
 
   // Format TVL for display (like $10.5 B)
   const formatTVLForDisplay = (tvlString: string | null): string => {
     if (!tvlString) return "$0";
-    
+
     // Remove $ and commas to get the number
-    const cleanNumber = tvlString.replace(/[$,]/g, '');
+    const cleanNumber = tvlString.replace(/[$,]/g, "");
     const number = parseFloat(cleanNumber);
-    
+
     if (isNaN(number)) return tvlString;
-    
+
     if (number >= 1000000000) {
       return `$${(number / 1000000000).toFixed(1)} B`;
     } else if (number >= 1000000) {
@@ -140,13 +140,15 @@ const MarketsSubpage: React.FC = () => {
   };
 
   // Market data state
-  const [marketData, setMarketData] = useState<Record<AssetType, MarketItem[]>>({
-    All: [],
-    ETH: [],
-    BTC: [],
-    USD: [],
-  });
-  
+  const [marketData, setMarketData] = useState<Record<AssetType, MarketItem[]>>(
+    {
+      All: [],
+      ETH: [],
+      BTC: [],
+      USD: [],
+    }
+  );
+
   const router = useRouter();
 
   // Update market data when usdApy or usdTvl changes
@@ -161,23 +163,29 @@ const MarketsSubpage: React.FC = () => {
           name: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.displayName,
           ticker: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.name, // syUSD
           type: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.type,
-          baseYield: usdApy || USD_STRATEGIES.PERPETUAL_DURATION.STABLE.fallbackApy,
+          baseYield:
+            usdApy || USD_STRATEGIES.PERPETUAL_DURATION.STABLE.fallbackApy,
           incentives: (() => {
-            const incentives = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.incentives;
-            console.log('Raw incentives config:', incentives);
-            
-            if (!incentives?.enabled || !incentives.points || incentives.points.length === 0) {
-              console.log('No incentives enabled or no points');
+            const incentives =
+              USD_STRATEGIES.PERPETUAL_DURATION.STABLE.incentives;
+            console.log("Raw incentives config:", incentives);
+
+            if (
+              !incentives?.enabled ||
+              !incentives.points ||
+              incentives.points.length === 0
+            ) {
+              console.log("No incentives enabled or no points");
               return [];
             }
-            
+
             // Return objects with image, name, and link for tooltips and navigation
-            const incentiveData = incentives.points.map(point => ({
+            const incentiveData = incentives.points.map((point) => ({
               image: point.image,
               name: point.name,
-              link: point.link || "#" // Use link from config or fallback to "#"
+              link: point.link || "#", // Use link from config or fallback to "#"
             }));
-            console.log('Incentive data:', incentiveData);
+            console.log("Incentive data:", incentiveData);
             return incentiveData;
           })(),
           tvl: usdTvl || USD_STRATEGIES.PERPETUAL_DURATION.STABLE.tvl,
@@ -191,8 +199,12 @@ const MarketsSubpage: React.FC = () => {
     };
 
     // Fill the "ALL" category
-    newMarketData.All = [...newMarketData.ETH, ...newMarketData.BTC, ...newMarketData.USD];
-    
+    newMarketData.All = [
+      ...newMarketData.ETH,
+      ...newMarketData.BTC,
+      ...newMarketData.USD,
+    ];
+
     setMarketData(newMarketData);
   }, [usdApy, usdTvl]);
 
@@ -218,12 +230,12 @@ const MarketsSubpage: React.FC = () => {
               })
             );
           } else {
-            console.warn('Unexpected TVL data structure:', data);
+            console.warn("Unexpected TVL data structure:", data);
             setUsdTvl("N/A");
           }
         })
         .catch((error) => {
-          console.error('Error fetching TVL:', error);
+          console.error("Error fetching TVL:", error);
           setUsdTvl("N/A");
         });
     } else if (typeof tvlUrl === "string" && !tvlUrl.startsWith("http")) {
@@ -247,13 +259,15 @@ const MarketsSubpage: React.FC = () => {
           if (typeof trailingApy === "number") {
             setUsdApy(`${trailingApy.toFixed(2)}%`);
           } else {
-            console.warn('Unexpected APY data structure:', data);
+            console.warn("Unexpected APY data structure:", data);
             setUsdApy("N/A");
           }
         })
         .catch((error) => {
-          console.error('Error fetching APY:', error);
-          setUsdApy(USD_STRATEGIES.PERPETUAL_DURATION.STABLE.fallbackApy || "N/A");
+          console.error("Error fetching APY:", error);
+          setUsdApy(
+            USD_STRATEGIES.PERPETUAL_DURATION.STABLE.fallbackApy || "N/A"
+          );
         });
     } else if (typeof apyUrl === "string" && !apyUrl.startsWith("http")) {
       // If apyUrl is not a URL, use it directly (fallback value)
@@ -303,14 +317,22 @@ const MarketsSubpage: React.FC = () => {
 
       if (sortColumn === "baseYield") {
         // Handle cases where baseYield might be "N/A" or fallback values
-        const aValue = a.baseYield === "N/A" ? 0 : parseFloat(a.baseYield.replace("%", ""));
-        const bValue = b.baseYield === "N/A" ? 0 : parseFloat(b.baseYield.replace("%", ""));
+        const aValue =
+          a.baseYield === "N/A" ? 0 : parseFloat(a.baseYield.replace("%", ""));
+        const bValue =
+          b.baseYield === "N/A" ? 0 : parseFloat(b.baseYield.replace("%", ""));
         valueA = isNaN(aValue) ? 0 : aValue;
         valueB = isNaN(bValue) ? 0 : bValue;
       } else if (sortColumn === "tvl") {
         // Handle cases where tvl might be "N/A" or fallback values
-        const aValue = a.tvl === "N/A" ? 0 : parseFloat(a.tvl.replace("$", "").replace(",", ""));
-        const bValue = b.tvl === "N/A" ? 0 : parseFloat(b.tvl.replace("$", "").replace(",", ""));
+        const aValue =
+          a.tvl === "N/A"
+            ? 0
+            : parseFloat(a.tvl.replace("$", "").replace(",", ""));
+        const bValue =
+          b.tvl === "N/A"
+            ? 0
+            : parseFloat(b.tvl.replace("$", "").replace(",", ""));
         valueA = isNaN(aValue) ? 0 : aValue;
         valueB = isNaN(bValue) ? 0 : bValue;
       } else if (sortColumn === "name") {
@@ -368,25 +390,25 @@ const MarketsSubpage: React.FC = () => {
             />
           ) : (
             <div className="flex min-h-screen text-white overflow-y-auto mt-8 sm:mt-0">
-          {/* Left side - 50% */}
-          <div className="w-full flex flex-col relative">
-            <div className="w-full h-[124px] flex flex-col justify-center items-start relative pl-4 sm:pl-[32px]">
-              <div
-                className="absolute inset-0 bg-[url('/images/background/earn-page-heading-bg.svg')] bg-no-repeat bg-cover"
-                style={{ height: "100%" }}
-              />
-              <div className="relative z-10 flex flex-col items-start gap-[10px]">
-                <div className="text-[#D7E3EF] font-inter text-[16px] font-semibold leading-[20px]">
-                  Explore Yields
+              {/* Left side - 50% */}
+              <div className="w-full flex flex-col relative">
+                <div className="w-full h-[124px] flex flex-col justify-center items-start relative pl-4 sm:pl-[32px]">
+                  <div
+                    className="absolute inset-0 bg-[url('/images/background/earn-page-heading-bg.svg')] bg-no-repeat bg-cover"
+                    style={{ height: "100%" }}
+                  />
+                  <div className="relative z-10 flex flex-col items-start gap-[10px]">
+                    <div className="text-[#D7E3EF] font-inter text-[16px] font-semibold leading-[20px]">
+                      Explore Yields
+                    </div>
+                    <p className="text-[#9C9DA2] font-inter text-[12px] font-regular leading-[20px]">
+                      Farm everything here
+                    </p>
+                  </div>
                 </div>
-                <p className="text-[#9C9DA2] font-inter text-[12px] font-regular leading-[20px]">
-                  Farm everything here
-                </p>
-              </div>
-            </div>
 
-            {/* TVL Section */}
-            <div className="pl-4 sm:pl-[32px] mt-[32px] mb-[12px]">
+                {/* TVL Section */}
+                {/* <div className="pl-4 sm:pl-[32px] mt-[32px] mb-[12px]">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-[#9C9DA2] font-inter text-[11px] font-normal leading-[16px]">
                   TVL
@@ -423,145 +445,188 @@ const MarketsSubpage: React.FC = () => {
                 </span>
                 <div className="w-full h-[1px] bg-[rgba(255,255,255,0.1)] mt-1"></div>
               </div>
-            </div>
+            </div> */}
 
-            {/* Asset Selection */}
-            <div className="px-4 sm:px-[32px]">
-              <div className="flex justify-between items-center">
-                <div className="grid grid-cols-4 gap-3 sm:flex sm:pr-6">
-                  <AssetButton
-                    asset="All"
-                    activeAsset={selectedAsset}
-                    onClick={setSelectedAsset}
-                  />
-                  <AssetButton
-                    asset="USD"
-                    activeAsset={selectedAsset}
-                    onClick={setSelectedAsset}
-                  />
-                  <AssetButton
-                    asset="ETH"
-                    activeAsset={selectedAsset}
-                    onClick={setSelectedAsset}
-                    disabled
-                  />
-                  <AssetButton
-                    asset="BTC"
-                    activeAsset={selectedAsset}
-                    onClick={setSelectedAsset}
-                    disabled
-                  />
-                </div>
-                
-                {/* Columns Button */}
-                <div className="relative mb-3">
-                  <button
-                    onClick={() => setShowColumnsDropdown(!showColumnsDropdown)}
-                    className="flex items-center gap-2 px-3 py-2 text-[#9C9DA2] hover:text-white text-[12px] font-normal transition-colors border border-[rgba(255,255,255,0.1)] rounded-md"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M3 12L3 18M3 6L3 12M3 12L21 12M21 6L21 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                    </svg>
-                    Columns
-                    <svg
-                      className={`w-4 h-4 transition-transform ${showColumnsDropdown ? 'rotate-180' : ''}`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  
-                  {showColumnsDropdown && (
-                    <div className="absolute right-0 top-full mt-2 w-48 bg-[#263042] border border-[rgba(255,255,255,0.1)] rounded-md shadow-lg z-50">
-                      <div className="p-2">
-                        {[
-                          { key: 'availableYields', label: 'Available Yields' },
-                          { key: 'baseApy', label: 'Base APY' },
-                          { key: 'incentives', label: 'Incentives' },
-                          { key: 'tvl', label: 'TVL' },
-                        ].map(({ key, label }) => (
-                          <label key={key} className="flex items-center gap-3 p-2 hover:bg-[rgba(255,255,255,0.05)] rounded cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={visibleColumns[key as keyof typeof visibleColumns]}
-                              onChange={() => toggleColumn(key as keyof typeof visibleColumns)}
-                              className="w-4 h-4 accent-[#B88AF8]"
-                            />
-                            <span className="text-[#D7E3EF] text-[12px]">{label}</span>
-                            <div className="ml-auto">
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M12 5V19M5 12L19 12" stroke="#9C9DA2" strokeWidth="2" strokeLinecap="round"/>
-                              </svg>
-                            </div>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Market Table */}
-            <div className="px-4 sm:px-0">
-              <MarketsTable
-                data={getSortedData()}
-                sortColumn={sortColumn}
-                sortDirection={sortDirection}
-                onSort={handleSort}
-                onRowClick={handleRowClick}
-                selectedItemId={selectedItem?.id}
-                visibleColumns={visibleColumns}
-                showColumnsDropdown={showColumnsDropdown}
-                setShowColumnsDropdown={setShowColumnsDropdown}
-                toggleColumn={toggleColumn}
-              />
-            </div>
-          </div>
-
-          <div className="w-[1px] bg-[rgba(255,255,255,0.1)] hidden sm:block" />
-
-          {/* Right side - 50% */}
-          <div className="w-full hidden sm:block pr-6">
-            {selectedItem ? (
-              <YieldDetailsView
-                name={selectedItem.name}
-                tvl={selectedItem.tvl}
-                baseApy={selectedItem.baseYield}
-                contractAddress={selectedItem.contractAddress}
-                network={selectedItem.network}
-                data={getSortedData()}
-                onOpenDepositView={handleOpenDepositView}
-                // hasRealData={false}
-                // fullContractAddress={USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <div className="max-w-md text-center flex flex-col items-center justify-center">
-                  <div className="flex justify-center">
-                    <div className="relative">
-                      <Image
-                        src="/images/background/yields-page-bg.svg"
-                        alt="Yields Background"
-                        width={188}
-                        height={140}
-                        priority
+                {/* Asset Selection */}
+                <div className="px-4 sm:px-[32px]">
+                  <div className="flex justify-between items-center">
+                    <div className="grid grid-cols-4 gap-3 sm:flex sm:pr-6">
+                      <AssetButton
+                        asset="All"
+                        activeAsset={selectedAsset}
+                        onClick={setSelectedAsset}
+                      />
+                      <AssetButton
+                        asset="USD"
+                        activeAsset={selectedAsset}
+                        onClick={setSelectedAsset}
+                      />
+                      <AssetButton
+                        asset="ETH"
+                        activeAsset={selectedAsset}
+                        onClick={setSelectedAsset}
+                        disabled
+                      />
+                      <AssetButton
+                        asset="BTC"
+                        activeAsset={selectedAsset}
+                        onClick={setSelectedAsset}
+                        disabled
                       />
                     </div>
+
+                    {/* Columns Button */}
+                    <div className="relative mb-3">
+                      <button
+                        onClick={() =>
+                          setShowColumnsDropdown(!showColumnsDropdown)
+                        }
+                        className="flex items-center gap-2 mt-2 px-2 py-1 text-[#9C9DA2] hover:text-white text-[12px] font-normal transition-colors border border-[rgba(255,255,255,0.1)] rounded-md"
+                      >
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M3 12L3 18M3 6L3 12M3 12L21 12M21 6L21 18"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        Columns
+                        <svg
+                          className={`w-4 h-4 transition-transform ${
+                            showColumnsDropdown ? "rotate-180" : ""
+                          }`}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </button>
+
+                      {showColumnsDropdown && (
+                        <div className="absolute right-0 top-full mt-2 w-48 bg-[#263042] border border-[rgba(255,255,255,0.1)] rounded-md shadow-lg z-50">
+                          <div className="p-2">
+                            {[
+                              { key: "baseApy", label: "Base APY" },
+                              { key: "incentives", label: "Incentives" },
+                              { key: "tvl", label: "TVL" },
+                            ].map(({ key, label }) => (
+                              <label
+                                key={key}
+                                className="flex items-center gap-3 p-2 hover:bg-[rgba(255,255,255,0.05)] rounded cursor-pointer"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={
+                                    visibleColumns[
+                                      key as keyof typeof visibleColumns
+                                    ]
+                                  }
+                                  onChange={() =>
+                                    toggleColumn(
+                                      key as keyof typeof visibleColumns
+                                    )
+                                  }
+                                  className="w-4 h-4 accent-[#B88AF8]"
+                                />
+                                <span className="text-[#D7E3EF] text-[12px]">
+                                  {label}
+                                </span>
+                                <div className="ml-auto">
+                                  <svg
+                                    width="12"
+                                    height="12"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <path
+                                      d="M12 5V19M5 12L19 12"
+                                      stroke="#9C9DA2"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                    />
+                                  </svg>
+                                </div>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <h2 className="text-[20px] font-semibold text-[#D7E3EF] font-inter leading-normal mt-8">
-                    Select a Yield Option to View Details
-                  </h2>
-                  <p className="text-[#9C9DA2] text-center font-inter text-[14px] font-normal leading-[19.2px] mt-2">
-                    Discover key insights, performance metrics, and <br />
-                    potential returns for each yield source.
-                  </p>
+                </div>
+
+                {/* Market Table */}
+                <div className="px-4 sm:px-0">
+                  <MarketsTable
+                    data={getSortedData()}
+                    sortColumn={sortColumn}
+                    sortDirection={sortDirection}
+                    onSort={handleSort}
+                    onRowClick={handleRowClick}
+                    selectedItemId={selectedItem?.id}
+                    visibleColumns={visibleColumns}
+                    showColumnsDropdown={showColumnsDropdown}
+                    setShowColumnsDropdown={setShowColumnsDropdown}
+                    toggleColumn={toggleColumn}
+                  />
                 </div>
               </div>
-            )}
-          </div>
+
+              <div className="w-[1px] bg-[rgba(255,255,255,0.1)] hidden sm:block" />
+
+              {/* Right side - 50% */}
+              <div className="w-full hidden sm:block pr-6">
+                {selectedItem ? (
+                  <YieldDetailsView
+                    name={selectedItem.name}
+                    tvl={selectedItem.tvl}
+                    baseApy={selectedItem.baseYield}
+                    contractAddress={selectedItem.contractAddress}
+                    network={selectedItem.network}
+                    data={getSortedData()}
+                    onOpenDepositView={handleOpenDepositView}
+                    // hasRealData={false}
+                    // fullContractAddress={USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="max-w-md text-center flex flex-col items-center justify-center">
+                      <div className="flex justify-center">
+                        <div className="relative">
+                          <Image
+                            src="/images/background/yields-page-bg.svg"
+                            alt="Yields Background"
+                            width={188}
+                            height={140}
+                            priority
+                          />
+                        </div>
+                      </div>
+                      <h2 className="text-[20px] font-semibold text-[#D7E3EF] font-inter leading-normal mt-8">
+                        Select a Yield Option to View Details
+                      </h2>
+                      <p className="text-[#9C9DA2] text-center font-inter text-[14px] font-normal leading-[19.2px] mt-2">
+                        Discover key insights, performance metrics, and <br />
+                        potential returns for each yield source.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </>
