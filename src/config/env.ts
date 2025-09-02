@@ -209,6 +209,7 @@ export const USD_STRATEGIES = {
 };
 
 export const ETH_STRATEGIES = {};
+export const BTC_STRATEGIES = {};
 
 // Strategy address to name mapping configuration for charts and UI
 export const STRATEGY_NAMES: { [address: string]: string } = {
