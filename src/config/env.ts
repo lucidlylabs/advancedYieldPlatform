@@ -2,6 +2,7 @@ export const USD_STRATEGIES = {
   PERPETUAL_DURATION: {
     STABLE: {
       name: "syUSD",
+      displayName: "Stable Yield USD",
       type: "usd",
       network: "Base",
       contract: "0xaefc11908fF97c335D16bdf9F2Bf720817423825",
@@ -206,8 +207,6 @@ export const USD_STRATEGIES = {
     },
   },
 };
-
-export const BTC_STRATEGIES = {};
 
 export const ETH_STRATEGIES = {};
 

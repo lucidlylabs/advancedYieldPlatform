@@ -10,8 +10,9 @@ import Image from "next/image";
 import { useAccount, useReadContract } from "wagmi";
 import { formatUnits } from "viem";
 import DepositView from "./deposit-view";
-import { USD_STRATEGIES } from "../config/env";
+import { USD_STRATEGIES, ETH_STRATEGIES, BTC_STRATEGIES } from "../config/env";
 import { IncentiveRewards } from "./ui/IncentiveRewards";
+import { FAQs, type FAQItemProps } from "./ui/FAQs";
 import DepositBarChart from "./graphs/depositChart";
 import AllocationChart from "./graphs/allocationsChart";
 import StrategyDailyYieldChart from "./graphs/strategyDailyYieldChart";
@@ -111,7 +112,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   onOpenDepositView,
 }) => {
   const [activeTab, setActiveTab] = useState<
-    "deposits" | "baseApy" | "incentives"
+    "deposits" | "baseApy" | "incentives" | "faqs"
   >("deposits");
   const [activeDepositTab, setActiveDepositTab] = useState<
     "deposits" | "allocation"
@@ -157,13 +158,42 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
         USD_STRATEGIES.PERPETUAL_DURATION.STABLE.shareAddress_token_decimal ??
         6;
       const formatted = Number(formatUnits(userSyUSDTokens, decimals));
-      setUserDeposits(formatted.toFixed(6));
+      setUserDeposits(formatted.toFixed(2));
     } else if (!isConnected) {
-      setUserDeposits("0.000000");
+      setUserDeposits("0.00");
     }
   }, [userSyUSDTokens, isConnected]);
 
+  // FAQ data
+  const faqItems: FAQItemProps[] = [
+    {
+      question: "What is syUSD?",
+      answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore."
+    },
+    {
+      question: "Difference b/w syAssets and ryAssets.",
+      answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+    },
+    {
+      question: "Is is secure?",
+      answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Security is our top priority with multiple audits and safety measures in place."
+    },
+    {
+      question: "How are fixed yield positions created?",
+      answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Fixed yield positions are created through smart contract mechanisms that lock in rates."
+    },
+    {
+      question: "Where is the yield coming from?",
+      answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Yield is generated through various DeFi strategies and protocols."
+    },
+    {
+      question: "Who is the curator?",
+      answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. The curator is responsible for managing and optimizing the yield strategies."
+    }
+  ];
+
   // Sub-components for each tab
+
   const renderDepositsTab = () => (
     <div className="w-full">
       <div className="flex justify-between items-center mb-3 mt-4">
@@ -258,6 +288,12 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
   const renderIncentivesTab = () => (
     <IncentiveRewards strategyName={name} className="w-full" />
+  );
+
+  const renderFAQsTab = () => (
+    <div className="w-full mt-6">
+      <FAQs items={faqItems} className="w-full max-w-4xl" />
+    </div>
   );
 
   return (
@@ -402,7 +438,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
           </div>
 
           {/* Network */}
-          <div className="flex flex-col justify-center items-start h-[35px] gap-[5px] min-w-[80px]">
+          <div className="flex flex-col justify-center items-start h-[40px] gap-[5px] min-w-[80px]">
             <div className="text-[#9C9DA2] text-xs leading-none">Network</div>
             <div className="relative mt-0 text-[14px] flex items-center cursor-pointer group">
               {(
@@ -482,6 +518,19 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
             active={activeTab === "incentives"}
             onClick={() => setActiveTab("incentives")}
           />
+          <Tab
+            label="FAQs"
+            icon={
+              <img
+                src="/images/icons/faqs.svg"
+                alt="Incentives"
+                width={16}
+                height={16}
+              />
+            }
+            active={activeTab === "faqs"}
+            onClick={() => setActiveTab("faqs")}
+          />
         </div>
 
         {/* Content */}
@@ -489,6 +538,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
           {activeTab === "deposits" && renderDepositsTab()}
           {activeTab === "baseApy" && renderBaseApyTab()}
           {activeTab === "incentives" && renderIncentivesTab()}
+          {activeTab === "faqs" && renderFAQsTab()}
         </div>
       </div>
       {/* )} */}

@@ -20,6 +20,7 @@ import {
 import { useRouter } from "next/router";
 import { CustomConnectButton } from "../components/ui/ConnectButton/CustomConnectButton";
 import { Header } from "../components/ui/header";
+import { Navigation } from "../components/ui/navigation";
 
 const InfoIcon = () => (
   <svg
@@ -1002,7 +1003,7 @@ const PortfolioSubpage: React.FC = () => {
 
   const handlePercentageClick = (percentage: number) => {
     if (selectedStrategy) {
-      const amount = (selectedStrategy.balance * percentage).toFixed(6);
+      const amount = (selectedStrategy.balance * percentage).toFixed(2);
       setWithdrawAmount(amount);
     }
   };
@@ -1224,55 +1225,7 @@ const PortfolioSubpage: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col pt-[52px]">
       <Header onNavigateToDeposit={() => {}}>
-        <div className="flex items-center justify-between w-full px-4 sm:px-0">
-          <div className="flex items-stretch h-full">
-            <div className="flex items-center">
-              <div
-                className="cursor-pointer"
-                onClick={() => {
-                  router.push("/");
-                }}
-              >
-                <Image
-                  src="/images/logo/logo-desktop.svg"
-                  alt="Lucidity Logo"
-                  width={80}
-                  height={16}
-                  priority
-                />
-              </div>
-            </div>
-            <div className="w-[1px] bg-[rgba(255,255,255,0.1)] ml-4 hidden sm:block"></div>
-            <nav className="hidden md:flex">
-              <div className="relative flex">
-                <button
-                  className="px-8 py-[18px] text-sm transition-colors relative text-[#9C9DA2] hover:text-gray-300"
-                  onClick={() => router.push('/earn')}
-                >
-                  Earn
-                </button>
-                <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
-                <button
-                  className="px-8 py-[18px] text-sm transition-colors relative text-[#9C9DA2] hover:text-gray-300"
-                  onClick={() => router.push('/yields')}
-                >
-                  Yields
-                </button>
-                <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
-                <button
-                  className="px-8 py-[18px] text-sm transition-colors relative text-white"
-                  onClick={() => router.push('/portfolio')}
-                >
-                  Portfolio
-                  <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#B88AF8]"></div>
-                </button>
-              </div>
-            </nav>
-          </div>
-          <div className="flex flex-row gap-2">
-            <CustomConnectButton />
-          </div>
-        </div>
+        <Navigation currentPage="portfolio" />
       </Header>
       <main className="flex-1 overflow-y-auto">
       {/* Top Section - Portfolio Value, PNL, and Wallet */}

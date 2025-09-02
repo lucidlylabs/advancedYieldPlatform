@@ -509,7 +509,7 @@ const PortfolioDetailedPage = () => {
 
   const handlePercentageClick = (percentage: number) => {
     if (contract) {
-      const amount = balance !== undefined ? (Number(balance) * percentage).toFixed(6) : "0.000000";
+      const amount = balance !== undefined ? (Number(balance) * percentage).toFixed(2) : "0.00";
       setWithdrawAmount(amount);
     }
   };
@@ -719,7 +719,7 @@ const PortfolioDetailedPage = () => {
               <div className="text-[#9C9DA2] text-right   text-[12px] font-normal leading-normal">
                 Balance:{" "}
                 <span className="text-[#D7E3EF] text-[12px] font-semibold leading-normal">
-                  {typeof balance === "string" ? parseFloat(balance).toFixed(4) : ""}
+                  {typeof balance === "string" ? parseFloat(balance).toFixed(2) : ""}
                 </span>
               </div>
             </div>

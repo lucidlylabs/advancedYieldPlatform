@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { CustomConnectButton } from "../components/ui/ConnectButton/CustomConnectButton";
 import { Header } from "../components/ui/header";
+import { Navigation } from "../components/ui/navigation";
 import PortfolioSubpage from "./portfolio";
-import YieldSubpage from "./earn";
+import Yieldsubpage from "./earn";
 import MarketsSubpage from "./yields";
 import CodeVerificationPopup from "@/components/ui/CodeVerificationPopup";
 
@@ -111,7 +112,7 @@ export default function Page() {
           />
         );
       }
-      return <YieldSubpage depositParams={depositParams} />;
+      return <Yieldsubpage depositParams={depositParams} />;
     }
     
     // Default behavior for the main page
@@ -129,7 +130,7 @@ export default function Page() {
             />
           );
         }
-        return <YieldSubpage depositParams={depositParams} />;
+        return <Yieldsubpage depositParams={depositParams} />;
       case SubPage.Markets:
         return <MarketsSubpage />;
       default:
@@ -137,186 +138,25 @@ export default function Page() {
     }
   };
 
+  // Determine current page based on route
+  const getCurrentPage = () => {
+    const path = router.pathname;
+    if (path === '/earn') return 'earn';
+    if (path === '/yields') return 'yields';
+    if (path === '/portfolio') return 'portfolio';
+    if (path === '/leaderboard') return 'leaderboard';
+    return 'earn'; // default
+  };
+
   return (
     <div className="min-h-screen flex flex-col pt-[52px]">
       <Header onNavigateToDeposit={handleNavigateToDeposit}>
-      <div className="flex items-center justify-between w-full px-4 sm:px-0">
-        <div className="flex items-stretch h-full">
-          <div className="flex items-center">
-            <div
-              className="cursor-pointer"
-              onClick={() => {
-                window.location.href = "https://lucidly.finance";
-              }}
-            >
-              <Image
-                src="/images/logo/logo-desktop.svg"
-                alt="Lucidity Logo"
-                width={80}
-                height={16}
-                priority
-              />
-            </div>
-          </div>
-          <div className="w-[1px] bg-[rgba(255,255,255,0.1)] ml-4 hidden sm:block"></div>
-          <nav className="hidden md:flex">
-            <div className="relative flex">
-              <button
-                className={`px-8 py-[18px] text-sm transition-colors relative ${
-                  selectedSubPage === SubPage.Yield
-                    ? "text-white"
-                    : "text-[#9C9DA2] hover:text-gray-300"
-                }`}
-                onClick={() => {
-                  router.push('/earn');
-                }}
-              >
-                Earn
-                {selectedSubPage === SubPage.Yield && (
-                  <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#B88AF8]"></div>
-                )}
-              </button>
-
-              <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
-
-              <button
-                className={`px-8 py-[18px] text-sm transition-colors relative ${
-                  selectedSubPage === SubPage.Markets
-                    ? "text-white"
-                    : "text-[#9C9DA2] hover:text-gray-300"
-                }`}
-                onClick={() => {
-                  router.push('/yields');
-                }}
-              >
-                Yields
-                {selectedSubPage === SubPage.Markets && (
-                  <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#B88AF8]"></div>
-                )}
-              </button>
-
-              <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
-
-              <button
-                className={`px-8 py-[18px] text-sm transition-colors relative ${
-                  selectedSubPage === SubPage.Portfolio
-                    ? "text-white"
-                    : "text-[#9C9DA2] hover:text-gray-300"
-                }`}
-                onClick={() => {
-                  router.push('/portfolio');
-                }}
-              >
-                Portfolio
-                {selectedSubPage === SubPage.Portfolio && (
-                  <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#B88AF8]"></div>
-                )}
-              </button>
-              <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
-
-              <button
-                className={`px-8 py-[18px] text-sm transition-colors relative text-[#9C9DA2] hover:text-gray-300`}
-                onClick={() => {
-                  window.open(
-                    "https://docs.lucidly.finance",
-                    "_blank",
-                    "noopener,noreferrer"
-                  );
-                }}
-              >
-                Docs
-              </button>
-            </div>
-          </nav>
-        </div>
-        <div className="flex flex-row gap-2">
-            <CustomConnectButton />
-            <button
-              className="sm:hidden text-white p-2"
-              onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-            >
-              {isMobileMenuOpen ? (
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              )}
-            </button>
-        </div>
-        </div>
+        <Navigation 
+          currentPage={getCurrentPage() as 'earn' | 'yields' | 'portfolio' | 'leaderboard'}
+          isMobileMenuOpen={isMobileMenuOpen}
+          setIsMobileMenuOpen={setIsMobileMenuOpen}
+        />
       </Header>
-
-      {isMobileMenuOpen && (
-      <div className="fixed top-[72px] left-0 right-0 z-40 md:hidden bg-[#0D101C] py-4 flex flex-col items-center gap-4 border-b border-[rgba(255,255,255,0.1)] px-4">
-        <button
-          className={`text-lg w-full text-center py-2 rounded transition-colors ${
-            selectedSubPage === SubPage.Yield
-              ? "text-white bg-[rgba(184,138,248,0.1)]"
-              : "text-[#9C9DA2] hover:text-white"
-          }`}
-          onClick={() => {
-            router.push('/earn');
-            setIsMobileMenuOpen(false);
-          }}
-        >
-          Earn
-        </button>
-        <button
-          className={`text-lg w-full text-center py-2 rounded transition-colors ${
-            selectedSubPage === SubPage.Markets
-              ? "text-white bg-[rgba(184,138,248,0.1)]"
-              : "text-[#9C9DA2] hover:text-white"
-          }`}
-          onClick={() => {
-            router.push('/yields');
-            setIsMobileMenuOpen(false);
-          }}
-        >
-          Yields
-        </button>
-        <button
-          className={`text-lg w-full text-center py-2 rounded transition-colors ${
-            selectedSubPage === SubPage.Portfolio
-              ? "text-white bg-[rgba(184,138,248,0.1)]"
-              : "text-[#9C9DA2] hover:text-white"
-          }`}
-          onClick={() => {
-            router.push('/portfolio');
-            setIsMobileMenuOpen(false);
-          }}
-        >
-          Portfolio
-        </button>
-        <button
-          className="text-lg w-full text-center py-2 rounded transition-colors text-[#9C9DA2] hover:text-white"
-          onClick={() => {
-            window.open(
-              "https://docs.lucidly.finance",
-              "_blank",
-              "noopener,noreferrer"
-            );
-            setIsMobileMenuOpen(false);
-          }}
-        >
-          Docs
-        </button>
-      </div>
-    )}
 
       <main className={`flex-1 overflow-y-auto ${isMobileMenuOpen ? 'pt-[200px]' : ''}`}>{renderSubPage()}</main>
     </div>

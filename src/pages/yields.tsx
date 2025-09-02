@@ -10,10 +10,11 @@ import {
 } from "@/components/ui/tooltip";
 import Image from "next/image";
 import { useRouter } from "next/router";
-import { USD_STRATEGIES } from "@/config/env";
+import { USD_STRATEGIES, ETH_STRATEGIES, BTC_STRATEGIES } from "@/config/env";
 import DepositView from "../components/deposit-view";
 import { CustomConnectButton } from "../components/ui/ConnectButton/CustomConnectButton";
 import { Header } from "../components/ui/header";
+import { Navigation } from "../components/ui/navigation";
 
 const isMobile = () => typeof window !== "undefined" && window.innerWidth < 640;
 
@@ -22,6 +23,7 @@ type AssetType = "All" | "USD" | "ETH" | "BTC";
 interface MarketItem {
   id: number;
   name: string;
+  ticker: string;
   type: string;
   baseYield: string;
   incentives: Array<{ image: string; name: string; link: string }>;
@@ -87,7 +89,7 @@ const AssetButton: React.FC<{
         {asset}
       </span>
       {activeAsset === asset && (
-        <div className="absolute bottom-[-1px] left-0 right-0 h-[0.5px] bg-white" />
+        <div className="absolute bottom-[-4px] left-0 right-0 h-[0.5px] bg-white" />
       )}
     </button>
   );
@@ -101,6 +103,41 @@ const MarketsSubpage: React.FC = () => {
   const [showDepositView, setShowDepositView] = useState(false);
   const [usdTvl, setUsdTvl] = useState<string | null>(null);
   const [usdApy, setUsdApy] = useState<string | null>(null);
+  const [showColumnsDropdown, setShowColumnsDropdown] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState({
+    availableYields: true,
+    baseApy: true,
+    incentives: true,
+    tvl: true,
+  });
+
+  const toggleColumn = (column: keyof typeof visibleColumns) => {
+    setVisibleColumns(prev => ({
+      ...prev,
+      [column]: !prev[column]
+    }));
+  };
+
+  // Format TVL for display (like $10.5 B)
+  const formatTVLForDisplay = (tvlString: string | null): string => {
+    if (!tvlString) return "$0";
+    
+    // Remove $ and commas to get the number
+    const cleanNumber = tvlString.replace(/[$,]/g, '');
+    const number = parseFloat(cleanNumber);
+    
+    if (isNaN(number)) return tvlString;
+    
+    if (number >= 1000000000) {
+      return `$${(number / 1000000000).toFixed(1)} B`;
+    } else if (number >= 1000000) {
+      return `$${(number / 1000000).toFixed(1)} M`;
+    } else if (number >= 1000) {
+      return `$${(number / 1000).toFixed(1)} K`;
+    } else {
+      return `$${number.toFixed(0)}`;
+    }
+  };
 
   // Market data state
   const [marketData, setMarketData] = useState<Record<AssetType, MarketItem[]>>({
@@ -116,12 +153,13 @@ const MarketsSubpage: React.FC = () => {
   useEffect(() => {
     const newMarketData: Record<AssetType, MarketItem[]> = {
       All: [],
-      ETH: [],
-      BTC: [],
+      ETH: [], // Empty for now - no ETH strategies available yet
+      BTC: [], // Empty for now - no BTC strategies available yet
       USD: [
         {
           id: 5,
-          name: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.name,
+          name: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.displayName,
+          ticker: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.name, // syUSD
           type: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.type,
           baseYield: usdApy || USD_STRATEGIES.PERPETUAL_DURATION.STABLE.fallbackApy,
           incentives: (() => {
@@ -315,55 +353,7 @@ const MarketsSubpage: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col pt-[52px]">
       <Header onNavigateToDeposit={() => {}}>
-        <div className="flex items-center justify-between w-full px-4 sm:px-0">
-          <div className="flex items-stretch h-full">
-            <div className="flex items-center">
-              <div
-                className="cursor-pointer"
-                onClick={() => {
-                  router.push("/");
-                }}
-              >
-                <Image
-                  src="/images/logo/logo-desktop.svg"
-                  alt="Lucidity Logo"
-                  width={80}
-                  height={16}
-                  priority
-                />
-              </div>
-            </div>
-            <div className="w-[1px] bg-[rgba(255,255,255,0.1)] ml-4 hidden sm:block"></div>
-            <nav className="hidden md:flex">
-              <div className="relative flex">
-                <button
-                  className="px-8 py-[18px] text-sm transition-colors relative text-[#9C9DA2] hover:text-gray-300"
-                  onClick={() => router.push('/earn')}
-                >
-                  Earn
-                </button>
-                <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
-                <button
-                  className="px-8 py-[18px] text-sm transition-colors relative text-white"
-                  onClick={() => router.push('/yields')}
-                >
-                  Yields
-                  <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#B88AF8]"></div>
-                </button>
-                <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
-                <button
-                  className="px-8 py-[18px] text-sm transition-colors relative text-[#9C9DA2] hover:text-gray-300"
-                  onClick={() => router.push('/portfolio')}
-                >
-                  Portfolio
-                </button>
-              </div>
-            </nav>
-          </div>
-          <div className="flex flex-row gap-2">
-            <CustomConnectButton />
-          </div>
-        </div>
+        <Navigation currentPage="yields" />
       </Header>
       <main className="flex-1 overflow-y-auto">
         <>
@@ -395,31 +385,122 @@ const MarketsSubpage: React.FC = () => {
               </div>
             </div>
 
+            {/* TVL Section */}
+            <div className="pl-4 sm:pl-[32px] mt-[32px] mb-[12px]">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[#9C9DA2] font-inter text-[11px] font-normal leading-[16px]">
+                  TVL
+                </span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="cursor-help">
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 14 14"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M6.99935 9.33341V7.00008M6.99935 4.66675H7.00518M12.8327 7.00008C12.8327 10.2217 10.221 12.8334 6.99935 12.8334C3.77769 12.8334 1.16602 10.2217 1.16602 7.00008C1.16602 3.77842 3.77769 1.16675 6.99935 1.16675C10.221 1.16675 12.8327 3.77842 12.8327 7.00008Z"
+                            stroke="#9C9DA2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent className="text-xs" side="top">
+                      Total Value Locked across all strategies
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-white font-inter text-[16px] font-semibold leading-[40px]">
+                  {formatTVLForDisplay(usdTvl)}
+                </span>
+                <div className="w-full h-[1px] bg-[rgba(255,255,255,0.1)] mt-1"></div>
+              </div>
+            </div>
+
             {/* Asset Selection */}
-            <div className="px-4 sm:px-[32px] mt-[16px]">
-              <div className="grid grid-cols-4 gap-3 sm:flex sm:pr-6">
-                <AssetButton
-                  asset="All"
-                  activeAsset={selectedAsset}
-                  onClick={setSelectedAsset}
-                />
-                <AssetButton
-                  asset="USD"
-                  activeAsset={selectedAsset}
-                  onClick={setSelectedAsset}
-                />
-                <AssetButton
-                  asset="ETH"
-                  activeAsset={selectedAsset}
-                  onClick={setSelectedAsset}
-                  disabled
-                />
-                <AssetButton
-                  asset="BTC"
-                  activeAsset={selectedAsset}
-                  onClick={setSelectedAsset}
-                  disabled
-                />
+            <div className="px-4 sm:px-[32px]">
+              <div className="flex justify-between items-center">
+                <div className="grid grid-cols-4 gap-3 sm:flex sm:pr-6">
+                  <AssetButton
+                    asset="All"
+                    activeAsset={selectedAsset}
+                    onClick={setSelectedAsset}
+                  />
+                  <AssetButton
+                    asset="USD"
+                    activeAsset={selectedAsset}
+                    onClick={setSelectedAsset}
+                  />
+                  <AssetButton
+                    asset="ETH"
+                    activeAsset={selectedAsset}
+                    onClick={setSelectedAsset}
+                    disabled
+                  />
+                  <AssetButton
+                    asset="BTC"
+                    activeAsset={selectedAsset}
+                    onClick={setSelectedAsset}
+                    disabled
+                  />
+                </div>
+                
+                {/* Columns Button */}
+                <div className="relative mb-3">
+                  <button
+                    onClick={() => setShowColumnsDropdown(!showColumnsDropdown)}
+                    className="flex items-center gap-2 px-3 py-2 text-[#9C9DA2] hover:text-white text-[12px] font-normal transition-colors border border-[rgba(255,255,255,0.1)] rounded-md"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M3 12L3 18M3 6L3 12M3 12L21 12M21 6L21 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                    Columns
+                    <svg
+                      className={`w-4 h-4 transition-transform ${showColumnsDropdown ? 'rotate-180' : ''}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  
+                  {showColumnsDropdown && (
+                    <div className="absolute right-0 top-full mt-2 w-48 bg-[#263042] border border-[rgba(255,255,255,0.1)] rounded-md shadow-lg z-50">
+                      <div className="p-2">
+                        {[
+                          { key: 'availableYields', label: 'Available Yields' },
+                          { key: 'baseApy', label: 'Base APY' },
+                          { key: 'incentives', label: 'Incentives' },
+                          { key: 'tvl', label: 'TVL' },
+                        ].map(({ key, label }) => (
+                          <label key={key} className="flex items-center gap-3 p-2 hover:bg-[rgba(255,255,255,0.05)] rounded cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={visibleColumns[key as keyof typeof visibleColumns]}
+                              onChange={() => toggleColumn(key as keyof typeof visibleColumns)}
+                              className="w-4 h-4 accent-[#B88AF8]"
+                            />
+                            <span className="text-[#D7E3EF] text-[12px]">{label}</span>
+                            <div className="ml-auto">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 5V19M5 12L19 12" stroke="#9C9DA2" strokeWidth="2" strokeLinecap="round"/>
+                              </svg>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -432,6 +513,10 @@ const MarketsSubpage: React.FC = () => {
                 onSort={handleSort}
                 onRowClick={handleRowClick}
                 selectedItemId={selectedItem?.id}
+                visibleColumns={visibleColumns}
+                showColumnsDropdown={showColumnsDropdown}
+                setShowColumnsDropdown={setShowColumnsDropdown}
+                toggleColumn={toggleColumn}
               />
             </div>
           </div>

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -11,6 +11,7 @@ import Image from "next/image";
 interface MarketItem {
   id: number;
   name: string;
+  ticker: string;
   type: string;
   baseYield: string;
   incentives: Array<{ image: string; name: string; link: string }>;
@@ -24,6 +25,15 @@ interface MarketsTableProps {
   onSort: (column: string) => void;
   onRowClick?: (item: MarketItem) => void;
   selectedItemId?: number | null;
+  visibleColumns: {
+    availableYields: boolean;
+    baseApy: boolean;
+    incentives: boolean;
+    tvl: boolean;
+  };
+  showColumnsDropdown: boolean;
+  setShowColumnsDropdown: (show: boolean) => void;
+  toggleColumn: (column: keyof MarketsTableProps['visibleColumns']) => void;
 }
 
 const InfoIcon = () => (
@@ -81,7 +91,12 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
   onSort,
   onRowClick,
   selectedItemId,
+  visibleColumns,
+  showColumnsDropdown,
+  setShowColumnsDropdown,
+  toggleColumn,
 }) => {
+
   // Function to get icon based on asset type
   const getAssetIcon = (type: string) => {
     switch (type) {
@@ -178,46 +193,54 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
     <div className="w-full">
       {/* Table Header */}
       <div className="sm:pl-[32px]">
-        <div className="grid grid-cols-12 px-4 py-1 border-y-[0.5px] border-[rgba(255,255,255,0.15)]" style={{ height: '38px' }}>
-          <div
-            className="col-span-4 cursor-pointer flex items-center text-white opacity-60 font-inter text-[11px] font-normal leading-[14px] py-[5px]"
-            onClick={() => onSort("name")}
-          >
-            Available Yields
-            <SortIcon direction={sortColumn === "name" ? sortDirection : null} />
-          </div>
-          <div
-            className="col-span-3 cursor-pointer flex items-center justify-end text-white opacity-60 font-inter text-[11px] font-normal leading-[14px]"
-            onClick={() => onSort("baseYield")}
-          >
-            Base APY
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button className="ml-1 text-white opacity-60 hover:opacity-100 transition-all duration-200 flex items-center">
-                    <InfoIcon />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>
-                    Annual Percentage Yield based on current market conditions
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <SortIcon direction={sortColumn === "baseYield" ? sortDirection : null} />
-          </div>
-          <div className="col-span-3 flex items-center justify-end text-white opacity-60 font-inter text-[11px] font-normal leading-[14px]">
-            Incentives
-            <SortIcon direction={null} />
-          </div>
-          <div
-            className="col-span-2 cursor-pointer flex items-center justify-end text-white opacity-60 font-inter text-[11px] font-normal leading-[14px]"
-            onClick={() => onSort("tvl")}
-          >
-            TVL
-            <SortIcon direction={sortColumn === "tvl" ? sortDirection : null} />
-          </div>
+        <div className={`grid px-4 py-1 border-y-[0.5px] border-[rgba(255,255,255,0.15)] gap-4`} style={{ height: '38px', gridTemplateColumns: `${visibleColumns.availableYields ? '1fr' : ''} ${visibleColumns.baseApy ? '0.75fr' : ''} ${visibleColumns.incentives ? '0.75fr' : ''} ${visibleColumns.tvl ? '0.5fr' : ''}`.trim() }}>
+          {visibleColumns.availableYields && (
+            <div
+              className="cursor-pointer flex items-center text-white opacity-60 font-inter text-[11px] font-normal leading-[14px] py-[5px]"
+              onClick={() => onSort("name")}
+            >
+              Available Yields
+              <SortIcon direction={sortColumn === "name" ? sortDirection : null} />
+            </div>
+          )}
+          {visibleColumns.baseApy && (
+            <div
+              className="cursor-pointer flex items-center justify-end text-white opacity-60 font-inter text-[11px] font-normal leading-[14px]"
+              onClick={() => onSort("baseYield")}
+            >
+              Base APY
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button className="ml-1 text-white opacity-60 hover:opacity-100 transition-all duration-200 flex items-center">
+                      <InfoIcon />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      Annual Percentage Yield based on current market conditions
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <SortIcon direction={sortColumn === "baseYield" ? sortDirection : null} />
+            </div>
+          )}
+          {visibleColumns.incentives && (
+            <div className="flex items-center justify-end text-white opacity-60 font-inter text-[11px] font-normal leading-[14px]">
+              Incentives
+              <SortIcon direction={null} />
+            </div>
+          )}
+          {visibleColumns.tvl && (
+            <div
+              className="cursor-pointer flex items-center justify-end text-white opacity-60 font-inter text-[11px] font-normal leading-[14px]"
+              onClick={() => onSort("tvl")}
+            >
+              TVL
+              <SortIcon direction={sortColumn === "tvl" ? sortDirection : null} />
+            </div>
+          )}
         </div>
       </div>
 
@@ -238,17 +261,27 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
                   "bg-[linear-gradient(90deg,rgba(0,209,160,0.15)_0%,rgba(0,209,160,0)_15%,rgba(0,209,160,0)_85%,rgba(0,209,160,0.15)_100%)]"
               )}
             >
-              <div className="grid grid-cols-12 pr-6 py-4 pl-4">
-                <div className="col-span-4 flex items-center">
-                  {getAssetIcon(item.type)}
-                  <span className="text-white font-inter text-xs font-normal leading-4">
-                    {item.name}
-                  </span>
-                </div>
-                <div className="col-span-3 flex items-center justify-end text-white font-inter text-xs font-normal leading-4">
-                  {item.baseYield}
-                </div>
-                <div className="col-span-3 flex items-center justify-end">
+              <div className={`grid pr-6 py-4 pl-4 gap-4`} style={{ gridTemplateColumns: `${visibleColumns.availableYields ? '1fr' : ''} ${visibleColumns.baseApy ? '0.75fr' : ''} ${visibleColumns.incentives ? '0.75fr' : ''} ${visibleColumns.tvl ? '0.5fr' : ''}`.trim() }}>
+                {visibleColumns.availableYields && (
+                  <div className="flex items-center">
+                    {getAssetIcon(item.type)}
+                    <div className="flex flex-col">
+                      <span className="text-white font-inter text-xs font-normal leading-4">
+                        {item.name}
+                      </span>
+                      <span className="text-[#9C9DA2] font-inter text-[10px] font-normal leading-3 mt-1">
+                        {item.ticker}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {visibleColumns.baseApy && (
+                  <div className="flex items-center justify-end text-white font-inter text-xs font-normal leading-4">
+                    {item.baseYield}
+                  </div>
+                )}
+                {visibleColumns.incentives && (
+                  <div className="flex items-center justify-end">
                   {(() => {
                     console.log('Incentives for', item.name, ':', item.incentives);
                     const hasValidIncentives = item.incentives && 
@@ -301,10 +334,13 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
                       <span className="text-white font-inter text-xs font-normal leading-4">---</span>
                     );
                   })()}
-                </div>
-                <div className="col-span-2 flex items-center justify-end text-white font-inter text-xs font-normal leading-4">
-                  {item.tvl}
-                </div>
+                  </div>
+                )}
+                {visibleColumns.tvl && (
+                  <div className="flex items-center justify-end text-white font-inter text-xs font-normal leading-4">
+                    {item.tvl}
+                  </div>
+                )}
               </div>
             </div>
           </div>
