@@ -1,12 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip } from "@/components/ui/tooltip";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import {
   useAccount,
@@ -368,21 +363,14 @@ const ExchangeRate: React.FC<ExchangeRateProps> = ({ selectedAssetOption, target
           <span className="text-[#9C9DA2] text-[14px] font-normal">
             Exchange rate
           </span>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="w-4 h-4 rounded-full flex items-center justify-center">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="8" cy="8" r="7" stroke="#9C9DA2" strokeWidth="1"/>
-                    <path d="M8 5v3M8 11h.01" stroke="#9C9DA2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent className="text-xs" side="top">
-                Current exchange rate between {selectedAssetOption.name} and syUSD vault shares
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip content={`Current exchange rate between ${selectedAssetOption.name} and syUSD vault shares`} side="top">
+            <div className="w-4 h-4 rounded-full flex items-center justify-center">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="8" cy="8" r="7" stroke="#9C9DA2" strokeWidth="1"/>
+                <path d="M8 5v3M8 11h.01" stroke="#9C9DA2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+          </Tooltip>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 bg-[#1e202c] rounded-full px-2 py-1">
@@ -1641,19 +1629,11 @@ const DepositView: React.FC<DepositViewProps> = ({
                       <div className="flex items-center justify-between gap-2">
                         <label className="text-[#9C9DA2] font-inter text-[12px] whitespace-nowrap flex items-center gap-1">
                           Deposit Network
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div>
-                                  <InfoIcon />
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent className="text-xs" side="top">
-                                Select the network you'll be depositing funds
-                                from.
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip content="Select the network you'll be depositing funds from." side="top">
+                            <div>
+                              <InfoIcon />
+                            </div>
+                          </Tooltip>
                         </label>
                         <div className="relative w-fit">
                           <button
@@ -1799,19 +1779,11 @@ const DepositView: React.FC<DepositViewProps> = ({
                       <div className="flex items-center justify-between gap-2">
                         <label className="text-[#9C9DA2] font-inter text-[12px] whitespace-nowrap flex items-center gap-1">
                           Destination Network
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div>
-                                  <InfoIcon />
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent className="text-xs" side="top">
-                                This is the network where you'll receive your
-                                syUSD vault tokens
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip content="This is the network where you'll receive your syUSD vault tokens" side="top">
+                            <div>
+                              <InfoIcon />
+                            </div>
+                          </Tooltip>
                         </label>
                         <div className="relative w-fit">
                           <div className="flex items-center justify-between w-fit bg-[#1e202c] text-[#EDF2F8] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] pr-2">

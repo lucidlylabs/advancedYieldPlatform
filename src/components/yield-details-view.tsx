@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip } from "@/components/ui/tooltip";
 import Image from "next/image";
 import { useAccount, useReadContract } from "wagmi";
 import { formatUnits } from "viem";
@@ -317,32 +312,24 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                   {name}
                 </h1>
 
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-center">
-                        <svg
-                          width="14"
-                          height="13"
-                          viewBox="0 0 14 13"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M6.99935 8.83341V6.50008M6.99935 4.16675H7.00518M12.8327 6.50008C12.8327 9.72174 10.221 12.3334 6.99935 12.3334C3.77769 12.3334 1.16602 9.72174 1.16602 6.50008C1.16602 3.27842 3.77769 0.666748 6.99935 0.666748C10.221 0.666748 12.8327 3.27842 12.8327 6.50008Z"
-                            stroke="#9C9DA2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          />
-                        </svg>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent title="syUSD" side="top">
-                      syUSD is a synthetic USD stablecoin that provides yield
-                      through various DeFi strategies
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <Tooltip content="syUSD is a synthetic USD stablecoin that provides yield through various DeFi strategies" side="top">
+                  <div className="flex items-center">
+                    <svg
+                      width="14"
+                      height="13"
+                      viewBox="0 0 14 13"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M6.99935 8.83341V6.50008M6.99935 4.16675H7.00518M12.8327 6.50008C12.8327 9.72174 10.221 12.3334 6.99935 12.3334C3.77769 12.3334 1.16602 9.72174 1.16602 6.50008C1.16602 3.27842 3.77769 0.666748 6.99935 0.666748C10.221 0.666748 12.8327 3.27842 12.8327 6.50008Z"
+                        stroke="#9C9DA2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
+                </Tooltip>
               </div>
             </div>
           </div>
@@ -394,18 +381,11 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
           <div className="flex flex-col justify-center items-start relative pr-4 sm:pr-6 h-[35px] gap-[10px] after:content-[''] after:absolute after:right-0 after:top-1/2 after:-translate-y-1/2 after:w-px after:h-[35px] after:bg-gray-700 min-w-[80px]">
             <div className="text-[#9C9DA2] text-xs leading-none flex items-center gap-1">
               Base APY
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="cursor-help">
-                      <InfoIcon />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent title="Base APY" side="top">
-                    7d moving average
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip content="7d moving average" side="top">
+                <div className="cursor-help">
+                  <InfoIcon />
+                </div>
+              </Tooltip>
             </div>
             <div className="font-semibold text-sm leading-none">{baseApy}</div>
           </div>
@@ -454,28 +434,21 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
               )
                 .filter(Boolean)
                 .map((networkConfig, index) => (
-                  <TooltipProvider key={networkConfig.chainObject.name}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div
-                          className={cn(
-                            "relative z-10 transition-transform duration-300 hover:scale-110",
-                            index > 0 && "-ml-2"
-                          )}
-                        >
-                          <Image
-                            src={networkConfig.image}
-                            alt={networkConfig.chainObject.name}
-                            width={24}
-                            height={24}
-                          />
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent className="text-xs" side="top">
-                        {networkConfig.chainObject.name}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip key={networkConfig.chainObject.name} content={networkConfig.chainObject.name} side="top">
+                    <div
+                      className={cn(
+                        "relative z-10 transition-transform duration-300 hover:scale-110",
+                        index > 0 && "-ml-2"
+                      )}
+                    >
+                      <Image
+                        src={networkConfig.image}
+                        alt={networkConfig.chainObject.name}
+                        width={24}
+                        height={24}
+                      />
+                    </div>
+                  </Tooltip>
                 ))}
             </div>
           </div>

@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
-import {
-  Tooltip,
-} from "@/components/ui/tooltip";
+import { Tooltip } from "@/components/ui/tooltip";
 import Image from "next/image";
 
 interface MarketItem {

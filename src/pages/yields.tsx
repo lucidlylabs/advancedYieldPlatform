@@ -2,12 +2,7 @@ import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { MarketsTable } from "@/components/ui/markets-table";
 import { YieldDetailsView } from "@/components/yield-details-view";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip } from "@/components/ui/tooltip";
 import Image from "next/image";
 import { useRouter } from "next/router";
 import { USD_STRATEGIES, ETH_STRATEGIES, BTC_STRATEGIES } from "@/config/env";
