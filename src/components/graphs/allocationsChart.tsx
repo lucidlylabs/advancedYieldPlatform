@@ -187,15 +187,15 @@ export default function AllocationChart({}: AllocationChartProps) {
         <ResponsiveContainer
           width="100%"
           height="100%"
-          className="overflow-hidden focus:outline-none focus:ring-0 focus:border-0"
+          className="focus:outline-none focus:ring-0 focus:border-0"
         >
           {filteredData.length > 0 ? (
             <AreaChart
               data={[...filteredData].reverse()}
-              margin={{ top: 10, right: 0, left: -25, bottom: 0 }}
+              margin={{ top: 10, right: 0, left: -25, bottom: 20 }}
               stackOffset="expand"
-              style={{ outline: "none", border: "none", overflow: "hidden" }}
-              className="overflow-hidden focus:outline-none focus:ring-0 focus:border-0"
+              style={{ outline: "none", border: "none" }}
+              className="focus:outline-none focus:ring-0 focus:border-0"
             >
             <CartesianGrid strokeDasharray="3 3" stroke="#2A2A3C" />
             <XAxis
