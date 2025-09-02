@@ -368,7 +368,7 @@ const MarketsSubpage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col pt-[0px]">
+    <div className="min-h-screen flex flex-col pt-[52px]">
       <Header onNavigateToDeposit={() => {}}>
         <Navigation currentPage="yields" />
       </Header>
