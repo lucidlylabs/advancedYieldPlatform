@@ -66,6 +66,19 @@ const LeaderboardPage: React.FC = () => {
 
     // If user not connected, show top 21
     if (!userEntry) {
+      // If user is connected but not in leaderboard data, they likely have 0 points
+      if (isConnected && address) {
+        const top20 = leaderboardData.slice(0, 20);
+        const zeroPointsEntry = {
+          rank: -2, // Special marker for 0 points user
+          address: address,
+          percentage: 0,
+          rewardsEarned: 0,
+          tokenType: '',
+          rewardsFormatted: '0'
+        };
+        return [...top20, zeroPointsEntry];
+      }
       return leaderboardData.slice(0, 21);
     }
 
@@ -79,9 +92,9 @@ const LeaderboardPage: React.FC = () => {
       return [...top20, zeroPointsEntry];
     }
 
-    // Edge Case 2: User is ranked 4-20 - show them at actual position, only show up to rank 20
+    // Edge Case 2: User is ranked 4-20 - show them at actual position, show up to rank 21 to include them
     if (userEntry.rank >= 4 && userEntry.rank <= 20) {
-      return leaderboardData.slice(0, 20);
+      return leaderboardData.slice(0, 21);
     }
 
     // Edge Case 3: User is after rank 20 - show top 20 + user at position 21
@@ -133,6 +146,7 @@ const LeaderboardPage: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col pt-[52px]">
+
       <Header onNavigateToDeposit={() => {}}>
         <Navigation currentPage="leaderboard" />
       </Header>
@@ -179,6 +193,7 @@ const LeaderboardPage: React.FC = () => {
                       entry.rank
                     )}`}
                   >
+
                     <div className="flex items-center gap-4">
                       {/* Medal Icon */}
                       <div className="text-3xl">{getRankIcon(entry.rank)}</div>
@@ -189,11 +204,6 @@ const LeaderboardPage: React.FC = () => {
                           {entry.address.slice(0, 6)}...
                           {entry.address.slice(-4)}
                         </span>
-                        {isUserEntry(entry) && (
-                          <span className="text-white text-xs py-1 rounded font-medium">
-                            YOU
-                          </span>
-                        )}
                       </div>
 
                       {/* Rewards */}
@@ -250,7 +260,7 @@ const LeaderboardPage: React.FC = () => {
                           </span>
                         ) : entry.rank === -2 ? (
                           <span className="text-white text-md py-1 rounded font-medium">
-                            YOU (0 points)
+                            YOU
                           </span>
                         ) : (
                           <>
@@ -270,7 +280,7 @@ const LeaderboardPage: React.FC = () => {
                         </span>
                       </div>
                       <div className="text-white font-medium">
-                        {entry.rewardsFormatted}
+                        {entry.rank === -2 ? 'No deposits yet' : entry.rewardsFormatted}
                       </div>
                     </div>
                   ))}
@@ -296,7 +306,7 @@ const LeaderboardPage: React.FC = () => {
                           </span>
                         ) : entry.rank === -2 ? (
                           <span className="text-white text-md py-1 rounded font-medium">
-                            YOU (0 points)
+                            YOU
                           </span>
                         ) : (
                           <>
@@ -316,7 +326,7 @@ const LeaderboardPage: React.FC = () => {
                         </span>
                       </div>
                       <div className="text-white font-medium">
-                        {entry.rewardsFormatted}
+                        {entry.rank === -2 ? 'No deposits yet' : entry.rewardsFormatted}
                       </div>
                     </div>
                   ))}
