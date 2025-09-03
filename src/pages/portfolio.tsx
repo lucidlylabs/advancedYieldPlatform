@@ -300,20 +300,26 @@ const assetOptions = [
     contract: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
     image: "/images/icons/usdc.svg",
     decimal: 6,
+    isWithdrawable: true,
   },
   {
     name: "USDS",
     contract: "0x820C137fa70C8691f0e44Dc420a5e53c168921Dc",
     image: "/images/icons/usds.svg",
     decimal: 18,
+    isWithdrawable: false,
   },
   {
     name: "sUSDS",
     contract: "0x5875eEE11Cf8398102FdAd704C9E96607675467a",
     image: "/images/icons/sUSDS.svg",
     decimal: 18,
+    isWithdrawable: false,
   },
 ];
+
+// Filter withdrawable assets for dropdown
+const withdrawableAssets = assetOptions.filter(opt => opt.isWithdrawable);
 
 const strategy = USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
 const chainConfigs = {
@@ -767,7 +773,7 @@ const PortfolioSubpage: React.FC = () => {
 
       const solverAddress = selectedStrategy.solverAddress as Address;
       const vaultAddress = selectedStrategy.boringVaultAddress as Address;
-      const assetOutAddress = assetOptions[selectedAssetIdx]
+      const assetOutAddress = withdrawableAssets[selectedAssetIdx]
         .contract as Address;
 
       const client = createPublicClient({
@@ -1108,7 +1114,7 @@ const PortfolioSubpage: React.FC = () => {
         const solverAddress = selectedStrategy.solverAddress as Address;
         const vaultAddress = selectedStrategy.boringVaultAddress as Address;
         const selectedAssetAddress = getAddress(
-          assetOptions[selectedAssetIdx].contract
+          withdrawableAssets[selectedAssetIdx].contract
         );
         console.log("rpc", selectedStrategy.rpc);
         console.log("solverAddress", solverAddress);
@@ -1768,15 +1774,15 @@ const PortfolioSubpage: React.FC = () => {
                                 className="flex items-center justify-between w-full bg-[#131520] text-[#EDF2F8] rounded px-3 py-2 text-sm focus:outline-none border border-[rgba(255,255,255,0.19)]"
                               >
                                 <div className="flex items-center gap-2">
-                                  {assetOptions[selectedAssetIdx]?.image && (
+                                  {withdrawableAssets[selectedAssetIdx]?.image && (
                                     <img
-                                      src={assetOptions[selectedAssetIdx].image}
-                                      alt={assetOptions[selectedAssetIdx].name}
+                                      src={withdrawableAssets[selectedAssetIdx].image}
+                                      alt={withdrawableAssets[selectedAssetIdx].name}
                                       className="w-5 h-5 rounded-full"
                                     />
                                   )}
                                   <span className="text-[12px] font-semibold">
-                                    {assetOptions[selectedAssetIdx].name}
+                                    {withdrawableAssets[selectedAssetIdx].name}
                                   </span>
                                 </div>
                                 <svg
@@ -1801,7 +1807,7 @@ const PortfolioSubpage: React.FC = () => {
 
                               {isAssetDropdownOpen && (
                                 <div className="absolute z-10 w-full mt-2 bg-[#1F202D] rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 focus:outline-none">
-                                  {assetOptions.map((opt, idx) => (
+                                  {withdrawableAssets.map((opt, idx) => (
                                     <button
                                       key={opt.contract}
                                       onClick={() => {
