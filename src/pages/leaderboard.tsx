@@ -74,8 +74,8 @@ const LeaderboardPage: React.FC = () => {
           address: address,
           percentage: 0,
           rewardsEarned: 0,
-          tokenType: '',
-          rewardsFormatted: '0'
+          tokenType: "",
+          rewardsFormatted: "0",
         };
         return [...top20, zeroPointsEntry];
       }
@@ -146,7 +146,6 @@ const LeaderboardPage: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col pt-[52px]">
-
       <Header onNavigateToDeposit={() => {}}>
         <Navigation currentPage="leaderboard" />
       </Header>
@@ -193,6 +192,20 @@ const LeaderboardPage: React.FC = () => {
                       entry.rank
                     )}`}
                   >
+                    {/* Badge for connected wallet if ranked 1-23 */}
+                                         {isUserEntry(entry) &&
+                       entry.rank >= 1 &&
+                       entry.rank <= 23 && (
+                         <div className="absolute -top-8 -right-6">
+                           <Image
+                             src="/images/icons/badge.svg"
+                             alt="Badge"
+                             width={64}
+                             height={64}
+                             className="w-16 h-16"
+                           />
+                         </div>
+                       )}
 
                     <div className="flex items-center gap-4">
                       {/* Medal Icon */}
@@ -247,12 +260,26 @@ const LeaderboardPage: React.FC = () => {
                   .map((entry) => (
                     <div
                       key={`${entry.rank}-${entry.address}`}
-                      className={`flex items-center justify-between p-4 rounded border transition-colors ${
+                      className={`relative flex items-center justify-between p-4 rounded border transition-colors ${
                         isUserEntry(entry)
                           ? "bg-gradient-to-r from-green-400/20 to-green-400/0 border-gray-400/30 hover:bg-green-400/20 py-3"
                           : "border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.05)]"
                       }`}
                     >
+                      {/* Badge for connected wallet if ranked 1-23 */}
+                                             {isUserEntry(entry) &&
+                         entry.rank >= 1 &&
+                         entry.rank <= 23 && (
+                           <div className="absolute -top-8 -right-6">
+                             <Image
+                               src="/images/icons/badge.svg"
+                               alt="Badge"
+                               width={56}
+                               height={56}
+                               className="w-14 h-14"
+                             />
+                           </div>
+                         )}
                       <div className="flex items-center gap-4">
                         {entry.rank === -1 ? (
                           <span className="text-white text-md py-1 rounded font-medium">
@@ -280,7 +307,9 @@ const LeaderboardPage: React.FC = () => {
                         </span>
                       </div>
                       <div className="text-white font-medium">
-                        {entry.rank === -2 ? 'No deposits yet' : entry.rewardsFormatted}
+                        {entry.rank === -2
+                          ? "No deposits yet"
+                          : entry.rewardsFormatted}
                       </div>
                     </div>
                   ))}
@@ -293,12 +322,26 @@ const LeaderboardPage: React.FC = () => {
                   .map((entry) => (
                     <div
                       key={`${entry.rank}-${entry.address}`}
-                      className={`flex items-center justify-between p-4 rounded border transition-colors ${
+                      className={`relative flex items-center justify-between p-4 rounded border transition-colors ${
                         isUserEntry(entry)
                           ? "bg-gradient-to-r from-green-400/20 to-green-400/0 border-gray-400/30 hover:bg-green-400/20 py-3"
                           : "border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.05)]"
                       }`}
                     >
+                      {/* Badge for connected wallet if ranked 1-23 */}
+                                             {isUserEntry(entry) &&
+                         entry.rank >= 1 &&
+                         entry.rank <= 23 && (
+                           <div className="absolute -top-8 -right-6">
+                             <Image
+                               src="/images/icons/badge.svg"
+                               alt="Badge"
+                               width={56}
+                               height={56}
+                               className="w-14 h-14"
+                             />
+                           </div>
+                         )}
                       <div className="flex items-center gap-4">
                         {entry.rank === -1 ? (
                           <span className="text-white text-md py-1 rounded font-medium">
@@ -326,7 +369,9 @@ const LeaderboardPage: React.FC = () => {
                         </span>
                       </div>
                       <div className="text-white font-medium">
-                        {entry.rank === -2 ? 'No deposits yet' : entry.rewardsFormatted}
+                        {entry.rank === -2
+                          ? "No deposits yet"
+                          : entry.rewardsFormatted}
                       </div>
                     </div>
                   ))}
