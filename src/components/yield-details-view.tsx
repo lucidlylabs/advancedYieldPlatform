@@ -193,7 +193,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
     <div className="w-full">
       <div className="flex justify-between items-center mb-3 mt-4">
         <h2 className="text-[rgba(255,255,255,0.70)] text-[16px] font-extrabold ">
-          TOTAL DEPOSITS IN {name}
+          Total deposits in {name}
         </h2>
 
         {/* Toggle buttons */}
@@ -239,7 +239,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
     <div className="w-full">
       <div className="flex justify-between items-center mb-3 mt-4">
         <h2 className="text-[rgba(255,255,255,0.70)] text-[16px] font-extrabold ">
-          BASE APY HISTORY
+         Base APY History
         </h2>
 
         {/* Toggle buttons */}
