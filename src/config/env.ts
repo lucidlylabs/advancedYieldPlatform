@@ -33,6 +33,7 @@ export const USD_STRATEGIES = {
             contract: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
             decimal: 6,
             image: "/images/icons/usdc.svg",
+            isWithdrawable: true,
           },
           {
             name: "USDS",
@@ -89,7 +90,7 @@ export const USD_STRATEGIES = {
       // Arbitrum Configuration
       arbitrum: {
         image: "/images/logo/arb.svg",
-        rpc: "https://arbitrum.drpc.org",
+        rpc: "https://arb1.arbitrum.io/rpc",
         chainId: 42161,
         chainObject: {
           id: 42161,
@@ -97,8 +98,8 @@ export const USD_STRATEGIES = {
           network: "arbitrum",
           nativeCurrency: { decimals: 18, name: "Ether", symbol: "ETH" },
           rpcUrls: {
-            default: { http: ["https://arbitrum.drpc.org"] },
-            public: { http: ["https://arbitrum.drpc.org"] },
+            default: { http: ["https://arb1.arbitrum.io/rpc"] },
+            public: { http: ["https://arb1.arbitrum.io/rpc"] },
           },
         },
         tokens: [

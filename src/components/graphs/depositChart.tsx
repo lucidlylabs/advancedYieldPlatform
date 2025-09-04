@@ -267,8 +267,6 @@ export default function TotalDepositsChart({}: DepositBarChartProps) {
               axisLine={false}
               tickLine={false}
               tickFormatter={(val: number) => {
-                if (val >= 1000000) return `$${Math.round(val / 1000000)}M`;
-                if (val >= 1000) return `$${Math.round(val / 1000)}K`;
                 return `$${val}`;
               }}
               label={{ value: "TVL in Dollars", angle: -90, position: "left", offset: 0, style: { fill: "#A3A3A3", fontSize: 12 } }}
@@ -290,11 +288,7 @@ export default function TotalDepositsChart({}: DepositBarChartProps) {
                             Total Cumulative Deposits:
                           </span>
                           <span className="text-sm font-medium text-gray-800">
-                            {payload[0].value >= 1000000
-                              ? `$${(payload[0].value / 1000000).toFixed(1)}M`
-                              : payload[0].value >= 1000
-                              ? `$${(payload[0].value / 1000).toFixed(1)}K`
-                              : `$${payload[0].value}`}
+                            ${payload[0].value}
                           </span>
                         </div>
                       </div>
