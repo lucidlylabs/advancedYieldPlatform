@@ -4,7 +4,7 @@ import { useRouter } from "next/router";
 import { CustomConnectButton } from "./ConnectButton/CustomConnectButton";
 
 interface NavigationProps {
-  currentPage?: 'earn' | 'yields' | 'portfolio' | 'leaderboard';
+  currentPage?: 'earn' | 'yields' | 'portfolio' | 'leaderboard' | 'bridge';
   isMobileMenuOpen?: boolean;
   setIsMobileMenuOpen?: (open: boolean) => void;
 }
@@ -105,6 +105,24 @@ export function Navigation({
               >
                 Leaderboard
                 {currentPage === 'leaderboard' && (
+                  <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#B88AF8]"></div>
+                )}
+              </button>
+              
+              <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
+
+              <button
+                className={`px-8 py-[18px] text-sm transition-colors relative ${
+                  currentPage === 'bridge'
+                    ? "text-white"
+                    : "text-[#9C9DA2] hover:text-gray-300"
+                }`}
+                onClick={() => {
+                  router.push('/bridge');
+                }}
+              >
+                Bridge
+                {currentPage === 'bridge' && (
                   <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#B88AF8]"></div>
                 )}
               </button>
@@ -213,6 +231,19 @@ export function Navigation({
             }}
           >
             Leaderboard
+          </button>
+          <button
+            className={`text-lg w-full text-center py-2 rounded transition-colors ${
+              currentPage === 'bridge'
+                ? "text-white bg-[rgba(184,138,248,0.1)]"
+                : "text-[#9C9DA2] hover:text-white"
+            }`}
+            onClick={() => {
+              router.push('/bridge');
+              setIsMobileMenuOpen(false);
+            }}
+          >
+            Bridge
           </button>
           <button
             className="text-lg w-full text-center py-2 rounded transition-colors text-[#9C9DA2] hover:text-white"
