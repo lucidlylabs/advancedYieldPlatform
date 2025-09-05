@@ -1,0 +1,254 @@
+import React, { useState, useEffect } from "react";
+import Image from "next/image";
+import { useAccount } from "wagmi";
+
+interface Transaction {
+  id: number;
+  type: "deposit" | "withdraw" | "bridge";
+  amount: string;
+  asset: string;
+  assetName: string;
+  transactionHash: string;
+  blockNumber: number;
+  timestamp: string;
+  network: string;
+}
+
+interface UserActivityData {
+  transactions: Transaction[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalTransactions: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+  summary: {
+    totalDeposits: number;
+    totalWithdrawals: number;
+    totalVolume: string;
+  };
+}
+
+interface AssetIcons {
+  [key: string]: string;
+}
+
+const assetIcons: AssetIcons = {
+  USDC: "/images/icons/usdc.svg",
+  USDS: "/images/icons/usds.svg",
+  sUSDS: "/images/icons/sUSDS.svg",
+  ETH: "/images/icons/eth-stable.svg",
+  BTC: "/images/icons/btc-stable.svg",
+};
+
+const networkIcons: AssetIcons = {
+  base: "/images/logo/base.svg",
+  ethereum: "/images/logo/eth.svg",
+  arbitrum: "/images/logo/arb.svg",
+  katana: "/images/networks/katana.svg",
+};
+
+const ExternalLinkIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="14"
+    height="15"
+    viewBox="0 0 14 15"
+    fill="none"
+  >
+    <path
+      d="M12.25 5.75L12.25 2.25M12.25 2.25H8.75M12.25 2.25L7.58333 6.91667M5.83333 3.41667H4.55C3.56991 3.41667 3.07986 3.41667 2.70552 3.60741C2.37623 3.77518 2.10852 4.0429 1.94074 4.37218C1.75 4.74653 1.75 5.23657 1.75 6.21667V9.95C1.75 10.9301 1.75 11.4201 1.94074 11.7945C2.10852 12.1238 2.37623 12.3915 2.70552 12.5593C3.07986 12.75 3.56991 12.75 4.55 12.75H8.28333C9.26342 12.75 9.75347 12.75 10.1278 12.5593C10.4571 12.3915 10.7248 12.1238 10.8926 11.7945C11.0833 11.4201 11.0833 10.9301 11.0833 9.95V8.66667"
+      stroke="white"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const UserActivity: React.FC = () => {
+  const { address, isConnected } = useAccount();
+  const [activityData, setActivityData] = useState<UserActivityData | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (address && isConnected) {
+      fetchUserActivity(address);
+    }
+  }, [address, isConnected]);
+
+  const fetchUserActivity = async (userAddress: string) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`http://localhost:3001/api/user-activity/${userAddress}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setActivityData(data.data);
+      } else {
+        console.error("Failed to fetch user activity:", data.message);
+      }
+    } catch (error) {
+      console.error("Error fetching user activity:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (timestamp: string) => {
+    return new Date(timestamp).toLocaleDateString("en-US", {
+      day: "2-digit",
+      month: "short",
+      year: "2-digit"
+    });
+  };
+
+  const formatAmount = (amount: string, assetName: string) => {
+    const numAmount = parseFloat(amount);
+    return `${numAmount.toLocaleString()} ${assetName}`;
+  };
+
+  const getTransactionUrl = (hash: string, network: string) => {
+    const baseUrls: { [key: string]: string } = {
+      base: "https://basescan.org/tx/",
+      ethereum: "https://etherscan.io/tx/",
+      arbitrum: "https://arbiscan.io/tx/",
+    };
+    return baseUrls[network] + hash;
+  };
+
+  const capitalizeFirstLetter = (string: string) => {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+  };
+
+  if (!isConnected) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <div className="text-[#9C9DA2] text-lg">
+            Connect your wallet to view activity
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full h-full">
+      {/* Activity Content */}
+      <div>
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mb-4"></div>
+              <p className="text-gray-400 text-sm">Loading your activity...</p>
+            </div>
+          ) : !activityData || activityData.transactions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="text-[#9C9DA2] text-center">
+                <div className="text-lg font-medium mb-2">No activity found</div>
+                <div className="text-sm">Your transaction history will appear here</div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+
+              {/* Transaction List */}
+              {activityData.transactions.map((transaction) => (
+                <div
+                  key={transaction.id}
+                  className="bg-[rgba(255,255,255,0.02)] rounded-[4px] py-4 px-6 flex items-center justify-between"
+                >
+                  {/* Left side - Date and external link */}
+                  <div className="flex items-center gap-3">
+                    <button
+                      className="text-[#D7E3EF] hover:text-white transition-colors cursor-pointer"
+                      onClick={() => {
+                        if (transaction.transactionHash) {
+                          window.open(
+                            getTransactionUrl(transaction.transactionHash, transaction.network),
+                            "_blank",
+                            "noopener,noreferrer"
+                          );
+                        }
+                      }}
+                      type="button"
+                    >
+                      <ExternalLinkIcon />
+                    </button>
+                    <div className="text-[#D7E3EF] text-[12px]">
+                      {formatDate(transaction.timestamp)}
+                    </div>
+                  </div>
+
+                  {/* Center - Transaction type */}
+                  <div className="flex-1 flex justify-center">
+                    <div className="text-white text-[12px] font-medium">
+                      {capitalizeFirstLetter(transaction.type)}
+                    </div>
+                  </div>
+
+                  {/* Right side - Amount with tokens */}
+                  <div className="flex items-center justify-end gap-4">
+                    {/* From amount */}
+                    <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-1">
+                      <span className="text-[#D7E3EF] text-[12px] font-normal">
+                        {formatAmount(transaction.amount, transaction.assetName)}
+                      </span>
+                      <Image
+                        src={assetIcons[transaction.assetName] || "/images/icons/default_assest.svg"}
+                        alt={transaction.assetName}
+                        width={20}
+                        height={20}
+                        className="rounded-full"
+                      />
+                    </div>
+
+                    {/* Arrow */}
+                    <svg
+                      width="15"
+                      height="12"
+                      viewBox="0 0 15 12"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M0.832031 6H14.1654M14.1654 6L9.16536 1M14.1654 6L9.16536 11"
+                        stroke="#9C9DA2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+
+                    {/* To amount - same for now but could be different for bridge transactions */}
+                    <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-1">
+                      <span className="text-white text-[12px] font-normal">
+                        {formatAmount(transaction.amount, transaction.assetName)}
+                      </span>
+                      <Image
+                        src={networkIcons[transaction.network] || "/images/logo/base.svg"}
+                        alt={transaction.network}
+                        width={20}
+                        height={20}
+                        className="rounded-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Pagination */}
+              {activityData.pagination && activityData.pagination.totalPages > 1 && (
+                <div className="flex justify-center mt-6">
+                  <div className="text-[#9C9DA2] text-[12px]">
+                    Page {activityData.pagination.currentPage} of {activityData.pagination.totalPages}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+    </div>
+  );
+};
+
+export default UserActivity;

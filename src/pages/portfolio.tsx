@@ -21,6 +21,7 @@ import { useRouter } from "next/router";
 import { CustomConnectButton } from "../components/ui/ConnectButton/CustomConnectButton";
 import { Header } from "../components/ui/header";
 import { Navigation } from "../components/ui/navigation";
+import UserActivity from "../components/UserActivity";
 
 const InfoIcon = () => (
   <svg
@@ -360,7 +361,7 @@ const PortfolioSubpage: React.FC = () => {
   const [isCancelling, setIsCancelling] = useState(false);
   const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"withdraw" | "request">(
+  const [activeTab, setActiveTab] = useState<"withdraw" | "request" | "activity">(
     "withdraw"
   );
   const [requestTab, setRequestTab] = useState<"pending" | "completed">(
@@ -1564,7 +1565,7 @@ const PortfolioSubpage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Side - Withdraw Form or Info */}
+        {/* Right Side - Withdraw Form or User Activity */}
         <div className="w-1/2 p-8 hidden sm:block overflow-auto h-[80vh]">
           {selectedStrategy ? (
             <div className="flex flex-col h-full rounded-lg p-6 mb-56">
@@ -1588,6 +1589,17 @@ const PortfolioSubpage: React.FC = () => {
                 >
                   Requests
                   {activeTab === "request" && (
+                    <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white"></div>
+                  )}
+                </button>
+                <button
+                  onClick={() => setActiveTab("activity")}
+                  className={`px-2 py-2 pb-4 text-[12px] font-normal leading-[16px] transition-colors relative ${
+                    activeTab === "activity" ? "text-white" : "text-[#9C9DA2]"
+                  }`}
+                >
+                  Your Activity
+                  {activeTab === "activity" && (
                     <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white"></div>
                   )}
                 </button>
@@ -2253,6 +2265,12 @@ const PortfolioSubpage: React.FC = () => {
                       )}
                     </div>
                   )}
+                </div>
+              )}
+
+              {activeTab === "activity" && (
+                <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
+                  <UserActivity />
                 </div>
               )}
             </div>
