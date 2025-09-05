@@ -76,7 +76,7 @@ const IncentiveRewards: React.FC<IncentiveRewardsProps> = ({
       <div className={`w-full ${className}`}>
         <div className="flex justify-between items-center mb-3 mt-5">
           <h2 className="text-[rgba(255,255,255,0.70)] text-[16px] font-extrabold">
-            INCENTIVE REWARDS
+            Incentive Rewards
           </h2>
         </div>
 
@@ -101,7 +101,7 @@ const IncentiveRewards: React.FC<IncentiveRewardsProps> = ({
     <div className={`w-full ${className}`}>
       <div className="flex justify-between items-center mb-5 mt-5">
         <h2 className="text-[rgba(255,255,255,0.70)] text-[16px] font-extrabold">
-          INCENTIVE REWARDS
+          Incentive Rewards
         </h2>
       </div>
 

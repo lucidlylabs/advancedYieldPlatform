@@ -216,7 +216,7 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
               >
                 <div className="flex justify-end text-[#9C9DA2] text-[11px] font-normal items-center">
                   Base APY
-                  <Tooltip content="7 Day trailing" side="top">
+                  <Tooltip content="7d moving average" side="top">
                     <svg
                       className="ml-1 cursor-pointer"
                       width="12"
