@@ -201,24 +201,26 @@ const BridgePage: React.FC = () => {
                     {/* Source Network Dropdown */}
                     {isSourceDropdownOpen && (
                       <div className="absolute top-full left-0 right-0 mt-2 bg-[#2A2A3C] border border-[rgba(255,255,255,0.1)] rounded-lg shadow-lg z-10">
-                        {networks.map((network) => (
-                          <button
-                            key={network.id}
-                            onClick={() => handleSourceNetworkSelect(network)}
-                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#3A3A4C] transition-colors first:rounded-t-lg last:rounded-b-lg"
-                          >
-                            <div className={`w-8 h-8 rounded-full ${network.color} flex items-center justify-center`}>
-                              <Image
-                                src={network.icon}
-                                alt={network.name}
-                                width={20}
-                                height={20}
-                                className="w-5 h-5"
-                              />
-                            </div>
-                            <span className="text-white font-medium">{network.name}</span>
-                          </button>
-                        ))}
+                        {networks
+                          .filter((network) => network.id !== destinationNetwork.id)
+                          .map((network) => (
+                            <button
+                              key={network.id}
+                              onClick={() => handleSourceNetworkSelect(network)}
+                              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#3A3A4C] transition-colors first:rounded-t-lg last:rounded-b-lg"
+                            >
+                              <div className={`w-8 h-8 rounded-full ${network.color} flex items-center justify-center`}>
+                                <Image
+                                  src={network.icon}
+                                  alt={network.name}
+                                  width={20}
+                                  height={20}
+                                  className="w-5 h-5"
+                                />
+                              </div>
+                              <span className="text-white font-medium">{network.name}</span>
+                            </button>
+                          ))}
                       </div>
                     )}
                   </div>
@@ -295,24 +297,26 @@ const BridgePage: React.FC = () => {
                     {/* Destination Network Dropdown */}
                     {isDestinationDropdownOpen && (
                       <div className="absolute top-full left-0 right-0 mt-2 bg-[#2A2A3C] border border-[rgba(255,255,255,0.1)] rounded-lg shadow-lg z-10">
-                        {networks.map((network) => (
-                          <button
-                            key={network.id}
-                            onClick={() => handleDestinationNetworkSelect(network)}
-                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#3A3A4C] transition-colors first:rounded-t-lg last:rounded-b-lg"
-                          >
-                            <div className={`w-8 h-8 rounded-full ${network.color} flex items-center justify-center`}>
-                              <Image
-                                src={network.icon}
-                                alt={network.name}
-                                width={20}
-                                height={20}
-                                className="w-5 h-5"
-                              />
-                            </div>
-                            <span className="text-white font-medium">{network.name}</span>
-                          </button>
-                        ))}
+                        {networks
+                          .filter((network) => network.id !== sourceNetwork.id)
+                          .map((network) => (
+                            <button
+                              key={network.id}
+                              onClick={() => handleDestinationNetworkSelect(network)}
+                              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#3A3A4C] transition-colors first:rounded-t-lg last:rounded-b-lg"
+                            >
+                              <div className={`w-8 h-8 rounded-full ${network.color} flex items-center justify-center`}>
+                                <Image
+                                  src={network.icon}
+                                  alt={network.name}
+                                  width={20}
+                                  height={20}
+                                  className="w-5 h-5"
+                                />
+                              </div>
+                              <span className="text-white font-medium">{network.name}</span>
+                            </button>
+                          ))}
                       </div>
                     )}
                   </div>
