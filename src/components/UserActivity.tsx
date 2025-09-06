@@ -4,14 +4,36 @@ import { useAccount } from "wagmi";
 
 interface Transaction {
   id: number;
-  type: "deposit" | "withdraw" | "bridge";
+  type: "deposit" | "withdrawal" | "bridge";
   amount: string;
   asset: string;
   assetName: string;
   transactionHash: string;
-  blockNumber: number;
   timestamp: string;
   network: string;
+  vaultAddress?: string;
+  shareAmount?: string;
+  requestId?: string;
+  status?: string;
+  sourceNetwork?: string;
+  destinationNetwork?: string;
+  bridgeSender?: string;
+  bridgeReceiver?: string;
+  // New backend fields
+  fromAmount?: string;
+  toAmount?: string;
+  fromAsset?: {
+    address: string;
+    name: string;
+    symbol: string;
+    icon: string;
+  };
+  toAsset?: {
+    address: string | null;
+    name: string;
+    symbol: string;
+    icon: string;
+  };
 }
 
 interface UserActivityData {
@@ -26,7 +48,8 @@ interface UserActivityData {
   summary: {
     totalDeposits: number;
     totalWithdrawals: number;
-    totalVolume: string;
+    totalBridges: number;
+    totalTransactions: number;
   };
 }
 
@@ -38,6 +61,7 @@ const assetIcons: AssetIcons = {
   USDC: "/images/icons/usdc.svg",
   USDS: "/images/icons/usds.svg",
   sUSDS: "/images/icons/sUSDS.svg",
+  syUSD: "/images/icons/syUSD.svg",
   ETH: "/images/icons/eth-stable.svg",
   BTC: "/images/icons/btc-stable.svg",
 };
@@ -47,6 +71,12 @@ const networkIcons: AssetIcons = {
   ethereum: "/images/logo/eth.svg",
   arbitrum: "/images/logo/arb.svg",
   katana: "/images/networks/katana.svg",
+  optimism: "/images/logo/base.svg", // Add fallback for optimism
+  bsc: "/images/logo/base.svg", // Add fallback for BSC
+  polygon: "/images/logo/base.svg", // Add fallback for Polygon
+  fantom: "/images/logo/base.svg", // Add fallback for Fantom
+  avalanche: "/images/logo/base.svg", // Add fallback for Avalanche
+  sonic: "/images/logo/base.svg", // Add fallback for Sonic
 };
 
 const ExternalLinkIcon = () => (
@@ -108,6 +138,25 @@ const UserActivity: React.FC = () => {
     return `${numAmount.toLocaleString()} ${assetName}`;
   };
 
+  // Helper function to get the correct amount for display
+  const getTransactionAmount = (transaction: Transaction) => {
+    // Try fromAmount first, fallback to amount
+    const amount = transaction.fromAmount || transaction.amount || "0";
+    return parseFloat(amount) > 0 ? amount : transaction.amount;
+  };
+
+  // Helper function to get the correct asset name for display  
+  const getTransactionAssetName = (transaction: Transaction) => {
+    // Try fromAsset name first, fallback to assetName
+    return transaction.fromAsset?.symbol || transaction.fromAsset?.name || transaction.assetName;
+  };
+
+  // Helper function to get the asset icon
+  const getAssetIcon = (transaction: Transaction) => {
+    const assetName = getTransactionAssetName(transaction);
+    return assetIcons[assetName] || "/images/icons/default_assest.svg";
+  };
+
   const getTransactionUrl = (hash: string, network: string) => {
     const baseUrls: { [key: string]: string } = {
       base: "https://basescan.org/tx/",
@@ -151,6 +200,29 @@ const UserActivity: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-2">
+              {/* Activity Summary */}
+              {activityData.summary && (
+                <div className="mb-6 p-4 rounded-[4px] bg-[rgba(255,255,255,0.05)]">
+                  <div className="grid grid-cols-4 gap-4 text-center">
+                    <div>
+                      <div className="text-[#9C9DA2] text-[12px] mb-1">Deposits</div>
+                      <div className="text-white text-[16px] font-semibold">{activityData.summary.totalDeposits}</div>
+                    </div>
+                    <div>
+                      <div className="text-[#9C9DA2] text-[12px] mb-1">Withdrawals</div>
+                      <div className="text-white text-[16px] font-semibold">{activityData.summary.totalWithdrawals}</div>
+                    </div>
+                    <div>
+                      <div className="text-[#9C9DA2] text-[12px] mb-1">Bridges</div>
+                      <div className="text-white text-[16px] font-semibold">{activityData.summary.totalBridges}</div>
+                    </div>
+                    <div>
+                      <div className="text-[#9C9DA2] text-[12px] mb-1">Total</div>
+                      <div className="text-white text-[16px] font-semibold">{activityData.summary.totalTransactions}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Transaction List */}
               {activityData.transactions.map((transaction) => (
@@ -187,52 +259,110 @@ const UserActivity: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Right side - Amount with tokens */}
-                  <div className="flex items-center justify-end gap-4">
-                    {/* From amount */}
-                    <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-1">
-                      <span className="text-[#D7E3EF] text-[12px] font-normal">
-                        {formatAmount(transaction.amount, transaction.assetName)}
-                      </span>
-                      <Image
-                        src={assetIcons[transaction.assetName] || "/images/icons/default_assest.svg"}
-                        alt={transaction.assetName}
-                        width={20}
-                        height={20}
-                        className="rounded-full"
-                      />
-                    </div>
+                    {/* Right side - Amount with tokens/networks */}
+                    <div className="flex items-center justify-end gap-4">
+                      {transaction.type === "bridge" ? (
+                        // Bridge transaction: Source Network -> Destination Network
+                        <>
+                          {/* Source Network */}
+                          <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-1">
+                            <span className="text-[#D7E3EF] text-[12px] font-normal">
+                              {formatAmount(getTransactionAmount(transaction), getTransactionAssetName(transaction))}
+                            </span>
+                            <Image
+                              src={networkIcons[transaction.sourceNetwork || transaction.network] || "/images/logo/base.svg"}
+                              alt={transaction.sourceNetwork || transaction.network}
+                              width={20}
+                              height={20}
+                              className="rounded-full"
+                            />
+                          </div>
 
-                    {/* Arrow */}
-                    <svg
-                      width="15"
-                      height="12"
-                      viewBox="0 0 15 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M0.832031 6H14.1654M14.1654 6L9.16536 1M14.1654 6L9.16536 11"
-                        stroke="#9C9DA2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+                          {/* Arrow */}
+                          <svg
+                            width="15"
+                            height="12"
+                            viewBox="0 0 15 12"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M0.832031 6H14.1654M14.1654 6L9.16536 1M14.1654 6L9.16536 11"
+                              stroke="#9C9DA2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
 
-                    {/* To amount - same for now but could be different for bridge transactions */}
-                    <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-1">
-                      <span className="text-white text-[12px] font-normal">
-                        {formatAmount(transaction.amount, transaction.assetName)}
-                      </span>
-                      <Image
-                        src={networkIcons[transaction.network] || "/images/logo/base.svg"}
-                        alt={transaction.network}
-                        width={20}
-                        height={20}
-                        className="rounded-full"
-                      />
+                          {/* Destination Network */}
+                          <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-1">
+                            <span className="text-white text-[12px] font-normal">
+                              {transaction.toAsset ? 
+                                formatAmount(transaction.toAmount || getTransactionAmount(transaction), transaction.toAsset.symbol || transaction.toAsset.name) :
+                                formatAmount(getTransactionAmount(transaction), getTransactionAssetName(transaction))
+                              }
+                            </span>
+                            <Image
+                              src={networkIcons[transaction.destinationNetwork || "base"] || "/images/logo/base.svg"}
+                              alt={transaction.destinationNetwork || "base"}
+                              width={20}
+                              height={20}
+                              className="rounded-full"
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        // Regular transaction: Asset -> Network
+                        <>
+                          {/* Asset */}
+                          <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-1">
+                            <span className="text-[#D7E3EF] text-[12px] font-normal">
+                              {formatAmount(getTransactionAmount(transaction), getTransactionAssetName(transaction))}
+                            </span>
+                            <Image
+                              src={getAssetIcon(transaction)}
+                              alt={getTransactionAssetName(transaction)}
+                              width={20}
+                              height={20}
+                              className="rounded-full"
+                            />
+                          </div>
+
+                          {/* Arrow */}
+                          <svg
+                            width="15"
+                            height="12"
+                            viewBox="0 0 15 12"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M0.832031 6H14.1654M14.1654 6L9.16536 1M14.1654 6L9.16536 11"
+                              stroke="#9C9DA2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+
+                          {/* Network */}
+                          <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-1">
+                            <span className="text-white text-[12px] font-normal">
+                              {transaction.toAsset ? 
+                                formatAmount(transaction.toAmount || getTransactionAmount(transaction), transaction.toAsset.symbol || transaction.toAsset.name) :
+                                formatAmount(getTransactionAmount(transaction), getTransactionAssetName(transaction))
+                              }
+                            </span>
+                            <Image
+                              src={networkIcons[transaction.network] || "/images/logo/base.svg"}
+                              alt={transaction.network}
+                              width={20}
+                              height={20}
+                              className="rounded-full"
+                            />
+                          </div>
+                        </>
+                      )}
                     </div>
-                  </div>
                 </div>
               ))}
 
