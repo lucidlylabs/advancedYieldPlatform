@@ -362,7 +362,7 @@ const PortfolioSubpage: React.FC = () => {
   const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"withdraw" | "request" | "activity">(
-    "withdraw"
+    "activity"
   );
   const [requestTab, setRequestTab] = useState<"pending" | "completed">(
     "pending"
@@ -383,6 +383,12 @@ const PortfolioSubpage: React.FC = () => {
   const [cancelStatusMap, setCancelStatusMap] = useState<{
     [key: string]: "idle" | "cancelling" | "cancelled";
   }>({});
+  const [pnlData, setPnlData] = useState<{
+    value: number;
+    percentage: number;
+    isProfitable: boolean;
+  } | null>(null);
+  const [isLoadingPnl, setIsLoadingPnl] = useState(false);
 
   const chainId = useChainId();
   const isBase = chainId === 8453;
@@ -458,6 +464,29 @@ const PortfolioSubpage: React.FC = () => {
       hash: transactionHash || undefined,
     });
 
+  // Fetch PnL data
+  const fetchPnlData = async (userAddress: string) => {
+    if (!userAddress) return;
+    
+    setIsLoadingPnl(true);
+    try {
+      const response = await fetch(`http://localhost:3001/api/pnl?userAddress=${userAddress}`);
+      const data = await response.json();
+      
+      if (data.success && data.data.pnl) {
+        setPnlData(data.data.pnl);
+      } else {
+        console.error("Failed to fetch PnL data:", data.message);
+        setPnlData(null);
+      }
+    } catch (error) {
+      console.error("Error fetching PnL data:", error);
+      setPnlData(null);
+    } finally {
+      setIsLoadingPnl(false);
+    }
+  };
+
   useEffect(() => {
     const apyUrl = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.apy;
     if (typeof apyUrl === "string" && apyUrl.startsWith("http")) {
@@ -486,6 +515,13 @@ const PortfolioSubpage: React.FC = () => {
       setUsdApy(apyUrl);
     }
   }, []);
+
+  // Fetch PnL when address changes
+  useEffect(() => {
+    if (address && isConnected) {
+      fetchPnlData(address);
+    }
+  }, [address, isConnected]);
 
   // Watch for deposit completion
   useEffect(() => {
@@ -1276,35 +1312,42 @@ const PortfolioSubpage: React.FC = () => {
               <div className="text-[#9C9DA2] text-[14px] font-normal leading-[16px]">
                 PNL
               </div>
-              <div className="text-[#00D1A0] text-[16px] font-normal leading-normal mt-1 sm:mt-3">
-                {(() => {
-                  const totalPnl = strategiesWithBalance.reduce((sum, s) => {
-                    // Use the correct APY value for calculations
-                    let apyToUse = s.apy;
-                    if (s.asset === "USD" && s.type === "stable") {
-                      apyToUse = usdApy || s.apy;
-                    }
-                    
-                    const apyValue = parseFloat(apyToUse?.replace("%", "") || "0");
-                    if (isNaN(apyValue)) return sum;
-                    return sum + (s.balance * apyValue) / 100;
-                  }, 0);
-                  
-                  const avgApy = strategiesWithBalance.length > 0 
-                    ? strategiesWithBalance.reduce((sum, s) => {
-                        // Use the correct APY value for calculations
-                        let apyToUse = s.apy;
-                        if (s.asset === "USD" && s.type === "stable") {
-                          apyToUse = usdApy || s.apy;
-                        }
-                        
-                        const apyValue = parseFloat(apyToUse?.replace("%", "") || "0");
-                        return sum + (isNaN(apyValue) ? 0 : apyValue);
-                      }, 0) / strategiesWithBalance.length
-                    : 0;
-                  
-                  return `${totalPnl.toFixed(2)} (${avgApy.toFixed(1)}%)`;
-                })()}
+              <div className={`text-[16px] font-normal leading-normal mt-1 sm:mt-3 ${
+                isLoadingPnl 
+                  ? "text-[#9C9DA2]" 
+                  : pnlData?.isProfitable 
+                    ? "text-[#00D1A0]" 
+                    : "text-[#EF4444]"
+              }`}>
+                {isLoadingPnl ? (
+                  <span className="inline-flex items-center gap-1">
+                    <svg
+                      className="animate-spin h-4 w-4 text-[#9C9DA2]"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    <span>Loading...</span>
+                  </span>
+                ) : pnlData ? (
+                  `${pnlData.isProfitable ? '+' : ''}$${Math.abs(pnlData.value).toFixed(2)} (${pnlData.isProfitable ? '+' : ''}${pnlData.percentage.toFixed(1)}%)`
+                ) : (
+                  "$0.00 (0.0%)"
+                )}
               </div>
             </div>
           </div>
@@ -1565,48 +1608,49 @@ const PortfolioSubpage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Side - Withdraw Form or User Activity */}
+        {/* Right Side - Global Tabs */}
         <div className="w-1/2 p-8 hidden sm:block overflow-auto h-[80vh]">
-          {selectedStrategy ? (
-            <div className="flex flex-col h-full rounded-lg p-6 mb-56">
-              <div className="flex gap-4 mb-6 border-b border-[rgba(255,255,255,0.15)]">
-                <button
-                  onClick={() => setActiveTab("withdraw")}
-                  className={`px-2 py-2 pb-4 text-[12px] font-normal leading-[16px] transition-colors relative ${
-                    activeTab === "withdraw" ? "text-white" : "text-[#9C9DA2]"
-                  }`}
-                >
-                  Withdraw
-                  {activeTab === "withdraw" && (
-                    <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white"></div>
-                  )}
-                </button>
-                <button
-                  onClick={() => setActiveTab("request")}
-                  className={`px-2 py-2 pb-4 text-[12px] font-normal leading-[16px] transition-colors relative ${
-                    activeTab === "request" ? "text-white" : "text-[#9C9DA2]"
-                  }`}
-                >
-                  Requests
-                  {activeTab === "request" && (
-                    <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white"></div>
-                  )}
-                </button>
-                <button
-                  onClick={() => setActiveTab("activity")}
-                  className={`px-2 py-2 pb-4 text-[12px] font-normal leading-[16px] transition-colors relative ${
-                    activeTab === "activity" ? "text-white" : "text-[#9C9DA2]"
-                  }`}
-                >
-                  Your Activity
-                  {activeTab === "activity" && (
-                    <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white"></div>
-                  )}
-                </button>
-              </div>
-              {activeTab === "withdraw" && (
-                <>
-                  <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
+          <div className="flex flex-col h-full rounded-lg p-6 mb-56">
+            <div className="flex gap-4 mb-6 border-b border-[rgba(255,255,255,0.15)]">
+              <button
+                onClick={() => setActiveTab("withdraw")}
+                className={`px-2 py-2 pb-4 text-[12px] font-normal leading-[16px] transition-colors relative ${
+                  activeTab === "withdraw" ? "text-white" : "text-[#9C9DA2]"
+                }`}
+              >
+                Withdraw
+                {activeTab === "withdraw" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white"></div>
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab("request")}
+                className={`px-2 py-2 pb-4 text-[12px] font-normal leading-[16px] transition-colors relative ${
+                  activeTab === "request" ? "text-white" : "text-[#9C9DA2]"
+                }`}
+              >
+                Requests
+                {activeTab === "request" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white"></div>
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab("activity")}
+                className={`px-2 py-2 pb-4 text-[12px] font-normal leading-[16px] transition-colors relative ${
+                  activeTab === "activity" ? "text-white" : "text-[#9C9DA2]"
+                }`}
+              >
+                Your Activity
+                {activeTab === "activity" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white"></div>
+                )}
+              </button>
+            </div>
+            {activeTab === "withdraw" && (
+              <>
+                {selectedStrategy ? (
+                  <>
+                    <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
                     {/* Withdrawing assets from dropdown */}
                     <div className="flex flex-row justify-between items-center bg-[#B88AF8] bg-opacity-5 rounded-sm p-[6px] mb-4">
                       {/* Label */}
@@ -1957,8 +2001,7 @@ const PortfolioSubpage: React.FC = () => {
                   <div className="mt-2">
                     <div className="text-[#9C9DA2] text-[12px] rounded-[4px] bg-[rgba(255,255,255,0.02)] p-[24px]">
                       <strong className="text-white">Note:</strong> By
-                      initiating a withdrawal, your vault shares (
-                      {strategy.name}) will be converted into the underlying
+                      initiating a withdrawal, your vault shares will be converted into the underlying
                       asset based on the latest market rates, which may
                       fluctuate slightly; once the request is submitted, please
                       allow up to 24 hours for the funds to be received, as
@@ -1967,40 +2010,63 @@ const PortfolioSubpage: React.FC = () => {
                       arrive immediately.
                     </div>
                   </div>
-                </>
-              )}
-
-              {activeTab === "request" && (
-                <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
-                  {/* Segmented Control Tabs */}
-                  <div className="mb-4 flex justify-start">
-                    <div className="relative bg-transparent rounded-[6px] flex w-[158px]">
-                      <button
-                        className={`w-[71px] px-3 py-1.5 text-[12px] font-normal leading-[16px] transition-all duration-200 rounded-l-[6px] rounded-r-[0px] flex items-center justify-center ${
-                          requestTab === "pending"
-                            ? "bg-[rgba(184,138,248,0.15)] text-[#D7E3EF] shadow-sm border-l border-t border-b border-r border-[rgba(184,138,248,0.5)]"
-                            : "text-[#9C9DA2] hover:text-[#D7E3EF] border-l border-t border-b border-[rgba(255,255,255,0.2)]"
-                        }`}
-                        onClick={() => setRequestTab("pending")}
-                      >
-                        Pending
-                      </button>
-                      <button
-                        className={`w-[87px] px-3 py-1.5 text-[12px] font-normal leading-[16px] transition-all duration-200 rounded-l-[0px] rounded-r-[6px] flex items-center justify-center ${
-                          requestTab === "completed"
-                            ? "bg-[rgba(184,138,248,0.15)] text-[#D7E3EF] shadow-sm border-l border-t border-b border-r border-[rgba(184,138,248,0.5)]"
-                            : "text-[#9C9DA2] hover:text-[#D7E3EF] border-r border-t border-b border-[rgba(255,255,255,0.2)]"
-                        }`}
-                        onClick={() => setRequestTab("completed")}
-                      >
-                        Completed
-                      </button>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                      <div className="flex justify-center mb-8">
+                        <Image
+                          src="/images/icons/withdraw-bg.svg"
+                          alt="Select Asset"
+                          width={188}
+                          height={140}
+                        />
+                      </div>
+                      <h2 className="text-[#D7E3EF] text-xl font-semibold mb-2">
+                        Select a Yield Option to withdraw
+                      </h2>
+                      <p className="text-[#9C9DA2] text-[14px] font-normal leading-[16px]">
+                        Review your available balances, current rates, and withdrawal
+                        <br />
+                        options for each yield source.
+                      </p>
                     </div>
                   </div>
+                )}
+              </>
+            )}
 
-                  {/* Requests List */}
-                  {requestTab === "pending" && (
-                    <div className="space-y-2">
+            {activeTab === "request" && (
+              <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
+                {/* Segmented Control Tabs */}
+                <div className="mb-4 flex justify-start">
+                  <div className="relative bg-transparent rounded-[6px] flex w-[158px]">
+                    <button
+                      className={`w-[71px] px-3 py-1.5 text-[12px] font-normal leading-[16px] transition-all duration-200 rounded-l-[6px] rounded-r-[0px] flex items-center justify-center ${
+                        requestTab === "pending"
+                          ? "bg-[rgba(184,138,248,0.15)] text-[#D7E3EF] shadow-sm border-l border-t border-b border-r border-[rgba(184,138,248,0.5)]"
+                          : "text-[#9C9DA2] hover:text-[#D7E3EF] border-l border-t border-b border-[rgba(255,255,255,0.2)]"
+                      }`}
+                      onClick={() => setRequestTab("pending")}
+                    >
+                      Pending
+                    </button>
+                    <button
+                      className={`w-[87px] px-3 py-1.5 text-[12px] font-normal leading-[16px] transition-all duration-200 rounded-l-[0px] rounded-r-[6px] flex items-center justify-center ${
+                        requestTab === "completed"
+                          ? "bg-[rgba(184,138,248,0.15)] text-[#D7E3EF] shadow-sm border-l border-t border-b border-r border-[rgba(184,138,248,0.5)]"
+                          : "text-[#9C9DA2] hover:text-[#D7E3EF] border-r border-t border-b border-[rgba(255,255,255,0.2)]"
+                      }`}
+                      onClick={() => setRequestTab("completed")}
+                    >
+                      Completed
+                    </button>
+                  </div>
+                </div>
+
+                {/* Requests List */}
+                {requestTab === "pending" && (
+                  <div className="space-y-2">
                       {isLoadingRequests ? (
                         <div>Loading...</div>
                       ) : withdrawRequests.length === 0 ? (
@@ -2265,37 +2331,15 @@ const PortfolioSubpage: React.FC = () => {
                       )}
                     </div>
                   )}
-                </div>
-              )}
-
-              {activeTab === "activity" && (
-                <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
-                  <UserActivity />
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <div className="flex justify-center mb-8">
-                  <Image
-                    src="/images/icons/withdraw-bg.svg"
-                    alt="Select Asset"
-                    width={188}
-                    height={140}
-                  />
-                </div>
-                <h2 className="text-[#D7E3EF] text-xl font-semibold mb-2">
-                  Select a Yield Option to withdraw
-                </h2>
-                <p className="text-[#9C9DA2]   text-[14px] font-normal leading-[16px]">
-                  Review your available balances, current rates, and withdrawal
-                  <br />
-                  options for each yield source.
-                </p>
               </div>
-            </div>
-          )}
+            )}
+
+            {activeTab === "activity" && (
+              <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
+                <UserActivity />
+              </div>
+            )}
+          </div>
         </div>
       </div>
       </main>
