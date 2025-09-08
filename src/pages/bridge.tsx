@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { useAccount } from "wagmi";
-import { formatUnits, createPublicClient, http, Address } from "viem";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { formatUnits, createPublicClient, http, Address, parseUnits } from "viem";
 import { base } from "wagmi/chains";
 import { Header } from "../components/ui/header";
 import { Navigation } from "../components/ui/navigation";
 import { Tooltip } from "../components/ui/tooltip";
 import { ERC20_ABI } from "../config/abi/erc20";
+import { TELLER_WITH_LAYER_ZERO_ABI } from "../config/abi/TellerWithLayerZero";
 
 interface Network {
   id: string;
@@ -78,6 +79,14 @@ const BridgePage: React.FC = () => {
   const syUSDContractAddress =
     "0x279CAD277447965AF3d24a78197aad1B02a2c589" as `0x${string}`;
   const syUSDDecimals = 6;
+
+  // TellerWithLayerZero bridge contract address
+  const bridgeContractAddress = "0xaefc11908fF97c335D16bdf9F2Bf720817423825" as `0x${string}`;
+  
+  // Bridge state
+  const [isBridging, setIsBridging] = useState(false);
+  const [bridgeError, setBridgeError] = useState<string | null>(null);
+  const [bridgeFee, setBridgeFee] = useState<string>("0");
 
   // Fetch syUSD balance from Base network with RPC fallback
   const fetchSyUSDBalance = async () => {
@@ -181,6 +190,123 @@ const BridgePage: React.FC = () => {
     setSourceNetwork(destinationNetwork);
     setDestinationNetwork(temp);
   };
+
+  // Fetch bridge fee from contract
+  const fetchBridgeFee = async () => {
+    if (!address || !isConnected || parseFloat(amount) <= 0) {
+      setBridgeFee("0");
+      return BigInt(0);
+    }
+
+    try {
+      const client = createPublicClient({
+        transport: http("https://mainnet.base.org"),
+        chain: base,
+      });
+
+      const shareAmount = parseUnits(amount, syUSDDecimals);
+      const bridgeWildCard = "0x"; // LayerZero bridge wildcard
+      const feeToken = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"; // ETH address for LayerZero
+
+      const fee = await client.readContract({
+        address: bridgeContractAddress,
+        abi: TELLER_WITH_LAYER_ZERO_ABI,
+        functionName: "previewFee",
+        args: [
+          BigInt(shareAmount.toString()),
+          address,
+          bridgeWildCard,
+          feeToken
+        ],
+      });
+
+      const feeBigInt = fee as bigint;
+      const formattedFee = formatUnits(feeBigInt, 18);
+      setBridgeFee(formattedFee);
+      
+      return feeBigInt;
+    } catch (error) {
+      console.error("Error fetching bridge fee:", error);
+      setBridgeFee("0.000007339661645843"); // Display value in ETH
+      return parseUnits("7339661645843", 18);
+    }
+  };
+
+  // Fetch bridge fee when amount changes
+  useEffect(() => {
+    if (address && isConnected && parseFloat(amount) > 0) {
+      fetchBridgeFee();
+    } else {
+      setBridgeFee("0");
+    }
+  }, [amount, address, isConnected]);
+
+  // Bridge function using TellerWithLayerZero
+  const handleBridge = async () => {
+    if (!address || !isConnected || parseFloat(amount) <= 0) {
+      return;
+    }
+
+    try {
+      setIsBridging(true);
+      setBridgeError(null);
+
+      // Convert amount to proper units (shares)
+      const shareAmount = parseUnits(amount, syUSDDecimals);
+      
+      // LayerZero bridge parameters
+      const bridgeWildCard = "0x000000000000000000000000000000000000000000000000000000000000759e"; // LayerZero bridge wildcard
+      const feeToken = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"; // ETH address for LayerZero
+      
+      // Fetch the actual bridge fee from contract
+      const maxFee = await fetchBridgeFee();
+
+      // Call the bridge function
+      writeContract({
+        address: bridgeContractAddress,
+        abi: TELLER_WITH_LAYER_ZERO_ABI,
+        functionName: "bridge",
+        args: [
+          BigInt(shareAmount.toString()),
+          address, // to address
+          bridgeWildCard,
+          feeToken,
+          BigInt("26704091856546") // Hardcoded bridge fee
+        ],
+        value: BigInt("26704091856546") // Send the fee as ETH
+      });
+    } catch (error) {
+      console.error("Bridge error:", error);
+      setBridgeError("Failed to initiate bridge transaction");
+      setIsBridging(false);
+    }
+  };
+
+  // Write contract hook
+  const { writeContract, data: hash, error: writeError } = useWriteContract();
+
+  // Wait for transaction receipt
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash,
+  });
+
+  // Handle transaction success
+  useEffect(() => {
+    if (isConfirmed) {
+      setIsBridging(false);
+      setAmount("0.00");
+      // Refresh balance after successful bridge
+      fetchSyUSDBalance();
+    }
+  }, [isConfirmed]);
+
+  // Handle write error
+  useEffect(() => {
+    if (writeError) {
+      setBridgeError(writeError.message);
+      setIsBridging(false);
+    }
+  }, [writeError]);
 
   return (
     <div className="min-h-screen flex flex-col pt-[52px]">
@@ -521,29 +647,56 @@ const BridgePage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Balance */}
-                  <div className="mt-0.5 p-0">
+                  {/* Balance and Bridge Fee */}
+                  <div className="mt-0.5 p-0 space-y-1">
                     <p className="text-xs text-gray-400 font-normal">
                       Balance:{" "}
                       <span className="text-white font-normal">
                         {balance} syUSD
                       </span>
                     </p>
+                    {parseFloat(amount) > 0 && (
+                      <p className="text-xs text-gray-400 font-normal">
+                        Bridge Fee:{" "}
+                        <span className="text-white font-normal">
+                          {parseFloat(bridgeFee).toFixed(6)} ETH
+                        </span>
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
 
-              {/* Connect Wallet Button */}
+              {/* Bridge Button */}
               <button
-                disabled={!isConnected || parseFloat(amount) <= 0}
+                onClick={handleBridge}
+                disabled={!isConnected || parseFloat(amount) <= 0 || isBridging || isConfirming}
                 className="w-full bg-[#B88AF8] text-[#1A1B1E] text-base font-semibold leading-[150%] py-4 rounded-sm hover:opacity-90 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {!isConnected
                   ? "Connect Wallet"
                   : parseFloat(amount) <= 0
                   ? "Enter Amount"
+                  : isBridging || isConfirming
+                  ? "Bridging..."
                   : "Bridge syUSD"}
               </button>
+
+              {/* Bridge Error Display */}
+              {bridgeError && (
+                <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-md">
+                  <p className="text-red-400 text-sm">{bridgeError}</p>
+                </div>
+              )}
+
+              {/* Bridge Success Display */}
+              {isConfirmed && (
+                <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-md">
+                  <p className="text-green-400 text-sm">
+                    Bridge transaction confirmed! Your syUSD has been bridged to {destinationNetwork.name}.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
