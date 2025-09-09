@@ -1,7 +1,17 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { formatUnits, createPublicClient, http, Address, parseUnits } from "viem";
+import {
+  useAccount,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+} from "wagmi";
+import {
+  formatUnits,
+  createPublicClient,
+  http,
+  Address,
+  parseUnits,
+} from "viem";
 import { base } from "wagmi/chains";
 import { Header } from "../components/ui/header";
 import { Navigation } from "../components/ui/navigation";
@@ -43,6 +53,33 @@ const networks: Network[] = [
   },
 ];
 
+// LayerZero Chain IDs (in hex format) for each network
+const networkChainIDs: { [key: string]: string } = {
+  'base': '0x00000000000000000000000000000000000000000000000000000000000075e8', // Base Mainnet
+  'katana': '0x00000000000000000000000000000000000000000000000000000000000076a7', // Katana
+  'arbitrum': '0x000000000000000000000000000000000000000000000000000000000000759e', // Arbitrum One
+  'ethereum': '0x0000000000000000000000000000000000000000000000000000000000007595', // Ethereum Mainnet
+};
+
+// Function to get bridgeWildCard for a network
+const getBridgeWildCard = (networkId: string): string => {
+  const chainId = networkChainIDs[networkId.toLowerCase()];
+  if (!chainId) {
+    console.warn(`Unknown network ID: ${networkId}, using default`);
+    return "0x0000000000000000000000000000000000000000000000000000000000000000";
+  }
+  console.log(`Bridge wildcard for ${networkId}: ${chainId}`);
+  return chainId;
+};
+
+// Function to check if a destination chain is supported
+const isDestinationChainSupported = (networkId: string): boolean => {
+  // For now, we'll assume all chains in our mapping are potentially supported
+  // In a real implementation, you might want to check against a whitelist
+  // or make a contract call to verify chain support
+  return networkChainIDs.hasOwnProperty(networkId.toLowerCase());
+};
+
 // InfoIcon component
 const InfoIcon = () => (
   <svg
@@ -66,9 +103,9 @@ const InfoIcon = () => (
 const BridgePage: React.FC = () => {
   const { address, isConnected } = useAccount();
   const [amount, setAmount] = useState<string>("0.00");
-  const [sourceNetwork, setSourceNetwork] = useState<Network>(networks[0]);
+  const [sourceNetwork, setSourceNetwork] = useState<Network>(networks[0]); // Base as default source
   const [destinationNetwork, setDestinationNetwork] = useState<Network>(
-    networks[1]
+    networks[1] // Katana as default destination
   );
   const [isSourceDropdownOpen, setIsSourceDropdownOpen] = useState(false);
   const [isDestinationDropdownOpen, setIsDestinationDropdownOpen] =
@@ -81,8 +118,9 @@ const BridgePage: React.FC = () => {
   const syUSDDecimals = 6;
 
   // TellerWithLayerZero bridge contract address
-  const bridgeContractAddress = "0xaefc11908fF97c335D16bdf9F2Bf720817423825" as `0x${string}`;
-  
+  const bridgeContractAddress =
+    "0xaefc11908fF97c335D16bdf9F2Bf720817423825" as `0x${string}`;
+
   // Bridge state
   const [isBridging, setIsBridging] = useState(false);
   const [bridgeError, setBridgeError] = useState<string | null>(null);
@@ -204,8 +242,10 @@ const BridgePage: React.FC = () => {
         chain: base,
       });
 
+      // Convert amount to proper units (shares) - amount is in 10^6 terms
       const shareAmount = parseUnits(amount, syUSDDecimals);
-      const bridgeWildCard = "0x"; // LayerZero bridge wildcard
+      // LayerZero bridge wildcard for the specific destination chain
+      const bridgeWildCard = getBridgeWildCard(destinationNetwork.id) as `0x${string}`;
       const feeToken = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"; // ETH address for LayerZero
 
       const fee = await client.readContract({
@@ -213,22 +253,46 @@ const BridgePage: React.FC = () => {
         abi: TELLER_WITH_LAYER_ZERO_ABI,
         functionName: "previewFee",
         args: [
-          BigInt(shareAmount.toString()),
-          address,
-          bridgeWildCard,
-          feeToken
+          BigInt(shareAmount.toString()) as bigint, // Ensure it's properly cast as uint96
+          address as `0x${string}`, // to address (connected wallet)
+          bridgeWildCard as `0x${string}`, // LayerZero bridge wildcard
+          feeToken as `0x${string}`, // fee token address
         ],
       });
 
       const feeBigInt = fee as bigint;
       const formattedFee = formatUnits(feeBigInt, 18);
       setBridgeFee(formattedFee);
-      
+
       return feeBigInt;
     } catch (error) {
       console.error("Error fetching bridge fee:", error);
-      setBridgeFee("0.000007339661645843"); // Display value in ETH
-      return parseUnits("7339661645843", 18);
+      
+      // Handle specific LayerZero chain errors
+      if (error instanceof Error) {
+        if (error.message.includes("LayerZeroTeller__MessagesNotAllowedTo")) {
+          const chainId = error.message.match(/\((\d+)\)/)?.[1];
+          const chainName = Object.keys(networkChainIDs).find(key => {
+            const hexChainId = networkChainIDs[key];
+            const decimalChainId = parseInt(hexChainId.slice(-8), 16); // Extract last 8 hex chars and convert to decimal
+            return decimalChainId === parseInt(chainId || '0');
+          });
+          setBridgeError(`Bridge to ${chainName || 'this network'} is not currently supported. Please select a different destination network.`);
+          setBridgeFee("0");
+          return BigInt(0);
+        }
+        
+        if (error.message.includes("LayerZeroTeller__MessagesNotAllowedFrom")) {
+          setBridgeError("Bridge from this network is not currently supported.");
+          setBridgeFee("0");
+          return BigInt(0);
+        }
+      }
+      
+      // Fallback for other errors
+      setBridgeError("Unable to fetch bridge fee. Please try again.");
+      setBridgeFee("0");
+      return BigInt(0);
     }
   };
 
@@ -251,13 +315,13 @@ const BridgePage: React.FC = () => {
       setIsBridging(true);
       setBridgeError(null);
 
-      // Convert amount to proper units (shares)
+      // Convert amount to proper units (shares) - amount is in 10^6 terms
       const shareAmount = parseUnits(amount, syUSDDecimals);
-      
+
       // LayerZero bridge parameters
-      const bridgeWildCard = "0x000000000000000000000000000000000000000000000000000000000000759e"; // LayerZero bridge wildcard
+      const bridgeWildCard = getBridgeWildCard(destinationNetwork.id) as `0x${string}`; // Dynamic bridge wildcard based on destination
       const feeToken = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"; // ETH address for LayerZero
-      
+
       // Fetch the actual bridge fee from contract
       const maxFee = await fetchBridgeFee();
 
@@ -271,9 +335,9 @@ const BridgePage: React.FC = () => {
           address, // to address
           bridgeWildCard,
           feeToken,
-          BigInt("26704091856546") // Hardcoded bridge fee
+          maxFee, // Use the actual fee from previewFee
         ],
-        value: BigInt("26704091856546") // Send the fee as ETH
+        value: maxFee, // Send the actual fee as ETH
       });
     } catch (error) {
       console.error("Bridge error:", error);
@@ -286,9 +350,10 @@ const BridgePage: React.FC = () => {
   const { writeContract, data: hash, error: writeError } = useWriteContract();
 
   // Wait for transaction receipt
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
-    hash,
-  });
+  const { isLoading: isConfirming, isSuccess: isConfirmed } =
+    useWaitForTransactionReceipt({
+      hash,
+    });
 
   // Handle transaction success
   useEffect(() => {
@@ -450,28 +515,28 @@ const BridgePage: React.FC = () => {
                                     network.id !== destinationNetwork.id
                                 )
                                 .map((network) => (
-                                <button
-                                  key={network.id}
-                                  onClick={() =>
-                                    handleSourceNetworkSelect(network)
-                                  }
-                                  className="flex items-center gap-2.5 hover:opacity-80 transition-opacity w-full"
-                                >
-                                  <div
-                                    className={`w-6 h-6 ml-[-7.5px] rounded-full ${network.color} flex items-center justify-center`}
+                                  <button
+                                    key={network.id}
+                                    onClick={() =>
+                                      handleSourceNetworkSelect(network)
+                                    }
+                                    className="flex items-center gap-2.5 hover:opacity-80 transition-opacity w-full"
                                   >
-                                    <Image
-                                      src={network.icon}
-                                      alt={network.name}
-                                      width={24}
-                                      height={24}
-                                    />
-                                  </div>
-                                  <span className="text-[#9C9DA2] text-sm font-normal">
-                                    {network.name}
-                                  </span>
-                                </button>
-                              ))}
+                                    <div
+                                      className={`w-6 h-6 ml-[-7.5px] rounded-full ${network.color} flex items-center justify-center`}
+                                    >
+                                      <Image
+                                        src={network.icon}
+                                        alt={network.name}
+                                        width={24}
+                                        height={24}
+                                      />
+                                    </div>
+                                    <span className="text-[#9C9DA2] text-sm font-normal">
+                                      {network.name}
+                                    </span>
+                                  </button>
+                                ))}
                             </div>
                           </div>
                         )}
@@ -594,28 +659,28 @@ const BridgePage: React.FC = () => {
                                   (network) => network.id !== sourceNetwork.id
                                 )
                                 .map((network) => (
-                                <button
-                                  key={network.id}
-                                  onClick={() =>
-                                    handleDestinationNetworkSelect(network)
-                                  }
-                                  className="flex items-center gap-2.5 hover:opacity-80 transition-opacity w-full"
-                                >
-                                  <div
-                                    className={`w-6 h-6 ml-[-7.5px] rounded-full ${network.color} flex items-center justify-center`}
+                                  <button
+                                    key={network.id}
+                                    onClick={() =>
+                                      handleDestinationNetworkSelect(network)
+                                    }
+                                    className="flex items-center gap-2.5 hover:opacity-80 transition-opacity w-full"
                                   >
-                                    <Image
-                                      src={network.icon}
-                                      alt={network.name}
-                                      width={24}
-                                      height={24}
-                                    />
-                                  </div>
-                                  <span className="text-[#9C9DA2] text-sm font-normal">
-                                    {network.name}
-                                  </span>
-                                </button>
-                              ))}
+                                    <div
+                                      className={`w-6 h-6 ml-[-7.5px] rounded-full ${network.color} flex items-center justify-center`}
+                                    >
+                                      <Image
+                                        src={network.icon}
+                                        alt={network.name}
+                                        width={24}
+                                        height={24}
+                                      />
+                                    </div>
+                                    <span className="text-[#9C9DA2] text-sm font-normal">
+                                      {network.name}
+                                    </span>
+                                  </button>
+                                ))}
                             </div>
                           </div>
                         )}
@@ -663,6 +728,11 @@ const BridgePage: React.FC = () => {
                         </span>
                       </p>
                     )}
+                    {!isDestinationChainSupported(destinationNetwork.id) && (
+                      <p className="text-xs text-yellow-400 font-normal">
+                        ⚠️ Bridge to {destinationNetwork.name} is not currently supported
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -670,13 +740,21 @@ const BridgePage: React.FC = () => {
               {/* Bridge Button */}
               <button
                 onClick={handleBridge}
-                disabled={!isConnected || parseFloat(amount) <= 0 || isBridging || isConfirming}
+                disabled={
+                  !isConnected ||
+                  parseFloat(amount) <= 0 ||
+                  isBridging ||
+                  isConfirming ||
+                  !isDestinationChainSupported(destinationNetwork.id)
+                }
                 className="w-full bg-[#B88AF8] text-[#1A1B1E] text-base font-semibold leading-[150%] py-4 rounded-sm hover:opacity-90 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {!isConnected
                   ? "Connect Wallet"
                   : parseFloat(amount) <= 0
                   ? "Enter Amount"
+                  : !isDestinationChainSupported(destinationNetwork.id)
+                  ? `Bridge to ${destinationNetwork.name} Not Supported`
                   : isBridging || isConfirming
                   ? "Bridging..."
                   : "Bridge syUSD"}
@@ -693,7 +771,8 @@ const BridgePage: React.FC = () => {
               {isConfirmed && (
                 <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-md">
                   <p className="text-green-400 text-sm">
-                    Bridge transaction confirmed! Your syUSD has been bridged to {destinationNetwork.name}.
+                    Bridge transaction confirmed! Your syUSD has been bridged to{" "}
+                    {destinationNetwork.name}.
                   </p>
                 </div>
               )}
