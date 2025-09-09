@@ -55,10 +55,12 @@ const networks: Network[] = [
 
 // LayerZero Chain IDs (in hex format) for each network
 const networkChainIDs: { [key: string]: string } = {
-  'base': '0x00000000000000000000000000000000000000000000000000000000000075e8', // Base Mainnet
-  'katana': '0x00000000000000000000000000000000000000000000000000000000000076a7', // Katana
-  'arbitrum': '0x000000000000000000000000000000000000000000000000000000000000759e', // Arbitrum One
-  'ethereum': '0x0000000000000000000000000000000000000000000000000000000000007595', // Ethereum Mainnet
+  base: "0x00000000000000000000000000000000000000000000000000000000000075e8", // Base Mainnet
+  katana: "0x00000000000000000000000000000000000000000000000000000000000076a7", // Katana
+  arbitrum:
+    "0x000000000000000000000000000000000000000000000000000000000000759e", // Arbitrum One
+  ethereum:
+    "0x0000000000000000000000000000000000000000000000000000000000007595", // Ethereum Mainnet
 };
 
 // Function to get bridgeWildCard for a network
@@ -103,11 +105,11 @@ const InfoIcon = () => (
 const BridgePage: React.FC = () => {
   const { address, isConnected } = useAccount();
   const [amount, setAmount] = useState<string>("0.00");
-  const [sourceNetwork, setSourceNetwork] = useState<Network>(networks[0]); // Base as default source
+  // Hardcode Base as source network
+  const sourceNetwork = networks[0]; // Base as hardcoded source
   const [destinationNetwork, setDestinationNetwork] = useState<Network>(
     networks[1] // Katana as default destination
   );
-  const [isSourceDropdownOpen, setIsSourceDropdownOpen] = useState(false);
   const [isDestinationDropdownOpen, setIsDestinationDropdownOpen] =
     useState(false);
   const [balance, setBalance] = useState<string>("0.00");
@@ -213,21 +215,12 @@ const BridgePage: React.FC = () => {
     setAmount(balance.replace(/,/g, ""));
   };
 
-  const handleSourceNetworkSelect = (network: Network) => {
-    setSourceNetwork(network);
-    setIsSourceDropdownOpen(false);
-  };
-
   const handleDestinationNetworkSelect = (network: Network) => {
     setDestinationNetwork(network);
     setIsDestinationDropdownOpen(false);
   };
 
-  const swapNetworks = () => {
-    const temp = sourceNetwork;
-    setSourceNetwork(destinationNetwork);
-    setDestinationNetwork(temp);
-  };
+  // Remove swap functionality since source is hardcoded to Base
 
   // Fetch bridge fee from contract
   const fetchBridgeFee = async () => {
@@ -245,7 +238,9 @@ const BridgePage: React.FC = () => {
       // Convert amount to proper units (shares) - amount is in 10^6 terms
       const shareAmount = parseUnits(amount, syUSDDecimals);
       // LayerZero bridge wildcard for the specific destination chain
-      const bridgeWildCard = getBridgeWildCard(destinationNetwork.id) as `0x${string}`;
+      const bridgeWildCard = getBridgeWildCard(
+        destinationNetwork.id
+      ) as `0x${string}`;
       const feeToken = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"; // ETH address for LayerZero
 
       const fee = await client.readContract({
@@ -267,28 +262,34 @@ const BridgePage: React.FC = () => {
       return feeBigInt;
     } catch (error) {
       console.error("Error fetching bridge fee:", error);
-      
+
       // Handle specific LayerZero chain errors
       if (error instanceof Error) {
         if (error.message.includes("LayerZeroTeller__MessagesNotAllowedTo")) {
           const chainId = error.message.match(/\((\d+)\)/)?.[1];
-          const chainName = Object.keys(networkChainIDs).find(key => {
+          const chainName = Object.keys(networkChainIDs).find((key) => {
             const hexChainId = networkChainIDs[key];
             const decimalChainId = parseInt(hexChainId.slice(-8), 16); // Extract last 8 hex chars and convert to decimal
-            return decimalChainId === parseInt(chainId || '0');
+            return decimalChainId === parseInt(chainId || "0");
           });
-          setBridgeError(`Bridge to ${chainName || 'this network'} is not currently supported. Please select a different destination network.`);
+          setBridgeError(
+            `Bridge to ${
+              chainName || "this network"
+            } is not currently supported. Please select a different destination network.`
+          );
           setBridgeFee("0");
           return BigInt(0);
         }
-        
+
         if (error.message.includes("LayerZeroTeller__MessagesNotAllowedFrom")) {
-          setBridgeError("Bridge from this network is not currently supported.");
+          setBridgeError(
+            "Bridge from this network is not currently supported."
+          );
           setBridgeFee("0");
           return BigInt(0);
         }
       }
-      
+
       // Fallback for other errors
       setBridgeError("Unable to fetch bridge fee. Please try again.");
       setBridgeFee("0");
@@ -319,7 +320,9 @@ const BridgePage: React.FC = () => {
       const shareAmount = parseUnits(amount, syUSDDecimals);
 
       // LayerZero bridge parameters
-      const bridgeWildCard = getBridgeWildCard(destinationNetwork.id) as `0x${string}`; // Dynamic bridge wildcard based on destination
+      const bridgeWildCard = getBridgeWildCard(
+        destinationNetwork.id
+      ) as `0x${string}`; // Dynamic bridge wildcard based on destination
       const feeToken = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"; // ETH address for LayerZero
 
       // Fetch the actual bridge fee from contract
@@ -452,143 +455,60 @@ const BridgePage: React.FC = () => {
                 {/* Network Selection Sub-Container */}
                 <div className="bg-[#121521] p-6">
                   <div className="flex items-center justify-between">
-                    {/* Source Network */}
+                    {/* Source Network - Display Only */}
                     <div className="flex-1 relative">
                       <div className="flex items-center gap-1 mb-2">
                         <label className="block text-xs text-gray-400 tracking-normal">
                           Source Network
                         </label>
-                        <Tooltip
-                          content="Select the network you want to bridge from"
-                          side="top"
-                        >
+                        <Tooltip content="Bridge from Base network" side="top">
                           <div className="cursor-pointer">
                             <InfoIcon />
                           </div>
                         </Tooltip>
                       </div>
-                      <div className="relative">
-                        <button
-                          onClick={() =>
-                            setIsSourceDropdownOpen(!isSourceDropdownOpen)
-                          }
-                          className="w-[180px] h-[40px] flex items-center gap-3 bg-[#1f212c]  rounded-[99px] px-4 py-2 hover:bg-[#3A3A4C] transition-colors"
+                      <div className="w-[180px] h-[40px] flex items-center gap-3 bg-[#1f212c] rounded-[99px] px-4 py-2">
+                        <div
+                          className={`w-6 h-6 ml-[-7.5px]  flex items-center justify-center`}
                         >
-                          <div
-                            className={`w-6 h-6 ml-[-7.5px] rounded-full ${sourceNetwork.color} flex items-center justify-center`}
-                          >
-                            <Image
-                              src={sourceNetwork.icon}
-                              alt={sourceNetwork.name}
-                              width={24}
-                              height={24}
-                            />
-                          </div>
-                          <span className="text-white text-base font-semibold">
-                            {sourceNetwork.name}
-                          </span>
-                          <svg
-                            width="12"
-                            height="12"
-                            viewBox="0 0 16 16"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="text-gray-400 ml-auto"
-                          >
-                            <path
-                              d="M4 6L8 10L12 6"
-                              stroke="currentColor"
-                              strokeWidth="1"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </button>
-
-                        {/* Source Network Dropdown */}
-                        {isSourceDropdownOpen && (
-                          <div className="absolute top-full left-0 right-0 mt-2 bg-[#263042] pl-4 py-3 rounded-md max-w-[145px] shadow-lg z-10">
-                            <div className="flex flex-col gap-4">
-                              {networks
-                                .filter(
-                                  (network) =>
-                                    network.id !== destinationNetwork.id
-                                )
-                                .map((network) => (
-                                  <button
-                                    key={network.id}
-                                    onClick={() =>
-                                      handleSourceNetworkSelect(network)
-                                    }
-                                    className="flex items-center gap-2.5 hover:opacity-80 transition-opacity w-full"
-                                  >
-                                    <div
-                                      className={`w-6 h-6 ml-[-7.5px] rounded-full ${network.color} flex items-center justify-center`}
-                                    >
-                                      <Image
-                                        src={network.icon}
-                                        alt={network.name}
-                                        width={24}
-                                        height={24}
-                                      />
-                                    </div>
-                                    <span className="text-[#9C9DA2] text-sm font-normal">
-                                      {network.name}
-                                    </span>
-                                  </button>
-                                ))}
-                            </div>
-                          </div>
-                        )}
+                          <Image
+                            src={sourceNetwork.icon}
+                            alt={sourceNetwork.name}
+                            width={24}
+                            height={24}
+                          />
+                        </div>
+                        <span className="text-white text-base font-semibold">
+                          {sourceNetwork.name}
+                        </span>
                       </div>
                     </div>
 
-                    {/* Swap Button */}
+                    {/* Arrow Icon */}
                     <div className="mx-4 mt-6">
-                      <button
-                        onClick={swapNetworks}
-                        className="p-0 hover:opacity-80 transition-opacity"
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 15 15"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="text-gray-400"
                       >
-                        <svg
-                          width="20"
-                          height="20"
-                          viewBox="0 0 15 15"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="text-gray-400"
-                        >
-                          {/* Top arrow pointing right */}
-                          <path
-                            d="M3 5H12"
-                            stroke="currentColor"
-                            strokeWidth="0.75"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <path
-                            d="M9 3L12 5L9 7"
-                            stroke="currentColor"
-                            strokeWidth="0.75"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          {/* Bottom arrow pointing left */}
-                          <path
-                            d="M12 10H3"
-                            stroke="currentColor"
-                            strokeWidth="0.75"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <path
-                            d="M6 8L3 10L6 12"
-                            stroke="currentColor"
-                            strokeWidth="0.75"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </button>
+                        <path
+                          d="M3 5H12"
+                          stroke="currentColor"
+                          strokeWidth="0.75"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M9 3L12 5L9 7"
+                          stroke="currentColor"
+                          strokeWidth="0.75"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
                     </div>
 
                     {/* Destination Network */}
@@ -620,7 +540,7 @@ const BridgePage: React.FC = () => {
                           className="w-[180px] h-[40px] flex items-center gap-3 bg-[#1f212c]  rounded-[99px] px-4 py-2 hover:bg-[#3A3A4C] transition-colors"
                         >
                           <div
-                            className={`w-6 h-6 ml-[-7.5px] rounded-full ${destinationNetwork.color} flex items-center justify-center`}
+                            className={`w-6 h-6 ml-[-7.5px]  flex items-center justify-center`}
                           >
                             <Image
                               src={destinationNetwork.icon}
@@ -656,7 +576,7 @@ const BridgePage: React.FC = () => {
                             <div className="flex flex-col gap-4">
                               {networks
                                 .filter(
-                                  (network) => network.id !== sourceNetwork.id
+                                  (network) => network.id !== "base" // Exclude Base since it's the source
                                 )
                                 .map((network) => (
                                   <button
@@ -666,9 +586,7 @@ const BridgePage: React.FC = () => {
                                     }
                                     className="flex items-center gap-2.5 hover:opacity-80 transition-opacity w-full"
                                   >
-                                    <div
-                                      className={`w-6 h-6 ml-[-7.5px] rounded-full ${network.color} flex items-center justify-center`}
-                                    >
+                                    <div className="w-6 h-6 ml-[-7.5px] flex items-center justify-center">
                                       <Image
                                         src={network.icon}
                                         alt={network.name}
@@ -730,7 +648,8 @@ const BridgePage: React.FC = () => {
                     )}
                     {!isDestinationChainSupported(destinationNetwork.id) && (
                       <p className="text-xs text-yellow-400 font-normal">
-                        ⚠️ Bridge to {destinationNetwork.name} is not currently supported
+                        ⚠️ Bridge to {destinationNetwork.name} is not currently
+                        supported
                       </p>
                     )}
                   </div>
