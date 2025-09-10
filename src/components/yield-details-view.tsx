@@ -218,9 +218,40 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
       return "No holdings found";
     }
 
-    return Object.entries(networkBalances)
-      .map(([network, balance]) => `${network}: ${balance.toFixed(2)} syUSD`)
-      .join('\n');
+    // Map network names to their corresponding images
+    const networkImages: {[key: string]: string} = {
+      "Base": "/images/logo/base.svg",
+      "Ethereum": "/images/logo/eth.svg", 
+      "Arbitrum": "/images/logo/arb.svg",
+      "Katana": "/images/logo/katana.svg"
+    };
+
+    return (
+      <div className="min-w-[180px]">
+        <div className="text-sm font-semibold text-black mb-3 pb-2 border-b border-gray-200">
+          Deposit Breakdown
+        </div>
+        <div className="space-y-2">
+          {Object.entries(networkBalances).map(([network, balance]) => (
+            <div key={network} className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Image
+                  src={networkImages[network] || "/images/icons/default_assest.svg"}
+                  alt={network}
+                  width={20}
+                  height={20}
+                  className="object-contain"
+                />
+                <span className="text-sm text-black">{network}</span>
+              </div>
+              <span className="text-sm text-black font-medium">
+                {balance.toFixed(2)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   };
 
   // FAQ data
