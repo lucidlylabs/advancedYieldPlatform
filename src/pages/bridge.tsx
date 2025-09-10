@@ -26,6 +26,62 @@ interface Network {
   color: string;
 }
 
+interface TransactionHistoryItem {
+  id: number;
+  token: string;
+  amount: string;
+  from: string;
+  to: string;
+  time: string;
+  status: string;
+  txHash: string;
+}
+
+interface ApiTransaction {
+  id: number;
+  vaultTokenAddress: string;
+  eventType: string;
+  transactionHash: string;
+  timestamp: string;
+  shareAmount: number;
+  userAddress: string;
+  bridge: {
+    srcChainId: number;
+    dstChainId: number;
+    sender: string;
+    receiver: string;
+    status: string;
+  };
+}
+
+interface ApiResponse {
+  walletAddress: string;
+  data: ApiTransaction[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+  summary: {
+    totalBridgeTransactions: number;
+    uniqueVaults: number;
+    uniqueSrcChains: number;
+    uniqueDstChains: number;
+    statusBreakdown: {
+      delivered: number;
+      pending: number;
+      failed: number;
+    };
+    amounts: {
+      avgShareAmount: number;
+      totalShareAmount: number;
+    };
+  };
+}
+
 const networks: Network[] = [
   {
     id: "base",
@@ -116,59 +172,117 @@ const BridgePage: React.FC = () => {
   const [showTransactionHistory, setShowTransactionHistory] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Mock transaction history data
-  const [transactionHistory, setTransactionHistory] = useState([
+  // Transaction history data from API
+  const [transactionHistory, setTransactionHistory] = useState<
+    TransactionHistoryItem[]
+  >([]);
+  const [hasTransactionHistory, setHasTransactionHistory] = useState<boolean | null>(null);
+
+  // LayerZero Chain ID to network name mapping
+  const chainIdToNetwork: { [key: number]: string } = {
+    // LayerZero Standard Chain IDs
+    30101: "Ethereum", // LayerZero Ethereum Mainnet
+    30110: "Arbitrum", // LayerZero Arbitrum One
+    30184: "Base", // LayerZero Base
+    30375: "Katana", // LayerZero Katana (Ronin)
+  };
+
+  // Format time ago from timestamp
+  const formatTimeAgo = (timestamp: number) => {
+    const now = Date.now();
+    const diff = now - timestamp;
+    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    if (minutes < 60) {
+      return `${minutes} min${minutes !== 1 ? "s" : ""} ago`;
+    } else if (hours < 24) {
+      return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
+    } else if (days < 30) {
+      return `${days} day${days !== 1 ? "s" : ""} ago`;
+    } else {
+      const date = new Date(timestamp);
+      return date.toLocaleDateString("en-US", {
+        day: "2-digit",
+        month: "short",
+        year: "2-digit",
+      });
+    }
+  };
+
+  // Fetch transaction history from API
+  const fetchTransactionHistory = async () => {
+    if (!address || !isConnected) {
+      setTransactionHistory([]);
+      setHasTransactionHistory(null);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `http://localhost:3001/api/bridge/wallet/${address}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch transaction history");
+      }
+
+      const data: ApiResponse = await response.json();
+
+      // Extract transactions from the data property
+      const transactions = data.data || [];
+
+      if (!Array.isArray(transactions)) {
+        console.warn("API response data is not an array:", data);
+        setTransactionHistory([]);
+        return;
+      }
+
+      // Transform API data to our format
+      const transformedData: TransactionHistoryItem[] = transactions.map(
+        (tx: ApiTransaction, index: number) => {
+          const vaultInfo = vaultDetails[
+            tx.vaultTokenAddress?.toLowerCase()
+          ] || { symbol: "Unknown", decimals: 18 };
+
+          return {
+            id: tx.id,
+            token: vaultInfo.symbol,
+            amount: Number(
+              formatUnits(BigInt(tx.shareAmount), vaultInfo.decimals)
+            ).toLocaleString(),
+            from:
+              chainIdToNetwork[tx.bridge.srcChainId] ||
+              `Chain ${tx.bridge.srcChainId}`,
+            to:
+              chainIdToNetwork[tx.bridge.dstChainId] ||
+              `Chain ${tx.bridge.dstChainId}`,
+            time: formatTimeAgo(parseInt(tx.timestamp) * 1000), // Convert seconds to milliseconds
+            status:
+              tx.bridge.status === "DELIVERED" ? "Completed" : tx.bridge.status,
+            txHash: tx.transactionHash,
+          };
+        }
+       );
+
+       setTransactionHistory(transformedData);
+       setHasTransactionHistory(transformedData.length > 0);
+     } catch (error) {
+       console.error("Error fetching transaction history:", error);
+       setTransactionHistory([]);
+       setHasTransactionHistory(false);
+     }
+  };
+
+  // Vault contract addresses and their details
+  const vaultDetails: { [key: string]: { symbol: string; decimals: number } } =
     {
-      id: 1,
-      token: "syUSD",
-      amount: "369.00",
-      from: "Base",
-      to: "Katana",
-      time: "1 min",
-      status: "Completed",
-      txHash: "0x1234567890abcdef1234567890abcdef12345678",
-    },
-    {
-      id: 2,
-      token: "syETH",
-      amount: "13,921.00",
-      from: "Base",
-      to: "Katana",
-      time: "1 day ago",
-      status: "Completed",
-      txHash: "0xabcdef1234567890abcdef1234567890abcdef12",
-    },
-    {
-      id: 3,
-      token: "syUSD",
-      amount: "23,129.12",
-      from: "Base",
-      to: "Katana",
-      time: "01st July'25",
-      status: "Completed",
-      txHash: "0x567890abcdef1234567890abcdef1234567890ab",
-    },
-    {
-      id: 4,
-      token: "SYBTC",
-      amount: "21.00",
-      from: "Base",
-      to: "Katana",
-      time: "12th June'25",
-      status: "Completed",
-      txHash: "0x90abcdef1234567890abcdef1234567890abcdef",
-    },
-    {
-      id: 5,
-      token: "syUSD",
-      amount: "1,239.12",
-      from: "Base",
-      to: "Katana",
-      time: "8th June'25",
-      status: "Completed",
-      txHash: "0xdef1234567890abcdef1234567890abcdef12345",
-    },
-  ]);
+      "0x279cad277447965af3d24a78197aad1b02a2c589": {
+        symbol: "syUSD",
+        decimals: 6,
+      },
+      // Add other vault addresses as needed
+    };
 
   // syUSD vault contract address on Base network (vault shares)
   const syUSDContractAddress =
@@ -280,11 +394,17 @@ const BridgePage: React.FC = () => {
   const handleRefresh = async () => {
     setIsRefreshing(true);
 
-    // Toggle transaction history
-    setShowTransactionHistory(!showTransactionHistory);
-
-    // Simulate refresh delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // First fetch transaction history to check if there are any transactions
+    await fetchTransactionHistory();
+    
+    // Only toggle transaction history if there are transactions
+    if (hasTransactionHistory) {
+      const newShowState = !showTransactionHistory;
+      setShowTransactionHistory(newShowState);
+    } else {
+      // If no transactions, don't show the history panel
+      setShowTransactionHistory(false);
+    }
 
     // Refresh balance
     await fetchSyUSDBalance();
@@ -500,11 +620,15 @@ const BridgePage: React.FC = () => {
 
                 {/* Refresh Icon aligned with transaction history */}
                 <div className="w-[550px] flex justify-end items-baseline">
-                  <button
-                    onClick={handleRefresh}
-                    disabled={isRefreshing}
-                    className="w-12 h-12 p-3 rounded-[99px] bg-[#131723] hover:bg-[#3A3A4C] transition-colors disabled:opacity-50"
+                  <Tooltip 
+                    content={hasTransactionHistory === false ? "No transaction history" : "View transaction history"}
+                    side="top"
                   >
+                    <button
+                      onClick={handleRefresh}
+                      disabled={isRefreshing}
+                      className="w-12 h-12 p-3 rounded-[99px] bg-[#131723] hover:bg-[#3A3A4C] transition-colors disabled:opacity-50"
+                    >
                     <svg
                       width="24"
                       height="24"
@@ -529,6 +653,7 @@ const BridgePage: React.FC = () => {
                       />
                     </svg>
                   </button>
+                  </Tooltip>
                 </div>
               </div>
             ) : (
@@ -571,11 +696,15 @@ const BridgePage: React.FC = () => {
                   </div>
 
                   {/* Refresh Icon at the right edge of bridge container */}
-                  <button
-                    onClick={handleRefresh}
-                    disabled={isRefreshing}
-                    className="w-12 h-12 p-3 rounded-[99px] bg-[#131723] hover:bg-[#3A3A4C] transition-colors disabled:opacity-50"
+                  <Tooltip 
+                    content={hasTransactionHistory === false ? "No transaction history" : "View transaction history"}
+                    side="top"
                   >
+                    <button
+                      onClick={handleRefresh}
+                      disabled={isRefreshing}
+                      className="w-12 h-12 p-3 rounded-[99px] bg-[#131723] hover:bg-[#3A3A4C] transition-colors disabled:opacity-50"
+                    >
                     <svg
                       width="24"
                       height="24"
@@ -600,6 +729,7 @@ const BridgePage: React.FC = () => {
                       />
                     </svg>
                   </button>
+                  </Tooltip>
                 </div>
               </div>
             )}
@@ -921,7 +1051,7 @@ const BridgePage: React.FC = () => {
                               </div>
                             </div>
                             <a
-                              href={`https://basescan.org/tx/${tx.txHash}`}
+                              href={`https://layerzeroscan.com/tx/${tx.txHash}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-gray-400 hover:text-white transition-colors"
