@@ -184,7 +184,7 @@ const BridgePage: React.FC = () => {
     30101: "Ethereum", // LayerZero Ethereum Mainnet
     30110: "Arbitrum", // LayerZero Arbitrum One
     30184: "Base", // LayerZero Base
-    30375: "Katana", // LayerZero Katana (Ronin)
+    30375: "Katana", // LayerZero Katana 
   };
 
   // Format time ago from timestamp
@@ -621,7 +621,7 @@ const BridgePage: React.FC = () => {
                 {/* Refresh Icon aligned with transaction history */}
                 <div className="w-[550px] flex justify-end items-baseline">
                   <Tooltip 
-                    content={hasTransactionHistory === false ? "No transaction history" : "View transaction history"}
+                    content={hasTransactionHistory === false ? "No transaction history" : "Close transaction history"}
                     side="top"
                   >
                     <button
