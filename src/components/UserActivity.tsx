@@ -100,17 +100,18 @@ const UserActivity: React.FC = () => {
   const { address, isConnected } = useAccount();
   const [activityData, setActivityData] = useState<UserActivityData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     if (address && isConnected) {
-      fetchUserActivity(address);
+      fetchUserActivity(address, currentPage);
     }
-  }, [address, isConnected]);
+  }, [address, isConnected, currentPage]);
 
-  const fetchUserActivity = async (userAddress: string) => {
+  const fetchUserActivity = async (userAddress: string, page: number = 1) => {
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:3001/api/user-activity/${userAddress}`);
+      const response = await fetch(`http://localhost:3001/api/user-activity/${userAddress}?page=${page}`);
       const data = await response.json();
       
       if (data.success) {
@@ -168,6 +169,18 @@ const UserActivity: React.FC = () => {
 
   const capitalizeFirstLetter = (string: string) => {
     return string.charAt(0).toUpperCase() + string.slice(1);
+  };
+
+  const handlePreviousPage = () => {
+    if (activityData?.pagination.hasPrevPage) {
+      setCurrentPage(prev => prev - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (activityData?.pagination.hasNextPage) {
+      setCurrentPage(prev => prev + 1);
+    }
   };
 
   if (!isConnected) {
@@ -368,10 +381,40 @@ const UserActivity: React.FC = () => {
 
               {/* Pagination */}
               {activityData.pagination && activityData.pagination.totalPages > 1 && (
-                <div className="flex justify-center mt-6">
-                  <div className="text-[#9C9DA2] text-[12px]">
-                    Page {activityData.pagination.currentPage} of {activityData.pagination.totalPages}
+                <div className="flex items-center justify-center gap-4 mt-6">
+                  <button
+                    onClick={handlePreviousPage}
+                    disabled={!activityData.pagination.hasPrevPage}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-[4px] text-[12px] font-medium transition-colors ${
+                      activityData.pagination.hasPrevPage
+                        ? 'text-white bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.2)] cursor-pointer'
+                        : 'text-[#9C9DA2] bg-[rgba(255,255,255,0.05)] cursor-not-allowed'
+                    }`}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M7.5 9L4.5 6L7.5 3" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Previous
+                  </button>
+                  
+                  <div className="text-[#9C9DA2] text-[12px] px-4">
+                    Page {currentPage} of {activityData.pagination.totalPages}
                   </div>
+                  
+                  <button
+                    onClick={handleNextPage}
+                    disabled={!activityData.pagination.hasNextPage}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-[4px] text-[12px] font-medium transition-colors ${
+                      activityData.pagination.hasNextPage
+                        ? 'text-white bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.2)] cursor-pointer'
+                        : 'text-[#9C9DA2] bg-[rgba(255,255,255,0.05)] cursor-not-allowed'
+                    }`}
+                  >
+                    Next
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
                 </div>
               )}
             </div>
