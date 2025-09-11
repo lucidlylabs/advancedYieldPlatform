@@ -12,7 +12,7 @@ import {
   Address,
   parseUnits,
 } from "viem";
-import { base } from "wagmi/chains";
+import { base, mainnet, arbitrum } from "wagmi/chains";
 import { Header } from "../components/ui/header";
 import { Navigation } from "../components/ui/navigation";
 import { Tooltip } from "../components/ui/tooltip";
@@ -119,6 +119,56 @@ const networkChainIDs: { [key: string]: string } = {
     "0x0000000000000000000000000000000000000000000000000000000000007595", // Ethereum Mainnet
 };
 
+// Network to Viem chain mapping
+const networkToChain: { [key: string]: any } = {
+  base: base,
+  ethereum: mainnet,
+  arbitrum: arbitrum,
+  katana: {
+    id: 747474, // Katana chain ID
+    name: "Katana",
+    network: "katana",
+    nativeCurrency: {
+      decimals: 18,
+      name: "ETH",
+      symbol: "ETH",
+    },
+    rpcUrls: {
+      default: { http: ["https://rpc.katana.network"] },
+      public: { http: ["https://rpc.katana.network"] },
+    },
+  },
+};
+
+// Network ID to chain ID mapping
+const networkChainIds: { [key: string]: number } = {
+  base: 8453,
+  ethereum: 1,
+  arbitrum: 42161,
+  katana: 747474,
+};
+
+// Network to RPC URLs mapping
+const networkRpcUrls: { [key: string]: string[] } = {
+  base: [
+    "https://mainnet.base.org",
+    "https://base-mainnet.g.alchemy.com/v2/demo",
+    "https://base.meowrpc.com",
+  ],
+  ethereum: [
+    "https://eth.llamarpc.com",
+    "https://ethereum.publicnode.com",
+    "https://mainnet.infura.io/v3/",
+  ],
+  arbitrum: [
+    "https://arb1.arbitrum.io/rpc",
+    "https://arbitrum-one.publicnode.com",
+  ],
+  katana: [
+    "https://rpc.katana.network",
+  ],
+};
+
 // Function to get bridgeWildCard for a network
 const getBridgeWildCard = (networkId: string): string => {
   const chainId = networkChainIDs[networkId.toLowerCase()];
@@ -161,11 +211,14 @@ const InfoIcon = () => (
 const BridgePage: React.FC = () => {
   const { address, isConnected } = useAccount();
   const [amount, setAmount] = useState<string>("0.00");
-  // Hardcode Base as source network
-  const sourceNetwork = networks[0]; // Base as hardcoded source
-  const [destinationNetwork, setDestinationNetwork] = useState<Network>(
-    networks[1] // Katana as default destination
+  // Source network dropdown state
+  const [sourceNetwork, setSourceNetwork] = useState<Network>(
+    networks.find(n => n.id === "base") || networks[0] // Base as default source
   );
+  const [destinationNetwork, setDestinationNetwork] = useState<Network>(
+    networks.find(n => n.id === "ethereum") || networks[3] // Ethereum as default destination
+  );
+  const [isSourceDropdownOpen, setIsSourceDropdownOpen] = useState(false);
   const [isDestinationDropdownOpen, setIsDestinationDropdownOpen] =
     useState(false);
   const [balance, setBalance] = useState<string>("0.00");
@@ -293,14 +346,22 @@ const BridgePage: React.FC = () => {
   const bridgeContractAddress =
     "0xaefc11908fF97c335D16bdf9F2Bf720817423825" as `0x${string}`;
 
+  // syUSD contract addresses per network (in case they differ)
+  const syUSDContractAddresses: { [key: string]: `0x${string}` } = {
+    base: "0x279CAD277447965AF3d24a78197aad1B02a2c589",
+    ethereum: "0x279CAD277447965AF3d24a78197aad1B02a2c589", 
+    arbitrum: "0x279CAD277447965AF3d24a78197aad1B02a2c589",
+    katana: "0x279CAD277447965AF3d24a78197aad1B02a2c589", // May need to be updated
+  };
+
   // Bridge state
   const [isBridging, setIsBridging] = useState(false);
   const [bridgeError, setBridgeError] = useState<string | null>(null);
   const [bridgeFee, setBridgeFee] = useState<string>("0");
 
-  // Fetch syUSD balance from Base network with RPC fallback
+  // Fetch syUSD balance from source network with RPC fallback
   const fetchSyUSDBalance = async () => {
-    console.log("fetchSyUSDBalance called with:", { address, isConnected });
+    console.log("fetchSyUSDBalance called with:", { address, isConnected, sourceNetwork: sourceNetwork.name });
 
     if (!address || !isConnected) {
       console.log("No address or not connected, setting balance to 0.00");
@@ -308,27 +369,29 @@ const BridgePage: React.FC = () => {
       return;
     }
 
-    // RPC fallback URLs for Base network
-    const baseRpcUrls = [
-      "https://mainnet.base.org",
-      "https://base.llamarpc.com",
-      "https://base-mainnet.g.alchemy.com/v2/demo",
-      "https://base.blockpi.network/v1/rpc/public",
-    ];
+    // Log network being checked
+    console.log(`Fetching balance for ${sourceNetwork.name} network`);
+
+    // RPC fallback URLs for source network
+    const sourceRpcUrls = networkRpcUrls[sourceNetwork.id] || networkRpcUrls.base;
+    const sourceChain = networkToChain[sourceNetwork.id] || base;
 
     let lastError;
 
-    for (const rpcUrl of baseRpcUrls) {
+    for (const rpcUrl of sourceRpcUrls) {
       try {
-        console.log(`Trying RPC: ${rpcUrl}`);
+        console.log(`Trying RPC: ${rpcUrl} for network: ${sourceNetwork.name}`);
 
         const client = createPublicClient({
           transport: http(rpcUrl),
-          chain: base,
+          chain: sourceChain,
         });
 
+        // Get network-specific contract address
+        const contractAddress = syUSDContractAddresses[sourceNetwork.id] || syUSDContractAddress;
+        
         const balance = await client.readContract({
-          address: syUSDContractAddress,
+          address: contractAddress,
           abi: ERC20_ABI,
           functionName: "balanceOf",
           args: [address as Address],
@@ -355,14 +418,21 @@ const BridgePage: React.FC = () => {
         setBalance(displayBalance);
         return; // Success, exit the function
       } catch (error) {
-        console.warn(`RPC ${rpcUrl} failed:`, error);
+        console.warn(`RPC ${rpcUrl} failed for ${sourceNetwork.name}:`, error);
         lastError = error;
+        
+        // Special error handling for specific networks
+        if (sourceNetwork.id === "katana" && error instanceof Error) {
+          if (error.message.includes("Failed to fetch") || error.message.includes("HTTP request failed")) {
+            console.warn("Katana RPC endpoint unreachable, trying next...");
+          }
+        }
         continue; // Try next RPC
       }
     }
 
     // If all RPCs failed
-    console.error("All RPC endpoints failed:", lastError);
+    console.error(`All RPC endpoints failed for ${sourceNetwork.name}:`, lastError);
     setBalance("0.00");
   };
 
@@ -372,10 +442,12 @@ const BridgePage: React.FC = () => {
       "useEffect triggered - address:",
       address,
       "isConnected:",
-      isConnected
+      isConnected,
+      "sourceNetwork:",
+      sourceNetwork.name
     );
     fetchSyUSDBalance();
-  }, [address, isConnected]);
+  }, [address, isConnected, sourceNetwork.id]);
 
   const handleAmountChange = (value: string) => {
     setAmount(value);
@@ -383,6 +455,33 @@ const BridgePage: React.FC = () => {
 
   const handleMaxClick = () => {
     setAmount(balance.replace(/,/g, ""));
+  };
+
+  // Get available networks based on asymmetric bridge flow
+  const getAvailableSourceNetworks = (): Network[] => {
+    return networks; // All networks can be source
+  };
+
+  const getAvailableDestinationNetworks = (sourceId?: string): Network[] => {
+    const srcId = sourceId || sourceNetwork.id;
+    if (srcId === "base") {
+      // From Base: can go to any other network
+      return networks.filter(n => n.id !== "base");
+    } else {
+      // From any other network: can only go to Base
+      return networks.filter(n => n.id === "base");
+    }
+  };
+
+  const handleSourceNetworkSelect = (network: Network) => {
+    setSourceNetwork(network);
+    setIsSourceDropdownOpen(false);
+    
+    // Auto-select the corresponding destination network
+    const availableDestinations = getAvailableDestinationNetworks(network.id);
+    if (availableDestinations.length > 0) {
+      setDestinationNetwork(availableDestinations[0]);
+    }
   };
 
   const handleDestinationNetworkSelect = (network: Network) => {
@@ -422,9 +521,13 @@ const BridgePage: React.FC = () => {
     }
 
     try {
+      // Use source network for fee calculation
+      const sourceRpcUrls = networkRpcUrls[sourceNetwork.id] || networkRpcUrls.base;
+      const sourceChain = networkToChain[sourceNetwork.id] || base;
+      
       const client = createPublicClient({
-        transport: http("https://mainnet.base.org"),
-        chain: base,
+        transport: http(sourceRpcUrls[0]), // Use first RPC URL
+        chain: sourceChain,
       });
 
       // Convert amount to proper units (shares) - amount is in 10^6 terms
@@ -496,7 +599,7 @@ const BridgePage: React.FC = () => {
     } else {
       setBridgeFee("0");
     }
-  }, [amount, address, isConnected]);
+  }, [amount, address, isConnected, sourceNetwork.id, destinationNetwork.id]);
 
   // Bridge function using TellerWithLayerZero
   const handleBridge = async () => {
@@ -507,6 +610,10 @@ const BridgePage: React.FC = () => {
     try {
       setIsBridging(true);
       setBridgeError(null);
+
+      // Log bridge details for debugging
+      console.log(`Bridging from ${sourceNetwork.name} to ${destinationNetwork.name}`);
+      console.log(`Expected wallet chain ID: ${networkChainIds[sourceNetwork.id]}`);
 
       // Convert amount to proper units (shares) - amount is in 10^6 terms
       const shareAmount = parseUnits(amount, syUSDDecimals);
@@ -520,7 +627,7 @@ const BridgePage: React.FC = () => {
       // Fetch the actual bridge fee from contract
       const maxFee = await fetchBridgeFee();
 
-      // Call the bridge function
+      // Call the bridge function on the source network
       writeContract({
         address: bridgeContractAddress,
         abi: TELLER_WITH_LAYER_ZERO_ABI,
@@ -533,6 +640,7 @@ const BridgePage: React.FC = () => {
           maxFee, // Use the actual fee from previewFee
         ],
         value: maxFee, // Send the actual fee as ETH
+        chainId: networkChainIds[sourceNetwork.id] || 8453, // Use the source network's chain ID
       });
     } catch (error) {
       console.error("Bridge error:", error);
@@ -765,20 +873,74 @@ const BridgePage: React.FC = () => {
                               </div>
                             </Tooltip>
                           </div>
-                          <div className="w-[180px] h-[40px] flex items-center gap-3 bg-[#1f212c] rounded-[99px] px-4 py-2">
-                            <div
-                              className={`w-6 h-6 ml-[-7.5px]  flex items-center justify-center`}
+                          <div className="relative">
+                            <button
+                              onClick={() =>
+                                setIsSourceDropdownOpen(
+                                  !isSourceDropdownOpen
+                                )
+                              }
+                              className="w-[180px] h-[40px] flex items-center gap-3 bg-[#1f212c]  rounded-[99px] px-4 py-2 hover:bg-[#3A3A4C] transition-colors"
                             >
-                              <Image
-                                src={sourceNetwork.icon}
-                                alt={sourceNetwork.name}
-                                width={24}
-                                height={24}
-                              />
-                            </div>
-                            <span className="text-white text-base font-semibold">
-                              {sourceNetwork.name}
-                            </span>
+                              <div
+                                className={`w-6 h-6 ml-[-7.5px]  flex items-center justify-center`}
+                              >
+                                <Image
+                                  src={sourceNetwork.icon}
+                                  alt={sourceNetwork.name}
+                                  width={24}
+                                  height={24}
+                                />
+                              </div>
+                              <span className="text-white text-base font-semibold">
+                                {sourceNetwork.name}
+                              </span>
+                              <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="text-gray-400 ml-auto"
+                              >
+                                <path
+                                  d="M4 6L8 10L12 6"
+                                  stroke="currentColor"
+                                  strokeWidth="1"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </button>
+
+                            {/* Source Network Dropdown */}
+                            {isSourceDropdownOpen && (
+                              <div className="absolute top-full left-0 mt-2 bg-[#263042] pl-4 py-3 rounded-md w-[180px] shadow-lg z-10">
+                                <div className="flex flex-col gap-4">
+                                  {getAvailableSourceNetworks().map((network) => (
+                                    <button
+                                      key={network.id}
+                                      onClick={() =>
+                                        handleSourceNetworkSelect(network)
+                                      }
+                                      className="flex items-center gap-2.5 hover:opacity-80 transition-opacity w-full"
+                                    >
+                                      <div className="w-6 h-6 ml-[-7.5px] flex items-center justify-center">
+                                        <Image
+                                          src={network.icon}
+                                          alt={network.name}
+                                          width={24}
+                                          height={24}
+                                        />
+                                      </div>
+                                      <span className="text-white text-base font-semibold">
+                                        {network.name}
+                                      </span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
 
@@ -872,10 +1034,7 @@ const BridgePage: React.FC = () => {
                             {isDestinationDropdownOpen && (
                               <div className="absolute top-full left-12 right-0 mt-2 bg-[#263042] pl-4 py-3 rounded-md max-w-[145px] shadow-lg z-10">
                                 <div className="flex flex-col gap-4">
-                                  {networks
-                                    .filter(
-                                      (network) => network.id !== "base" // Exclude Base since it's the source
-                                    )
+                                  {getAvailableDestinationNetworks()
                                     .map((network) => (
                                       <button
                                         key={network.id}
