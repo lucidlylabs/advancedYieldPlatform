@@ -25,8 +25,8 @@ import UserActivity from "../components/UserActivity";
 
 const InfoIcon = () => (
   <svg
-    width="16"
-    height="16"
+    width="12"
+    height="12"
     viewBox="0 0 24 24"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
@@ -53,7 +53,6 @@ const isMobile = () => typeof window !== "undefined" && window.innerWidth < 640;
 // } from "recharts";
 import { Tooltip } from "@/components/ui/tooltip";
 // import PortfolioChart from "@/components/graphs/portfolioChart";
-
 
 interface NetworkConfig {
   tokens: Array<{
@@ -320,7 +319,7 @@ const assetOptions = [
 ];
 
 // Filter withdrawable assets for dropdown
-const withdrawableAssets = assetOptions.filter(opt => opt.isWithdrawable);
+const withdrawableAssets = assetOptions.filter((opt) => opt.isWithdrawable);
 
 const strategy = USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
 const chainConfigs = {
@@ -350,8 +349,15 @@ const PortfolioSubpage: React.FC = () => {
   const [isApproved, setIsApproved] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
   const [approvalHash, setApprovalHash] = useState<`0x${string}` | null>(null);
-  const [strategiesWithBalance, setStrategiesWithBalance] = useState<StrategyWithBalance[]>([]);
-  const [selectedStrategy, setSelectedStrategy] = useState<StrategyWithBalance | null>(null);
+  const [strategiesWithBalance, setStrategiesWithBalance] = useState<
+    StrategyWithBalance[]
+  >([]);
+  const [
+    strategiesWithWithdrawableBalance,
+    setStrategiesWithWithdrawableBalance,
+  ] = useState<StrategyWithBalance[]>([]);
+  const [selectedStrategy, setSelectedStrategy] =
+    useState<StrategyWithBalance | null>(null);
   const [withdrawAmount, setWithdrawAmount] = useState<string>("");
   const [slippage, setSlippage] = useState<string>("0.03");
   const [isWithdrawing, setIsWithdrawing] = useState(false);
@@ -361,9 +367,9 @@ const PortfolioSubpage: React.FC = () => {
   const [isCancelling, setIsCancelling] = useState(false);
   const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"withdraw" | "request" | "activity">(
-    "activity"
-  );
+  const [activeTab, setActiveTab] = useState<
+    "withdraw" | "request" | "activity"
+  >("activity");
   const [requestTab, setRequestTab] = useState<"pending" | "completed">(
     "pending"
   );
@@ -467,12 +473,14 @@ const PortfolioSubpage: React.FC = () => {
   // Fetch PnL data
   const fetchPnlData = async (userAddress: string) => {
     if (!userAddress) return;
-    
+
     setIsLoadingPnl(true);
     try {
-      const response = await fetch(`http://localhost:3001/api/pnl?userAddress=${userAddress}`);
+      const response = await fetch(
+        `http://localhost:3001/api/pnl?userAddress=${userAddress}`
+      );
       const data = await response.json();
-      
+
       if (data.success && data.data.pnl) {
         setPnlData(data.data.pnl);
       } else {
@@ -502,12 +510,12 @@ const PortfolioSubpage: React.FC = () => {
           if (typeof trailingApy === "number") {
             setUsdApy(`${trailingApy.toFixed(2)}%`);
           } else {
-            console.warn('Unexpected APY data structure:', data);
+            console.warn("Unexpected APY data structure:", data);
             setUsdApy("N/A");
           }
         })
         .catch((error) => {
-          console.error('Error fetching APY:', error);
+          console.error("Error fetching APY:", error);
           setUsdApy("N/A");
         });
     } else if (typeof apyUrl === "string" && !apyUrl.startsWith("http")) {
@@ -568,12 +576,12 @@ const PortfolioSubpage: React.FC = () => {
         // Handle successful withdrawal
         // Refresh balances with loading state
         setIsRefreshingBalance(true);
-        checkAllBalances()
+        Promise.all([checkAllBalances(), checkAllWithdrawableBalances()])
           .then(() => {
             setIsRefreshingBalance(false);
           })
           .catch((error) => {
-            // console.error("Error refreshing balances:", error);
+            console.error("Error refreshing balances:", error);
             setErrorMessage("Failed to refresh balances.");
             setIsRefreshingBalance(false);
           });
@@ -660,6 +668,126 @@ const PortfolioSubpage: React.FC = () => {
     }
   };
 
+  // Function to check balance for a strategy across all networks (withdrawable balance)
+  const checkWithdrawableBalance = async (strategy: any) => {
+    if (!address || !strategy.boringVaultAddress) return 0;
+
+    let totalBalance = 0;
+    const networks = ["base", "ethereum", "arbitrum", "katana"];
+
+    for (const networkKey of networks) {
+      const networkConfig = strategy[networkKey];
+
+      // Skip if network config doesn't exist
+      if (!networkConfig || !networkConfig.rpc || !networkConfig.chainId) {
+        console.log(`Skipping ${networkKey} - no config`);
+        continue;
+      }
+
+      try {
+        const client = createPublicClient({
+          transport: http(networkConfig.rpc),
+          chain: {
+            id: networkConfig.chainId,
+            name: networkConfig.chainObject.name,
+            network: networkConfig.chainObject.network,
+            nativeCurrency: networkConfig.chainObject.nativeCurrency,
+            rpcUrls: networkConfig.chainObject.rpcUrls,
+          },
+        });
+
+        const [balance, decimals] = await Promise.all([
+          client.readContract({
+            address: strategy.boringVaultAddress as Address,
+            abi: ERC20_ABI,
+            functionName: "balanceOf",
+            args: [address as Address],
+          }),
+          client.readContract({
+            address: strategy.boringVaultAddress as Address,
+            abi: ERC20_ABI,
+            functionName: "decimals",
+          }),
+        ]);
+
+        const formattedBalance = parseFloat(
+          formatUnits(balance as bigint, decimals as number)
+        );
+
+        console.log(`${networkKey} balance: ${formattedBalance}`);
+        totalBalance += formattedBalance;
+      } catch (error) {
+        console.error(`Error checking ${networkKey} balance:`, error);
+        // Continue to next network instead of failing completely
+      }
+    }
+
+    console.log(`Total withdrawable balance: ${totalBalance}`);
+    return totalBalance;
+  };
+
+  const checkAllWithdrawableBalances = async () => {
+    if (!address) return;
+
+    try {
+      const allStrategies = [
+        ...Object.entries(USD_STRATEGIES as unknown as StrategyAsset).flatMap(
+          ([duration, strategies]) =>
+            Object.entries(strategies as StrategyDuration).map(
+              ([type, strategy]) => ({
+                ...strategy,
+                duration,
+                type: type.toLowerCase(),
+                asset: "USD",
+              })
+            )
+        ),
+        ...Object.entries(BTC_STRATEGIES as unknown as StrategyAsset).flatMap(
+          ([duration, strategies]) =>
+            Object.entries(strategies as StrategyDuration).map(
+              ([type, strategy]) => ({
+                ...strategy,
+                duration,
+                type: type.toLowerCase(),
+                asset: "BTC",
+              })
+            )
+        ),
+        ...Object.entries(ETH_STRATEGIES as unknown as StrategyAsset).flatMap(
+          ([duration, strategies]) =>
+            Object.entries(strategies as StrategyDuration).map(
+              ([type, strategy]) => ({
+                ...strategy,
+                duration,
+                type: type.toLowerCase(),
+                asset: "ETH",
+              })
+            )
+        ),
+      ];
+
+      // Filter strategies that have boringVaultAddress (required for balance checking)
+      const validStrategies = allStrategies.filter(
+        (strategy) => strategy.boringVaultAddress && !strategy.comingSoon
+      );
+
+      const balances = await Promise.all(
+        validStrategies.map(async (strategy) => {
+          const balance = await checkWithdrawableBalance(strategy);
+          return { ...strategy, balance } as StrategyWithBalance;
+        })
+      );
+      setStrategiesWithWithdrawableBalance(
+        balances.filter((s) => s.balance > 0)
+      );
+    } catch (error) {
+      console.error("Error checking withdrawable balances:", error);
+      setErrorMessage("Failed to fetch withdrawable balances.");
+    } finally {
+      // Don't set refreshing to false here, let the main function handle it
+    }
+  };
+
   const checkAllBalances = async () => {
     if (!address) return;
 
@@ -718,7 +846,18 @@ const PortfolioSubpage: React.FC = () => {
 
   // Check balances for all strategies
   useEffect(() => {
-    checkAllBalances();
+    if (!address) return;
+
+    setIsRefreshingBalance(true);
+    Promise.all([checkAllBalances(), checkAllWithdrawableBalances()])
+      .then(() => {
+        setIsRefreshingBalance(false);
+      })
+      .catch((error) => {
+        console.error("Error loading balances:", error);
+        setErrorMessage("Failed to load balances.");
+        setIsRefreshingBalance(false);
+      });
   }, [address]);
 
   // Use wagmi's useWriteContract hook
@@ -1266,432 +1405,510 @@ const PortfolioSubpage: React.FC = () => {
         <Navigation currentPage="portfolio" />
       </Header>
       <main className="flex-1 overflow-y-auto">
-      {/* Top Section - Portfolio Value, PNL, and Wallet */}
-      <div className="flex flex-col sm:flex-row w-full py-6 sm:py-10 items-center justify-between px-4 sm:px-8 bg-[#0D101C] border-b border-[rgba(255,255,255,0.1)]">
-        <div className="w-full sm:w-auto">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-0">
-            <div className="flex flex-col items-center sm:items-start">
-              <div className="text-[#9C9DA2] text-[14px] font-normal leading-[16px]">
-                Portfolio
+        {/* Top Section - Portfolio Value, PNL, and Wallet */}
+        <div className="flex flex-col sm:flex-row w-full py-6 sm:py-10 items-center justify-between px-4 sm:px-8 bg-[#0D101C] border-b border-[rgba(255,255,255,0.1)]">
+          <div className="w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-0">
+              <div className="flex flex-col items-center sm:items-start">
+                <div className="text-[#9C9DA2] text-[14px] font-normal leading-[16px]">
+                  Portfolio
+                </div>
+                <div className="text-[#D7E3EF] text-[20px] sm:text-[24px] font-semibold leading-normal mt-1">
+                  {isRefreshingBalance ? (
+                    <span className="inline-flex items-center gap-1">
+                      <svg
+                        className="animate-spin h-4 w-4 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      <span>Refreshing...</span>
+                    </span>
+                  ) : isClient ? (
+                    `$${strategiesWithWithdrawableBalance
+                      .reduce((sum, s) => sum + s.balance, 0)
+                      .toFixed(2)}`
+                  ) : (
+                    "$0.00"
+                  )}
+                </div>
               </div>
-              <div className="text-[#D7E3EF] text-[20px] sm:text-[24px] font-semibold leading-normal mt-1">
-                {isRefreshingBalance ? (
-                  <span className="inline-flex items-center gap-1">
-                    <svg
-                      className="animate-spin h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    <span>Refreshing...</span>
-                  </span>
-                ) : (
-                  `$${strategiesWithBalance
-                    .reduce((sum, s) => sum + s.balance, 0)
-                    .toFixed(2)}`
-                )}
+              {/* Vertical Divider */}
+              <div className="w-px bg-[rgba(217,217,217,0.05)] self-stretch mx-4 sm:mx-8 hidden sm:block"></div>
+              <div className="flex flex-col items-center sm:items-start">
+                <div className="flex items-center gap-2 text-[#9C9DA2] text-[14px] font-normal leading-[16px]">
+                  Withdrawable
+                  <Tooltip content="Withdrawals are only active on Base Network. To redeem assets from other networks, first bridge them to base.">
+                    <button type="button" className="cursor-help">
+                      <InfoIcon />
+                    </button>
+                  </Tooltip>
+                </div>
+                <div className="text-[#D7E3EF] text-[20px] sm:text-[24px] font-semibold leading-normal mt-1">
+                  {isRefreshingBalance ? (
+                    <span className="inline-flex items-center gap-1">
+                      <svg
+                        className="animate-spin h-4 w-4 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      <span>Refreshing...</span>
+                    </span>
+                  ) : isClient ? (
+                    `$${strategiesWithBalance
+                      .reduce((sum, s) => sum + s.balance, 0)
+                      .toFixed(2)}`
+                  ) : (
+                    "$0.00"
+                  )}
+                </div>
+              </div>
+              {/* Vertical Divider */}
+              <div className="w-px bg-[rgba(217,217,217,0.05)] self-stretch mx-4 sm:mx-8 hidden sm:block"></div>
+              <div className="flex flex-col items-center sm:items-start">
+                <div className="text-[#9C9DA2] text-[14px] font-normal leading-[16px]">
+                  PNL
+                </div>
+                <div
+                  className={`text-[16px] font-normal leading-normal mt-1 sm:mt-3 ${
+                    isLoadingPnl
+                      ? "text-[#9C9DA2]"
+                      : pnlData?.isProfitable
+                      ? "text-[#00D1A0]"
+                      : "text-[#EF4444]"
+                  }`}
+                >
+                  {isLoadingPnl ? (
+                    <span className="inline-flex items-center gap-1">
+                      <svg
+                        className="animate-spin h-4 w-4 text-[#9C9DA2]"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      <span>Loading...</span>
+                    </span>
+                  ) : pnlData ? (
+                    `${pnlData.isProfitable ? "+" : ""}$${Math.abs(
+                      pnlData.value
+                    ).toFixed(2)} (${
+                      pnlData.isProfitable ? "+" : ""
+                    }${pnlData.percentage.toFixed(1)}%)`
+                  ) : (
+                    "$0.00 (0.0%)"
+                  )}
+                </div>
               </div>
             </div>
-            {/* Vertical Divider */}
-            <div className="w-px bg-[rgba(217,217,217,0.05)] self-stretch mx-4 sm:mx-8 hidden sm:block"></div>
-            <div className="flex flex-col items-center sm:items-start">
-              <div className="text-[#9C9DA2] text-[14px] font-normal leading-[16px]">
-                PNL
-              </div>
-              <div className={`text-[16px] font-normal leading-normal mt-1 sm:mt-3 ${
-                isLoadingPnl 
-                  ? "text-[#9C9DA2]" 
-                  : pnlData?.isProfitable 
-                    ? "text-[#00D1A0]" 
-                    : "text-[#EF4444]"
-              }`}>
-                {isLoadingPnl ? (
-                  <span className="inline-flex items-center gap-1">
-                    <svg
-                      className="animate-spin h-4 w-4 text-[#9C9DA2]"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    <span>Loading...</span>
-                  </span>
-                ) : pnlData ? (
-                  `${pnlData.isProfitable ? '+' : ''}$${Math.abs(pnlData.value).toFixed(2)} (${pnlData.isProfitable ? '+' : ''}${pnlData.percentage.toFixed(1)}%)`
-                ) : (
-                  "$0.00 (0.0%)"
-                )}
-              </div>
+          </div>
+          <div className="flex flex-col w-full sm:w-auto justify-center items-center sm:items-end gap-2 py-[10px] px-4 rounded-[4px] border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] mt-4 sm:mt-0">
+            <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-[16px]">
+              Wallet Address
+            </div>
+            <div className="text-[#D7E3EF] font-mono opacity-80 text-[12px] sm:text-[14px] font-normal text-center sm:text-left">
+              {!isClient
+                ? "Loading..."
+                : isConnected
+                ? address
+                : "Not connected"}
             </div>
           </div>
         </div>
-        <div className="flex flex-col w-full sm:w-auto justify-center items-center sm:items-end gap-2 py-[10px] px-4 rounded-[4px] border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] mt-4 sm:mt-0">
-          <div className="text-[#9C9DA2] font-inter text-[14px] font-normal leading-[16px]">
-            Wallet Address
-          </div>
-          <div className="text-[#D7E3EF] font-mono opacity-80 text-[12px] sm:text-[14px] font-normal text-center sm:text-left">
-            {!isClient ? "Loading..." : (isConnected ? address : "Not connected")}
-          </div>
-        </div>
-      </div>
 
-      {/* Main Content - Split View */}
-      <div className="flex flex-1">
-        {/* Left Side - Assets Table */}  
-        <div className="w-1/2 border-r border-[rgba(255,255,255,0.1)] pt-8 pl-8 overflow-y-auto pb-36">
-          {/* <PortfolioChart userAddress={address ?? ""} /> */}
-          <div className="mt-8">      
-            <div className="mb-6">
-                          <div className="text-[rgba(255,255,255,0.70)]   text-[16px] font-bold uppercase">
-              Total Portfolio Value
+        {/* Main Content - Split View */}
+        <div className="flex flex-1">
+          {/* Left Side - Assets Table */}
+          <div className="w-1/2 border-r border-[rgba(255,255,255,0.1)] pt-8 pl-8 overflow-y-auto pb-36">
+            {/* <PortfolioChart userAddress={address ?? ""} /> */}
+            <div className="mt-8">
+              <div className="mb-6">
+                <div className="text-[rgba(255,255,255,0.70)]   text-[16px] font-bold uppercase">
+                  Total Portfolio Value
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
-          {/* Column Headers */}
-          <div className="grid grid-cols-5 sm:pl-4 sm:pr-6 py-2 border-b border-[rgba(255,255,255,0.15)]">
-            <div className="flex justify-start text-[#9C9DA2] text-[12px] font-normal">
-              Available Yields
-            </div>
-            <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
-              Deposited on
-              <svg
-                className="ml-1"
-                width="14"
-                height="14"
-                viewBox="0 0 14 14"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <g opacity="0.6">
-                  <path
-                    d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992"
-                    stroke="white"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </g>
-              </svg>
-            </div>
-            <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
-              Expiry
-              <svg
-                className="ml-1"
-                width="14"
-                height="14"
-                viewBox="0 0 14 14"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <g opacity="0.6">
-                  <path
-                    d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992"
-                    stroke="white"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </g>
-              </svg>
-            </div>
-            <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
-              Base APY
-              <Tooltip content="7 Day trailing" side="top">
+            {/* Column Headers */}
+            <div className="grid grid-cols-5 sm:pl-4 sm:pr-6 py-2 border-b border-[rgba(255,255,255,0.15)]">
+              <div className="flex justify-start text-[#9C9DA2] text-[12px] font-normal">
+                Available Yields
+              </div>
+              <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
+                Deposited on
                 <svg
-                  className="ml-1 cursor-pointer"
-                  width="12"
-                  height="12"
-                  viewBox="0 0 10 10"
+                  className="ml-1"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 14 14"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
                 >
-                  <path
-                    d="M4.9987 6.66659V4.99992M4.9987 3.33325H5.00286M9.16536 4.99992C9.16536 7.30111 7.29988 9.16659 4.9987 9.16659C2.69751 9.16659 0.832031 7.30111 0.832031 4.99992C0.832031 2.69873 2.69751 0.833252 4.9987 0.833252C7.29988 0.833252 9.16536 2.69873 9.16536 4.99992Z"
-                    stroke="#9C9DA2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </Tooltip>
-              <svg
-                className="ml-1"
-                width="14"
-                height="14"
-                viewBox="0 0 14 14"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <g opacity="0.6">
-                  <path
-                    d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992"
-                    stroke="white"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </g>
-              </svg>
-            </div>
-            <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
-              Current Balance
-              <svg
-                className="ml-1"
-                width="14"
-                height="14"
-                viewBox="0 0 14 14"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <g opacity="0.6">
-                  <path
-                    d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992"
-                    stroke="white"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </g>
-              </svg>
-            </div>
-          </div>
-
-          {/* Strategy Rows */}
-          <div className="flex flex-col max-h-[calc(100vh-280px)] overflow-y-auto">
-            {isRefreshingBalance ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <Image
-                  src="/images/background/loader.gif"
-                  alt="Loading..."
-                  width={200}
-                  height={200}
-                />
-                <div className="text-[#9C9DA2] mt-4">
-                  Loading your portfolio...
-                </div>
-              </div>
-            ) : strategiesWithBalance.length > 0 ? (
-              strategiesWithBalance.map((strategy, index) => (
-                <div
-                  key={`${strategy.asset}-${strategy.duration}-${strategy.type}`}
-                  className={`grid grid-cols-5 items-center py-4 pl-4 pr-6 relative ${
-                    index % 2 === 0
-                      ? "bg-transparent"
-                      : strategy.type === "stable"
-                      ? "bg-[#0D101C]"
-                      : "bg-[#090C17]"
-                  } cursor-pointer transition-colors group`}
-                  onClick={() => handleStrategySelect(strategy)}
-                >
-                  <div
-                    className={`absolute left-0 top-0 h-full w-[15%] bg-gradient-to-r from-[rgba(0,209,160,0.15)] to-[rgba(153,153,153,0)] opacity-0 group-hover:opacity-100 ${
-                      selectedStrategy?.contract === strategy.contract
-                        ? "opacity-100"
-                        : ""
-                    }`}
-                  ></div>
-                  <div
-                    className={`absolute right-0 top-0 h-full w-[15%] bg-gradient-to-l from-[rgba(0,209,160,0.15)] to-[rgba(153,153,153,0)] opacity-0 group-hover:opacity-100 ${
-                      selectedStrategy?.contract === strategy.contract
-                        ? "opacity-100"
-                        : ""
-                    }`}
-                  ></div>
-                  {/* Strategy Name */}
-                  <div className="flex items-center gap-4">
-                    <Image
-                      src={`/images/icons/${strategy.asset.toLowerCase()}-${
-                        strategy.type === "stable" ? "stable" : "incentive"
-                      }.svg`}
-                      alt={strategy.asset}
-                      width={32}
-                      height={32}
+                  <g opacity="0.6">
+                    <path
+                      d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992"
+                      stroke="white"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                     />
-                    <div>
-                      <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
-                        {strategy.type === "stable" ? "sy" : "Incentive Maxi"}
-                        {strategy.asset}
-                      </div>
-                      <div className="text-[#00D1A0]   text-[12px] font-normal">
-                        +
-                        {(() => {
-                          // Use the correct APY value for calculations
-                          let apyToUse = strategy.apy;
-                          if (strategy.asset === "USD" && strategy.type === "stable") {
-                            apyToUse = usdApy || strategy.apy;
-                          }
-                          
-                          const apyValue = parseFloat(apyToUse?.replace("%", "") || "0");
-                          if (isNaN(apyValue)) return "0.00";
-                          return ((strategy.balance * apyValue) / 100).toFixed(2);
-                        })()}{" "}
-                        in 1 year
+                  </g>
+                </svg>
+              </div>
+              <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
+                Expiry
+                <svg
+                  className="ml-1"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <g opacity="0.6">
+                    <path
+                      d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992"
+                      stroke="white"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </g>
+                </svg>
+              </div>
+              <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
+                Base APY
+                <Tooltip content="7 Day trailing" side="top">
+                  <svg
+                    className="ml-1 cursor-pointer"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 10 10"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M4.9987 6.66659V4.99992M4.9987 3.33325H5.00286M9.16536 4.99992C9.16536 7.30111 7.29988 9.16659 4.9987 9.16659C2.69751 9.16659 0.832031 7.30111 0.832031 4.99992C0.832031 2.69873 2.69751 0.833252 4.9987 0.833252C7.29988 0.833252 9.16536 2.69873 9.16536 4.99992Z"
+                      stroke="#9C9DA2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </Tooltip>
+                <svg
+                  className="ml-1"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <g opacity="0.6">
+                    <path
+                      d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992"
+                      stroke="white"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </g>
+                </svg>
+              </div>
+              <div className="flex justify-end text-[#9C9DA2] text-[12px] font-normal items-center">
+                Current Balance
+                <svg
+                  className="ml-1"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <g opacity="0.6">
+                    <path
+                      d="M4.08203 8.74992L6.9987 11.6666L9.91536 8.74992M4.08203 5.24992L6.9987 2.33325L9.91536 5.24992"
+                      stroke="white"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </g>
+                </svg>
+              </div>
+            </div>
+
+            {/* Strategy Rows */}
+            <div className="flex flex-col max-h-[calc(100vh-280px)] overflow-y-auto">
+              {isRefreshingBalance ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Image
+                    src="/images/background/loader.gif"
+                    alt="Loading..."
+                    width={200}
+                    height={200}
+                  />
+                  <div className="text-[#9C9DA2] mt-4">
+                    Loading your portfolio...
+                  </div>
+                </div>
+              ) : strategiesWithBalance.length > 0 ? (
+                strategiesWithBalance.map((strategy, index) => (
+                  <div
+                    key={`${strategy.asset}-${strategy.duration}-${strategy.type}`}
+                    className={`grid grid-cols-5 items-center py-4 pl-4 pr-6 relative ${
+                      index % 2 === 0
+                        ? "bg-transparent"
+                        : strategy.type === "stable"
+                        ? "bg-[#0D101C]"
+                        : "bg-[#090C17]"
+                    } cursor-pointer transition-colors group`}
+                    onClick={() => handleStrategySelect(strategy)}
+                  >
+                    <div
+                      className={`absolute left-0 top-0 h-full w-[15%] bg-gradient-to-r from-[rgba(0,209,160,0.15)] to-[rgba(153,153,153,0)] opacity-0 group-hover:opacity-100 ${
+                        selectedStrategy?.contract === strategy.contract
+                          ? "opacity-100"
+                          : ""
+                      }`}
+                    ></div>
+                    <div
+                      className={`absolute right-0 top-0 h-full w-[15%] bg-gradient-to-l from-[rgba(0,209,160,0.15)] to-[rgba(153,153,153,0)] opacity-0 group-hover:opacity-100 ${
+                        selectedStrategy?.contract === strategy.contract
+                          ? "opacity-100"
+                          : ""
+                      }`}
+                    ></div>
+                    {/* Strategy Name */}
+                    <div className="flex items-center gap-4">
+                      <Image
+                        src={`/images/icons/${strategy.asset.toLowerCase()}-${
+                          strategy.type === "stable" ? "stable" : "incentive"
+                        }.svg`}
+                        alt={strategy.asset}
+                        width={32}
+                        height={32}
+                      />
+                      <div>
+                        <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
+                          {strategy.type === "stable" ? "sy" : "Incentive Maxi"}
+                          {strategy.asset}
+                        </div>
+                        <div className="text-[#00D1A0]   text-[12px] font-normal">
+                          +
+                          {(() => {
+                            // Use the correct APY value for calculations
+                            let apyToUse = strategy.apy;
+                            if (
+                              strategy.asset === "USD" &&
+                              strategy.type === "stable"
+                            ) {
+                              apyToUse = usdApy || strategy.apy;
+                            }
+
+                            const apyValue = parseFloat(
+                              apyToUse?.replace("%", "") || "0"
+                            );
+                            if (isNaN(apyValue)) return "0.00";
+                            return (
+                              (strategy.balance * apyValue) /
+                              100
+                            ).toFixed(2);
+                          })()}{" "}
+                          in 1 year
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Deposited on */}
-                  <div className="flex justify-end text-[#EDF2F8] text-[12px] font-normal">
-                    {depositedChains.length > 0 ? (
-                      <div className="flex items-center gap-1">
-                        {depositedChains.map((chain, idx) => (
-                          <div key={chain} className="flex items-center">
-                            <img
-                              src={chainIconMap[chain]?.src || "/images/logo/base.svg"}
-                              alt={chain}
-                              className="w-4 h-4 rounded-full"
-                            />
-                            {idx < depositedChains.length - 1 && <span className="mx-1">,</span>}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      "-"
-                    )}
-                  </div>
-
-                  {/* Expiry */}
-                  <div className="flex justify-end text-[#EDF2F8] text-[12px] font-normal">
-                    {strategy.duration === "PERPETUAL_DURATION" ? "Liquid" : formatDuration(strategy.duration)}
-                  </div>
-
-                  {/* Base APY */}
-                  <div className="flex justify-end text-[#EDF2F8] text-[12px] font-normal">
-                    {(() => {
-                      // For USD strategies, use the fetched APY data
-                      if (strategy.asset === "USD" && strategy.type === "stable") {
-                        return usdApy || "N/A";
-                      }
-                      // For other strategies, use the strategy APY or fallback
-                      return strategy.apy || "N/A";
-                    })()}
-                  </div>
-
-                  {/* Current Balance */}
-                  <div className="flex justify-end text-[#EDF2F8] text-[12px] font-normal">
-                    ${strategy.balance.toFixed(2)}
-                  </div>
-
-                </div>
-              ))
-            ) : (
-              <div className="flex flex-col items-center justify-center py-12">
-                <div className="text-[#9C9DA2] text-center">
-                  <div className="text-lg font-medium mb-2">No yields found</div>
-                  <div className="text-sm">Start depositing to see your yields here</div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right Side - Global Tabs */}
-        <div className="w-1/2 p-8 hidden sm:block overflow-auto h-[80vh]">
-          <div className="flex flex-col h-full rounded-lg p-6 mb-56">
-            <div className="flex gap-4 mb-6 border-b border-[rgba(255,255,255,0.15)]">
-              <button
-                onClick={() => setActiveTab("withdraw")}
-                className={`px-2 py-2 pb-4 text-[12px] font-normal leading-[16px] transition-colors relative ${
-                  activeTab === "withdraw" ? "text-white" : "text-[#9C9DA2]"
-                }`}
-              >
-                Withdraw
-                {activeTab === "withdraw" && (
-                  <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white"></div>
-                )}
-              </button>
-              <button
-                onClick={() => setActiveTab("request")}
-                className={`px-2 py-2 pb-4 text-[12px] font-normal leading-[16px] transition-colors relative ${
-                  activeTab === "request" ? "text-white" : "text-[#9C9DA2]"
-                }`}
-              >
-                Requests
-                {activeTab === "request" && (
-                  <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white"></div>
-                )}
-              </button>
-              <button
-                onClick={() => setActiveTab("activity")}
-                className={`px-2 py-2 pb-4 text-[12px] font-normal leading-[16px] transition-colors relative ${
-                  activeTab === "activity" ? "text-white" : "text-[#9C9DA2]"
-                }`}
-              >
-                Your Activity
-                {activeTab === "activity" && (
-                  <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white"></div>
-                )}
-              </button>
-            </div>
-            {activeTab === "withdraw" && (
-              <>
-                {selectedStrategy ? (
-                  <>
-                    <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
-                    {/* Withdrawing assets from dropdown */}
-                    <div className="flex flex-row justify-between items-center bg-[#B88AF8] bg-opacity-5 rounded-sm p-[6px] mb-4">
-                      {/* Label */}
-                      <label className="text-[#9C9DA2] font-inter text-[12px] block pl-2 pt-1">
-                        Withdrawing assets from
-                      </label>
-
-                      {/* Dropdown */}
-                      <div className="relative">
-                        <button
-                          onClick={() =>
-                            setIsChainDropdownOpen(!isChainDropdownOpen)
-                          }
-                          className="flex items-center justify-between w-full text-[#EDF2F8] rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] border border-[rgba(255,255,255,0.05)]"
-                        >
-                          <div className="flex items-center gap-2">
-                            {targetChain && (
+                    {/* Deposited on */}
+                    <div className="flex justify-end text-[#EDF2F8] text-[12px] font-normal">
+                      {depositedChains.length > 0 ? (
+                        <div className="flex items-center gap-1">
+                          {depositedChains.map((chain, idx) => (
+                            <div key={chain} className="flex items-center">
                               <img
                                 src={
-                                  getUniqueChainConfigs.find(
-                                    (c) => c.network === targetChain
-                                  )?.image || ""
+                                  chainIconMap[chain]?.src ||
+                                  "/images/logo/base.svg"
                                 }
-                                alt={targetChain}
-                                className="w-5 h-5 rounded-full"
+                                alt={chain}
+                                className="w-4 h-4 rounded-full"
                               />
-                            )}
-                            <span className="capitalize text-[12px]">
-                              {targetChain}
-                            </span>
-                            <Tooltip 
-                              content="To reduce bridging risks and ensure accurate yield tracking, deposits and withdrawals are limited to the Base network."
-                              side="top"
+                              {idx < depositedChains.length - 1 && (
+                                <span className="mx-1">,</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        "-"
+                      )}
+                    </div>
+
+                    {/* Expiry */}
+                    <div className="flex justify-end text-[#EDF2F8] text-[12px] font-normal">
+                      {strategy.duration === "PERPETUAL_DURATION"
+                        ? "Liquid"
+                        : formatDuration(strategy.duration)}
+                    </div>
+
+                    {/* Base APY */}
+                    <div className="flex justify-end text-[#EDF2F8] text-[12px] font-normal">
+                      {(() => {
+                        // For USD strategies, use the fetched APY data
+                        if (
+                          strategy.asset === "USD" &&
+                          strategy.type === "stable"
+                        ) {
+                          return usdApy || "N/A";
+                        }
+                        // For other strategies, use the strategy APY or fallback
+                        return strategy.apy || "N/A";
+                      })()}
+                    </div>
+
+                    {/* Current Balance */}
+                    <div className="flex justify-end text-[#EDF2F8] text-[12px] font-normal">
+                      ${strategy.balance.toFixed(2)}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="text-[#9C9DA2] text-center">
+                    <div className="text-lg font-medium mb-2">
+                      No yields found
+                    </div>
+                    <div className="text-sm">
+                      Start depositing to see your yields here
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Side - Global Tabs */}
+          <div className="w-1/2 p-8 hidden sm:block overflow-auto h-[80vh]">
+            <div className="flex flex-col h-full rounded-lg p-6 mb-56">
+              <div className="flex gap-4 mb-6 border-b border-[rgba(255,255,255,0.15)]">
+                <button
+                  onClick={() => setActiveTab("withdraw")}
+                  className={`px-2 py-2 pb-4 text-[12px] font-normal leading-[16px] transition-colors relative ${
+                    activeTab === "withdraw" ? "text-white" : "text-[#9C9DA2]"
+                  }`}
+                >
+                  Withdraw
+                  {activeTab === "withdraw" && (
+                    <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white"></div>
+                  )}
+                </button>
+                <button
+                  onClick={() => setActiveTab("request")}
+                  className={`px-2 py-2 pb-4 text-[12px] font-normal leading-[16px] transition-colors relative ${
+                    activeTab === "request" ? "text-white" : "text-[#9C9DA2]"
+                  }`}
+                >
+                  Requests
+                  {activeTab === "request" && (
+                    <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white"></div>
+                  )}
+                </button>
+                <button
+                  onClick={() => setActiveTab("activity")}
+                  className={`px-2 py-2 pb-4 text-[12px] font-normal leading-[16px] transition-colors relative ${
+                    activeTab === "activity" ? "text-white" : "text-[#9C9DA2]"
+                  }`}
+                >
+                  Your Activity
+                  {activeTab === "activity" && (
+                    <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white"></div>
+                  )}
+                </button>
+              </div>
+              {activeTab === "withdraw" && (
+                <>
+                  {selectedStrategy ? (
+                    <>
+                      <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
+                        {/* Withdrawing assets from dropdown */}
+                        <div className="flex flex-row justify-between items-center bg-[#B88AF8] bg-opacity-5 rounded-sm p-[6px] mb-4">
+                          {/* Label */}
+                          <label className="text-[#9C9DA2] font-inter text-[12px] block pl-2 pt-1">
+                            Withdrawing assets from
+                          </label>
+
+                          {/* Dropdown */}
+                          <div className="relative">
+                            <button
+                              onClick={() =>
+                                setIsChainDropdownOpen(!isChainDropdownOpen)
+                              }
+                              className="flex items-center justify-between w-full text-[#EDF2F8] rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] border border-[rgba(255,255,255,0.05)]"
                             >
-                              <div className="ml-1">
-                                <InfoIcon />
+                              <div className="flex items-center gap-2">
+                                {targetChain && (
+                                  <img
+                                    src={
+                                      getUniqueChainConfigs.find(
+                                        (c) => c.network === targetChain
+                                      )?.image || ""
+                                    }
+                                    alt={targetChain}
+                                    className="w-5 h-5 rounded-full"
+                                  />
+                                )}
+                                <span className="capitalize text-[12px]">
+                                  {targetChain}
+                                </span>
+                                <Tooltip
+                                  content="To reduce bridging risks and ensure accurate yield tracking, deposits and withdrawals are limited to the Base network."
+                                  side="top"
+                                >
+                                  <div className="ml-1">
+                                    <InfoIcon />
+                                  </div>
+                                </Tooltip>
                               </div>
-                            </Tooltip>
-                          </div>
-                          {/* Dropdown arrow */}
-                          {/* <svg
+                              {/* Dropdown arrow */}
+                              {/* <svg
                             className={`w-4 h-4 transform transition-transform duration-200 ${
                               isChainDropdownOpen ? "rotate-180" : "rotate-0"
                             }`}
@@ -1702,10 +1919,10 @@ const PortfolioSubpage: React.FC = () => {
                           >
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
                           </svg> */}
-                        </button>
+                            </button>
 
-                        {/* Dropdown options */}
-                        {/* {isChainDropdownOpen && (
+                            {/* Dropdown options */}
+                            {/* {isChainDropdownOpen && (
                           <div className="absolute z-10 w-full mt-2 bg-[#1F202D] rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 focus:outline-none">
                             {getUniqueChainConfigs.map((chainOption) => (
                               <button
@@ -1726,347 +1943,366 @@ const PortfolioSubpage: React.FC = () => {
                             ))}
                           </div>
                         )} */}
-                      </div>
-                    </div>
-
-                    {/* Header with strategy info and balance */}
-                    <div className="flex items-end justify-between p-4 rounded-tl-[4px] rounded-tr-[4px] bg-[rgba(255,255,255,0.02)] border-b border-[rgba(255,255,255,0.15)]">
-                      <div className="flex items-start gap-4">
-                        <Image
-                          src={`/images/icons/${selectedStrategy.asset.toLowerCase()}-${
-                            selectedStrategy.type === "stable"
-                              ? "stable"
-                              : "incentive"
-                          }.svg`}
-                          alt={selectedStrategy.asset}
-                          width={35}
-                          height={35}
-                        />
-                        <div>
-                          <div className="text-white font-semibold text-[12px]">
-                            {selectedStrategy.type === "stable"
-                              ? "Base Yield"
-                              : "Incentive Maxi"}{" "}
-                            {selectedStrategy.asset}
-                          </div>
-                          <div className="text-[#00D1A0] text-[12px]">
-                            +0.00 in 1 year
                           </div>
                         </div>
-                        <div className="text-gray-400 text-[12px] -ml-1">
-                          {formatDuration("PERPETUAL_DURATION")}
-                        </div>
-                      </div>
-                      <div className="text-[#9C9DA2] text-right   text-[12px] font-normal leading-normal">
-                        Balance:{" "}
-                        <span className="text-[#D7E3EF] text-[12px] font-semibold leading-normal">
-                          {selectedStrategy.balance.toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
 
-                    {/* Input field and percentage buttons in same row */}
-                    <div className="flex items-center gap-4 mb-3 p-4 rounded-bl-[4px] rounded-br-[4px] bg-[rgba(255,255,255,0.02)]">
-                      {/* Input field on the left with no borders */}
-                      <div className="flex-grow ">
-                        <div>
-                          <input
-                            type="text"
-                            className="bg-transparent w-full border-none text-[20px] text-white font-medium outline-none"
-                            value={withdrawAmount}
-                            onChange={handleAmountChange}
-                            placeholder="0.00"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Percentage buttons on the right */}
-                      <div className="flex gap-2">
-                        <button
-                          className="bg-[#121521] rounded-[4px] border border-[rgba(156,157,162,0.3)] py-0.5 px-1.5 text-[#9C9DA2] text-[12px] font-normal w-[41px]"
-                          onClick={() => handlePercentageClick(0.25)}
-                        >
-                          25%
-                        </button>
-                        <button
-                          className="bg-[#121521] rounded-[4px] border border-[rgba(156,157,162,0.3)] py-0.5 px-1.5 text-[#9C9DA2] text-[12px] font-normal w-[41px]"
-                          onClick={() => handlePercentageClick(0.5)}
-                        >
-                          50%
-                        </button>
-                        <button
-                          className="bg-[#121521] rounded-[4px] border border-[rgba(156,157,162,0.3)] py-0.5 px-1.5 text-[#9C9DA2] text-[12px] font-normal w-[41px]"
-                          onClick={() => handlePercentageClick(0.75)}
-                        >
-                          75%
-                        </button>
-                        <button
-                          className="bg-[#121521] rounded-[4px] border border-[rgba(156,157,162,0.3)] py-0.5 px-1.5 text-[#9C9DA2] text-[12px] font-normal w-[41px]"
-                          onClick={handleMaxClick}
-                        >
-                          MAX
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between py-4 mb-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] px-6 items-center">
-                      <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
-                        You Will Receive 
-                      </div>
-                      <div className="flex justify-end items-center gap-4">
-                        <div className="text-[#EDF2F8] text-[16px] font-medium leading-normal">
-                          {Number(formatUnits(
-                            amountOut ? BigInt(amountOut) : BigInt(0),
-                            6
-                          )).toFixed(2)}{" "}
-                        </div>
-                        {assetOptions.length > 1 && (
-                          <div className="">
-                            <div className="relative w-full">
-                              <button
-                                onClick={() =>
-                                  setIsAssetDropdownOpen(!isAssetDropdownOpen)
-                                }
-                                className="flex items-center justify-between w-full bg-[#131520] text-[#EDF2F8] rounded px-3 py-2 text-sm focus:outline-none border border-[rgba(255,255,255,0.19)]"
-                              >
-                                <div className="flex items-center gap-2">
-                                  {withdrawableAssets[selectedAssetIdx]?.image && (
-                                    <img
-                                      src={withdrawableAssets[selectedAssetIdx].image}
-                                      alt={withdrawableAssets[selectedAssetIdx].name}
-                                      className="w-5 h-5 rounded-full"
-                                    />
-                                  )}
-                                  <span className="text-[12px] font-semibold">
-                                    {withdrawableAssets[selectedAssetIdx].name}
-                                  </span>
-                                </div>
-                                <svg
-                                  className={`w-4 h-4 transform transition-transform duration-200 ml-1 ${
-                                    isAssetDropdownOpen
-                                      ? "rotate-180"
-                                      : "rotate-0"
-                                  }`}
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                    d="M19 9l-7 7-7-7"
-                                  ></path>
-                                </svg>
-                              </button>
-
-                              {isAssetDropdownOpen && (
-                                <div className="absolute z-10 w-full mt-2 bg-[#1F202D] rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 focus:outline-none">
-                                  {withdrawableAssets.map((opt, idx) => (
-                                    <button
-                                      key={opt.contract}
-                                      onClick={() => {
-                                        setSelectedAssetIdx(idx);
-                                        setIsAssetDropdownOpen(false);
-                                      }}
-                                      className="flex items-center w-full px-4 py-2 text-sm text-[#EDF2F8] hover:bg-[#1A1B1E]"
-                                    >
-                                      {opt.image && (
-                                        <img
-                                          src={opt.image}
-                                          alt={opt.name}
-                                          className="w-5 h-5 mr-2 ml-2 rounded-full"
-                                        />
-                                      )}
-                                      {opt.name}
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
+                        {/* Header with strategy info and balance */}
+                        <div className="flex items-end justify-between p-4 rounded-tl-[4px] rounded-tr-[4px] bg-[rgba(255,255,255,0.02)] border-b border-[rgba(255,255,255,0.15)]">
+                          <div className="flex items-start gap-4">
+                            <Image
+                              src={`/images/icons/${selectedStrategy.asset.toLowerCase()}-${
+                                selectedStrategy.type === "stable"
+                                  ? "stable"
+                                  : "incentive"
+                              }.svg`}
+                              alt={selectedStrategy.asset}
+                              width={35}
+                              height={35}
+                            />
+                            <div>
+                              <div className="text-white font-semibold text-[12px]">
+                                {selectedStrategy.type === "stable"
+                                  ? "Base Yield"
+                                  : "Incentive Maxi"}{" "}
+                                {selectedStrategy.asset}
+                              </div>
+                              <div className="text-[#00D1A0] text-[12px]">
+                                +0.00 in 1 year
+                              </div>
+                            </div>
+                            <div className="text-gray-400 text-[12px] -ml-1">
+                              {formatDuration("PERPETUAL_DURATION")}
                             </div>
                           </div>
-                        )}
-                      </div>
-                    </div>
+                          <div className="text-[#9C9DA2] text-right   text-[12px] font-normal leading-normal">
+                            Balance:{" "}
+                            <span className="text-[#D7E3EF] text-[12px] font-semibold leading-normal">
+                              {selectedStrategy.balance.toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
 
-                    <button
-                      className={`w-full py-4 rounded-[4px] border border-[rgba(255,255,255,0.30)] flex justify-center items-center gap-[10px] text-center text-[16px] font-semibold ${
-                        isWithdrawing || isApproving
-                          ? "bg-[#2D2F3D] text-[#9C9DA2] cursor-not-allowed"
-                          : "bg-[#B88AF8] text-[#080B17] hover:bg-[#9F6EE9] transition-colors"
-                      }
+                        {/* Input field and percentage buttons in same row */}
+                        <div className="flex items-center gap-4 mb-3 p-4 rounded-bl-[4px] rounded-br-[4px] bg-[rgba(255,255,255,0.02)]">
+                          {/* Input field on the left with no borders */}
+                          <div className="flex-grow ">
+                            <div>
+                              <input
+                                type="text"
+                                className="bg-transparent w-full border-none text-[20px] text-white font-medium outline-none"
+                                value={withdrawAmount}
+                                onChange={handleAmountChange}
+                                placeholder="0.00"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Percentage buttons on the right */}
+                          <div className="flex gap-2">
+                            <button
+                              className="bg-[#121521] rounded-[4px] border border-[rgba(156,157,162,0.3)] py-0.5 px-1.5 text-[#9C9DA2] text-[12px] font-normal w-[41px]"
+                              onClick={() => handlePercentageClick(0.25)}
+                            >
+                              25%
+                            </button>
+                            <button
+                              className="bg-[#121521] rounded-[4px] border border-[rgba(156,157,162,0.3)] py-0.5 px-1.5 text-[#9C9DA2] text-[12px] font-normal w-[41px]"
+                              onClick={() => handlePercentageClick(0.5)}
+                            >
+                              50%
+                            </button>
+                            <button
+                              className="bg-[#121521] rounded-[4px] border border-[rgba(156,157,162,0.3)] py-0.5 px-1.5 text-[#9C9DA2] text-[12px] font-normal w-[41px]"
+                              onClick={() => handlePercentageClick(0.75)}
+                            >
+                              75%
+                            </button>
+                            <button
+                              className="bg-[#121521] rounded-[4px] border border-[rgba(156,157,162,0.3)] py-0.5 px-1.5 text-[#9C9DA2] text-[12px] font-normal w-[41px]"
+                              onClick={handleMaxClick}
+                            >
+                              MAX
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between py-4 mb-6 rounded-[4px] bg-[rgba(255,255,255,0.02)] px-6 items-center">
+                          <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
+                            You Will Receive
+                          </div>
+                          <div className="flex justify-end items-center gap-4">
+                            <div className="text-[#EDF2F8] text-[16px] font-medium leading-normal">
+                              {Number(
+                                formatUnits(
+                                  amountOut ? BigInt(amountOut) : BigInt(0),
+                                  6
+                                )
+                              ).toFixed(2)}{" "}
+                            </div>
+                            {assetOptions.length > 1 && (
+                              <div className="">
+                                <div className="relative w-full">
+                                  <button
+                                    onClick={() =>
+                                      setIsAssetDropdownOpen(
+                                        !isAssetDropdownOpen
+                                      )
+                                    }
+                                    className="flex items-center justify-between w-full bg-[#131520] text-[#EDF2F8] rounded px-3 py-2 text-sm focus:outline-none border border-[rgba(255,255,255,0.19)]"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      {withdrawableAssets[selectedAssetIdx]
+                                        ?.image && (
+                                        <img
+                                          src={
+                                            withdrawableAssets[selectedAssetIdx]
+                                              .image
+                                          }
+                                          alt={
+                                            withdrawableAssets[selectedAssetIdx]
+                                              .name
+                                          }
+                                          className="w-5 h-5 rounded-full"
+                                        />
+                                      )}
+                                      <span className="text-[12px] font-semibold">
+                                        {
+                                          withdrawableAssets[selectedAssetIdx]
+                                            .name
+                                        }
+                                      </span>
+                                    </div>
+                                    <svg
+                                      className={`w-4 h-4 transform transition-transform duration-200 ml-1 ${
+                                        isAssetDropdownOpen
+                                          ? "rotate-180"
+                                          : "rotate-0"
+                                      }`}
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                      xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        d="M19 9l-7 7-7-7"
+                                      ></path>
+                                    </svg>
+                                  </button>
+
+                                  {isAssetDropdownOpen && (
+                                    <div className="absolute z-10 w-full mt-2 bg-[#1F202D] rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                      {withdrawableAssets.map((opt, idx) => (
+                                        <button
+                                          key={opt.contract}
+                                          onClick={() => {
+                                            setSelectedAssetIdx(idx);
+                                            setIsAssetDropdownOpen(false);
+                                          }}
+                                          className="flex items-center w-full px-4 py-2 text-sm text-[#EDF2F8] hover:bg-[#1A1B1E]"
+                                        >
+                                          {opt.image && (
+                                            <img
+                                              src={opt.image}
+                                              alt={opt.name}
+                                              className="w-5 h-5 mr-2 ml-2 rounded-full"
+                                            />
+                                          )}
+                                          {opt.name}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <button
+                          className={`w-full py-4 rounded-[4px] border border-[rgba(255,255,255,0.30)] flex justify-center items-center gap-[10px] text-center text-[16px] font-semibold ${
+                            isWithdrawing || isApproving
+                              ? "bg-[#2D2F3D] text-[#9C9DA2] cursor-not-allowed"
+                              : "bg-[#B88AF8] text-[#080B17] hover:bg-[#9F6EE9] transition-colors"
+                          }
                       ${
                         isBase
                           ? ""
                           : "bg-[#383941] text-[#9C9DA2] cursor-not-allowed hover:!bg-[#383941]"
                       }
                   }`}
-                      onClick={isApproved ? handleWithdraw : handleApprove}
-                      disabled={
-                        isWithdrawing ||
-                        isApproving ||
-                        !withdrawAmount ||
-                        parseFloat(withdrawAmount) <= 0 ||
-                        parseFloat(withdrawAmount) > selectedStrategy.balance
-                      }
-                    >
-                      {isApproving ? (
-                        <>
-                          <svg
-                            className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#9C9DA2]"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            ></circle>
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
-                          </svg>
-                          Approving...
-                        </>
-                      ) : isWithdrawing ? (
-                        <>
-                          <svg
-                            className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#9C9DA2]"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            ></circle>
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
-                          </svg>
-                          Transaction in Progress
-                        </>
-                      ) : isWithdrawSuccess ? (
-                        "Request Another Withdraw"
-                      ) : isApproved ? (
-                        "Approved - Click to Withdraw"
-                      ) : !isBase ? (
-                        "Switch Network to Base"
-                      ) : (
-                        "Request Withdraw"
-                      )}
-                    </button>
-                    {errorMessage && (
-                      <div className="flex justify-between items-center mt-4 bg-[rgba(239,68,68,0.1)] rounded-[4px] p-4">
-                        <div className="text-[#EF4444]   text-[14px]">
-                          {errorMessage}
-                        </div>
-                        <div className="text-[#EF4444]   text-[14px] underline">
-                          #
-                          {withdrawTxHash
-                            ? withdrawTxHash.substring(0, 8) + "..."
-                            : ""}
-                        </div>
-                      </div>
-                    )}
-                    {!errorMessage && withdrawTxHash && isWithdrawSuccess && (
-                      <div className="flex justify-between items-center mt-4 bg-[rgba(0,209,160,0.1)] rounded-[4px] p-4">
-                        <div className="text-[#00D1A0]   text-[14px]">
-                          Transaction Successful
-                        </div>
-                        <a
-                          href={`https://basescan.org/tx/${withdrawTxHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[#00D1A0]   text-[14px] underline hover:text-[#00D1A0]/80"
+                          onClick={isApproved ? handleWithdraw : handleApprove}
+                          disabled={
+                            isWithdrawing ||
+                            isApproving ||
+                            !withdrawAmount ||
+                            parseFloat(withdrawAmount) <= 0 ||
+                            parseFloat(withdrawAmount) >
+                              selectedStrategy.balance
+                          }
                         >
-                          #{withdrawTxHash.substring(0, 8)}...
-                        </a>
+                          {isApproving ? (
+                            <>
+                              <svg
+                                className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#9C9DA2]"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                ></circle>
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                ></path>
+                              </svg>
+                              Approving...
+                            </>
+                          ) : isWithdrawing ? (
+                            <>
+                              <svg
+                                className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#9C9DA2]"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                ></circle>
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                ></path>
+                              </svg>
+                              Transaction in Progress
+                            </>
+                          ) : isWithdrawSuccess ? (
+                            "Request Another Withdraw"
+                          ) : isApproved ? (
+                            "Approved - Click to Withdraw"
+                          ) : !isBase ? (
+                            "Switch Network to Base"
+                          ) : (
+                            "Request Withdraw"
+                          )}
+                        </button>
+                        {errorMessage && (
+                          <div className="flex justify-between items-center mt-4 bg-[rgba(239,68,68,0.1)] rounded-[4px] p-4">
+                            <div className="text-[#EF4444]   text-[14px]">
+                              {errorMessage}
+                            </div>
+                            <div className="text-[#EF4444]   text-[14px] underline">
+                              #
+                              {withdrawTxHash
+                                ? withdrawTxHash.substring(0, 8) + "..."
+                                : ""}
+                            </div>
+                          </div>
+                        )}
+                        {!errorMessage &&
+                          withdrawTxHash &&
+                          isWithdrawSuccess && (
+                            <div className="flex justify-between items-center mt-4 bg-[rgba(0,209,160,0.1)] rounded-[4px] p-4">
+                              <div className="text-[#00D1A0]   text-[14px]">
+                                Transaction Successful
+                              </div>
+                              <a
+                                href={`https://basescan.org/tx/${withdrawTxHash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[#00D1A0]   text-[14px] underline hover:text-[#00D1A0]/80"
+                              >
+                                #{withdrawTxHash.substring(0, 8)}...
+                              </a>
+                            </div>
+                          )}
                       </div>
-                    )}
-                  </div>
-                  <div className="mt-2">
-                    <div className="text-[#9C9DA2] text-[12px] rounded-[4px] bg-[rgba(255,255,255,0.02)] p-[24px]">
-                      <strong className="text-white">Note:</strong> By
-                      initiating a withdrawal, your vault shares will be converted into the underlying
-                      asset based on the latest market rates, which may
-                      fluctuate slightly; once the request is submitted, please
-                      allow up to 24 hours for the funds to be received, as
-                      processing times can vary depending on network
-                      conditions—there's no need to panic if the assets don't
-                      arrive immediately.
+                      <div className="mt-2">
+                        <div className="text-[#9C9DA2] text-[12px] rounded-[4px] bg-[rgba(255,255,255,0.02)] p-[24px]">
+                          <strong className="text-white">Note:</strong> By
+                          initiating a withdrawal, your vault shares will be
+                          converted into the underlying asset based on the
+                          latest market rates, which may fluctuate slightly;
+                          once the request is submitted, please allow up to 24
+                          hours for the funds to be received, as processing
+                          times can vary depending on network conditions—there's
+                          no need to panic if the assets don't arrive
+                          immediately.
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <div className="flex justify-center mb-8">
+                          <Image
+                            src="/images/icons/withdraw-bg.svg"
+                            alt="Select Asset"
+                            width={188}
+                            height={140}
+                          />
+                        </div>
+                        <h2 className="text-[#D7E3EF] text-xl font-semibold mb-2">
+                          Select a Yield Option to withdraw
+                        </h2>
+                        <p className="text-[#9C9DA2] text-[14px] font-normal leading-[16px]">
+                          Review your available balances, current rates, and
+                          withdrawal
+                          <br />
+                          options for each yield source.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {activeTab === "request" && (
+                <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
+                  {/* Segmented Control Tabs */}
+                  <div className="mb-4 flex justify-start">
+                    <div className="relative bg-transparent rounded-[6px] flex w-[158px]">
+                      <button
+                        className={`w-[71px] px-3 py-1.5 text-[12px] font-normal leading-[16px] transition-all duration-200 rounded-l-[6px] rounded-r-[0px] flex items-center justify-center ${
+                          requestTab === "pending"
+                            ? "bg-[rgba(184,138,248,0.15)] text-[#D7E3EF] shadow-sm border-l border-t border-b border-r border-[rgba(184,138,248,0.5)]"
+                            : "text-[#9C9DA2] hover:text-[#D7E3EF] border-l border-t border-b border-[rgba(255,255,255,0.2)]"
+                        }`}
+                        onClick={() => setRequestTab("pending")}
+                      >
+                        Pending
+                      </button>
+                      <button
+                        className={`w-[87px] px-3 py-1.5 text-[12px] font-normal leading-[16px] transition-all duration-200 rounded-l-[0px] rounded-r-[6px] flex items-center justify-center ${
+                          requestTab === "completed"
+                            ? "bg-[rgba(184,138,248,0.15)] text-[#D7E3EF] shadow-sm border-l border-t border-b border-r border-[rgba(184,138,248,0.5)]"
+                            : "text-[#9C9DA2] hover:text-[#D7E3EF] border-r border-t border-b border-[rgba(255,255,255,0.2)]"
+                        }`}
+                        onClick={() => setRequestTab("completed")}
+                      >
+                        Completed
+                      </button>
                     </div>
                   </div>
-                  </>
-                ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <div className="text-center">
-                      <div className="flex justify-center mb-8">
-                        <Image
-                          src="/images/icons/withdraw-bg.svg"
-                          alt="Select Asset"
-                          width={188}
-                          height={140}
-                        />
-                      </div>
-                      <h2 className="text-[#D7E3EF] text-xl font-semibold mb-2">
-                        Select a Yield Option to withdraw
-                      </h2>
-                      <p className="text-[#9C9DA2] text-[14px] font-normal leading-[16px]">
-                        Review your available balances, current rates, and withdrawal
-                        <br />
-                        options for each yield source.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
 
-            {activeTab === "request" && (
-              <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
-                {/* Segmented Control Tabs */}
-                <div className="mb-4 flex justify-start">
-                  <div className="relative bg-transparent rounded-[6px] flex w-[158px]">
-                    <button
-                      className={`w-[71px] px-3 py-1.5 text-[12px] font-normal leading-[16px] transition-all duration-200 rounded-l-[6px] rounded-r-[0px] flex items-center justify-center ${
-                        requestTab === "pending"
-                          ? "bg-[rgba(184,138,248,0.15)] text-[#D7E3EF] shadow-sm border-l border-t border-b border-r border-[rgba(184,138,248,0.5)]"
-                          : "text-[#9C9DA2] hover:text-[#D7E3EF] border-l border-t border-b border-[rgba(255,255,255,0.2)]"
-                      }`}
-                      onClick={() => setRequestTab("pending")}
-                    >
-                      Pending
-                    </button>
-                    <button
-                      className={`w-[87px] px-3 py-1.5 text-[12px] font-normal leading-[16px] transition-all duration-200 rounded-l-[0px] rounded-r-[6px] flex items-center justify-center ${
-                        requestTab === "completed"
-                          ? "bg-[rgba(184,138,248,0.15)] text-[#D7E3EF] shadow-sm border-l border-t border-b border-r border-[rgba(184,138,248,0.5)]"
-                          : "text-[#9C9DA2] hover:text-[#D7E3EF] border-r border-t border-b border-[rgba(255,255,255,0.2)]"
-                      }`}
-                      onClick={() => setRequestTab("completed")}
-                    >
-                      Completed
-                    </button>
-                  </div>
-                </div>
-
-                {/* Requests List */}
-                {requestTab === "pending" && (
-                  <div className="space-y-2">
+                  {/* Requests List */}
+                  {requestTab === "pending" && (
+                    <div className="space-y-2">
                       {isLoadingRequests ? (
                         <div>Loading...</div>
                       ) : withdrawRequests.length === 0 ? (
@@ -2084,7 +2320,7 @@ const PortfolioSubpage: React.FC = () => {
                           const assetDecimals = assetOption
                             ? assetOption.decimal
                             : 18;
-             
+
                           return (
                             <div
                               key={req.request_id || idx}
@@ -2308,11 +2544,8 @@ const PortfolioSubpage: React.FC = () => {
                                   <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1">
                                     <span className="text-white text-[12px] font-normal">
                                       {(
-                                        
                                         Number(req.amount_of_assets) /
-                                       
                                         Math.pow(10, assetDecimals)
-                                      
                                       ).toFixed(2)}
                                     </span>
                                     <Image
@@ -2331,17 +2564,17 @@ const PortfolioSubpage: React.FC = () => {
                       )}
                     </div>
                   )}
-              </div>
-            )}
+                </div>
+              )}
 
-            {activeTab === "activity" && (
-              <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
-                <UserActivity />
-              </div>
-            )}
+              {activeTab === "activity" && (
+                <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
+                  <UserActivity />
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
       </main>
     </div>
   );
