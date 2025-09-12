@@ -1438,13 +1438,13 @@ const PortfolioSubpage: React.FC = () => {
                       </svg>
                       <span>Refreshing...</span>
                     </span>
-                  ) : isClient ? (
-                    `$${strategiesWithWithdrawableBalance
-                      .reduce((sum, s) => sum + s.balance, 0)
-                      .toFixed(2)}`
-                  ) : (
-                    "$0.00"
-                  )}
+                   ) : isClient && strategiesWithWithdrawableBalance.length > 0 ? (
+                     `$${strategiesWithWithdrawableBalance
+                       .reduce((sum, s) => sum + s.balance, 0)
+                       .toFixed(2)}`
+                   ) : (
+                     "$0.00"
+                   )}
                 </div>
               </div>
               {/* Vertical Divider */}
@@ -1483,13 +1483,13 @@ const PortfolioSubpage: React.FC = () => {
                       </svg>
                       <span>Refreshing...</span>
                     </span>
-                  ) : isClient ? (
-                    `$${strategiesWithBalance
-                      .reduce((sum, s) => sum + s.balance, 0)
-                      .toFixed(2)}`
-                  ) : (
-                    "$0.00"
-                  )}
+                   ) : isClient && strategiesWithBalance.length > 0 ? (
+                     `$${strategiesWithBalance
+                       .reduce((sum, s) => sum + s.balance, 0)
+                       .toFixed(2)}`
+                   ) : (
+                     "$0.00"
+                   )}
                 </div>
               </div>
               {/* Vertical Divider */}
@@ -1531,15 +1531,15 @@ const PortfolioSubpage: React.FC = () => {
                       </svg>
                       <span>Loading...</span>
                     </span>
-                  ) : pnlData ? (
-                    `${pnlData.isProfitable ? "+" : ""}$${Math.abs(
-                      pnlData.value
-                    ).toFixed(2)} (${
-                      pnlData.isProfitable ? "+" : ""
-                    }${pnlData.percentage.toFixed(1)}%)`
-                  ) : (
-                    "$0.00 (0.0%)"
-                  )}
+                   ) : isClient && pnlData ? (
+                     `${pnlData.isProfitable ? "+" : ""}$${Math.abs(
+                       pnlData.value
+                     ).toFixed(2)} (${
+                       pnlData.isProfitable ? "+" : ""
+                     }${pnlData.percentage.toFixed(1)}%)`
+                   ) : (
+                     "$0.00 (0.0%)"
+                   )}
                 </div>
               </div>
             </div>
@@ -1731,29 +1731,29 @@ const PortfolioSubpage: React.FC = () => {
                           {strategy.type === "stable" ? "sy" : "Incentive Maxi"}
                           {strategy.asset}
                         </div>
-                        <div className="text-[#00D1A0]   text-[12px] font-normal">
-                          +
-                          {(() => {
-                            // Use the correct APY value for calculations
-                            let apyToUse = strategy.apy;
-                            if (
-                              strategy.asset === "USD" &&
-                              strategy.type === "stable"
-                            ) {
-                              apyToUse = usdApy || strategy.apy;
-                            }
+                         <div className="text-[#00D1A0]   text-[12px] font-normal">
+                           +
+                           {isClient ? (() => {
+                             // Use the correct APY value for calculations
+                             let apyToUse = strategy.apy;
+                             if (
+                               strategy.asset === "USD" &&
+                               strategy.type === "stable"
+                             ) {
+                               apyToUse = usdApy || strategy.apy;
+                             }
 
-                            const apyValue = parseFloat(
-                              apyToUse?.replace("%", "") || "0"
-                            );
-                            if (isNaN(apyValue)) return "0.00";
-                            return (
-                              (strategy.balance * apyValue) /
-                              100
-                            ).toFixed(2);
-                          })()}{" "}
-                          in 1 year
-                        </div>
+                             const apyValue = parseFloat(
+                               apyToUse?.replace("%", "") || "0"
+                             );
+                             if (isNaN(apyValue)) return "0.00";
+                             return (
+                               (strategy.balance * apyValue) /
+                               100
+                             ).toFixed(2);
+                           })() : "0.00"}{" "}
+                           in 1 year
+                         </div>
                       </div>
                     </div>
 
@@ -1804,10 +1804,10 @@ const PortfolioSubpage: React.FC = () => {
                       })()}
                     </div>
 
-                    {/* Current Balance */}
-                    <div className="flex justify-end text-[#EDF2F8] text-[12px] font-normal">
-                      ${strategy.balance.toFixed(2)}
-                    </div>
+                     {/* Current Balance */}
+                     <div className="flex justify-end text-[#EDF2F8] text-[12px] font-normal">
+                       {isClient ? `$${strategy.balance.toFixed(2)}` : "$0.00"}
+                     </div>
                   </div>
                 ))
               ) : (

@@ -101,6 +101,11 @@ const UserActivity: React.FC = () => {
   const [activityData, setActivityData] = useState<UserActivityData | null>(null);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     if (address && isConnected) {
@@ -183,13 +188,22 @@ const UserActivity: React.FC = () => {
     }
   };
 
+  if (!isClient) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <div className="text-[#9C9DA2] text-center">
+          <div className="text-lg font-medium mb-2">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
   if (!isConnected) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <div className="text-[#9C9DA2] text-lg">
-            Connect your wallet to view activity
-          </div>
+      <div className="flex flex-col items-center justify-center py-12">
+        <div className="text-[#9C9DA2] text-center">
+          <div className="text-lg font-medium mb-2">Connect your wallet to view activity</div>
+          <div className="text-sm">Your transaction history will appear here</div>
         </div>
       </div>
     );
