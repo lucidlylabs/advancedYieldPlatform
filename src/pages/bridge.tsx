@@ -1008,7 +1008,7 @@ const BridgePage: React.FC = () => {
 
                             {/* Source Network Dropdown */}
                             {isSourceDropdownOpen && (
-                              <div className="absolute top-full left-0 mt-2 bg-[#263042] pl-4 py-3 rounded-md w-[180px] shadow-lg z-10">
+                              <div className="absolute top-full left-0 right-0 mt-2 bg-[#263042] pl-4 py-3 rounded-md max-w-[145px] shadow-lg z-10">
                                 <div className="flex flex-col gap-4">
                                   {getAvailableSourceNetworks().map((network) => (
                                     <button
@@ -1026,7 +1026,7 @@ const BridgePage: React.FC = () => {
                                           height={24}
                                         />
                                       </div>
-                                      <span className="text-white text-base font-semibold">
+                                      <span className="text-[#9C9DA2] text-sm font-normal">
                                         {network.name}
                                       </span>
                                     </button>
