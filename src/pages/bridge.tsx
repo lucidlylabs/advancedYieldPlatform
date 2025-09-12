@@ -788,7 +788,7 @@ const BridgePage: React.FC = () => {
                     </h1>
 
                     {/* Token Selector */}
-                    <div className="flex items-center gap-2 bg-[#131723] p-2 rounded-[99px]">
+                    <div className="flex items-center gap-2 bg-[#131723] p-2 pr-4 rounded-[99px]">
                       <Image
                         src="/images/icons/syUSD.svg"
                         alt="syUSD"
@@ -799,22 +799,6 @@ const BridgePage: React.FC = () => {
                       <span className="text-white font-semibold text-base">
                         syUSD
                       </span>
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="text-gray-400"
-                      >
-                        <path
-                          d="M4 6L8 10L12 6"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
                     </div>
                   </div>
                 </div>
@@ -866,7 +850,7 @@ const BridgePage: React.FC = () => {
                     </h1>
 
                     {/* Token Selector */}
-                    <div className="flex items-center gap-2 bg-[#131723] p-2 rounded-[99px]">
+                    <div className="flex items-center gap-2 bg-[#131723] p-2 pr-4 rounded-[99px]">
                       <Image
                         src="/images/icons/syUSD.svg"
                         alt="syUSD"
@@ -877,22 +861,7 @@ const BridgePage: React.FC = () => {
                       <span className="text-white font-semibold text-base">
                         syUSD
                       </span>
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="text-gray-400"
-                      >
-                        <path
-                          d="M4 6L8 10L12 6"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
+         
                     </div>
                   </div>
 
