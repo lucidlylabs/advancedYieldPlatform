@@ -4,6 +4,7 @@ import {
   useAccount,
   useWriteContract,
   useWaitForTransactionReceipt,
+  useSwitchChain,
 } from "wagmi";
 import {
   formatUnits,
@@ -210,6 +211,7 @@ const InfoIcon = () => (
 
 const BridgePage: React.FC = () => {
   const { address, isConnected } = useAccount();
+  const { switchChain } = useSwitchChain();
   const [amount, setAmount] = useState<string>("0.00");
   // Source network dropdown state
   const [sourceNetwork, setSourceNetwork] = useState<Network>(
@@ -358,6 +360,9 @@ const BridgePage: React.FC = () => {
   const [isBridging, setIsBridging] = useState(false);
   const [bridgeError, setBridgeError] = useState<string | null>(null);
   const [bridgeFee, setBridgeFee] = useState<string>("0");
+  const [previousHash, setPreviousHash] = useState<string | null>(null);
+  const [previousDestinationNetwork, setPreviousDestinationNetwork] = useState<string | null>(null);
+  const [showBridgeAgain, setShowBridgeAgain] = useState(false);
 
   // Fetch syUSD balance from source network with RPC fallback
   const fetchSyUSDBalance = async () => {
@@ -449,12 +454,43 @@ const BridgePage: React.FC = () => {
     fetchSyUSDBalance();
   }, [address, isConnected, sourceNetwork.id]);
 
+  // Auto-switch to source network when wallet connects
+  useEffect(() => {
+    if (isConnected && switchChain && sourceNetwork) {
+      const targetChainId = networkChainIds[sourceNetwork.id];
+      if (targetChainId) {
+        // Small delay to ensure wallet is fully connected
+        const timer = setTimeout(async () => {
+          try {
+            await switchChain({ chainId: targetChainId });
+            console.log(`Auto-switched to ${sourceNetwork.name} network on wallet connect`);
+          } catch (error) {
+            console.error(`Failed to auto-switch to ${sourceNetwork.name} network:`, error);
+          }
+        }, 500);
+        
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isConnected, switchChain, sourceNetwork.id]);
+
   const handleAmountChange = (value: string) => {
     setAmount(value);
   };
 
   const handleMaxClick = () => {
     setAmount(balance.replace(/,/g, ""));
+  };
+
+  // Handle Bridge Again functionality
+  const handleBridgeAgain = () => {
+    // Reset all states for a new bridge
+    setShowBridgeAgain(false);
+    setPreviousHash(null);
+    setPreviousDestinationNetwork(null);
+    setBridgeError(null);
+    setAmount("0.00");
+    console.log("Bridge Again clicked - all states reset for new bridge");
   };
 
   // Get available networks based on asymmetric bridge flow
@@ -473,7 +509,7 @@ const BridgePage: React.FC = () => {
     }
   };
 
-  const handleSourceNetworkSelect = (network: Network) => {
+  const handleSourceNetworkSelect = async (network: Network) => {
     setSourceNetwork(network);
     setIsSourceDropdownOpen(false);
     
@@ -481,6 +517,20 @@ const BridgePage: React.FC = () => {
     const availableDestinations = getAvailableDestinationNetworks(network.id);
     if (availableDestinations.length > 0) {
       setDestinationNetwork(availableDestinations[0]);
+    }
+
+    // Automatically switch wallet to the selected source network
+    if (isConnected && switchChain) {
+      try {
+        const targetChainId = networkChainIds[network.id];
+        if (targetChainId) {
+          await switchChain({ chainId: targetChainId });
+          console.log(`Switched to ${network.name} network (Chain ID: ${targetChainId})`);
+        }
+      } catch (error) {
+        console.error(`Failed to switch to ${network.name} network:`, error);
+        // You could add a toast notification here if desired
+      }
     }
   };
 
@@ -608,8 +658,14 @@ const BridgePage: React.FC = () => {
     }
 
     try {
-      setIsBridging(true);
+      // Clear all previous states first
       setBridgeError(null);
+      setPreviousHash(null);
+      setPreviousDestinationNetwork(null);
+      setShowBridgeAgain(false);
+      
+      // Set bridging state
+      setIsBridging(true);
 
       // Log bridge details for debugging
       console.log(`Bridging from ${sourceNetwork.name} to ${destinationNetwork.name}`);
@@ -644,7 +700,7 @@ const BridgePage: React.FC = () => {
       });
     } catch (error) {
       console.error("Bridge error:", error);
-      setBridgeError("Failed to initiate bridge transaction");
+      setBridgeError("Transaction failed");
       setIsBridging(false);
     }
   };
@@ -663,15 +719,52 @@ const BridgePage: React.FC = () => {
     if (isConfirmed) {
       setIsBridging(false);
       setAmount("0.00");
+      // Store the hash and destination network for display
+      if (hash) {
+        setPreviousHash(hash);
+        setPreviousDestinationNetwork(destinationNetwork.name);
+        setShowBridgeAgain(true); // Show "Bridge Again" button
+      }
       // Refresh balance after successful bridge
       fetchSyUSDBalance();
     }
-  }, [isConfirmed]);
+  }, [isConfirmed, hash, destinationNetwork.name]);
+
+  // Additional reset when hash changes (ensures button is enabled for next bridge)
+  useEffect(() => {
+    if (hash && !isConfirming && !isBridging) {
+      // Ensure all states are properly reset when we have a hash
+      console.log("Transaction hash received, ensuring states are reset for next bridge");
+    }
+  }, [hash, isConfirming, isBridging]);
+
+  // Reset bridging state if transaction is confirmed but states are stuck
+  useEffect(() => {
+    if (isConfirmed && isBridging) {
+      console.log("Transaction confirmed, ensuring bridging state is cleared");
+      setIsBridging(false);
+    }
+  }, [isConfirmed, isBridging]);
+
+  // Debug button state
+  useEffect(() => {
+    console.log("Button state debug:", {
+      isConnected,
+      amount: parseFloat(amount),
+      isBridging,
+      isConfirming,
+      isConfirmed,
+      hash: hash ? "exists" : "null",
+      destinationSupported: isDestinationChainSupported(destinationNetwork.id),
+      showBridgeAgain
+    });
+  }, [isConnected, amount, isBridging, isConfirming, isConfirmed, hash, destinationNetwork.id, showBridgeAgain]);
 
   // Handle write error
   useEffect(() => {
     if (writeError) {
-      setBridgeError(writeError.message);
+      // Clean error message instead of technical details
+      setBridgeError("Transaction failed");
       setIsBridging(false);
     }
   }, [writeError]);
@@ -1121,17 +1214,21 @@ const BridgePage: React.FC = () => {
 
                   {/* Bridge Button */}
                   <button
-                    onClick={handleBridge}
+                    onClick={showBridgeAgain ? handleBridgeAgain : handleBridge}
                     disabled={
-                      !isConnected ||
-                      parseFloat(amount) <= 0 ||
-                      isBridging ||
-                      isConfirming ||
-                      !isDestinationChainSupported(destinationNetwork.id)
+                      !showBridgeAgain && (
+                        !isConnected ||
+                        parseFloat(amount) <= 0 ||
+                        isBridging ||
+                        isConfirming ||
+                        !isDestinationChainSupported(destinationNetwork.id)
+                      )
                     }
                     className="w-full bg-[#B88AF8] text-[#1A1B1E] text-base font-semibold leading-[150%] py-4 rounded-sm hover:opacity-90 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {!isConnected
+                    {showBridgeAgain
+                      ? "Bridge Again"
+                      : !isConnected
                       ? "Connect Wallet"
                       : parseFloat(amount) <= 0
                       ? "Enter Amount"
@@ -1142,22 +1239,115 @@ const BridgePage: React.FC = () => {
                       : "Bridge syUSD"}
                   </button>
 
-                  {/* Bridge Error Display */}
-                  {bridgeError && (
-                    <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-md">
-                      <p className="text-red-400 text-sm">{bridgeError}</p>
-                    </div>
-                  )}
-
-                  {/* Bridge Success Display */}
-                  {isConfirmed && (
-                    <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-md">
-                      <p className="text-green-400 text-sm">
-                        Bridge transaction confirmed! Your syUSD has been
-                        bridged to {destinationNetwork.name}.
-                      </p>
-                    </div>
-                  )}
+                  {/* Bridge Status Display - Consistent height div for success/failure states */}
+                  <div className="w-full py-4 rounded-sm min-h-[56px] flex items-center justify-center">
+                    {bridgeError && (
+                      <div className="w-full p-3 bg-red-500/10 border border-red-500/20 rounded-sm">
+                        <div className="text-center">
+                          <p className="text-red-400 text-sm">{bridgeError}</p>
+                          {hash && (
+                            <div className="flex items-center justify-center gap-2 mt-2">
+                              <span className="text-gray-400 text-xs">Transaction Hash:</span>
+                              <a
+                                href={`https://layerzeroscan.com/tx/${hash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-red-400 text-xs hover:text-red-300 transition-colors flex items-center gap-1"
+                              >
+                                {`${hash.slice(0, 6)}...${hash.slice(-4)}`}
+                                <svg
+                                  width="12"
+                                  height="12"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="w-3 h-3"
+                                >
+                                  <path
+                                    d="M18 13V19C18 19.5304 17.7893 20.0391 17.4142 20.4142C17.0391 20.7893 16.5304 21 16 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V8C3 7.46957 3.21071 6.96086 3.58579 6.58579C3.96086 6.21071 4.46957 6 5 6H11"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                  <path
+                                    d="M15 3H21V9"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                  <path
+                                    d="M10 14L21 3"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {((isConfirmed && hash) || previousHash) && (
+                      <div className="w-full p-3 bg-green-500/10 border border-green-500/20 rounded-sm">
+                        <div className="text-center">
+                          <p className="text-green-400 text-sm mb-2">
+                            Bridge Success! Transaction confirmed on {previousDestinationNetwork || destinationNetwork.name}
+                          </p>
+                          <div className="flex items-center justify-center gap-2">
+                            <span className="text-gray-400 text-xs">Transaction Hash:</span>
+                            <a
+                              href={`https://layerzeroscan.com/tx/${hash || previousHash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-green-400 text-xs hover:text-green-300 transition-colors flex items-center gap-1"
+                            >
+                              {`${(hash || previousHash)?.slice(0, 6)}...${(hash || previousHash)?.slice(-4)}`}
+                              <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="w-3 h-3"
+                              >
+                                <path
+                                  d="M18 13V19C18 19.5304 17.7893 20.0391 17.4142 20.4142C17.0391 20.7893 16.5304 21 16 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V8C3 7.46957 3.21071 6.96086 3.58579 6.58579C3.96086 6.21071 4.46957 6 5 6H11"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                                <path
+                                  d="M15 3H21V9"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                                <path
+                                  d="M10 14L21 3"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Empty state to maintain consistent height when no status */}
+                    {!bridgeError && !isConfirmed && !previousHash && (
+                      <div className="w-full h-full"></div>
+                    )}
+                  </div>
                 </div>
               </div>
 
