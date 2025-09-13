@@ -116,7 +116,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
     "deposits" | "allocation"
   >("deposits");
   const [activeBaseApyTab, setActiveBaseApyTab] = useState<
-    "totalApy" | "bySource" | "pnl" | "allocation"
+    "totalApy" | "allocation"
   >("totalApy");
 
   const [userDeposits, setUserDeposits] = useState<string>("0.00");
@@ -133,10 +133,22 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   // Function to check balance for a specific network
   const checkNetworkBalance = async (networkConfig: any, vaultAddress: string) => {
     if (!address || !networkConfig || !vaultAddress || vaultAddress === "0x0000000000000000000000000000000000000000") {
+      console.log(`Skipping network check - missing data:`, {
+        hasAddress: !!address,
+        hasNetworkConfig: !!networkConfig,
+        vaultAddress,
+        networkName: networkConfig?.chainObject?.name
+      });
       return 0;
     }
 
     try {
+      console.log(`Checking balance on ${networkConfig.chainObject.name}:`, {
+        rpc: networkConfig.rpc,
+        vaultAddress,
+        userAddress: address
+      });
+
       const client = createPublicClient({
         transport: http(networkConfig.rpc),
         chain: networkConfig.chainObject,
@@ -159,6 +171,12 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
       const formattedBalance = parseFloat(
         formatUnits(balance as bigint, decimals as number)
       );
+
+      console.log(`Balance result for ${networkConfig.chainObject.name}:`, {
+        rawBalance: balance.toString(),
+        decimals,
+        formattedBalance
+      });
 
       return formattedBalance;
     } catch (error) {
@@ -190,6 +208,12 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
       const balances = await Promise.all(balancePromises);
       const totalBalance = balances.reduce((sum, balance) => sum + balance, 0);
+      
+      // Debug logging
+      console.log("Network balance check results:");
+      networks.forEach((network, index) => {
+        console.log(`${network.name}: ${balances[index]} (RPC: ${network.config?.rpc})`);
+      });
       
       // Store individual network balances
       const networkBalanceMap: {[key: string]: number} = {};
@@ -352,34 +376,14 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
             Total APY
           </button>
           <button
-            className={`px-3 py-1.5 w-28 text-xs transition-colors duration-150 ${
-              activeBaseApyTab === "bySource"
-                ? "bg-[rgba(184,138,248,0.1)] text-white"
-                : "bg-transparent text-gray-400 hover:text-gray-300"
-            }`}
-            onClick={() => setActiveBaseApyTab("bySource")}
-          >
-            By Source
-          </button>
-          <button
-            className={`px-3 py-1.5 w-28 text-xs transition-colors duration-150 ${
-              activeBaseApyTab === "pnl"
-                ? "bg-[rgba(184,138,248,0.1)] text-white"
-                : "bg-transparent text-gray-400 hover:text-gray-300"
-            }`}
-            onClick={() => setActiveBaseApyTab("pnl")}
-          >
-            PNL
-          </button>
-          <button
-            className={`px-3 py-1.5 w-28 text-xs transition-colors duration-150 ${
+            className={`px-3 py-1.5 w-36 text-xs transition-colors duration-150 ${
               activeBaseApyTab === "allocation"
                 ? "bg-[rgba(184,138,248,0.1)] text-white"
                 : "bg-transparent text-gray-400 hover:text-gray-300"
             }`}
             onClick={() => setActiveBaseApyTab("allocation")}
           >
-            Allocation
+            Returns Attribution
           </button>
         </div>
       </div>
@@ -390,17 +394,17 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
         </div>
       )}
 
-      {activeBaseApyTab === "bySource" && (
+      {/* {activeBaseApyTab === "bySource" && (
         <div className="h-[800px] overflow-y-auto pb-2">
           <StrategyDailyYieldChart />
         </div>
-      )}
+      )} */}
 
-      {activeBaseApyTab === "pnl" && (
+      {/* {activeBaseApyTab === "pnl" && (
         <div className="h-[800px] overflow-y-auto pb-2">
           <StrategyPnlChart />
         </div>
-      )}
+      )} */}
 
       {activeBaseApyTab === "allocation" && (
         <div className="h-[800px] overflow-y-auto pb-2">
