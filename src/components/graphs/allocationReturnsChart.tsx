@@ -114,7 +114,8 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
           });
         });
 
-        const strategyList = Array.from(allStrategies);
+        // Sort strategies consistently to match allocation chart
+        const strategyList = Array.from(allStrategies).sort();
         setAllStrategies(strategyList);
         setSelectedStrategies(new Set(strategyList));
 
@@ -258,17 +259,17 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
                 <div className="border-t border-gray-300 pt-2 mt-2">
                   <div className="flex items-center gap-3">
                     <div
-                      className="w-3 h-3 rounded-full border-2 border-white"
+                      className="w-3 h-3 rounded-full"
                       style={{ 
-                        backgroundColor: "#FFFFFF", 
-                        boxShadow: "0 0 8px #FFFFFF, 0 0 12px #FFFFFF" 
+                        backgroundColor: "#A8E6CF", 
+                        border: "2px solid #A8E6CF"
                       }}
                     />
                     <span className="text-sm text-gray-600 flex-1">
                       Base APY
                     </span>
-                    <span className="text-sm font-semibold text-right text-white" 
-                          style={{ textShadow: "0 0 8px #FFFFFF" }}>
+                    <span className="text-sm font-semibold text-right" 
+                          style={{ color: "#A8E6CF" }}>
                       {payload.find((item: any) => item.dataKey === 'baseApy')?.value.toFixed(2)}%
                     </span>
                   </div>
@@ -361,30 +362,35 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
             {/* Render areas for each strategy with stacking */}
             {allStrategies
               .filter((strategy) => selectedStrategies.has(strategy))
-              .map((strategy, index) => (
-                <Area
-                  key={strategy}
-                  type="linear"
-                  dataKey={strategy}
-                  stackId="allocation"
-                  stroke={COLORS[allStrategies.indexOf(strategy) % COLORS.length]}
-                  fill={COLORS[allStrategies.indexOf(strategy) % COLORS.length]}
-                  fillOpacity={0.6}
-                  strokeWidth={1}
-                  name={strategy}
-                />
-              ))}
+              .map((strategy, index) => {
+                // Use consistent color mapping: same strategy gets same color across all charts
+                const strategyIndex = allStrategies.indexOf(strategy);
+                const strategyColor = COLORS[strategyIndex % COLORS.length];
+                
+                return (
+                  <Area
+                    key={strategy}
+                    type="linear"
+                    dataKey={strategy}
+                    stackId="allocation"
+                    stroke={strategyColor}
+                    fill={strategyColor}
+                    fillOpacity={0.6}
+                    strokeWidth={1}
+                    name={strategy}
+                  />
+                );
+              })}
 
             {/* Base APY line overlay */}
             <Line
               type="linear"
               dataKey="baseApy"
-              stroke="#FFFFFF"
+              stroke="#A8E6CF"
               strokeWidth={3}
               dot={false}
               name="Base APY"
               connectNulls={false}
-              filter="url(#neonGlow)"
             />
           </ComposedChart>
         </ResponsiveContainer>
@@ -403,6 +409,7 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
           >
             {allStrategies.map((strategy, index) => {
               const isSelected = selectedStrategies.has(strategy);
+              // Use same color mapping as chart areas for consistency
               const buttonColor = COLORS[index % COLORS.length];
               
               return (
