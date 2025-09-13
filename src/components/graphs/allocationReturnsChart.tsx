@@ -11,21 +11,21 @@ import {
   Area,
 } from "recharts";
 
-interface PnlDataPoint {
+interface AllocationDataPoint {
   date: string;
-  totalPnl: number;
+  totalAum: number;
+  totalWeightedContribution: number;
+  strategyCount: number;
   strategies: {
     strategy: string;
     network: string;
-    pnl: number;
-    pnlPercentage: number;
     aum: number;
     previousAum: number;
-    contributionToTotalGrowth: number;
-    attributionToTotalReturn: number;
-    pnlAsPercentageOfTotalTVL: number;
-    contributionToTotalAPY: number;
-    weightedContributionToTotalAPY: number;
+    aumPerShare: number;
+    previousAumPerShare: number;
+    dailyApyPercentage: number;
+    aumWeightPercentage: number;
+    weightedContributionPercentage: number;
   }[];
 }
 
@@ -35,7 +35,7 @@ interface ChartDataPoint {
   [key: string]: string | number | null | undefined;
 }
 
-interface StrategyPnlChartProps {
+interface AllocationReturnsChartProps {
   // No props needed
 }
 
@@ -68,7 +68,7 @@ const COLORS = [
   "#98D8C8", // mint
 ];
 
-export default function StrategyPnlChart({}: StrategyPnlChartProps) {
+export default function AllocationReturnsChart({}: AllocationReturnsChartProps) {
   const [data, setData] = useState<ChartDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
@@ -79,9 +79,9 @@ export default function StrategyPnlChart({}: StrategyPnlChartProps) {
     const fetchData = async () => {
       try {
         setLoading(true);
-        console.log(`Fetching PNL data for period: ${period}`);
+        console.log(`Fetching Allocation Returns data for period: ${period}`);
 
-        const response = await fetch(`http://localhost:3001/api/strategy-pnl/daily`);
+        const response = await fetch(`http://localhost:3001/api/allocation-returns/daily`);
 
         if (!response.ok) {
           console.error("API responded with status:", response.status);
@@ -89,37 +89,19 @@ export default function StrategyPnlChart({}: StrategyPnlChartProps) {
         }
 
         const rawData = await response.json();
-        console.log("Raw PNL data:", rawData);
+        console.log("Raw Allocation Returns data:", rawData);
 
         if (!rawData.success || !rawData.data) {
           throw new Error("Invalid API response format");
         }
 
-        const pnlData: PnlDataPoint[] = rawData.data;
+        const allocationData: AllocationDataPoint[] = rawData.data;
 
-        console.log("Raw PNL data dates:", pnlData.map(d => d.date));
-        console.log("Raw data count:", pnlData.length);
+        console.log("Raw Allocation data dates:", allocationData.map(d => d.date));
+        console.log("Raw data count:", allocationData.length);
 
-        // Remove August 26th and filter out dates after September 9th
-        const filteredData = pnlData.filter((dayData) => {
-          // Try multiple ways to check for August 26th
-          const originalDate = dayData.date;
-          const dateObj = new Date(originalDate);
-          
-          // Check if it's August 26th in any format
-          const isAugust26 = (
-            originalDate.includes('2025-08-26') ||
-            originalDate.includes('08-26') ||
-            originalDate.includes('Aug 26') ||
-            (dateObj.getFullYear() === 2025 && dateObj.getMonth() === 7 && dateObj.getDate() === 26)
-          );
-          
-          // Check if date is after September 9th, 2025
-          const sept9_2025 = new Date('2025-09-09');
-          const isAfterSept9 = dateObj > sept9_2025;
-          
-          return !isAugust26 && !isAfterSept9;
-        });
+        // No date filtering - show all data
+        const filteredData = allocationData;
 
         // Get all unique strategies
         const allStrategies = new Set<string>();
@@ -141,10 +123,22 @@ export default function StrategyPnlChart({}: StrategyPnlChartProps) {
           return new Date(a.date).getTime() - new Date(b.date).getTime();
         });
 
-        console.log("Filtered PNL data dates (excluding Aug 26):", filteredData.map(d => d.date));
+        console.log("All Allocation data dates (no filtering):", filteredData.map(d => d.date));
         console.log("Date range:", filteredData[0]?.date, "to", filteredData[filteredData.length - 1]?.date);
 
-        // Process data for Recharts
+        // Debug: Check sample strategy values
+        if (filteredData.length > 0) {
+          const sampleData = filteredData[filteredData.length - 1]; // Last day
+          console.log("Sample allocation data (last day):", sampleData);
+          if (sampleData.strategies) {
+            console.log("Sample strategy data:");
+            sampleData.strategies.forEach((strategy: any) => {
+              console.log(`  ${strategy.strategy.slice(0, 8)}...: weightedContributionPercentage = ${strategy.weightedContributionPercentage}`);
+            });
+          }
+        }
+
+        // Process data for Recharts - use API data directly without any calculations
         const chartData: ChartDataPoint[] = filteredData.map((dayData) => {
           const date = new Date(dayData.date).toLocaleDateString("en-US", {
             month: "short",
@@ -153,7 +147,7 @@ export default function StrategyPnlChart({}: StrategyPnlChartProps) {
 
           const chartPoint: ChartDataPoint = { date };
 
-          // Add each strategy's PNL to the data point
+          // Use the weightedContributionPercentage directly from the API (multiply by 100 for display)
           strategyList.forEach((strategyName) => {
             const strategy = dayData.strategies.find((s) => {
               const normalizedAddress = normalizeAddress(s.strategy);
@@ -161,7 +155,9 @@ export default function StrategyPnlChart({}: StrategyPnlChartProps) {
                 `${s.network}_${s.strategy.slice(0, 8)}...`;
               return name === strategyName;
             });
-            chartPoint[strategyName] = strategy ? (strategy.weightedContributionToTotalAPY * 100) : 0; // Convert to percentage for display
+
+            // Use the API's weightedContributionPercentage directly - no frontend calculations
+            chartPoint[strategyName] = strategy ? (strategy.weightedContributionPercentage * 100) : 0;
           });
 
           return chartPoint;
@@ -200,7 +196,7 @@ export default function StrategyPnlChart({}: StrategyPnlChartProps) {
           setData(chartData);
         }
       } catch (err) {
-        console.error("Error loading PNL data:", err);
+        console.error("Error loading Allocation Returns data:", err);
         setData([]);
       } finally {
         setLoading(false);
@@ -293,7 +289,7 @@ export default function StrategyPnlChart({}: StrategyPnlChartProps) {
           <div className="flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
             <p className="text-gray-400 text-sm">
-              Loading PNL data...
+              Loading Allocation Returns data...
             </p>
           </div>
         </div>
@@ -317,22 +313,14 @@ export default function StrategyPnlChart({}: StrategyPnlChartProps) {
             Daily
           </button>
           <button
-            onClick={() => setPeriod("weekly")}
-            className={`px-2 py-1 rounded text-xs transition-colors ${
-              period === "weekly"
-                ? "bg-[#7B5FFF] text-white"
-                : "bg-[#2A2A3C] text-gray-400 hover:bg-gray-100 hover:text-gray-800"
-            }`}
+            disabled
+            className="px-2 py-1 rounded text-xs bg-gray-600 text-gray-500 cursor-not-allowed opacity-50"
           >
             Weekly
           </button>
           <button
-            onClick={() => setPeriod("monthly")}
-            className={`px-2 py-1 rounded text-xs transition-colors ${
-              period === "monthly"
-                ? "bg-[#7B5FFF] text-white"
-                : "bg-[#2A2A3C] text-gray-400 hover:bg-gray-100 hover:text-gray-800"
-            }`}
+            disabled
+            className="px-2 py-1 rounded text-xs bg-gray-600 text-gray-500 cursor-not-allowed opacity-50"
           >
             Monthly
           </button>
@@ -378,7 +366,7 @@ export default function StrategyPnlChart({}: StrategyPnlChartProps) {
                   key={strategy}
                   type="linear"
                   dataKey={strategy}
-                  stackId="pnl"
+                  stackId="allocation"
                   stroke={COLORS[allStrategies.indexOf(strategy) % COLORS.length]}
                   fill={COLORS[allStrategies.indexOf(strategy) % COLORS.length]}
                   fillOpacity={0.6}
