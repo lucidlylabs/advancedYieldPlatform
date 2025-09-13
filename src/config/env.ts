@@ -15,7 +15,7 @@ export const USD_STRATEGIES = {
 
       base: {
         image: "/images/logo/base.svg",
-        rpc: "https://base.llamarpc.com",
+        rpc: "https://mainnet.base.org",
         chainId: 8453,
         chainObject: {
           id: 8453,
@@ -23,8 +23,8 @@ export const USD_STRATEGIES = {
           network: "base",
           nativeCurrency: { decimals: 18, name: "Ethereum", symbol: "ETH" },
           rpcUrls: {
-            default: { http: ["https://base.llamarpc.com"] },
-            public: { http: ["https://base.llamarpc.com"] },
+            default: { http: ["https://mainnet.base.org"] },
+            public: { http: ["https://mainnet.base.org"] },
           },
         },
         tokens: [
@@ -192,7 +192,7 @@ export const USD_STRATEGIES = {
       tvl: "https://api.lucidly.finance/services/aum_data?vaultName=syUSD",
       withdraw_request:
         "https://api.lucidly.finance/services/queueData?vaultAddress=0x279CAD277447965AF3d24a78197aad1B02a2c589&userAddress=",
-      rpc: "https://base.llamarpc.com",
+      rpc: "https://mainnet.base.org",
     },
     INCENTIVE: {
       network: "",

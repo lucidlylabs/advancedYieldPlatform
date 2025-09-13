@@ -195,12 +195,19 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
     try {
       const strategy = USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
+      
+      // syUSD vault exists on all networks with the same address
       const networks = [
         { config: strategy.base, address: strategy.boringVaultAddress, name: "Base" },
         { config: strategy.ethereum, address: strategy.boringVaultAddress, name: "Ethereum" },
         { config: strategy.arbitrum, address: strategy.boringVaultAddress, name: "Arbitrum" },
         { config: strategy.katana, address: strategy.boringVaultAddress, name: "Katana" },
       ].filter(network => network.config && network.address);
+
+      console.log("🔍 Checking syUSD vault on all networks:", {
+        vaultAddress: strategy.boringVaultAddress,
+        networksToCheck: networks.map(n => `${n.name} (${n.config?.rpc})`)
+      });
 
       const balancePromises = networks.map(network =>
         checkNetworkBalance(network.config, network.address)
@@ -213,6 +220,11 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
       console.log("Network balance check results:");
       networks.forEach((network, index) => {
         console.log(`${network.name}: ${balances[index]} (RPC: ${network.config?.rpc})`);
+        if (network.name === "Base" && balances[index] === 0) {
+          console.warn("🔍 Base balance is 0 - this might be the issue!");
+          console.log("Base network config:", network.config);
+          console.log("Base vault address:", network.address);
+        }
       });
       
       // Store individual network balances
