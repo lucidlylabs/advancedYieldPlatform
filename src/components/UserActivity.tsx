@@ -67,16 +67,28 @@ const assetIcons: AssetIcons = {
 };
 
 const networkIcons: AssetIcons = {
+  // Main networks
   base: "/images/logo/base.svg",
   ethereum: "/images/logo/eth.svg",
   arbitrum: "/images/logo/arb.svg",
-  katana: "/images/networks/katana.svg",
-  optimism: "/images/logo/base.svg", // Add fallback for optimism
-  bsc: "/images/logo/base.svg", // Add fallback for BSC
-  polygon: "/images/logo/base.svg", // Add fallback for Polygon
-  fantom: "/images/logo/base.svg", // Add fallback for Fantom
-  avalanche: "/images/logo/base.svg", // Add fallback for Avalanche
-  sonic: "/images/logo/base.svg", // Add fallback for Sonic
+  katana: "/images/logo/katana.svg",
+  
+  // Bridge chain IDs - destination chains (each should have different icons)
+  "30101": "/images/logo/base.svg",        // Destination chain 1
+  "30110": "/images/logo/eth.svg",         // Destination chain 2  
+  "30375": "/images/logo/arb.svg",         // Destination chain 3
+  
+  // API response mappings
+  "chain-30101": "/images/logo/katana.svg",
+  "chain-null": "/images/logo/base.svg",
+  sonic: "/images/logo/katana.svg",
+  
+  // Fallbacks
+  optimism: "/images/logo/base.svg",
+  bsc: "/images/logo/base.svg",
+  polygon: "/images/logo/base.svg",
+  fantom: "/images/logo/base.svg",
+  avalanche: "/images/logo/base.svg",
 };
 
 const ExternalLinkIcon = () => (
@@ -116,13 +128,44 @@ const UserActivity: React.FC = () => {
   const fetchUserActivity = async (userAddress: string, page: number = 1) => {
     setLoading(true);
     try {
+      console.log(`Fetching user activity for address: ${userAddress}, page: ${page}`);
       const response = await fetch(`http://localhost:3001/api/user-activity/${userAddress}?page=${page}`);
+      
+      console.log("API Response status:", response.status);
+      console.log("API Response headers:", Object.fromEntries(response.headers.entries()));
+      
       const data = await response.json();
+      console.log("=== FULL API RESPONSE ===");
+      console.log(JSON.stringify(data, null, 2));
+      console.log("=== END API RESPONSE ===");
       
       if (data.success) {
+        console.log("User activity data received:", data.data);
+        // Log transaction details for debugging
+        if (data.data.transactions) {
+          console.log(`Found ${data.data.transactions.length} transactions`);
+          data.data.transactions.forEach((tx: Transaction, index: number) => {
+            console.log(`Transaction ${index}:`, {
+              id: tx.id,
+              type: tx.type,
+              amount: tx.amount,
+              fromAmount: tx.fromAmount,
+              toAmount: tx.toAmount,
+              assetName: tx.assetName,
+              fromAsset: tx.fromAsset,
+              toAsset: tx.toAsset,
+              timestamp: tx.timestamp,
+              network: tx.network,
+              transactionHash: tx.transactionHash
+            });
+          });
+        } else {
+          console.log("No transactions found in response");
+        }
         setActivityData(data.data);
       } else {
         console.error("Failed to fetch user activity:", data.message);
+        console.error("Full error response:", data);
       }
     } catch (error) {
       console.error("Error fetching user activity:", error);
@@ -141,14 +184,24 @@ const UserActivity: React.FC = () => {
 
   const formatAmount = (amount: string, assetName: string) => {
     const numAmount = parseFloat(amount);
-    return `${numAmount.toLocaleString()} ${assetName}`;
+    
+    // Format ALL amounts consistently with 2 decimal places maximum
+    // This ensures deposits, withdrawals, and bridges all look the same
+    if (numAmount === 0) {
+      return `0.00 ${assetName}`;
+    }
+    
+    // For all non-zero amounts, show 2 decimal places
+    // This will automatically handle the long decimal bridge amounts
+    return `${numAmount.toFixed(2)} ${assetName}`;
   };
 
   // Helper function to get the correct amount for display
   const getTransactionAmount = (transaction: Transaction) => {
     // Try fromAmount first, fallback to amount
     const amount = transaction.fromAmount || transaction.amount || "0";
-    return parseFloat(amount) > 0 ? amount : transaction.amount;
+    // Always return the amount we found, even if it's 0
+    return amount;
   };
 
   // Helper function to get the correct asset name for display  
@@ -255,10 +308,10 @@ const UserActivity: React.FC = () => {
               {activityData.transactions.map((transaction) => (
                 <div
                   key={transaction.id}
-                  className="bg-[rgba(255,255,255,0.02)] rounded-[4px] py-4 px-6 flex items-center justify-between"
+                  className="bg-[rgba(255,255,255,0.02)] rounded-[4px] py-4 px-6 grid grid-cols-12 items-center gap-4"
                 >
                   {/* Left side - Date and external link */}
-                  <div className="flex items-center gap-3">
+                  <div className="col-span-3 flex items-center gap-3">
                     <button
                       className="text-[#D7E3EF] hover:text-white transition-colors cursor-pointer"
                       onClick={() => {
@@ -280,25 +333,25 @@ const UserActivity: React.FC = () => {
                   </div>
 
                   {/* Center - Transaction type */}
-                  <div className="flex-1 flex justify-center">
+                  <div className="col-span-2 flex justify-center">
                     <div className="text-white text-[12px] font-medium">
                       {capitalizeFirstLetter(transaction.type)}
                     </div>
                   </div>
 
                     {/* Right side - Amount with tokens/networks */}
-                    <div className="flex items-center justify-end gap-4">
+                    <div className="col-span-7 flex items-center justify-end gap-4">
                       {transaction.type === "bridge" ? (
                         // Bridge transaction: Source Network -> Destination Network
                         <>
-                          {/* Source Network */}
+                          {/* Source Network - Always syUSD */}
                           <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-1">
                             <span className="text-[#D7E3EF] text-[12px] font-normal">
                               {formatAmount(getTransactionAmount(transaction), getTransactionAssetName(transaction))}
                             </span>
                             <Image
-                              src={networkIcons[transaction.sourceNetwork || transaction.network] || "/images/logo/base.svg"}
-                              alt={transaction.sourceNetwork || transaction.network}
+                              src="/images/icons/syUSD.svg"
+                              alt="syUSD"
                               width={20}
                               height={20}
                               className="rounded-full"
@@ -321,7 +374,7 @@ const UserActivity: React.FC = () => {
                             />
                           </svg>
 
-                          {/* Destination Network */}
+                          {/* Destination Network - Show actual destination chain */}
                           <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-1">
                             <span className="text-white text-[12px] font-normal">
                               {transaction.toAsset ? 
@@ -330,8 +383,8 @@ const UserActivity: React.FC = () => {
                               }
                             </span>
                             <Image
-                              src={networkIcons[transaction.destinationNetwork || "base"] || "/images/logo/base.svg"}
-                              alt={transaction.destinationNetwork || "base"}
+                              src={networkIcons[transaction.destinationNetwork || ""] || networkIcons[transaction.network || ""] || "/images/logo/katana.svg"}
+                              alt={transaction.destinationNetwork || transaction.network || "Destination"}
                               width={20}
                               height={20}
                               className="rounded-full"
@@ -380,7 +433,7 @@ const UserActivity: React.FC = () => {
                               }
                             </span>
                             <Image
-                              src={networkIcons[transaction.network] || "/images/logo/base.svg"}
+                              src={transaction.type === "withdrawal" ? "/images/logo/base.svg" : (networkIcons[transaction.network] || "/images/logo/base.svg")}
                               alt={transaction.network}
                               width={20}
                               height={20}

@@ -476,15 +476,25 @@ const PortfolioSubpage: React.FC = () => {
 
     setIsLoadingPnl(true);
     try {
+      console.log(`Fetching PnL data for address: ${userAddress}`);
       const response = await fetch(
-        `http://localhost:3001/api/pnl?userAddress=${userAddress}`
+        `http://localhost:3001/api/pnl/${userAddress}`
       );
+      
+      console.log("PnL API Response status:", response.status);
+      console.log("PnL API Response headers:", Object.fromEntries(response.headers.entries()));
+      
       const data = await response.json();
+      console.log("=== FULL PnL API RESPONSE ===");
+      console.log(JSON.stringify(data, null, 2));
+      console.log("=== END PnL API RESPONSE ===");
 
-      if (data.success && data.data.pnl) {
+      if (data.success && data.data && data.data.pnl) {
+        console.log("PnL data received:", data.data.pnl);
         setPnlData(data.data.pnl);
       } else {
         console.error("Failed to fetch PnL data:", data.message);
+        console.error("Full PnL error response:", data);
         setPnlData(null);
       }
     } catch (error) {
@@ -1499,13 +1509,15 @@ const PortfolioSubpage: React.FC = () => {
                   PNL
                 </div>
                 <div
-                  className={`text-[16px] font-normal leading-normal mt-1 sm:mt-3 ${
-                    isLoadingPnl
-                      ? "text-[#9C9DA2]"
-                      : pnlData?.isProfitable
-                      ? "text-[#00D1A0]"
-                      : "text-[#EF4444]"
-                  }`}
+                className={`text-[16px] font-normal leading-normal mt-1 sm:mt-3 ${
+                  isLoadingPnl
+                    ? "text-[#9C9DA2]"        // Gray when loading
+                    : !address
+                    ? "text-[#9C9DA2]"        // Gray when no wallet connected
+                    : pnlData?.isProfitable
+                    ? "text-[#00D1A0]"        // Green when profitable
+                    : "text-[#EF4444]"        // Red when not profitable
+                }`}
                 >
                   {isLoadingPnl ? (
                     <span className="inline-flex items-center gap-1">
@@ -1534,11 +1546,13 @@ const PortfolioSubpage: React.FC = () => {
                    ) : isClient && pnlData ? (
                      `${pnlData.isProfitable ? "+" : ""}$${Math.abs(
                        pnlData.value
-                     ).toFixed(2)} (${
+                     ).toFixed(4)} (${
                        pnlData.isProfitable ? "+" : ""
-                     }${pnlData.percentage.toFixed(1)}%)`
+                     }${pnlData.percentage.toFixed(2)}%)`
+                   ) : isClient && !address ? (
+                     "---"
                    ) : (
-                     "$0.00 (0.0%)"
+                     "$0.0000 (0.00%)"
                    )}
                 </div>
               </div>
