@@ -42,7 +42,7 @@ async function fetchData(
 ): Promise<ChartDataItem[]> {
   try {
     console.log(`Fetching deposit data for period: ${period}`);
-    const apiUrl = `https://ow5g1cjqsd.execute-api.ap-south-1.amazonaws.com/dev/api/syUSD/deposits?period=${period}`;
+    const apiUrl = `http://localhost:3001/api/syUSD/deposits?period=${period}`;
     console.log(`API URL: ${apiUrl}`);
     
     const res = await fetch(apiUrl);
