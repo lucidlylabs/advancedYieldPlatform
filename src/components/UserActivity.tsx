@@ -344,18 +344,18 @@ const UserActivity: React.FC = () => {
                       {transaction.type === "bridge" ? (
                         // Bridge transaction: Source Network -> Destination Network
                         <>
-                          {/* Source Network - Always syUSD */}
+                          {/* Source Network - Show network logo and coin name as text */}
                           <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-1">
-                            <span className="text-[#D7E3EF] text-[12px] font-normal">
-                              {formatAmount(getTransactionAmount(transaction), getTransactionAssetName(transaction))}
-                            </span>
                             <Image
-                              src="/images/icons/syUSD.svg"
-                              alt="syUSD"
+                              src={networkIcons[transaction.sourceNetwork || ""] || networkIcons[transaction.network || ""] || "/images/logo/base.svg"}
+                              alt={transaction.sourceNetwork || transaction.network || "Source"}
                               width={20}
                               height={20}
                               className="rounded-full"
                             />
+                            <span className="text-[#D7E3EF] text-[12px] font-normal">
+                              {formatAmount(getTransactionAmount(transaction), getTransactionAssetName(transaction))}
+                            </span>
                           </div>
 
                           {/* Arrow */}
@@ -374,14 +374,8 @@ const UserActivity: React.FC = () => {
                             />
                           </svg>
 
-                          {/* Destination Network - Show actual destination chain */}
+                          {/* Destination Network - Show network logo and coin name as text */}
                           <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-1">
-                            <span className="text-white text-[12px] font-normal">
-                              {transaction.toAsset ? 
-                                formatAmount(transaction.toAmount || getTransactionAmount(transaction), transaction.toAsset.symbol || transaction.toAsset.name) :
-                                formatAmount(getTransactionAmount(transaction), getTransactionAssetName(transaction))
-                              }
-                            </span>
                             <Image
                               src={networkIcons[transaction.destinationNetwork || ""] || networkIcons[transaction.network || ""] || "/images/logo/katana.svg"}
                               alt={transaction.destinationNetwork || transaction.network || "Destination"}
@@ -389,23 +383,29 @@ const UserActivity: React.FC = () => {
                               height={20}
                               className="rounded-full"
                             />
+                            <span className="text-white text-[12px] font-normal">
+                              {transaction.toAsset ? 
+                                formatAmount(transaction.toAmount || getTransactionAmount(transaction), transaction.toAsset.symbol || transaction.toAsset.name) :
+                                formatAmount(getTransactionAmount(transaction), getTransactionAssetName(transaction))
+                              }
+                            </span>
                           </div>
                         </>
                       ) : (
-                        // Regular transaction: Asset -> Network
+                        // Regular transaction: Network -> Network (with coin names as text)
                         <>
-                          {/* Asset */}
+                          {/* Source Network - Show network logo and coin name as text */}
                           <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-1">
-                            <span className="text-[#D7E3EF] text-[12px] font-normal">
-                              {formatAmount(getTransactionAmount(transaction), getTransactionAssetName(transaction))}
-                            </span>
                             <Image
-                              src={getAssetIcon(transaction)}
-                              alt={getTransactionAssetName(transaction)}
+                              src={networkIcons[transaction.network] || "/images/logo/base.svg"}
+                              alt={transaction.network}
                               width={20}
                               height={20}
                               className="rounded-full"
                             />
+                            <span className="text-[#D7E3EF] text-[12px] font-normal">
+                              {formatAmount(getTransactionAmount(transaction), getTransactionAssetName(transaction))}
+                            </span>
                           </div>
 
                           {/* Arrow */}
@@ -424,14 +424,8 @@ const UserActivity: React.FC = () => {
                             />
                           </svg>
 
-                          {/* Network */}
+                          {/* Destination Network - Show network logo and coin name as text */}
                           <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-1">
-                            <span className="text-white text-[12px] font-normal">
-                              {transaction.toAsset ? 
-                                formatAmount(transaction.toAmount || getTransactionAmount(transaction), transaction.toAsset.symbol || transaction.toAsset.name) :
-                                formatAmount(getTransactionAmount(transaction), getTransactionAssetName(transaction))
-                              }
-                            </span>
                             <Image
                               src={transaction.type === "withdrawal" ? "/images/logo/base.svg" : (networkIcons[transaction.network] || "/images/logo/base.svg")}
                               alt={transaction.network}
@@ -439,6 +433,12 @@ const UserActivity: React.FC = () => {
                               height={20}
                               className="rounded-full"
                             />
+                            <span className="text-white text-[12px] font-normal">
+                              {transaction.toAsset ? 
+                                formatAmount(transaction.toAmount || getTransactionAmount(transaction), transaction.toAsset.symbol || transaction.toAsset.name) :
+                                formatAmount(getTransactionAmount(transaction), getTransactionAssetName(transaction))
+                              }
+                            </span>
                           </div>
                         </>
                       )}
