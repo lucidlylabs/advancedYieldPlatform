@@ -678,9 +678,17 @@ const PortfolioSubpage: React.FC = () => {
     }
   };
 
+  // Helper function to add delay between requests
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
   // Function to check balance for a strategy across all networks (withdrawable balance)
-  const checkWithdrawableBalance = async (strategy: any) => {
+  const checkWithdrawableBalance = async (strategy: any, delayMs: number = 0) => {
     if (!address || !strategy.boringVaultAddress) return 0;
+
+    // Add delay to prevent rate limiting
+    if (delayMs > 0) {
+      await delay(delayMs);
+    }
 
     let totalBalance = 0;
     const networks = ["base", "ethereum", "arbitrum", "katana"];
@@ -706,6 +714,9 @@ const PortfolioSubpage: React.FC = () => {
           },
         });
 
+        // Add small delay between contract calls to prevent rate limiting
+        await delay(100);
+
         const [balance, decimals] = await Promise.all([
           client.readContract({
             address: strategy.boringVaultAddress as Address,
@@ -728,6 +739,11 @@ const PortfolioSubpage: React.FC = () => {
         totalBalance += formattedBalance;
       } catch (error) {
         console.error(`Error checking ${networkKey} balance:`, error);
+        // Check if it's a rate limit error
+        if (error instanceof Error && error.message.includes('429')) {
+          console.warn(`Rate limited on ${networkKey}, waiting before retry...`);
+          await delay(2000); // Wait 2 seconds before continuing
+        }
         // Continue to next network instead of failing completely
       }
     }
@@ -781,18 +797,24 @@ const PortfolioSubpage: React.FC = () => {
         (strategy) => strategy.boringVaultAddress && !strategy.comingSoon
       );
 
-      const balances = await Promise.all(
-        validStrategies.map(async (strategy) => {
-          const balance = await checkWithdrawableBalance(strategy);
-          return { ...strategy, balance } as StrategyWithBalance;
-        })
-      );
+      // Process strategies sequentially to prevent rate limiting
+      const balances: StrategyWithBalance[] = [];
+      for (let i = 0; i < validStrategies.length; i++) {
+        const strategy = validStrategies[i];
+        const delayMs = i * 500; // Add 500ms delay between each strategy
+        const balance = await checkWithdrawableBalance(strategy, delayMs);
+        balances.push({ ...strategy, balance } as StrategyWithBalance);
+      }
       setStrategiesWithWithdrawableBalance(
         balances.filter((s) => s.balance > 0)
       );
     } catch (error) {
       console.error("Error checking withdrawable balances:", error);
-      setErrorMessage("Failed to fetch withdrawable balances.");
+      if (error instanceof Error && error.message.includes('429')) {
+        setErrorMessage("Rate limited. Please wait a moment and try again.");
+      } else {
+        setErrorMessage("Failed to fetch withdrawable balances.");
+      }
     } finally {
       // Don't set refreshing to false here, let the main function handle it
     }

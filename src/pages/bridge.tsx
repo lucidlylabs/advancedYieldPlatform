@@ -916,9 +916,9 @@ const BridgePage: React.FC = () => {
                 {/* Bridge Card */}
                 <div className="space-y-4">
                   {/* Main Container */}
-                  <div className="bg-white/5 rounded-sm overflow-hidden">
+                  <div className="bg-white/5 rounded-sm overflow-visible">
                     {/* Network Selection Sub-Container */}
-                    <div className="bg-[#121521] p-6">
+                    <div className="bg-[#121521] p-6 overflow-visible">
                       <div className="flex items-center justify-between">
                         {/* Source Network - Display Only */}
                         <div className="flex-1 relative">
@@ -977,7 +977,7 @@ const BridgePage: React.FC = () => {
 
                             {/* Source Network Dropdown */}
                             {isSourceDropdownOpen && (
-                              <div className="absolute top-full left-0 right-0 mt-2 bg-[#263042] pl-4 py-3 rounded-md max-w-[145px] shadow-lg z-10">
+                              <div className="absolute top-full left-0 mt-2 bg-[#263042] pl-4 py-3 rounded-md w-[180px] shadow-lg z-50 overflow-visible">
                                 <div className="flex flex-col gap-4">
                                   {getAvailableSourceNetworks().map((network) => (
                                     <button
@@ -1094,7 +1094,7 @@ const BridgePage: React.FC = () => {
 
                             {/* Destination Network Dropdown */}
                             {isDestinationDropdownOpen && (
-                              <div className="absolute top-full left-12 right-0 mt-2 bg-[#263042] pl-4 py-3 rounded-md max-w-[145px] shadow-lg z-10">
+                              <div className="absolute top-full right-0 mt-2 bg-[#263042] pl-4 py-3 rounded-md w-[180px] shadow-lg z-50 overflow-visible">
                                 <div className="flex flex-col gap-4">
                                   {getAvailableDestinationNetworks()
                                     .map((network) => (
