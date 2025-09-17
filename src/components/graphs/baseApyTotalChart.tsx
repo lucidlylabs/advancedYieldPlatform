@@ -23,14 +23,13 @@ export default function BaseApyTotalChart({}: BaseApyTotalChartProps) {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
 
-
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         console.log(`Fetching base APY total data for period: ${period}`);
 
-        const response = await fetch(`https://ow5g1cjqsd.execute-api.ap-south-1.amazonaws.com/dev/api/apy/exchange-rates-apy-simple`);
+        const response = await fetch(`http://localhost:3001/api/apy/exchange-rates-apy-simple?period=${period}`);
 
         console.log("Response status:", response.status);
         console.log("Response headers:", response.headers);
@@ -78,10 +77,24 @@ export default function BaseApyTotalChart({}: BaseApyTotalChartProps) {
               if (dateField) {
                 const date = new Date(dateField);
                 if (!isNaN(date.getTime())) {
-                  dateStr = date.toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                  });
+                  // Format date based on period
+                  if (period === "weekly") {
+                    dateStr = `Week of ${date.toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })}`;
+                  } else if (period === "monthly") {
+                    dateStr = date.toLocaleDateString("en-US", {
+                      month: "short",
+                      year: "numeric",
+                    });
+                  } else {
+                    // Daily format
+                    dateStr = date.toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    });
+                  }
                 } else {
                   console.warn(`Invalid date for item ${index}:`, dateField);
                   dateStr = `Item ${index}`;
