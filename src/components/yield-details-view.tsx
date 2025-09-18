@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { Tooltip } from "@/components/ui/tooltip";
 import Image from "next/image";
 import { useAccount, useReadContract } from "wagmi";
-import { formatUnits } from "viem";
+import { formatUnits, createPublicClient, http, type Address } from "viem";
 import DepositView from "./deposit-view";
 import { USD_STRATEGIES, ETH_STRATEGIES, BTC_STRATEGIES } from "../config/env";
 import { IncentiveRewards } from "./ui/IncentiveRewards";
@@ -12,6 +12,9 @@ import DepositBarChart from "./graphs/depositChart";
 import AllocationChart from "./graphs/allocationsChart";
 import StrategyDailyYieldChart from "./graphs/strategyDailyYieldChart";
 import BaseApyTotalChart from "./graphs/baseApyTotalChart";
+import StrategyPnlChart from "./graphs/strategyPnlChart";
+import AllocationReturnsChart from "./graphs/allocationReturnsChart";
+import { ERC20_ABI } from "../config/abi/erc20";
 
 interface MarketItem {
   id: number;
@@ -113,10 +116,11 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
     "deposits" | "allocation"
   >("deposits");
   const [activeBaseApyTab, setActiveBaseApyTab] = useState<
-    "totalApy" | "bySource"
+    "totalApy" | "allocation"
   >("totalApy");
 
   const [userDeposits, setUserDeposits] = useState<string>("0.00");
+  const [networkBalances, setNetworkBalances] = useState<{[key: string]: number}>({});
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -126,38 +130,167 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   // Get connected wallet address
   const { address, isConnected } = useAccount();
 
-  // Read user's syUSD token balance (vault shares)
-  const { data: userSyUSDTokens } = useReadContract({
-    address: contractAddress as `0x${string}`,
-    abi: [
-      {
-        name: "balanceOf",
-        type: "function",
-        stateMutability: "view",
-        inputs: [{ name: "account", type: "address" }],
-        outputs: [{ name: "", type: "uint256" }],
-      },
-    ],
-    functionName: "balanceOf",
-    args: address ? [address] : undefined,
-    query: {
-      enabled: !!address && isConnected,
-    },
-  });
-
-  // Format user's syUSD token amount (same method as portfolio)
-  useEffect(() => {
-    if (userSyUSDTokens && typeof userSyUSDTokens === "bigint") {
-      // Use same method as portfolio.tsx
-      const decimals =
-        USD_STRATEGIES.PERPETUAL_DURATION.STABLE.shareAddress_token_decimal ??
-        6;
-      const formatted = Number(formatUnits(userSyUSDTokens, decimals));
-      setUserDeposits(formatted.toFixed(2));
-    } else if (!isConnected) {
-      setUserDeposits("0.00");
+  // Function to check balance for a specific network
+  const checkNetworkBalance = async (networkConfig: any, vaultAddress: string) => {
+    if (!address || !networkConfig || !vaultAddress || vaultAddress === "0x0000000000000000000000000000000000000000") {
+      console.log(`Skipping network check - missing data:`, {
+        hasAddress: !!address,
+        hasNetworkConfig: !!networkConfig,
+        vaultAddress,
+        networkName: networkConfig?.chainObject?.name
+      });
+      return 0;
     }
-  }, [userSyUSDTokens, isConnected]);
+
+    try {
+      console.log(`Checking balance on ${networkConfig.chainObject.name}:`, {
+        rpc: networkConfig.rpc,
+        vaultAddress,
+        userAddress: address
+      });
+
+      const client = createPublicClient({
+        transport: http(networkConfig.rpc),
+        chain: networkConfig.chainObject,
+      });
+
+      const [balance, decimals] = await Promise.all([
+        client.readContract({
+          address: vaultAddress as Address,
+          abi: ERC20_ABI,
+          functionName: "balanceOf",
+          args: [address as Address],
+        }),
+        client.readContract({
+          address: vaultAddress as Address,
+          abi: ERC20_ABI,
+          functionName: "decimals",
+        }),
+      ]);
+
+      const formattedBalance = parseFloat(
+        formatUnits(balance as bigint, decimals as number)
+      );
+
+      console.log(`Balance result for ${networkConfig.chainObject.name}:`, {
+        rawBalance: balance.toString(),
+        decimals,
+        formattedBalance
+      });
+
+      return formattedBalance;
+    } catch (error) {
+      console.warn(`Error checking balance on ${networkConfig.chainObject.name}:`, error);
+      return 0;
+    }
+  };
+
+  // Function to check balances across all networks
+  const checkAllNetworkBalances = async () => {
+    if (!address || !isConnected) {
+      setUserDeposits("0.00");
+      setNetworkBalances({});
+      return;
+    }
+
+    try {
+      const strategy = USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
+      
+      // syUSD vault exists on all networks with the same address
+      const networks = [
+        { config: strategy.base, address: strategy.boringVaultAddress, name: "Base" },
+        { config: strategy.ethereum, address: strategy.boringVaultAddress, name: "Ethereum" },
+        { config: strategy.arbitrum, address: strategy.boringVaultAddress, name: "Arbitrum" },
+        { config: strategy.katana, address: strategy.boringVaultAddress, name: "Katana" },
+      ].filter(network => network.config && network.address);
+
+      console.log("🔍 Checking syUSD vault on all networks:", {
+        vaultAddress: strategy.boringVaultAddress,
+        networksToCheck: networks.map(n => `${n.name} (${n.config?.rpc})`)
+      });
+
+      const balancePromises = networks.map(network =>
+        checkNetworkBalance(network.config, network.address)
+      );
+
+      const balances = await Promise.all(balancePromises);
+      const totalBalance = balances.reduce((sum, balance) => sum + balance, 0);
+      
+      // Debug logging
+      console.log("Network balance check results:");
+      networks.forEach((network, index) => {
+        console.log(`${network.name}: ${balances[index]} (RPC: ${network.config?.rpc})`);
+        if (network.name === "Base" && balances[index] === 0) {
+          console.warn("🔍 Base balance is 0 - this might be the issue!");
+          console.log("Base network config:", network.config);
+          console.log("Base vault address:", network.address);
+        }
+      });
+      
+      // Store individual network balances
+      const networkBalanceMap: {[key: string]: number} = {};
+      networks.forEach((network, index) => {
+        if (balances[index] > 0) {
+          networkBalanceMap[network.name] = balances[index];
+        }
+      });
+      
+      setNetworkBalances(networkBalanceMap);
+      setUserDeposits(totalBalance.toFixed(2));
+    } catch (error) {
+      console.error("Error checking all network balances:", error);
+      setUserDeposits("0.00");
+      setNetworkBalances({});
+    }
+  };
+
+  // Check balances across all networks when address or connection changes
+  useEffect(() => {
+    checkAllNetworkBalances();
+  }, [address, isConnected]);
+
+  // Format tooltip content for network balances
+  const formatNetworkBalancesTooltip = () => {
+    const hasBalances = Object.keys(networkBalances).length > 0;
+    if (!hasBalances) {
+      return "No holdings found";
+    }
+
+    // Map network names to their corresponding images
+    const networkImages: {[key: string]: string} = {
+      "Base": "/images/logo/base.svg",
+      "Ethereum": "/images/logo/eth.svg", 
+      "Arbitrum": "/images/logo/arb.svg",
+      "Katana": "/images/logo/katana.svg"
+    };
+
+    return (
+      <div className="min-w-[180px]">
+        <div className="text-sm font-semibold text-black mb-3 pb-2 border-b border-gray-200">
+          Deposit Breakdown
+        </div>
+        <div className="space-y-2">
+          {Object.entries(networkBalances).map(([network, balance]) => (
+            <div key={network} className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Image
+                  src={networkImages[network] || "/images/icons/default_assest.svg"}
+                  alt={network}
+                  width={20}
+                  height={20}
+                  className="object-contain"
+                />
+                <span className="text-sm text-black">{network}</span>
+              </div>
+              <span className="text-sm text-black font-medium">
+                {balance.toFixed(2)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   // FAQ data
   const faqItems: FAQItemProps[] = [
@@ -193,7 +326,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
     <div className="w-full">
       <div className="flex justify-between items-center mb-3 mt-4">
         <h2 className="text-[rgba(255,255,255,0.70)] text-[16px] font-extrabold ">
-          TOTAL DEPOSITS IN {name}
+          Total deposits in {name}
         </h2>
 
         {/* Toggle buttons */}
@@ -239,7 +372,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
     <div className="w-full">
       <div className="flex justify-between items-center mb-3 mt-4">
         <h2 className="text-[rgba(255,255,255,0.70)] text-[16px] font-extrabold ">
-          BASE APY HISTORY
+         Base APY History
         </h2>
 
         {/* Toggle buttons */}
@@ -255,14 +388,14 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
             Total APY
           </button>
           <button
-            className={`px-3 py-1.5 w-28 text-xs transition-colors duration-150 ${
-              activeBaseApyTab === "bySource"
+            className={`px-3 py-1.5 w-36 text-xs transition-colors duration-150 ${
+              activeBaseApyTab === "allocation"
                 ? "bg-[rgba(184,138,248,0.1)] text-white"
                 : "bg-transparent text-gray-400 hover:text-gray-300"
             }`}
-            onClick={() => setActiveBaseApyTab("bySource")}
+            onClick={() => setActiveBaseApyTab("allocation")}
           >
-            By Source
+            Returns Attribution
           </button>
         </div>
       </div>
@@ -273,9 +406,21 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
         </div>
       )}
 
-      {activeBaseApyTab === "bySource" && (
+      {/* {activeBaseApyTab === "bySource" && (
         <div className="h-[800px] overflow-y-auto pb-2">
           <StrategyDailyYieldChart />
+        </div>
+      )} */}
+
+      {/* {activeBaseApyTab === "pnl" && (
+        <div className="h-[800px] overflow-y-auto pb-2">
+          <StrategyPnlChart />
+        </div>
+      )} */}
+
+      {activeBaseApyTab === "allocation" && (
+        <div className="h-[800px] overflow-y-auto pb-2">
+          <AllocationReturnsChart />
         </div>
       )}
     </div>
@@ -338,22 +483,24 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
           <div className="flex items-center gap-3">
             {/* Only show holdings component if user has actual holdings */}
             {isClient && isConnected && userDeposits !== "0.00" && (
-              <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-[4px] px-2 py-1.5">
-                <span className="text-[#9C9DA2] text-[12px]">Your Holdings:</span>
-                <span className="text-white text-[14px] font-medium">
-                  {userDeposits}
-                </span>
-                {/* Circular icon next to deposit amount */}
-                <div className="w-4 h-4 rounded-full overflow-hidden flex items-center justify-center">
-                  <Image
-                    src="/images/icons/syUSD.svg"
-                    alt="syUSD"
-                    width={16}
-                    height={16}
-                    className="object-contain"
-                  />
+              <Tooltip content={formatNetworkBalancesTooltip()} side="bottom">
+                <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-[4px] px-2 py-1.5 cursor-help">
+                  <span className="text-[#9C9DA2] text-[12px]">Your Holdings:</span>
+                  <span className="text-white text-[14px] font-medium">
+                    {userDeposits}
+                  </span>
+                  {/* Circular icon next to deposit amount */}
+                  <div className="w-4 h-4 rounded-full overflow-hidden flex items-center justify-center">
+                    <Image
+                      src="/images/icons/syUSD.svg"
+                      alt="syUSD"
+                      width={16}
+                      height={16}
+                      className="object-contain"
+                    />
+                  </div>
                 </div>
-              </div>
+              </Tooltip>
             )}
 
             <div className="flex gap-2">

@@ -254,7 +254,11 @@ interface ExchangeRateProps {
   strategyConfig: StrategyConfig;
 }
 
-const ExchangeRate: React.FC<ExchangeRateProps> = ({ selectedAssetOption, targetChain, strategyConfig }) => {
+const ExchangeRate: React.FC<ExchangeRateProps> = ({
+  selectedAssetOption,
+  targetChain,
+  strategyConfig,
+}) => {
   const [exchangeRate, setExchangeRate] = useState<string>("0.98");
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -271,7 +275,7 @@ const ExchangeRate: React.FC<ExchangeRateProps> = ({ selectedAssetOption, target
       try {
         // Get rate provider address and network config based on selected target chain
         const rateProviderAddress = strategyConfig.rateProvider;
-        
+
         // Helper function to get chain config based on target chain
         const getChainConfig = (chainName: string) => {
           switch (chainName) {
@@ -286,49 +290,103 @@ const ExchangeRate: React.FC<ExchangeRateProps> = ({ selectedAssetOption, target
               return strategyConfig.base;
           }
         };
-        
+
         const chainData = getChainConfig(targetChain);
         const { rpcUrl, chain } = {
           rpcUrl: chainData.rpc,
-          chain: chainData.chainObject
+          chain: chainData.chainObject,
         };
+
+        // Create client with fallback RPC endpoints for Base only
+        const baseRpcUrls = [
+          "https://base.llamarpc.com",
+          "https://base.blockpi.network/v1/rpc/public",
+          "https://base-mainnet.g.alchemy.com/v2/demo",
+          "https://base.meowrpc.com",
+        ];
 
         const client = createPublicClient({
           transport: http(rpcUrl),
           chain,
         });
 
-        // Get rate from rate provider using selected token address
-        const rate = await client.readContract({
-          address: rateProviderAddress as Address,
-          abi: RATE_PROVIDER_ABI,
-          functionName: "getRateInQuoteSafe",
-          args: [selectedAssetOption.contract as Address],
-        });
+        // Get rate from rate provider using selected token address with retry logic
+        let rate;
+        let lastError;
+
+        // Try primary RPC first
+        try {
+          rate = await client.readContract({
+            address: rateProviderAddress as Address,
+            abi: RATE_PROVIDER_ABI,
+            functionName: "getRateInQuoteSafe",
+            args: [selectedAssetOption.contract as Address],
+          });
+        } catch (error) {
+          console.warn("Primary RPC failed, trying fallback RPCs:", error);
+          lastError = error;
+
+          // Try fallback RPCs for Base only
+          let fallbackUrls: string[] = [];
+          if (targetChain === "base") {
+            fallbackUrls = baseRpcUrls.slice(1);
+          }
+
+          for (const fallbackRpc of fallbackUrls) {
+            try {
+              const fallbackClient = createPublicClient({
+                transport: http(fallbackRpc),
+                chain,
+              });
+
+              rate = await fallbackClient.readContract({
+                address: rateProviderAddress as Address,
+                abi: RATE_PROVIDER_ABI,
+                functionName: "getRateInQuoteSafe",
+                args: [selectedAssetOption.contract as Address],
+              });
+              console.log(
+                `Successfully connected using fallback RPC: ${fallbackRpc}`
+              );
+              break;
+            } catch (fallbackError) {
+              console.warn(
+                `Fallback RPC ${fallbackRpc} also failed:`,
+                fallbackError
+              );
+              lastError = fallbackError;
+            }
+          }
+
+          // If all RPCs failed, throw the last error
+          if (!rate) {
+            throw lastError;
+          }
+        }
 
         console.log("Exchange rate debug:", {
           token: selectedAssetOption.name,
           tokenContract: selectedAssetOption.contract,
           rateProviderAddress,
           rawRate: rate.toString(),
-          rateLength: rate.toString().length
+          rateLength: rate.toString().length,
         });
 
         // Based on Basescan results:
         // USDC: 1010566 (6 decimals) = 1.010566 USDC per 1 syUSD
-        // USDS: 1010566000000000000 (18 decimals) = 1.010566 USDS per 1 syUSD  
+        // USDS: 1010566000000000000 (18 decimals) = 1.010566 USDS per 1 syUSD
         // sUSDS: 948812511572256076 (18 decimals) = 0.948812 sUSDS per 1 syUSD
-        
+
         // The rate is returned in the same decimals as the deposit token
         // Use the deposit token's decimals to format the rate correctly
         const rateFormatted = formatUnits(rate, selectedAssetOption.decimal);
         const rateNumber = parseFloat(rateFormatted);
-        
+
         // This rate represents: how many deposit tokens = 1 vault share
         // For display, we want: 1 deposit token = X vault shares
         // So exchange rate = 1 / rate
         const exchangeRateNumber = rateNumber > 0 ? 1 / rateNumber : 0;
-        
+
         console.log("Rate conversion:", {
           token: selectedAssetOption.name,
           tokenDecimals: selectedAssetOption.decimal,
@@ -336,12 +394,17 @@ const ExchangeRate: React.FC<ExchangeRateProps> = ({ selectedAssetOption, target
           rateFormatted,
           rateNumber,
           exchangeRate: exchangeRateNumber,
-          final: exchangeRateNumber.toFixed(2)
+          final: exchangeRateNumber.toFixed(2),
         });
-        
-        setExchangeRate(exchangeRateNumber > 0 ? exchangeRateNumber.toFixed(2) : "1.00");
+
+        setExchangeRate(
+          exchangeRateNumber > 0 ? exchangeRateNumber.toFixed(2) : "1.00"
+        );
       } catch (error) {
-        console.error(`Error fetching rate for ${selectedAssetOption.name}:`, error);
+        console.error(
+          `Error fetching rate for ${selectedAssetOption.name}:`,
+          error
+        );
         setExchangeRate("0.98"); // Fallback to default
       } finally {
         setIsLoading(false);
@@ -363,11 +426,26 @@ const ExchangeRate: React.FC<ExchangeRateProps> = ({ selectedAssetOption, target
           <span className="text-[#9C9DA2] text-[14px] font-normal">
             Exchange rate
           </span>
-          <Tooltip content={`Current exchange rate between ${selectedAssetOption.name} and syUSD vault shares`} side="top">
+          <Tooltip
+            content={`Current exchange rate between ${selectedAssetOption.name} and syUSD vault shares`}
+            side="top"
+          >
             <div className="w-4 h-4 rounded-full flex items-center justify-center">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="8" cy="8" r="7" stroke="#9C9DA2" strokeWidth="1"/>
-                <path d="M8 5v3M8 11h.01" stroke="#9C9DA2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle cx="8" cy="8" r="7" stroke="#9C9DA2" strokeWidth="1" />
+                <path
+                  d="M8 5v3M8 11h.01"
+                  stroke="#9C9DA2"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </div>
           </Tooltip>
@@ -482,7 +560,7 @@ const DepositView: React.FC<DepositViewProps> = ({
   ] as StrategyConfig;
 
   // Get the actual APY from prop and extract numeric value
-  const actualApy = apy ? apy.replace('%', '') : '0';
+  const actualApy = apy ? apy.replace("%", "") : "0";
 
   // Helper to extract unique chain configurations
   const getUniqueChainConfigs = useMemo(() => {
@@ -582,6 +660,15 @@ const DepositView: React.FC<DepositViewProps> = ({
 
     try {
       const { rpcUrl, chain: clientChain } = getChainConfig(targetChain);
+
+      // RPC fallback URLs for Base only
+      const baseRpcUrls = [
+        "https://base.llamarpc.com",
+        "https://base.blockpi.network/v1/rpc/public",
+        "https://base-mainnet.g.alchemy.com/v2/demo",
+        "https://base.meowrpc.com",
+      ];
+
       const client = createPublicClient({
         transport: http(rpcUrl),
         chain: clientChain,
@@ -591,13 +678,61 @@ const DepositView: React.FC<DepositViewProps> = ({
       const rateProviderAddress = strategyConfig.rateProvider;
       const depositTokenAddress = selectedAssetOption.contract;
 
-      // Call getRateInQuoteSafe to get the cost of 1 share in terms of deposit token
-      const rateInQuote = await client.readContract({
-        address: rateProviderAddress as Address,
-        abi: RATE_PROVIDER_ABI,
-        functionName: "getRateInQuoteSafe",
-        args: [depositTokenAddress as Address],
-      });
+      // Call getRateInQuoteSafe with retry logic
+      let rateInQuote;
+      let lastError;
+
+      try {
+        rateInQuote = await client.readContract({
+          address: rateProviderAddress as Address,
+          abi: RATE_PROVIDER_ABI,
+          functionName: "getRateInQuoteSafe",
+          args: [depositTokenAddress as Address],
+        });
+      } catch (error) {
+        console.warn(
+          "Primary RPC failed in calculateSharesToReceive, trying fallback RPCs:",
+          error
+        );
+        lastError = error;
+
+        // Try fallback RPCs for Base only
+        let fallbackUrls: string[] = [];
+        if (targetChain === "base") {
+          fallbackUrls = baseRpcUrls.slice(1);
+        }
+
+        for (const fallbackRpc of fallbackUrls) {
+          try {
+            const fallbackClient = createPublicClient({
+              transport: http(fallbackRpc),
+              chain: clientChain,
+            });
+
+            rateInQuote = await fallbackClient.readContract({
+              address: rateProviderAddress as Address,
+              abi: RATE_PROVIDER_ABI,
+              functionName: "getRateInQuoteSafe",
+              args: [depositTokenAddress as Address],
+            });
+            console.log(
+              `Successfully connected using fallback RPC: ${fallbackRpc}`
+            );
+            break;
+          } catch (fallbackError) {
+            console.warn(
+              `Fallback RPC ${fallbackRpc} also failed:`,
+              fallbackError
+            );
+            lastError = fallbackError;
+          }
+        }
+
+        // If all RPCs failed, throw the last error
+        if (!rateInQuote) {
+          throw lastError;
+        }
+      }
 
       console.log("Rate calculation details:", {
         depositAmount,
@@ -644,10 +779,19 @@ const DepositView: React.FC<DepositViewProps> = ({
 
       setSharesToReceive(sharesFormatted);
 
-      // Calculate USD value: shares * exchange rate
+      // Calculate USD value: (shares/10^18) * rateNumber
       const sharesForUsd = parseFloat(sharesFormatted);
-      const rateNumber = parseFloat(formatUnits(rateInQuote, 18)); // Rate is in 18 decimals
-      const usdValueCalculated = sharesForUsd * rateNumber;
+      // Use 10^6 for USDC, USDT, vbUSDC, and vbUSDT; 10^18 for other tokens
+      const rateDecimals =
+        selectedAssetOption?.name === "USDC" ||
+        selectedAssetOption?.name === "USDT" ||
+        selectedAssetOption?.name === "vbUSDC" ||
+        selectedAssetOption?.name === "vbUSDT"
+          ? 6
+          : 18;
+      const rateNumber = parseFloat(formatUnits(rateInQuote, rateDecimals));
+      const usdValueCalculated =
+        (sharesForUsd / Math.pow(10, 18)) * rateNumber * Math.pow(10, 18);
       const formattedUsdValue = usdValueCalculated.toFixed(2);
       setUsdValue(formattedUsdValue);
 
@@ -656,7 +800,8 @@ const DepositView: React.FC<DepositViewProps> = ({
         rateInQuote: rateInQuote.toString(),
         shares: shares.toString(),
         sharesFormatted,
-        usdValue: formattedUsdValue,
+        rateNumber,
+        usdValue: usdValueCalculated,
       });
     } catch (error) {
       console.error("Error calculating shares:", error);
@@ -1616,23 +1761,25 @@ const DepositView: React.FC<DepositViewProps> = ({
                     </svg>
                   </button>
                 </div>
-                
-              <ExchangeRate 
-                selectedAssetOption={selectedAssetOption} 
-                targetChain={targetChain}
-                strategyConfig={strategyConfig}
-              />
+
+                <ExchangeRate
+                  selectedAssetOption={selectedAssetOption}
+                  targetChain={targetChain}
+                  strategyConfig={strategyConfig}
+                />
 
                 {/* Two Cards Row */}
                 <div className="flex flex-col gap-6 md:flex-row justify-center items-start">
                   <div className="flex flex-col justify-center items-center w-full">
-                    
                     {/* Deposit Chain Dropdown */}
                     <div className="w-full max-w-[280px] bg-[#121420] p-4 border-l border-r border-t border-[rgba(255,255,255,0.05)]">
                       <div className="flex items-center justify-between gap-2">
                         <label className="text-[#9C9DA2] font-inter text-[12px] whitespace-nowrap flex items-center gap-1">
                           Deposit Network
-                          <Tooltip content="Select the network you'll be depositing funds from." side="top">
+                          <Tooltip
+                            content="Select the network you'll be depositing funds from."
+                            side="top"
+                          >
                             <div>
                               <InfoIcon />
                             </div>
@@ -1782,7 +1929,10 @@ const DepositView: React.FC<DepositViewProps> = ({
                       <div className="flex items-center justify-between gap-2">
                         <label className="text-[#9C9DA2] font-inter text-[12px] whitespace-nowrap flex items-center gap-1">
                           Destination Network
-                          <Tooltip content="This is the network where you'll receive your syUSD vault tokens" side="top">
+                          <Tooltip
+                            content="This is the network where you'll receive your syUSD vault tokens"
+                            side="top"
+                          >
                             <div>
                               <InfoIcon />
                             </div>

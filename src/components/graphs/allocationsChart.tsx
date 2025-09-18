@@ -11,6 +11,75 @@ import {
 import { CommonTooltip } from "../ui/tooltip";
 import { getStrategyDisplayName } from "../../config/env";
 
+const colors = [
+  "#7B5FFF", // violet
+  "#5CD6FF", // cyan
+  "#C3F34A", // lime
+  "#FF6B6B", // red
+  "#4ECDC4", // teal
+  "#45B7D1", // blue
+  "#96CEB4", // green
+  "#FFEAA7", // yellow
+  "#DDA0DD", // plum
+  "#98D8C8", // mint
+];
+
+// Create a consistent color mapping function based on strategy addresses
+// This ensures the same strategy gets the same color across all charts regardless of API order
+const createAddressBasedColorMap = (strategies: {address: string, name: string}[]): Record<string, string> => {
+  // Sort by address to ensure consistent ordering across all charts
+  const sortedStrategies = [...strategies].sort((a, b) => a.address.localeCompare(b.address));
+  const colorMap: Record<string, string> = {};
+  
+  // Strategy addresses for color swapping
+  const rlpMorphoAddress = "0x1ed0a3d7562066c228a0bb3fed738182f03abd01"; // RLP/USDC Morpho
+  const sUsdeUsdcAddress = "0x79857afb972e43c7049ae3c63274fc5ef3b815bb"; // sUSDe/USDC AaveV3
+  const ptSusdfAddress = "0x2fa924e8474726dec250eead84f4f34e063acdcc"; // PT-sUSDF/USDC
+  const rlpAddress = "0x34a06c87817ec6683bc1788dbc9aa4038900ea14"; // RLP (assumed full address)
+  const ptIusdAddress = "0xa32ba04a547e1c6419d3fcf5bbdb7461b3d19bb1"; // PT-iUSD/USDC Morpho
+  const gauntletAddress = "0xd0bc4920f1b43882b334354ffab23c9e9637b89e"; // Gauntlet Frontier USDC
+  
+  sortedStrategies.forEach((strategy, index) => {
+    let color = colors[index % colors.length];
+    const strategyAddr = strategy.address.toLowerCase();
+    
+    // Color swaps and custom colors:
+    // 1. RLP gets custom magenta color
+    if (strategyAddr === rlpAddress.toLowerCase()) {
+      color = "#FF00FF"; // Magenta color for RLP
+    }
+    // 2. RLP/USDC Morpho gets custom teal color
+    else if (strategyAddr === rlpMorphoAddress.toLowerCase()) {
+      color = "#0d9488"; // Teal color for RLP/USDC Morpho
+    }
+    // 3. sUSDe/USDC AaveV3 gets custom yellow color
+    else if (strategyAddr === sUsdeUsdcAddress.toLowerCase()) {
+      color = "#fde047"; // Yellow color for sUSDe/USDC AaveV3
+    }
+    // 3. PT-sUSDF/USDC gets RLP's original color (green) - but RLP now has magenta
+    else if (strategyAddr === ptSusdfAddress.toLowerCase()) {
+      const rlpIndex = sortedStrategies.findIndex(s => s.address.toLowerCase() === rlpAddress.toLowerCase());
+      color = rlpIndex >= 0 ? colors[rlpIndex % colors.length] : color;
+    }
+    // 4. PT-iUSD/USDC Morpho gets Gauntlet's color
+    else if (strategyAddr === ptIusdAddress.toLowerCase()) {
+      const gauntletIndex = sortedStrategies.findIndex(s => s.address.toLowerCase() === gauntletAddress.toLowerCase());
+      color = gauntletIndex >= 0 ? colors[gauntletIndex % colors.length] : color;
+    }
+    // 5. Gauntlet gets PT-iUSD's color
+    else if (strategyAddr === gauntletAddress.toLowerCase()) {
+      const ptIusdIndex = sortedStrategies.findIndex(s => s.address.toLowerCase() === ptIusdAddress.toLowerCase());
+      color = ptIusdIndex >= 0 ? colors[ptIusdIndex % colors.length] : color;
+    }
+    
+    // Map both address and name to the color
+    colorMap[strategy.address] = color;
+    colorMap[strategy.name] = color;
+  });
+  
+  return colorMap;
+};
+
 interface Strategy {
   strategy: string;
   network: string;
@@ -35,6 +104,7 @@ export default function AllocationChart({}: AllocationChartProps) {
   const [initialLoading, setInitialLoading] = useState(true);
   const [keys, setKeys] = useState<string[]>([]);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [strategyColorMap, setStrategyColorMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const fetchData = async () => {
@@ -46,7 +116,7 @@ export default function AllocationChart({}: AllocationChartProps) {
 
         console.log("Fetching allocation data...");
         const response = await fetch(
-          "https://ow5g1cjqsd.execute-api.ap-south-1.amazonaws.com/dev/api/allocation/daily-allocation"
+          "http://localhost:3001/api/allocation/daily-allocation"
         );
 
         console.log("Response status:", response.status);
@@ -73,17 +143,48 @@ export default function AllocationChart({}: AllocationChartProps) {
           processedData = [processedData];
         }
 
-        console.log("Processed allocation data:", processedData);
-        setData(processedData);
+        // Remove August 26th and filter out dates after September 9th
+        const filteredData = processedData.filter((dayData: any) => {
+          // Try multiple ways to check for August 26th
+          const originalDate = dayData.date;
+          const dateObj = new Date(originalDate);
+          
+          // Check if it's August 26th in any format
+          const isAugust26 = (
+            originalDate.includes('2025-08-26') ||
+            originalDate.includes('08-26') ||
+            originalDate.includes('Aug 26') ||
+            (dateObj.getFullYear() === 2025 && dateObj.getMonth() === 7 && dateObj.getDate() === 26)
+          );
+          
+          // Check if date is after September 9th, 2025
+          const sept9_2025 = new Date('2025-09-09');
+          const isAfterSept9 = dateObj > sept9_2025;
+          
+          return !isAugust26 && !isAfterSept9;
+        });
 
-        // Extract strategy addresses from the first data point
-        if (processedData.length > 0 && processedData[0].strategies) {
-          const firstEntry = processedData[0];
+        console.log("Filtered allocation data (excluding Aug 26 and after Sept 9):", filteredData);
+        setData(filteredData);
+
+        // Extract strategy addresses and create color mapping
+        if (filteredData.length > 0 && filteredData[0].strategies) {
+          const firstEntry = filteredData[0];
           const extractedKeys = firstEntry.strategies.map(
             (strategy: Strategy) => strategy.strategy
           );
           console.log("Extracted strategy addresses:", extractedKeys);
           console.log("Strategy names from config:", extractedKeys.map((addr: string) => getStrategyDisplayName(addr)));
+          
+          // Create address-based color mapping for consistent colors across charts
+          const strategiesWithAddresses = extractedKeys.map((address: string) => ({
+            address: address.toLowerCase(), // Normalize address
+            name: getStrategyDisplayName(address)
+          }));
+          
+          const colorMap = createAddressBasedColorMap(strategiesWithAddresses);
+          setStrategyColorMap(colorMap);
+          
           setKeys(extractedKeys);
           setSelectedKeys(new Set(extractedKeys));
         }
@@ -167,19 +268,6 @@ export default function AllocationChart({}: AllocationChartProps) {
       </div>
     );
   }
-
-  const colors = [
-    "#7B5FFF", // violet
-    "#5CD6FF", // cyan
-    "#C3F34A", // lime
-    "#FF6B6B", // red
-    "#4ECDC4", // teal
-    "#45B7D1", // blue
-    "#96CEB4", // green
-    "#FFEAA7", // yellow
-    "#DDA0DD", // plum
-    "#98D8C8", // mint
-  ];
 
   return (
     <div className="w-full mb-12 overflow-x-hidden" style={{ overflowY: 'visible' }}>
@@ -270,18 +358,22 @@ export default function AllocationChart({}: AllocationChartProps) {
             />
             {keys
               .filter((k) => selectedKeys.has(k))
-              .map((key, idx) => {
-                console.log(`Rendering Area for key: ${key}, name: ${getStrategyDisplayName(key)}`);
+              .map((key) => {
+                const strategyName = getStrategyDisplayName(key);
+                // Use address-based color mapping for consistency across charts
+                const strategyColor = strategyColorMap[key.toLowerCase()] || strategyColorMap[strategyName] || colors[0];
+                
+                console.log(`Rendering Area for key: ${key}, name: ${strategyName}, color: ${strategyColor}`);
                 return (
                   <Area
                     key={key}
                     type="monotone"
                     dataKey={key}
                     stackId="1"
-                    stroke={colors[idx % colors.length]}
-                    fill={colors[idx % colors.length]}
+                    stroke={strategyColor}
+                    fill={strategyColor}
                     fillOpacity={0.8}
-                    name={getStrategyDisplayName(key)}
+                    name={strategyName}
                   />
                 );
               })}
@@ -307,13 +399,14 @@ export default function AllocationChart({}: AllocationChartProps) {
               marginRight: "24px",
             }}
           >
-            {keys.map((key, idx) => {
+            {keys.map((key) => {
               const isSelected = selectedKeys.has(key);
               // Convert address to strategy name for display
               const displayName = getStrategyDisplayName(key);
-              const buttonColor = colors[idx % colors.length];
+              // Use address-based color mapping for consistency across charts
+              const buttonColor = strategyColorMap[key.toLowerCase()] || strategyColorMap[displayName] || colors[0];
               
-              console.log(`Legend item - key: ${key}, displayName: ${displayName}, isSelected: ${isSelected}`);
+              console.log(`Legend item - key: ${key}, displayName: ${displayName}, isSelected: ${isSelected}, color: ${buttonColor}`);
 
               return (
                 <div

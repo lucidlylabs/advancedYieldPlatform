@@ -68,12 +68,33 @@ export default function BaseApyBySourceChart({}: BaseApyBySourceChartProps) {
           processedData = [processedData];
         }
 
-        console.log("Processed base APY by source data:", processedData);
-        setData(processedData);
+        // Remove August 26th and filter out dates after September 9th
+        const filteredData = processedData.filter((dayData: any) => {
+          // Try multiple ways to check for August 26th
+          const originalDate = dayData.date;
+          const dateObj = new Date(originalDate);
+          
+          // Check if it's August 26th in any format
+          const isAugust26 = (
+            originalDate.includes('2025-08-26') ||
+            originalDate.includes('08-26') ||
+            originalDate.includes('Aug 26') ||
+            (dateObj.getFullYear() === 2025 && dateObj.getMonth() === 7 && dateObj.getDate() === 26)
+          );
+          
+          // Check if date is after September 9th, 2025
+          const sept9_2025 = new Date('2025-09-09');
+          const isAfterSept9 = dateObj > sept9_2025;
+          
+          return !isAugust26 && !isAfterSept9;
+        });
+
+        console.log("Filtered base APY by source data (excluding Aug 26 and after Sept 9):", filteredData);
+        setData(filteredData);
 
         // Extract strategy addresses from the first data point
-        if (processedData.length > 0 && processedData[0].strategies) {
-          const firstEntry = processedData[0];
+        if (filteredData.length > 0 && filteredData[0].strategies) {
+          const firstEntry = filteredData[0];
           const extractedKeys = firstEntry.strategies.map(
             (strategy: Strategy) => strategy.strategy
           );

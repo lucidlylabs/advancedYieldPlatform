@@ -1,0 +1,1424 @@
+import React, { useState, useEffect } from "react";
+import Image from "next/image";
+import {
+  useAccount,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+  useSwitchChain,
+} from "wagmi";
+import {
+  formatUnits,
+  createPublicClient,
+  http,
+  Address,
+  parseUnits,
+} from "viem";
+import { base, mainnet, arbitrum } from "wagmi/chains";
+import { Header } from "../components/ui/header";
+import { Navigation } from "../components/ui/navigation";
+import { Tooltip } from "../components/ui/tooltip";
+import { ERC20_ABI } from "../config/abi/erc20";
+import { TELLER_WITH_LAYER_ZERO_ABI } from "../config/abi/TellerWithLayerZero";
+
+interface Network {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+}
+
+interface TransactionHistoryItem {
+  id: number;
+  token: string;
+  amount: string;
+  from: string;
+  to: string;
+  time: string;
+  status: string;
+  txHash: string;
+}
+
+interface ApiTransaction {
+  id: number;
+  vaultTokenAddress: string;
+  eventType: string;
+  transactionHash: string;
+  timestamp: string;
+  shareAmount: number;
+  userAddress: string;
+  bridge: {
+    srcChainId: number;
+    dstChainId: number;
+    sender: string;
+    receiver: string;
+    status: string;
+  };
+}
+
+interface ApiResponse {
+  walletAddress: string;
+  data: ApiTransaction[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+  summary: {
+    totalBridgeTransactions: number;
+    uniqueVaults: number;
+    uniqueSrcChains: number;
+    uniqueDstChains: number;
+    statusBreakdown: {
+      delivered: number;
+      pending: number;
+      failed: number;
+    };
+    amounts: {
+      avgShareAmount: number;
+      totalShareAmount: number;
+    };
+  };
+}
+
+const networks: Network[] = [
+  {
+    id: "base",
+    name: "Base",
+    icon: "/images/logo/base.svg",
+    color: "bg-blue-500",
+  },
+  {
+    id: "katana",
+    name: "Katana",
+    icon: "/images/logo/katana.svg",
+    color: "bg-yellow-500",
+  },
+  {
+    id: "arbitrum",
+    name: "Arbitrum",
+    icon: "/images/logo/arb.svg",
+    color: "bg-purple-500",
+  },
+  {
+    id: "ethereum",
+    name: "Ethereum",
+    icon: "/images/logo/eth.svg",
+    color: "bg-gray-500",
+  },
+];
+
+// LayerZero Chain IDs (in hex format) for each network
+const networkChainIDs: { [key: string]: string } = {
+  base: "0x00000000000000000000000000000000000000000000000000000000000075e8", // Base Mainnet
+  katana: "0x00000000000000000000000000000000000000000000000000000000000076a7", // Katana
+  arbitrum:
+    "0x000000000000000000000000000000000000000000000000000000000000759e", // Arbitrum One
+  ethereum:
+    "0x0000000000000000000000000000000000000000000000000000000000007595", // Ethereum Mainnet
+};
+
+// Network to Viem chain mapping
+const networkToChain: { [key: string]: any } = {
+  base: base,
+  ethereum: mainnet,
+  arbitrum: arbitrum,
+  katana: {
+    id: 747474, // Katana chain ID
+    name: "Katana",
+    network: "katana",
+    nativeCurrency: {
+      decimals: 18,
+      name: "ETH",
+      symbol: "ETH",
+    },
+    rpcUrls: {
+      default: { http: ["https://rpc.katana.network"] },
+      public: { http: ["https://rpc.katana.network"] },
+    },
+  },
+};
+
+// Network ID to chain ID mapping
+const networkChainIds: { [key: string]: number } = {
+  base: 8453,
+  ethereum: 1,
+  arbitrum: 42161,
+  katana: 747474,
+};
+
+// Network to RPC URLs mapping
+const networkRpcUrls: { [key: string]: string[] } = {
+  base: [
+    "https://base.llamarpc.com",
+    "https://base.blockpi.network/v1/rpc/public",
+    "https://base-mainnet.g.alchemy.com/v2/demo",
+    "https://base.meowrpc.com",
+  ],
+  ethereum: [
+    "https://eth.llamarpc.com",
+    "https://ethereum.publicnode.com",
+    "https://mainnet.infura.io/v3/",
+  ],
+  arbitrum: [
+    "https://arb1.arbitrum.io/rpc",
+    "https://arbitrum-one.publicnode.com",
+  ],
+  katana: [
+    "https://rpc.katana.network",
+  ],
+};
+
+// Function to get bridgeWildCard for a network
+const getBridgeWildCard = (networkId: string): string => {
+  const chainId = networkChainIDs[networkId.toLowerCase()];
+  if (!chainId) {
+    console.warn(`Unknown network ID: ${networkId}, using default`);
+    return "0x0000000000000000000000000000000000000000000000000000000000000000";
+  }
+  console.log(`Bridge wildcard for ${networkId}: ${chainId}`);
+  return chainId;
+};
+
+// Function to check if a destination chain is supported
+const isDestinationChainSupported = (networkId: string): boolean => {
+  // For now, we'll assume all chains in our mapping are potentially supported
+  // In a real implementation, you might want to check against a whitelist
+  // or make a contract call to verify chain support
+  return networkChainIDs.hasOwnProperty(networkId.toLowerCase());
+};
+
+// InfoIcon component
+const InfoIcon = () => (
+  <svg
+    width="10"
+    height="10"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className="text-gray-400"
+  >
+    <path
+      d="M12 16V12M12 8H12.01M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const BridgePage: React.FC = () => {
+  const { address, isConnected } = useAccount();
+  const { switchChain } = useSwitchChain();
+  const [amount, setAmount] = useState<string>("0.00");
+  // Source network dropdown state
+  const [sourceNetwork, setSourceNetwork] = useState<Network>(
+    networks.find(n => n.id === "base") || networks[0] // Base as default source
+  );
+  const [destinationNetwork, setDestinationNetwork] = useState<Network>(
+    networks.find(n => n.id === "ethereum") || networks[3] // Ethereum as default destination
+  );
+  const [isSourceDropdownOpen, setIsSourceDropdownOpen] = useState(false);
+  const [isDestinationDropdownOpen, setIsDestinationDropdownOpen] =
+    useState(false);
+  const [balance, setBalance] = useState<string>("0.00");
+  const [showTransactionHistory, setShowTransactionHistory] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Transaction history data from API
+  const [transactionHistory, setTransactionHistory] = useState<
+    TransactionHistoryItem[]
+  >([]);
+  const [hasTransactionHistory, setHasTransactionHistory] = useState<boolean | null>(null);
+
+  // LayerZero Chain ID to network name mapping
+  const chainIdToNetwork: { [key: number]: string } = {
+    // LayerZero Standard Chain IDs
+    30101: "Ethereum", // LayerZero Ethereum Mainnet
+    30110: "Arbitrum", // LayerZero Arbitrum One
+    30184: "Base", // LayerZero Base
+    30375: "Katana", // LayerZero Katana 
+  };
+
+  // Format time ago from timestamp
+  const formatTimeAgo = (timestamp: number) => {
+    const now = Date.now();
+    const diff = now - timestamp;
+    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    if (minutes < 60) {
+      return `${minutes} min${minutes !== 1 ? "s" : ""} ago`;
+    } else if (hours < 24) {
+      return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
+    } else if (days < 30) {
+      return `${days} day${days !== 1 ? "s" : ""} ago`;
+    } else {
+      const date = new Date(timestamp);
+      return date.toLocaleDateString("en-US", {
+        day: "2-digit",
+        month: "short",
+        year: "2-digit",
+      });
+    }
+  };
+
+  // Fetch transaction history from API
+  const fetchTransactionHistory = async () => {
+    if (!address || !isConnected) {
+      setTransactionHistory([]);
+      setHasTransactionHistory(null);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `http://localhost:3001/api/bridge/wallet/${address}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch transaction history");
+      }
+
+      const data: ApiResponse = await response.json();
+
+      // Extract transactions from the data property
+      const transactions = data.data || [];
+
+      if (!Array.isArray(transactions)) {
+        console.warn("API response data is not an array:", data);
+        setTransactionHistory([]);
+        return;
+      }
+
+      // Transform API data to our format
+      const transformedData: TransactionHistoryItem[] = transactions.map(
+        (tx: ApiTransaction, index: number) => {
+          const vaultInfo = vaultDetails[
+            tx.vaultTokenAddress?.toLowerCase()
+          ] || { symbol: "Unknown", decimals: 18 };
+
+          return {
+            id: tx.id,
+            token: vaultInfo.symbol,
+            amount: Number(
+              formatUnits(BigInt(tx.shareAmount), vaultInfo.decimals)
+            ).toLocaleString(),
+            from:
+              chainIdToNetwork[tx.bridge.srcChainId] ||
+              `Chain ${tx.bridge.srcChainId}`,
+            to:
+              chainIdToNetwork[tx.bridge.dstChainId] ||
+              `Chain ${tx.bridge.dstChainId}`,
+            time: formatTimeAgo(parseInt(tx.timestamp) * 1000), // Convert seconds to milliseconds
+            status:
+              tx.bridge.status === "DELIVERED" ? "Completed" : tx.bridge.status,
+            txHash: tx.transactionHash,
+          };
+        }
+       );
+
+       setTransactionHistory(transformedData);
+       setHasTransactionHistory(transformedData.length > 0);
+     } catch (error) {
+       console.error("Error fetching transaction history:", error);
+       setTransactionHistory([]);
+       setHasTransactionHistory(false);
+     }
+  };
+
+  // Vault contract addresses and their details
+  const vaultDetails: { [key: string]: { symbol: string; decimals: number } } =
+    {
+      "0x279cad277447965af3d24a78197aad1b02a2c589": {
+        symbol: "syUSD",
+        decimals: 6,
+      },
+      // Add other vault addresses as needed
+    };
+
+  // syUSD vault contract address on Base network (vault shares)
+  const syUSDContractAddress =
+    "0x279CAD277447965AF3d24a78197aad1B02a2c589" as `0x${string}`;
+  const syUSDDecimals = 6;
+
+  // TellerWithLayerZero bridge contract address
+  const bridgeContractAddress =
+    "0xaefc11908fF97c335D16bdf9F2Bf720817423825" as `0x${string}`;
+
+  // syUSD contract addresses per network (in case they differ)
+  const syUSDContractAddresses: { [key: string]: `0x${string}` } = {
+    base: "0x279CAD277447965AF3d24a78197aad1B02a2c589",
+    ethereum: "0x279CAD277447965AF3d24a78197aad1B02a2c589", 
+    arbitrum: "0x279CAD277447965AF3d24a78197aad1B02a2c589",
+    katana: "0x279CAD277447965AF3d24a78197aad1B02a2c589", // May need to be updated
+  };
+
+  // Bridge state
+  const [isBridging, setIsBridging] = useState(false);
+  const [bridgeError, setBridgeError] = useState<string | null>(null);
+  const [bridgeFee, setBridgeFee] = useState<string>("0");
+  const [previousHash, setPreviousHash] = useState<string | null>(null);
+  const [previousDestinationNetwork, setPreviousDestinationNetwork] = useState<string | null>(null);
+  const [showBridgeAgain, setShowBridgeAgain] = useState(false);
+
+  // Fetch syUSD balance from source network with RPC fallback
+  const fetchSyUSDBalance = async () => {
+    console.log("fetchSyUSDBalance called with:", { address, isConnected, sourceNetwork: sourceNetwork.name });
+
+    if (!address || !isConnected) {
+      console.log("No address or not connected, setting balance to 0.00");
+      setBalance("0.00");
+      return;
+    }
+
+    // Log network being checked
+    console.log(`Fetching balance for ${sourceNetwork.name} network`);
+
+    // RPC fallback URLs for source network
+    const sourceRpcUrls = networkRpcUrls[sourceNetwork.id] || networkRpcUrls.base;
+    const sourceChain = networkToChain[sourceNetwork.id] || base;
+
+    let lastError;
+
+    for (const rpcUrl of sourceRpcUrls) {
+      try {
+        console.log(`Trying RPC: ${rpcUrl} for network: ${sourceNetwork.name}`);
+
+        const client = createPublicClient({
+          transport: http(rpcUrl),
+          chain: sourceChain,
+        });
+
+        // Get network-specific contract address
+        const contractAddress = syUSDContractAddresses[sourceNetwork.id] || syUSDContractAddress;
+        
+        const balance = await client.readContract({
+          address: contractAddress,
+          abi: ERC20_ABI,
+          functionName: "balanceOf",
+          args: [address as Address],
+        });
+
+        const formattedBalance = Number(
+          formatUnits(balance as bigint, syUSDDecimals)
+        );
+
+        console.log("syUSD Balance Debug:", {
+          rawBalance: balance.toString(),
+          rawBalanceBigInt: balance,
+          formattedBalance,
+          contractAddress: syUSDContractAddress,
+          userAddress: address,
+          rpcUrl,
+          decimals: syUSDDecimals,
+        });
+
+        // Show full balance without decimal formatting
+        const displayBalance = formattedBalance.toString();
+
+        console.log("Setting balance to:", displayBalance);
+        setBalance(displayBalance);
+        return; // Success, exit the function
+      } catch (error) {
+        console.warn(`RPC ${rpcUrl} failed for ${sourceNetwork.name}:`, error);
+        lastError = error;
+        
+        // Special error handling for specific networks
+        if (sourceNetwork.id === "katana" && error instanceof Error) {
+          if (error.message.includes("Failed to fetch") || error.message.includes("HTTP request failed")) {
+            console.warn("Katana RPC endpoint unreachable, trying next...");
+          }
+        }
+        continue; // Try next RPC
+      }
+    }
+
+    // If all RPCs failed
+    console.error(`All RPC endpoints failed for ${sourceNetwork.name}:`, lastError);
+    setBalance("0.00");
+  };
+
+  // Fetch balance when wallet connects or address changes
+  useEffect(() => {
+    console.log(
+      "useEffect triggered - address:",
+      address,
+      "isConnected:",
+      isConnected,
+      "sourceNetwork:",
+      sourceNetwork.name
+    );
+    fetchSyUSDBalance();
+  }, [address, isConnected, sourceNetwork.id]);
+
+  // Auto-switch to source network when wallet connects
+  useEffect(() => {
+    if (isConnected && switchChain && sourceNetwork) {
+      const targetChainId = networkChainIds[sourceNetwork.id];
+      if (targetChainId) {
+        // Small delay to ensure wallet is fully connected
+        const timer = setTimeout(async () => {
+          try {
+            await switchChain({ chainId: targetChainId });
+            console.log(`Auto-switched to ${sourceNetwork.name} network on wallet connect`);
+          } catch (error) {
+            console.error(`Failed to auto-switch to ${sourceNetwork.name} network:`, error);
+          }
+        }, 500);
+        
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isConnected, switchChain, sourceNetwork.id]);
+
+  const handleAmountChange = (value: string) => {
+    setAmount(value);
+  };
+
+  const handleMaxClick = () => {
+    setAmount(balance.replace(/,/g, ""));
+  };
+
+  // Handle Bridge Again functionality
+  const handleBridgeAgain = () => {
+    // Reset all states for a new bridge
+    setShowBridgeAgain(false);
+    setPreviousHash(null);
+    setPreviousDestinationNetwork(null);
+    setBridgeError(null);
+    setAmount("0.00");
+    console.log("Bridge Again clicked - all states reset for new bridge");
+  };
+
+  // Get available networks based on asymmetric bridge flow
+  const getAvailableSourceNetworks = (): Network[] => {
+    return networks; // All networks can be source
+  };
+
+  const getAvailableDestinationNetworks = (sourceId?: string): Network[] => {
+    const srcId = sourceId || sourceNetwork.id;
+    if (srcId === "base") {
+      // From Base: can go to any other network
+      return networks.filter(n => n.id !== "base");
+    } else {
+      // From any other network: can only go to Base
+      return networks.filter(n => n.id === "base");
+    }
+  };
+
+  const handleSourceNetworkSelect = async (network: Network) => {
+    setSourceNetwork(network);
+    setIsSourceDropdownOpen(false);
+    
+    // Auto-select the corresponding destination network
+    const availableDestinations = getAvailableDestinationNetworks(network.id);
+    if (availableDestinations.length > 0) {
+      setDestinationNetwork(availableDestinations[0]);
+    }
+
+    // Automatically switch wallet to the selected source network
+    if (isConnected && switchChain) {
+      try {
+        const targetChainId = networkChainIds[network.id];
+        if (targetChainId) {
+          await switchChain({ chainId: targetChainId });
+          console.log(`Switched to ${network.name} network (Chain ID: ${targetChainId})`);
+        }
+      } catch (error) {
+        console.error(`Failed to switch to ${network.name} network:`, error);
+        // You could add a toast notification here if desired
+      }
+    }
+  };
+
+  const handleDestinationNetworkSelect = (network: Network) => {
+    setDestinationNetwork(network);
+    setIsDestinationDropdownOpen(false);
+  };
+
+  // Handle refresh button click
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+
+    // First fetch transaction history to check if there are any transactions
+    await fetchTransactionHistory();
+    
+    // Only toggle transaction history if there are transactions
+    if (hasTransactionHistory) {
+      const newShowState = !showTransactionHistory;
+      setShowTransactionHistory(newShowState);
+    } else {
+      // If no transactions, don't show the history panel
+      setShowTransactionHistory(false);
+    }
+
+    // Refresh balance
+    await fetchSyUSDBalance();
+
+    setIsRefreshing(false);
+  };
+
+  // Remove swap functionality since source is hardcoded to Base
+
+  // Fetch bridge fee from contract
+  const fetchBridgeFee = async () => {
+    if (!address || !isConnected || parseFloat(amount) <= 0) {
+      setBridgeFee("0");
+      return BigInt(0);
+    }
+
+    try {
+      // Use source network for fee calculation
+      const sourceRpcUrls = networkRpcUrls[sourceNetwork.id] || networkRpcUrls.base;
+      const sourceChain = networkToChain[sourceNetwork.id] || base;
+      
+      const client = createPublicClient({
+        transport: http(sourceRpcUrls[0]), // Use first RPC URL
+        chain: sourceChain,
+      });
+
+      // Convert amount to proper units (shares) - amount is in 10^6 terms
+      const shareAmount = parseUnits(amount, syUSDDecimals);
+      // LayerZero bridge wildcard for the specific destination chain
+      const bridgeWildCard = getBridgeWildCard(
+        destinationNetwork.id
+      ) as `0x${string}`;
+      const feeToken = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"; // ETH address for LayerZero
+
+      const fee = await client.readContract({
+        address: bridgeContractAddress,
+        abi: TELLER_WITH_LAYER_ZERO_ABI,
+        functionName: "previewFee",
+        args: [
+          BigInt(shareAmount.toString()) as bigint, // Ensure it's properly cast as uint96
+          address as `0x${string}`, // to address (connected wallet)
+          bridgeWildCard as `0x${string}`, // LayerZero bridge wildcard
+          feeToken as `0x${string}`, // fee token address
+        ],
+      });
+
+      const feeBigInt = fee as bigint;
+      const formattedFee = formatUnits(feeBigInt, 18);
+      setBridgeFee(formattedFee);
+
+      return feeBigInt;
+    } catch (error) {
+      console.error("Error fetching bridge fee:", error);
+
+      // Handle specific LayerZero chain errors
+      if (error instanceof Error) {
+        if (error.message.includes("LayerZeroTeller__MessagesNotAllowedTo")) {
+          const chainId = error.message.match(/\((\d+)\)/)?.[1];
+          const chainName = Object.keys(networkChainIDs).find((key) => {
+            const hexChainId = networkChainIDs[key];
+            const decimalChainId = parseInt(hexChainId.slice(-8), 16); // Extract last 8 hex chars and convert to decimal
+            return decimalChainId === parseInt(chainId || "0");
+          });
+          setBridgeError(
+            `Bridge to ${
+              chainName || "this network"
+            } is not currently supported. Please select a different destination network.`
+          );
+          setBridgeFee("0");
+          return BigInt(0);
+        }
+
+        if (error.message.includes("LayerZeroTeller__MessagesNotAllowedFrom")) {
+          setBridgeError(
+            "Bridge from this network is not currently supported."
+          );
+          setBridgeFee("0");
+          return BigInt(0);
+        }
+      }
+
+      // Fallback for other errors
+      setBridgeError("Unable to fetch bridge fee. Please try again.");
+      setBridgeFee("0");
+      return BigInt(0);
+    }
+  };
+
+  // Fetch bridge fee when amount changes
+  useEffect(() => {
+    if (address && isConnected && parseFloat(amount) > 0) {
+      fetchBridgeFee();
+    } else {
+      setBridgeFee("0");
+    }
+  }, [amount, address, isConnected, sourceNetwork.id, destinationNetwork.id]);
+
+  // Bridge function using TellerWithLayerZero
+  const handleBridge = async () => {
+    if (!address || !isConnected || parseFloat(amount) <= 0) {
+      return;
+    }
+
+    try {
+      // Clear all previous states first
+      setBridgeError(null);
+      setPreviousHash(null);
+      setPreviousDestinationNetwork(null);
+      setShowBridgeAgain(false);
+      
+      // Set bridging state
+      setIsBridging(true);
+
+      // Log bridge details for debugging
+      console.log(`Bridging from ${sourceNetwork.name} to ${destinationNetwork.name}`);
+      console.log(`Expected wallet chain ID: ${networkChainIds[sourceNetwork.id]}`);
+
+      // Convert amount to proper units (shares) - amount is in 10^6 terms
+      const shareAmount = parseUnits(amount, syUSDDecimals);
+
+      // LayerZero bridge parameters
+      const bridgeWildCard = getBridgeWildCard(
+        destinationNetwork.id
+      ) as `0x${string}`; // Dynamic bridge wildcard based on destination
+      const feeToken = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"; // ETH address for LayerZero
+
+      // Fetch the actual bridge fee from contract
+      const maxFee = await fetchBridgeFee();
+
+      // Call the bridge function on the source network
+      writeContract({
+        address: bridgeContractAddress,
+        abi: TELLER_WITH_LAYER_ZERO_ABI,
+        functionName: "bridge",
+        args: [
+          BigInt(shareAmount.toString()),
+          address, // to address
+          bridgeWildCard,
+          feeToken,
+          maxFee, // Use the actual fee from previewFee
+        ],
+        value: maxFee, // Send the actual fee as ETH
+        chainId: networkChainIds[sourceNetwork.id] || 8453, // Use the source network's chain ID
+      });
+    } catch (error) {
+      console.error("Bridge error:", error);
+      setBridgeError("Transaction failed");
+      setIsBridging(false);
+    }
+  };
+
+  // Write contract hook
+  const { writeContract, data: hash, error: writeError } = useWriteContract();
+
+  // Wait for transaction receipt
+  const { isLoading: isConfirming, isSuccess: isConfirmed } =
+    useWaitForTransactionReceipt({
+      hash,
+    });
+
+  // Handle transaction success
+  useEffect(() => {
+    if (isConfirmed) {
+      setIsBridging(false);
+      setAmount("0.00");
+      // Store the hash and destination network for display
+      if (hash) {
+        setPreviousHash(hash);
+        setPreviousDestinationNetwork(destinationNetwork.name);
+        setShowBridgeAgain(true); // Show "Bridge Again" button
+      }
+      // Refresh balance after successful bridge
+      fetchSyUSDBalance();
+    }
+  }, [isConfirmed, hash, destinationNetwork.name]);
+
+  // Additional reset when hash changes (ensures button is enabled for next bridge)
+  useEffect(() => {
+    if (hash && !isConfirming && !isBridging) {
+      // Ensure all states are properly reset when we have a hash
+      console.log("Transaction hash received, ensuring states are reset for next bridge");
+    }
+  }, [hash, isConfirming, isBridging]);
+
+  // Reset bridging state if transaction is confirmed but states are stuck
+  useEffect(() => {
+    if (isConfirmed && isBridging) {
+      console.log("Transaction confirmed, ensuring bridging state is cleared");
+      setIsBridging(false);
+    }
+  }, [isConfirmed, isBridging]);
+
+  // Debug button state
+  useEffect(() => {
+    console.log("Button state debug:", {
+      isConnected,
+      amount: parseFloat(amount),
+      isBridging,
+      isConfirming,
+      isConfirmed,
+      hash: hash ? "exists" : "null",
+      destinationSupported: isDestinationChainSupported(destinationNetwork.id),
+      showBridgeAgain
+    });
+  }, [isConnected, amount, isBridging, isConfirming, isConfirmed, hash, destinationNetwork.id, showBridgeAgain]);
+
+  // Handle write error
+  useEffect(() => {
+    if (writeError) {
+      // Clean error message instead of technical details
+      setBridgeError("Transaction failed");
+      setIsBridging(false);
+    }
+  }, [writeError]);
+
+  return (
+    <div className="min-h-screen flex flex-col pt-[52px]">
+      <Header onNavigateToDeposit={() => {}}>
+        <Navigation currentPage="bridge" />
+      </Header>
+      <main className="flex-1 overflow-y-auto mt-24">
+        <div className="w-full px-24 py-12">
+          {/* Header Section */}
+          <div className="mb-16">
+            {/* Header with Bridge, syUSD and Refresh Icon */}
+            {showTransactionHistory ? (
+              <div className="flex gap-6 justify-center mb-8">
+                <div className="w-[550px]">
+                  <div className="flex items-baseline gap-6">
+                    <h1 className="text-4xl font-semibold text-white">
+                      Bridge
+                    </h1>
+
+                    {/* Token Selector */}
+                    <div className="flex items-center gap-2 bg-[#131723] p-2 pr-4 rounded-[99px]">
+                      <Image
+                        src="/images/icons/syUSD.svg"
+                        alt="syUSD"
+                        width={32}
+                        height={32}
+                        className="w-[32px] h-[32px]"
+                      />
+                      <span className="text-white font-semibold text-base">
+                        syUSD
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Refresh Icon aligned with transaction history */}
+                <div className="w-[550px] flex justify-end items-baseline">
+                  <Tooltip 
+                    content={hasTransactionHistory === false ? "No transaction history" : "Close transaction history"}
+                    side="top"
+                  >
+                    <button
+                      onClick={handleRefresh}
+                      disabled={isRefreshing}
+                      className="w-12 h-12 p-3 rounded-[99px] bg-[#131723] hover:bg-[#3A3A4C] transition-colors disabled:opacity-50"
+                    >
+                    <svg
+                      width="24"
+                      height="24"
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className={`text-gray-400 ${
+                        isRefreshing ? "animate-spin" : ""
+                      }`}
+                    >
+                      <path
+                        d="M3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10Z"
+                        stroke="currentColor"
+                        strokeWidth="1"
+                      />
+                      <path
+                        d="M10 6V10L13 13"
+                        stroke="currentColor"
+                        strokeWidth="1"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                  </Tooltip>
+                </div>
+              </div>
+            ) : (
+              <div className="flex justify-center mb-8">
+                <div className="w-[550px] flex items-baseline justify-between">
+                  <div className="flex items-baseline gap-6">
+                    <h1 className="text-4xl font-semibold text-white">
+                      Bridge
+                    </h1>
+
+                    {/* Token Selector */}
+                    <div className="flex items-center gap-2 bg-[#131723] p-2 pr-4 rounded-[99px]">
+                      <Image
+                        src="/images/icons/syUSD.svg"
+                        alt="syUSD"
+                        width={32}
+                        height={32}
+                        className="w-[32px] h-[32px]"
+                      />
+                      <span className="text-white font-semibold text-base">
+                        syUSD
+                      </span>
+         
+                    </div>
+                  </div>
+
+                  {/* Refresh Icon at the right edge of bridge container */}
+                  <Tooltip 
+                    content={hasTransactionHistory === false ? "No transaction history" : "View transaction history"}
+                    side="top"
+                  >
+                    <button
+                      onClick={handleRefresh}
+                      disabled={isRefreshing}
+                      className="w-12 h-12 p-3 rounded-[99px] bg-[#131723] hover:bg-[#3A3A4C] transition-colors disabled:opacity-50"
+                    >
+                    <svg
+                      width="24"
+                      height="24"
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className={`text-gray-400 ${
+                        isRefreshing ? "animate-spin" : ""
+                      }`}
+                    >
+                      <path
+                        d="M3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10Z"
+                        stroke="currentColor"
+                        strokeWidth="1"
+                      />
+                      <path
+                        d="M10 6V10L13 13"
+                        stroke="currentColor"
+                        strokeWidth="1"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                  </Tooltip>
+                </div>
+              </div>
+            )}
+
+            {/* Bridge Card and Transaction History Container */}
+            <div
+              className={
+                showTransactionHistory
+                  ? "flex gap-6 justify-center"
+                  : "flex justify-center"
+              }
+            >
+              <div className="w-[550px]">
+                {/* Bridge Card */}
+                <div className="space-y-4">
+                  {/* Main Container */}
+                  <div className="bg-white/5 rounded-sm overflow-visible">
+                    {/* Network Selection Sub-Container */}
+                    <div className="bg-[#121521] p-6 overflow-visible">
+                      <div className="flex items-center justify-between">
+                        {/* Source Network - Display Only */}
+                        <div className="flex-1 relative">
+                          <div className="flex items-center gap-1 mb-2">
+                            <label className="block text-xs text-gray-400 tracking-normal">
+                              Source Network
+                            </label>
+                            <Tooltip
+                              content="Bridge from Base network"
+                              side="top"
+                            >
+                              <div className="cursor-pointer">
+                                <InfoIcon />
+                              </div>
+                            </Tooltip>
+                          </div>
+                          <div className="relative">
+                            <button
+                              onClick={() =>
+                                setIsSourceDropdownOpen(
+                                  !isSourceDropdownOpen
+                                )
+                              }
+                              className="w-[180px] h-[40px] flex items-center gap-3 bg-[#1f212c]  rounded-[99px] px-4 py-2 hover:bg-[#3A3A4C] transition-colors"
+                            >
+                              <div
+                                className={`w-6 h-6 ml-[-7.5px]  flex items-center justify-center`}
+                              >
+                                <Image
+                                  src={sourceNetwork.icon}
+                                  alt={sourceNetwork.name}
+                                  width={24}
+                                  height={24}
+                                />
+                              </div>
+                              <span className="text-white text-base font-semibold">
+                                {sourceNetwork.name}
+                              </span>
+                              <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="text-gray-400 ml-auto"
+                              >
+                                <path
+                                  d="M4 6L8 10L12 6"
+                                  stroke="currentColor"
+                                  strokeWidth="1"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </button>
+
+                            {/* Source Network Dropdown */}
+                            {isSourceDropdownOpen && (
+                              <div className="absolute top-full left-0 mt-2 bg-[#263042] pl-4 py-3 rounded-md w-[180px] shadow-lg z-50 overflow-visible">
+                                <div className="flex flex-col gap-4">
+                                  {getAvailableSourceNetworks().map((network) => (
+                                    <button
+                                      key={network.id}
+                                      onClick={() =>
+                                        handleSourceNetworkSelect(network)
+                                      }
+                                      className="flex items-center gap-2.5 hover:opacity-80 transition-opacity w-full"
+                                    >
+                                      <div className="w-6 h-6 ml-[-7.5px] flex items-center justify-center">
+                                        <Image
+                                          src={network.icon}
+                                          alt={network.name}
+                                          width={24}
+                                          height={24}
+                                        />
+                                      </div>
+                                      <span className="text-[#9C9DA2] text-sm font-normal">
+                                        {network.name}
+                                      </span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Arrow Icon */}
+                        <div className="mx-4 mt-6">
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 15 15"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="text-gray-400"
+                          >
+                            <path
+                              d="M3 5H12"
+                              stroke="currentColor"
+                              strokeWidth="0.75"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                            <path
+                              d="M9 3L12 5L9 7"
+                              stroke="currentColor"
+                              strokeWidth="0.75"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </div>
+
+                        {/* Destination Network */}
+                        <div className="flex-1 relative">
+                          <div className="flex justify-end">
+                            <div className="w-[180px]">
+                              <div className="flex items-center gap-1 mb-2">
+                                <label className="block text-xs text-gray-400 tracking-normal">
+                                  Destination Network
+                                </label>
+                                <Tooltip
+                                  content="Select the network you want to bridge to"
+                                  side="top"
+                                >
+                                  <div className="cursor-pointer">
+                                    <InfoIcon />
+                                  </div>
+                                </Tooltip>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="relative flex justify-end">
+                            <button
+                              onClick={() =>
+                                setIsDestinationDropdownOpen(
+                                  !isDestinationDropdownOpen
+                                )
+                              }
+                              className="w-[180px] h-[40px] flex items-center gap-3 bg-[#1f212c]  rounded-[99px] px-4 py-2 hover:bg-[#3A3A4C] transition-colors"
+                            >
+                              <div
+                                className={`w-6 h-6 ml-[-7.5px]  flex items-center justify-center`}
+                              >
+                                <Image
+                                  src={destinationNetwork.icon}
+                                  alt={destinationNetwork.name}
+                                  width={24}
+                                  height={24}
+                                />
+                              </div>
+                              <span className="text-white text-base font-semibold">
+                                {destinationNetwork.name}
+                              </span>
+                              <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="text-gray-400 ml-auto"
+                              >
+                                <path
+                                  d="M4 6L8 10L12 6"
+                                  stroke="currentColor"
+                                  strokeWidth="1"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </button>
+
+                            {/* Destination Network Dropdown */}
+                            {isDestinationDropdownOpen && (
+                              <div className="absolute top-full right-0 mt-2 bg-[#263042] pl-4 py-3 rounded-md w-[180px] shadow-lg z-50 overflow-visible">
+                                <div className="flex flex-col gap-4">
+                                  {getAvailableDestinationNetworks()
+                                    .map((network) => (
+                                      <button
+                                        key={network.id}
+                                        onClick={() =>
+                                          handleDestinationNetworkSelect(
+                                            network
+                                          )
+                                        }
+                                        className="flex items-center gap-2.5 hover:opacity-80 transition-opacity w-full"
+                                      >
+                                        <div className="w-6 h-6 ml-[-7.5px] flex items-center justify-center">
+                                          <Image
+                                            src={network.icon}
+                                            alt={network.name}
+                                            width={24}
+                                            height={24}
+                                          />
+                                        </div>
+                                        <span className="text-[#9C9DA2] text-sm font-normal">
+                                          {network.name}
+                                        </span>
+                                      </button>
+                                    ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Amount and Balance Sub-Container */}
+                    <div className="bg-[#0d101c] p-8">
+                      {/* Amount Input */}
+                      <div className="mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 relative">
+                            <input
+                              type="number"
+                              value={amount}
+                              onChange={(e) =>
+                                handleAmountChange(e.target.value)
+                              }
+                              placeholder="0.00"
+                              className="w-full bg-transparent border-0 border-b border-[rgba(255,255,255,0.1)] p-1 text-white text-2xl font-bold focus:outline-none focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                          </div>
+                          <button
+                            onClick={handleMaxClick}
+                            className="w-[43px] h-[23px] bg-transparent border border-[rgba(156,157,162,0.3)] text-[#9C9DA2] text-xs font-normal rounded transition-colors hover:opacity-80"
+                          >
+                            MAX
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Balance and Bridge Fee */}
+                      <div className="mt-0.5 p-0 space-y-1">
+                        <p className="text-xs text-gray-400 font-normal">
+                          Balance:{" "}
+                          <span className="text-white font-normal">
+                            {balance} syUSD
+                          </span>
+                        </p>
+                        {parseFloat(amount) > 0 && (
+                          <p className="text-xs text-gray-400 font-normal">
+                            Bridge Fee:{" "}
+                            <span className="text-white font-normal">
+                              {parseFloat(bridgeFee).toFixed(6)} ETH
+                            </span>
+                          </p>
+                        )}
+                        {!isDestinationChainSupported(
+                          destinationNetwork.id
+                        ) && (
+                          <p className="text-xs text-yellow-400 font-normal">
+                            ⚠️ Bridge to {destinationNetwork.name} is not
+                            currently supported
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bridge Button */}
+                  <button
+                    onClick={showBridgeAgain ? handleBridgeAgain : handleBridge}
+                    disabled={
+                      !showBridgeAgain && (
+                        !isConnected ||
+                        parseFloat(amount) <= 0 ||
+                        isBridging ||
+                        isConfirming ||
+                        !isDestinationChainSupported(destinationNetwork.id)
+                      )
+                    }
+                    className="w-full bg-[#B88AF8] text-[#1A1B1E] text-base font-semibold leading-[150%] py-4 rounded-sm hover:opacity-90 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {showBridgeAgain
+                      ? "Bridge Again"
+                      : !isConnected
+                      ? "Connect Wallet"
+                      : parseFloat(amount) <= 0
+                      ? "Enter Amount"
+                      : !isDestinationChainSupported(destinationNetwork.id)
+                      ? `Bridge to ${destinationNetwork.name} Not Supported`
+                      : isBridging || isConfirming
+                      ? "Bridging..."
+                      : "Bridge syUSD"}
+                  </button>
+
+                  {/* Bridge Status Display - Consistent height div for success/failure states */}
+                  <div className="w-full py-4 rounded-sm min-h-[56px] flex items-center justify-center">
+                    {bridgeError && (
+                      <div className="w-full p-3 bg-red-500/10 border border-red-500/20 rounded-sm">
+                        <div className="text-center">
+                          <p className="text-red-400 text-sm">{bridgeError}</p>
+                          {hash && (
+                            <div className="flex items-center justify-center gap-2 mt-2">
+                              <span className="text-gray-400 text-xs">Transaction Hash:</span>
+                              <a
+                                href={`https://layerzeroscan.com/tx/${hash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-red-400 text-xs hover:text-red-300 transition-colors flex items-center gap-1"
+                              >
+                                {`${hash.slice(0, 6)}...${hash.slice(-4)}`}
+                                <svg
+                                  width="12"
+                                  height="12"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="w-3 h-3"
+                                >
+                                  <path
+                                    d="M18 13V19C18 19.5304 17.7893 20.0391 17.4142 20.4142C17.0391 20.7893 16.5304 21 16 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V8C3 7.46957 3.21071 6.96086 3.58579 6.58579C3.96086 6.21071 4.46957 6 5 6H11"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                  <path
+                                    d="M15 3H21V9"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                  <path
+                                    d="M10 14L21 3"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {((isConfirmed && hash) || previousHash) && (
+                      <div className="w-full p-3 bg-green-500/10 border border-green-500/20 rounded-sm">
+                        <div className="text-center">
+                          <p className="text-green-400 text-sm mb-2">
+                            Bridge Success! Transaction confirmed on {previousDestinationNetwork || destinationNetwork.name}
+                          </p>
+                          <div className="flex items-center justify-center gap-2">
+                            <span className="text-gray-400 text-xs">Transaction Hash:</span>
+                            <a
+                              href={`https://layerzeroscan.com/tx/${hash || previousHash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-green-400 text-xs hover:text-green-300 transition-colors flex items-center gap-1"
+                            >
+                              {`${(hash || previousHash)?.slice(0, 6)}...${(hash || previousHash)?.slice(-4)}`}
+                              <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="w-3 h-3"
+                              >
+                                <path
+                                  d="M18 13V19C18 19.5304 17.7893 20.0391 17.4142 20.4142C17.0391 20.7893 16.5304 21 16 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V8C3 7.46957 3.21071 6.96086 3.58579 6.58579C3.96086 6.21071 4.46957 6 5 6H11"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                                <path
+                                  d="M15 3H21V9"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                                <path
+                                  d="M10 14L21 3"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Empty state to maintain consistent height when no status */}
+                    {!bridgeError && !isConfirmed && !previousHash && (
+                      <div className="w-full h-full"></div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Transaction History Container - only when showTransactionHistory is true */}
+              {showTransactionHistory && (
+                <div className="w-[550px]  rounded overflow-hidden">
+                  <div className="bg-[#0d101c] px-6 py-6">
+                    <div className="mb-3">
+                      <h3 className="text-[#9C9DA2] text-xs font-normal">
+                        Transaction History
+                      </h3>
+                    </div>
+
+                    <div className="space-y-2 max-h-[240px] overflow-y-auto">
+                      {transactionHistory.map((tx) => (
+                        <div
+                          key={tx.id}
+                          className="flex items-center justify-between py-3 px-4 bg-[#121520] rounded-sm"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 flex items-center justify-center">
+                              <Image
+                                src="/images/icons/syUSD.svg"
+                                alt="syUSD"
+                                width={32}
+                                height={32}
+                                className="w-8 h-8"
+                              />
+                            </div>
+                            <div>
+                              <div className="text-white text-sm font-semibold">
+                                {tx.token}
+                              </div>
+                              <div className="text-gray-400 text-xs flex items-center gap-2">
+                                <span>{tx.from}</span>
+                                <span>→</span>
+                                <span>{tx.to}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right flex items-center gap-3">
+                            <div>
+                              <div className="text-white text-sm font-semibold">
+                                {tx.amount}
+                              </div>
+                              <div className="text-gray-400 text-xs flex items-center gap-2">
+                                <span>{tx.time}</span>
+                                <span>•</span>
+                                <span>{tx.status}</span>
+                              </div>
+                            </div>
+                            <a
+                              href={`https://layerzeroscan.com/tx/${tx.txHash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-gray-400 hover:text-white transition-colors"
+                            >
+                              <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="w-4 h-4"
+                              >
+                                <path
+                                  d="M18 13V19C18 19.5304 17.7893 20.0391 17.4142 20.4142C17.0391 20.7893 16.5304 21 16 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V8C3 7.46957 3.21071 6.96086 3.58579 6.58579C3.96086 6.21071 4.46957 6 5 6H11"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                                <path
+                                  d="M15 3H21V9"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                                <path
+                                  d="M10 14L21 3"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default BridgePage;

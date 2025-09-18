@@ -86,7 +86,7 @@ const strategy = USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
 console.log("Strategy Config:", strategy);
 const chainConfigs = {
   base: {
-    rpc: "https://mainnet.base.org",
+    rpc: "https://base.llamarpc.com",
     chainId: 8453,
     image: "/images/logo/base.svg",
     chainObject: { tokens: strategy.base.tokens } 
@@ -369,8 +369,8 @@ const PortfolioDetailedPage = () => {
             symbol: "ETH",
           },
           rpcUrls: {
-            default: { http: ["https://mainnet.base.org"] },
-            public: { http: ["https://mainnet.base.org"] },
+            default: { http: ["https://base.llamarpc.com"] },
+            public: { http: ["https://base.llamarpc.com"] },
           },
         },
       });
@@ -433,8 +433,8 @@ const PortfolioDetailedPage = () => {
             symbol: "ETH",
           },
           rpcUrls: {
-            default: { http: ["https://mainnet.base.org"] },
-            public: { http: ["https://mainnet.base.org"] },
+            default: { http: ["https://base.llamarpc.com"] },
+            public: { http: ["https://base.llamarpc.com"] },
           },
         },
       });
