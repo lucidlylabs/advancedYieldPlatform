@@ -10,23 +10,22 @@ import {
   Line,
   Area,
 } from "recharts";
-import { getStrategyDisplayName } from "../../config/env";
 
-interface AllocationDataPoint {
+interface PnlDataPoint {
   date: string;
-  totalAum: number;
-  totalWeightedContribution: number;
-  strategyCount: number;
+  totalPnl: number;
   strategies: {
     strategy: string;
     network: string;
+    pnl: number;
+    pnlPercentage: number;
     aum: number;
     previousAum: number;
-    aumPerShare: number;
-    previousAumPerShare: number;
-    dailyApyPercentage: number;
-    aumWeightPercentage: number;
-    weightedContributionPercentage: number;
+    contributionToTotalGrowth: number;
+    attributionToTotalReturn: number;
+    pnlAsPercentageOfTotalTVL: number;
+    contributionToTotalAPY: number;
+    weightedContributionToTotalAPY: number;
   }[];
 }
 
@@ -36,70 +35,24 @@ interface ChartDataPoint {
   [key: string]: string | number | null | undefined;
 }
 
-interface AllocationReturnsChartProps {
+interface StrategyPnlChartProps {
   // No props needed
 }
 
-// Create a consistent color mapping function based on strategy addresses
-// This ensures the same strategy gets the same color across all charts regardless of API order
-const createAddressBasedColorMap = (strategies: {address: string, name: string}[]): Record<string, string> => {
-  // Sort by address to ensure consistent ordering across all charts
-  const sortedStrategies = [...strategies].sort((a, b) => a.address.localeCompare(b.address));
-  const colorMap: Record<string, string> = {};
-  
-  // Strategy addresses for color swapping
-  const rlpMorphoAddress = "0x1ed0a3d7562066c228a0bb3fed738182f03abd01"; // RLP/USDC Morpho
-  const sUsdeUsdcAddress = "0x79857afb972e43c7049ae3c63274fc5ef3b815bb"; // sUSDe/USDC AaveV3
-  const ptSusdfAddress = "0x2fa924e8474726dec250eead84f4f34e063acdcc"; // PT-sUSDF/USDC
-  const rlpAddress = "0x34a06c87817ec6683bc1788dbc9aa4038900ea14"; // RLP (assumed full address)
-  const ptIusdAddress = "0xa32ba04a547e1c6419d3fcf5bbdb7461b3d19bb1"; // PT-iUSD/USDC Morpho
-  const gauntletAddress = "0xd0bc4920f1b43882b334354ffab23c9e9637b89e"; // Gauntlet Frontier USDC
-  const usrAddress = "0x914f1e34cd70c1d59392e577d58fc2ddaaedaf86"; // USR
-  
-  sortedStrategies.forEach((strategy, index) => {
-    let color = COLORS[index % COLORS.length];
-    const strategyAddr = strategy.address.toLowerCase();
-    
-    // Color swaps and custom colors:
-    // 1. RLP gets custom yellow color (swapped from sUSDe/USDC AaveV3)
-    if (strategyAddr === rlpAddress.toLowerCase()) {
-      color = "#fde047"; // Yellow color for RLP
-    }
-    // 2. RLP/USDC Morpho gets custom teal color
-    else if (strategyAddr === rlpMorphoAddress.toLowerCase()) {
-      color = "#0d9488"; // Teal color for RLP/USDC Morpho
-    }
-    // 3. sUSDe/USDC AaveV3 gets custom magenta color (swapped from RLP)
-    else if (strategyAddr === sUsdeUsdcAddress.toLowerCase()) {
-      color = "#FF00FF"; // Magenta color for sUSDe/USDC AaveV3
-    }
-    // 4. PT-sUSDF/USDC gets USR's original color (blue)
-    else if (strategyAddr === ptSusdfAddress.toLowerCase()) {
-      const usrIndex = sortedStrategies.findIndex(s => s.address.toLowerCase() === usrAddress.toLowerCase());
-      color = usrIndex >= 0 ? COLORS[usrIndex % COLORS.length] : color;
-    }
-    // 5. USR gets PT-sUSDF's original color
-    else if (strategyAddr === usrAddress.toLowerCase()) {
-      const ptSusdfIndex = sortedStrategies.findIndex(s => s.address.toLowerCase() === ptSusdfAddress.toLowerCase());
-      color = ptSusdfIndex >= 0 ? COLORS[ptSusdfIndex % COLORS.length] : color;
-    }
-    // 4. PT-iUSD/USDC Morpho gets Gauntlet's color
-    else if (strategyAddr === ptIusdAddress.toLowerCase()) {
-      const gauntletIndex = sortedStrategies.findIndex(s => s.address.toLowerCase() === gauntletAddress.toLowerCase());
-      color = gauntletIndex >= 0 ? COLORS[gauntletIndex % COLORS.length] : color;
-    }
-    // 5. Gauntlet gets PT-iUSD's color
-    else if (strategyAddr === gauntletAddress.toLowerCase()) {
-      const ptIusdIndex = sortedStrategies.findIndex(s => s.address.toLowerCase() === ptIusdAddress.toLowerCase());
-      color = ptIusdIndex >= 0 ? COLORS[ptIusdIndex % COLORS.length] : color;
-    }
-    
-    // Map both address and name to the color
-    colorMap[strategy.address] = color;
-    colorMap[strategy.name] = color;
-  });
-  
-  return colorMap;
+// Strategy name mapping
+const STRATEGY_NAME_MAP: Record<string, string> = {
+  "0x2fa924e8474726dec250eead84f4f34e063acdcc": "PT-sUSDF/USDC SiloV2 (7.5x)",
+  "0xa32ba04a547e1c6419d3fcf5bbdb7461b3d19bb1": "PT-iUSD/USDC Morpho (4x)",
+  "0xd0bc4920f1b43882b334354ffab23c9e9637b89e": "gauntlet Frontier USDC",
+  "0x1ed0a3d7562066c228a0bb3fed738182f03abd01": "RLP/USDC Morpho",
+  "0x79857afb972e43c7049ae3c63274fc5ef3b815bb": "sUSDe/USDC AaveV3 (7x)",
+  "0x56b3c60b4ea708a6fda0955b81df52148e96813a": "sUSDe",
+  "0x34a06c87817ec6683bc1788dbc9aa4038900ea14": "Strategy 7",
+  "0x914f1e34cd70c1d59392e577d58fc2ddaaedaf86": "Strategy 8",
+};
+
+const normalizeAddress = (address: string): string => {
+  return address.toLowerCase();
 };
 
 const COLORS = [
@@ -115,21 +68,20 @@ const COLORS = [
   "#98D8C8", // mint
 ];
 
-export default function AllocationReturnsChart({}: AllocationReturnsChartProps) {
+export default function StrategyPnlChart({}: StrategyPnlChartProps) {
   const [data, setData] = useState<ChartDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
   const [allStrategies, setAllStrategies] = useState<string[]>([]);
   const [selectedStrategies, setSelectedStrategies] = useState<Set<string>>(new Set());
-  const [strategyColorMap, setStrategyColorMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        console.log(`Fetching Allocation Returns data for period: ${period}`);
+        console.log(`Fetching PNL data for period: ${period}`);
 
-        const response = await fetch(`https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/allocation-returns/daily`);
+        const response = await fetch(`https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/strategy-pnl/daily`);
 
         if (!response.ok) {
           console.error("API responded with status:", response.status);
@@ -137,62 +89,62 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
         }
 
         const rawData = await response.json();
-        console.log("Raw Allocation Returns data:", rawData);
+        console.log("Raw PNL data:", rawData);
 
         if (!rawData.success || !rawData.data) {
           throw new Error("Invalid API response format");
         }
 
-        const allocationData: AllocationDataPoint[] = rawData.data;
+        const pnlData: PnlDataPoint[] = rawData.data;
 
-        console.log("Raw Allocation data dates:", allocationData.map(d => d.date));
-        console.log("Raw data count:", allocationData.length);
+        console.log("Raw PNL data dates:", pnlData.map(d => d.date));
+        console.log("Raw data count:", pnlData.length);
 
-        // No date filtering - show all data
-        const filteredData = allocationData;
+        // Remove August 26th and filter out dates after September 9th
+        const filteredData = pnlData.filter((dayData) => {
+          // Try multiple ways to check for August 26th
+          const originalDate = dayData.date;
+          const dateObj = new Date(originalDate);
+          
+          // Check if it's August 26th in any format
+          const isAugust26 = (
+            originalDate.includes('2025-08-26') ||
+            originalDate.includes('08-26') ||
+            originalDate.includes('Aug 26') ||
+            (dateObj.getFullYear() === 2025 && dateObj.getMonth() === 7 && dateObj.getDate() === 26)
+          );
+          
+          // Check if date is after September 9th, 2025
+          const sept9_2025 = new Date('2025-09-09');
+          const isAfterSept9 = dateObj > sept9_2025;
+          
+          return !isAugust26 && !isAfterSept9;
+        });
 
-        // Get all unique strategies with both address and display name
-        const strategyMap = new Map<string, {address: string, name: string}>();
+        // Get all unique strategies
+        const allStrategies = new Set<string>();
         filteredData.forEach((dayData) => {
           dayData.strategies.forEach((strategy) => {
-            const strategyName = getStrategyDisplayName(strategy.strategy);
-            const address = strategy.strategy.toLowerCase(); // Normalize address
-            strategyMap.set(address, { address, name: strategyName });
+            const normalizedAddress = normalizeAddress(strategy.strategy);
+            const strategyName = STRATEGY_NAME_MAP[normalizedAddress] || 
+              `${strategy.network}_${strategy.strategy.slice(0, 8)}...`;
+            allStrategies.add(strategyName);
           });
         });
 
-        // Convert to arrays for consistent processing
-        const strategiesWithAddresses = Array.from(strategyMap.values());
-        const strategyList = strategiesWithAddresses.map(s => s.name).sort();
-        
+        const strategyList = Array.from(allStrategies);
         setAllStrategies(strategyList);
         setSelectedStrategies(new Set(strategyList));
-        
-        // Create address-based color mapping for consistent colors across charts
-        const colorMap = createAddressBasedColorMap(strategiesWithAddresses);
-        setStrategyColorMap(colorMap);
 
         // Sort filtered data by date (earliest first)
         filteredData.sort((a, b) => {
           return new Date(a.date).getTime() - new Date(b.date).getTime();
         });
 
-        console.log("All Allocation data dates (no filtering):", filteredData.map(d => d.date));
+        console.log("Filtered PNL data dates (excluding Aug 26):", filteredData.map(d => d.date));
         console.log("Date range:", filteredData[0]?.date, "to", filteredData[filteredData.length - 1]?.date);
 
-        // Debug: Check sample strategy values
-        if (filteredData.length > 0) {
-          const sampleData = filteredData[filteredData.length - 1]; // Last day
-          console.log("Sample allocation data (last day):", sampleData);
-          if (sampleData.strategies) {
-            console.log("Sample strategy data:");
-            sampleData.strategies.forEach((strategy: any) => {
-              console.log(`  ${strategy.strategy.slice(0, 8)}...: weightedContributionPercentage = ${strategy.weightedContributionPercentage}`);
-            });
-          }
-        }
-
-        // Process data for Recharts - use API data directly without any calculations
+        // Process data for Recharts
         const chartData: ChartDataPoint[] = filteredData.map((dayData) => {
           const date = new Date(dayData.date).toLocaleDateString("en-US", {
             month: "short",
@@ -201,15 +153,15 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
 
           const chartPoint: ChartDataPoint = { date };
 
-          // Use the weightedContributionPercentage directly from the API (multiply by 100 for display)
+          // Add each strategy's PNL to the data point
           strategyList.forEach((strategyName) => {
             const strategy = dayData.strategies.find((s) => {
-              const name = getStrategyDisplayName(s.strategy);
+              const normalizedAddress = normalizeAddress(s.strategy);
+              const name = STRATEGY_NAME_MAP[normalizedAddress] || 
+                `${s.network}_${s.strategy.slice(0, 8)}...`;
               return name === strategyName;
             });
-
-            // Use the API's weightedContributionPercentage directly - no frontend calculations
-            chartPoint[strategyName] = strategy ? (strategy.weightedContributionPercentage * 100) : 0;
+            chartPoint[strategyName] = strategy ? (strategy.weightedContributionToTotalAPY * 100) : 0; // Convert to percentage for display
           });
 
           return chartPoint;
@@ -248,7 +200,7 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
           setData(chartData);
         }
       } catch (err) {
-        console.error("Error loading Allocation Returns data:", err);
+        console.error("Error loading PNL data:", err);
         setData([]);
       } finally {
         setLoading(false);
@@ -305,22 +257,22 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
                   </div>
                 ))}
               
-              {/* Show Base APY if available - purple color */}
+              {/* Show Base APY if available */}
               {payload.find((item: any) => item.dataKey === 'baseApy' && item.value) && (
                 <div className="border-t border-gray-300 pt-2 mt-2">
                   <div className="flex items-center gap-3">
                     <div
-                      className="w-3 h-3 rounded-full"
+                      className="w-3 h-3 rounded-full border-2 border-white"
                       style={{ 
-                        backgroundColor: "#7B5FFF", 
-                        border: "2px solid #7B5FFF"
+                        backgroundColor: "#FFFFFF", 
+                        boxShadow: "0 0 8px #FFFFFF, 0 0 12px #FFFFFF" 
                       }}
                     />
                     <span className="text-sm text-gray-600 flex-1">
                       Base APY
                     </span>
-                    <span className="text-sm font-semibold text-right" 
-                          style={{ color: "#7B5FFF" }}>
+                    <span className="text-sm font-semibold text-right text-white" 
+                          style={{ textShadow: "0 0 8px #FFFFFF" }}>
                       {payload.find((item: any) => item.dataKey === 'baseApy')?.value.toFixed(2)}%
                     </span>
                   </div>
@@ -341,7 +293,7 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
           <div className="flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
             <p className="text-gray-400 text-sm">
-              Loading Allocation Returns data...
+              Loading PNL data...
             </p>
           </div>
         </div>
@@ -359,20 +311,28 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
             className={`px-2 py-1 rounded text-xs transition-colors ${
               period === "daily"
                 ? "bg-[#7B5FFF] text-white"
-                : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
+                : "bg-[#2A2A3C] text-gray-400 hover:bg-gray-100 hover:text-gray-800"
             }`}
           >
             Daily
           </button>
           <button
-            disabled
-            className="px-2 py-1 rounded text-xs bg-[#2A2A3C] text-gray-500 cursor-not-allowed opacity-50"
+            onClick={() => setPeriod("weekly")}
+            className={`px-2 py-1 rounded text-xs transition-colors ${
+              period === "weekly"
+                ? "bg-[#7B5FFF] text-white"
+                : "bg-[#2A2A3C] text-gray-400 hover:bg-gray-100 hover:text-gray-800"
+            }`}
           >
             Weekly
           </button>
           <button
-            disabled
-            className="px-2 py-1 rounded text-xs bg-[#2A2A3C] text-gray-500 cursor-not-allowed opacity-50"
+            onClick={() => setPeriod("monthly")}
+            className={`px-2 py-1 rounded text-xs transition-colors ${
+              period === "monthly"
+                ? "bg-[#7B5FFF] text-white"
+                : "bg-[#2A2A3C] text-gray-400 hover:bg-gray-100 hover:text-gray-800"
+            }`}
           >
             Monthly
           </button>
@@ -413,34 +373,30 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
             {/* Render areas for each strategy with stacking */}
             {allStrategies
               .filter((strategy) => selectedStrategies.has(strategy))
-              .map((strategy) => {
-                // Use consistent color mapping: same strategy gets same color across all charts
-                const strategyColor = strategyColorMap[strategy] || COLORS[0];
-                
-                return (
-                  <Area
-                    key={strategy}
-                    type="linear"
-                    dataKey={strategy}
-                    stackId="allocation"
-                    stroke={strategyColor}
-                    fill={strategyColor}
-                    fillOpacity={0.6}
-                    strokeWidth={1}
-                    name={strategy}
-                  />
-                );
-              })}
+              .map((strategy, index) => (
+                <Area
+                  key={strategy}
+                  type="linear"
+                  dataKey={strategy}
+                  stackId="pnl"
+                  stroke={COLORS[allStrategies.indexOf(strategy) % COLORS.length]}
+                  fill={COLORS[allStrategies.indexOf(strategy) % COLORS.length]}
+                  fillOpacity={0.6}
+                  strokeWidth={1}
+                  name={strategy}
+                />
+              ))}
 
-            {/* Base APY line overlay - purple color */}
+            {/* Base APY line overlay */}
             <Line
               type="linear"
               dataKey="baseApy"
-              stroke="#7B5FFF"
+              stroke="#FFFFFF"
               strokeWidth={3}
               dot={false}
               name="Base APY"
               connectNulls={false}
+              filter="url(#neonGlow)"
             />
           </ComposedChart>
         </ResponsiveContainer>
@@ -457,10 +413,9 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
               marginRight: "24px",
             }}
           >
-            {allStrategies.map((strategy) => {
+            {allStrategies.map((strategy, index) => {
               const isSelected = selectedStrategies.has(strategy);
-              // Use consistent color mapping: same strategy gets same color across all charts
-              const buttonColor = strategyColorMap[strategy] || COLORS[0];
+              const buttonColor = COLORS[index % COLORS.length];
               
               return (
                 <div

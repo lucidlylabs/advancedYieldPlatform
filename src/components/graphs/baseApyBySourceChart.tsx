@@ -41,7 +41,7 @@ export default function BaseApyBySourceChart({}: BaseApyBySourceChartProps) {
 
         console.log(`Fetching base APY by source data for period: ${period}`);
         const response = await fetch(
-          `https://ow5g1cjqsd.execute-api.ap-south-1.amazonaws.com/dev/api/syUSD/base-apy-by-source?period=${period}`
+          `https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/syUSD/base-apy-by-source?period=${period}`
         );
 
         console.log("Response status hosted allocation apy :", response.status);

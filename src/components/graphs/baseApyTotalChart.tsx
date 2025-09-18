@@ -29,7 +29,7 @@ export default function BaseApyTotalChart({}: BaseApyTotalChartProps) {
         setLoading(true);
         console.log(`Fetching base APY total data for period: ${period}`);
 
-        const response = await fetch(`http://localhost:3001/api/apy/exchange-rates-apy-simple?period=${period}`);
+        const response = await fetch(`https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/apy/exchange-rates-apy-simple?period=${period}`);
 
         console.log("Response status:", response.status);
         console.log("Response headers:", response.headers);

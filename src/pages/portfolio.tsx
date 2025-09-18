@@ -382,7 +382,7 @@ const PortfolioSubpage: React.FC = () => {
     try {
       console.log(`Fetching PnL data for address: ${userAddress}`);
       const response = await fetch(
-        `http://localhost:3001/api/pnl/${userAddress}`
+        `https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/pnl/${userAddress}`
       );
       
       console.log("PnL API Response status:", response.status);
@@ -1429,7 +1429,7 @@ const PortfolioSubpage: React.FC = () => {
                 </div>
               </div>
               {/* Vertical Divider */}
-              <div className="w-px bg-[rgba(217,217,217,0.05)] self-stretch mx-4 sm:mx-8 hidden sm:block"></div>
+              {/* <div className="w-px bg-[rgba(217,217,217,0.05)] self-stretch mx-4 sm:mx-8 hidden sm:block"></div>
               <div className="flex flex-col items-center sm:items-start">
                 <div className="text-[#9C9DA2] text-[14px] font-normal leading-[16px]">
                   PNL
@@ -1481,7 +1481,7 @@ const PortfolioSubpage: React.FC = () => {
                      "$0.0000 (0.00%)"
                    )}
                 </div>
-              </div>
+              </div> */}
             </div>
           </div>
           <div className="flex flex-col w-full sm:w-auto justify-center items-center sm:items-end gap-2 py-[10px] px-4 rounded-[4px] border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] mt-4 sm:mt-0">

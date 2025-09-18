@@ -129,7 +129,7 @@ const UserActivity: React.FC = () => {
     setLoading(true);
     try {
       console.log(`Fetching user activity for address: ${userAddress}, page: ${page}`);
-      const response = await fetch(`http://localhost:3001/api/user-activity/${userAddress}?page=${page}`);
+      const response = await fetch(`https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/user-activity/${userAddress}?page=${page}`);
       
       console.log("API Response status:", response.status);
       console.log("API Response headers:", Object.fromEntries(response.headers.entries()));
