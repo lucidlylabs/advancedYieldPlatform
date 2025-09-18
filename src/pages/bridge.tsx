@@ -277,7 +277,7 @@ const BridgePage: React.FC = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:3001/api/bridge/wallet/${address}`
+        `https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/bridge/wallet/${address}`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch transaction history");

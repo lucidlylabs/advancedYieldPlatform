@@ -38,28 +38,34 @@ const createAddressBasedColorMap = (strategies: {address: string, name: string}[
   const rlpAddress = "0x34a06c87817ec6683bc1788dbc9aa4038900ea14"; // RLP (assumed full address)
   const ptIusdAddress = "0xa32ba04a547e1c6419d3fcf5bbdb7461b3d19bb1"; // PT-iUSD/USDC Morpho
   const gauntletAddress = "0xd0bc4920f1b43882b334354ffab23c9e9637b89e"; // Gauntlet Frontier USDC
+  const usrAddress = "0x914f1e34cd70c1d59392e577d58fc2ddaaedaf86"; // USR
   
   sortedStrategies.forEach((strategy, index) => {
     let color = colors[index % colors.length];
     const strategyAddr = strategy.address.toLowerCase();
     
     // Color swaps and custom colors:
-    // 1. RLP gets custom magenta color
+    // 1. RLP gets custom yellow color (swapped from sUSDe/USDC AaveV3)
     if (strategyAddr === rlpAddress.toLowerCase()) {
-      color = "#FF00FF"; // Magenta color for RLP
+      color = "#fde047"; // Yellow color for RLP
     }
     // 2. RLP/USDC Morpho gets custom teal color
     else if (strategyAddr === rlpMorphoAddress.toLowerCase()) {
       color = "#0d9488"; // Teal color for RLP/USDC Morpho
     }
-    // 3. sUSDe/USDC AaveV3 gets custom yellow color
+    // 3. sUSDe/USDC AaveV3 gets custom magenta color (swapped from RLP)
     else if (strategyAddr === sUsdeUsdcAddress.toLowerCase()) {
-      color = "#fde047"; // Yellow color for sUSDe/USDC AaveV3
+      color = "#FF00FF"; // Magenta color for sUSDe/USDC AaveV3
     }
-    // 3. PT-sUSDF/USDC gets RLP's original color (green) - but RLP now has magenta
+    // 4. PT-sUSDF/USDC gets USR's original color (blue)
     else if (strategyAddr === ptSusdfAddress.toLowerCase()) {
-      const rlpIndex = sortedStrategies.findIndex(s => s.address.toLowerCase() === rlpAddress.toLowerCase());
-      color = rlpIndex >= 0 ? colors[rlpIndex % colors.length] : color;
+      const usrIndex = sortedStrategies.findIndex(s => s.address.toLowerCase() === usrAddress.toLowerCase());
+      color = usrIndex >= 0 ? colors[usrIndex % colors.length] : color;
+    }
+    // 5. USR gets PT-sUSDF's original color
+    else if (strategyAddr === usrAddress.toLowerCase()) {
+      const ptSusdfIndex = sortedStrategies.findIndex(s => s.address.toLowerCase() === ptSusdfAddress.toLowerCase());
+      color = ptSusdfIndex >= 0 ? colors[ptSusdfIndex % colors.length] : color;
     }
     // 4. PT-iUSD/USDC Morpho gets Gauntlet's color
     else if (strategyAddr === ptIusdAddress.toLowerCase()) {
@@ -116,7 +122,7 @@ export default function AllocationChart({}: AllocationChartProps) {
 
         console.log("Fetching allocation data...");
         const response = await fetch(
-          "http://localhost:3001/api/allocation/daily-allocation"
+          "https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/allocation/daily-allocation"
         );
 
         console.log("Response status:", response.status);
