@@ -150,76 +150,6 @@ interface StrategyDuration {
   INCENTIVE: IncentiveStrategyConfig;
 }
 
-// Mock data for stacked chart
-const chartData = [
-  { date: "FEB 24", base: 2, incentive: 1 },
-  { date: "FEB 24", base: 2.5, incentive: 0.8 },
-  { date: "FEB 24", base: 3, incentive: 1.2 },
-
-  { date: "MAR 24", base: 4, incentive: 1.4 },
-  { date: "MAR 24", base: 4.5, incentive: 1.6 },
-  { date: "MAR 24", base: 5, incentive: 1.8 },
-
-  { date: "APR 24", base: 6.2, incentive: 2 },
-  { date: "APR 24", base: 6.8, incentive: 2.5 },
-  { date: "APR 24", base: 7.1, incentive: 2.7 },
-
-  { date: "MAY 24", base: 8.2, incentive: 3 },
-  { date: "MAY 24", base: 9.4, incentive: 2.8 },
-
-  { date: "JUN 24", base: 10.2, incentive: 3.4 },
-  { date: "JUN 24", base: 10.8, incentive: 3.7 },
-
-  { date: "JUL 24", base: 12, incentive: 4.2 },
-  { date: "JUL 24", base: 13, incentive: 4.8 },
-
-  { date: "AUG 24", base: 14.5, incentive: 5.5 },
-  { date: "AUG 24", base: 15.5, incentive: 6.2 },
-
-  { date: "SEP 24", base: 18, incentive: 6.8 },
-  { date: "SEP 24", base: 19.5, incentive: 7 },
-
-  { date: "OCT 24", base: 21, incentive: 8 },
-  { date: "OCT 24", base: 23, incentive: 8.4 },
-
-  { date: "NOV 24", base: 27, incentive: 8.6 },
-  { date: "NOV 24", base: 28, incentive: 9 },
-
-  { date: "DEC 24", base: 30, incentive: 9.6 },
-  { date: "DEC 24", base: 32, incentive: 10 },
-
-  { date: "JAN 24", base: 34, incentive: 10.4 },
-  { date: "JAN 24", base: 36, incentive: 10.9 },
-];
-
-// Mock data for the table rows
-export const tableData = [
-  {
-    id: 1,
-    name: "Base Yield ETH",
-    expiry: "29th March 2025",
-    expiresIn: "20 days to Expire",
-    apy: "6.64%",
-    currentBalance: "$115,447.00",
-    change: "+$100.00 (10%)",
-    changeColor: "text-green-400",
-    period: "+0.00 in 1 year",
-    icon: "/icons/eth-icon.svg", // Use appropriate path or emoji
-  },
-  {
-    id: 2,
-    name: "Incentive Maxi ETH",
-    expiry: "16th February 2025",
-    expiresIn: "7 days to Expire",
-    apy: "23.43%",
-    currentBalance: "$343,504,807.10",
-    change: "-$100.00 (10%)",
-    changeColor: "text-red-400",
-    period: "+0.00 in 1 year",
-    icon: "/icons/eth-icon.svg",
-  },
-];
-
 interface StrategyAsset {
   [key: string]: StrategyDuration;
 }
@@ -250,32 +180,6 @@ interface StrategyWithBalance {
   balance: number;
 }
 
-const requests = [
-  {
-    date: "18th May'25",
-    fromAmount: "1,000,000",
-    toAmount: "1,004,000",
-    canCancel: true,
-  },
-  {
-    date: "19th May'25",
-    fromAmount: "100",
-    toAmount: "104",
-    canCancel: true,
-  },
-  {
-    date: "19th May'25",
-    fromAmount: "900",
-    toAmount: "909",
-    canCancel: true,
-  },
-  {
-    date: "19th May'25",
-    fromAmount: "1,092",
-    toAmount: "1,200",
-    canCancel: true,
-  },
-];
 
 const ExternalLinkIcon = () => (
   <svg
@@ -924,8 +828,8 @@ const PortfolioSubpage: React.FC = () => {
             symbol: "ETH",
           },
           rpcUrls: {
-            default: { http: ["https://mainnet.base.org"] },
-            public: { http: ["https://mainnet.base.org"] },
+            default: { http: ["https://base.llamarpc.com"] },
+            public: { http: ["https://base.llamarpc.com"] },
           },
         },
       });
@@ -996,8 +900,8 @@ const PortfolioSubpage: React.FC = () => {
             symbol: "ETH",
           },
           rpcUrls: {
-            default: { http: ["https://mainnet.base.org"] },
-            public: { http: ["https://mainnet.base.org"] },
+            default: { http: ["https://base.llamarpc.com"] },
+            public: { http: ["https://base.llamarpc.com"] },
           },
         },
       });
@@ -1087,8 +991,8 @@ const PortfolioSubpage: React.FC = () => {
             symbol: "ETH",
           },
           rpcUrls: {
-            default: { http: ["https://mainnet.base.org"] },
-            public: { http: ["https://mainnet.base.org"] },
+            default: { http: ["https://base.llamarpc.com"] },
+            public: { http: ["https://base.llamarpc.com"] },
           },
         },
       });

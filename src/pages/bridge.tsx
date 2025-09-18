@@ -152,7 +152,8 @@ const networkChainIds: { [key: string]: number } = {
 // Network to RPC URLs mapping
 const networkRpcUrls: { [key: string]: string[] } = {
   base: [
-    "https://mainnet.base.org",
+    "https://base.llamarpc.com",
+    "https://base.blockpi.network/v1/rpc/public",
     "https://base-mainnet.g.alchemy.com/v2/demo",
     "https://base.meowrpc.com",
   ],

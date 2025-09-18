@@ -10,6 +10,7 @@ import {
   Line,
   Area,
 } from "recharts";
+import { getStrategyDisplayName } from "../../config/env";
 
 interface AllocationDataPoint {
   date: string;
@@ -39,20 +40,60 @@ interface AllocationReturnsChartProps {
   // No props needed
 }
 
-// Strategy name mapping
-const STRATEGY_NAME_MAP: Record<string, string> = {
-  "0x2fa924e8474726dec250eead84f4f34e063acdcc": "PT-sUSDF/USDC SiloV2 (7.5x)",
-  "0xa32ba04a547e1c6419d3fcf5bbdb7461b3d19bb1": "PT-iUSD/USDC Morpho (4x)",
-  "0xd0bc4920f1b43882b334354ffab23c9e9637b89e": "gauntlet Frontier USDC",
-  "0x1ed0a3d7562066c228a0bb3fed738182f03abd01": "RLP/USDC Morpho",
-  "0x79857afb972e43c7049ae3c63274fc5ef3b815bb": "sUSDe/USDC AaveV3 (7x)",
-  "0x56b3c60b4ea708a6fda0955b81df52148e96813a": "sUSDe",
-  "0x34a06c87817ec6683bc1788dbc9aa4038900ea14": "Strategy 7",
-  "0x914f1e34cd70c1d59392e577d58fc2ddaaedaf86": "Strategy 8",
-};
-
-const normalizeAddress = (address: string): string => {
-  return address.toLowerCase();
+// Create a consistent color mapping function based on strategy addresses
+// This ensures the same strategy gets the same color across all charts regardless of API order
+const createAddressBasedColorMap = (strategies: {address: string, name: string}[]): Record<string, string> => {
+  // Sort by address to ensure consistent ordering across all charts
+  const sortedStrategies = [...strategies].sort((a, b) => a.address.localeCompare(b.address));
+  const colorMap: Record<string, string> = {};
+  
+  // Strategy addresses for color swapping
+  const rlpMorphoAddress = "0x1ed0a3d7562066c228a0bb3fed738182f03abd01"; // RLP/USDC Morpho
+  const sUsdeUsdcAddress = "0x79857afb972e43c7049ae3c63274fc5ef3b815bb"; // sUSDe/USDC AaveV3
+  const ptSusdfAddress = "0x2fa924e8474726dec250eead84f4f34e063acdcc"; // PT-sUSDF/USDC
+  const rlpAddress = "0x34a06c87817ec6683bc1788dbc9aa4038900ea14"; // RLP (assumed full address)
+  const ptIusdAddress = "0xa32ba04a547e1c6419d3fcf5bbdb7461b3d19bb1"; // PT-iUSD/USDC Morpho
+  const gauntletAddress = "0xd0bc4920f1b43882b334354ffab23c9e9637b89e"; // Gauntlet Frontier USDC
+  
+  sortedStrategies.forEach((strategy, index) => {
+    let color = COLORS[index % COLORS.length];
+    const strategyAddr = strategy.address.toLowerCase();
+    
+    // Color swaps and custom colors:
+    // 1. RLP gets custom magenta color
+    if (strategyAddr === rlpAddress.toLowerCase()) {
+      color = "#FF00FF"; // Magenta color for RLP
+    }
+    // 2. RLP/USDC Morpho gets custom teal color
+    else if (strategyAddr === rlpMorphoAddress.toLowerCase()) {
+      color = "#0d9488"; // Teal color for RLP/USDC Morpho
+    }
+    // 3. sUSDe/USDC AaveV3 gets custom yellow color
+    else if (strategyAddr === sUsdeUsdcAddress.toLowerCase()) {
+      color = "#fde047"; // Yellow color for sUSDe/USDC AaveV3
+    }
+    // 3. PT-sUSDF/USDC gets RLP's original color (green) - but RLP now has magenta
+    else if (strategyAddr === ptSusdfAddress.toLowerCase()) {
+      const rlpIndex = sortedStrategies.findIndex(s => s.address.toLowerCase() === rlpAddress.toLowerCase());
+      color = rlpIndex >= 0 ? COLORS[rlpIndex % COLORS.length] : color;
+    }
+    // 4. PT-iUSD/USDC Morpho gets Gauntlet's color
+    else if (strategyAddr === ptIusdAddress.toLowerCase()) {
+      const gauntletIndex = sortedStrategies.findIndex(s => s.address.toLowerCase() === gauntletAddress.toLowerCase());
+      color = gauntletIndex >= 0 ? COLORS[gauntletIndex % COLORS.length] : color;
+    }
+    // 5. Gauntlet gets PT-iUSD's color
+    else if (strategyAddr === gauntletAddress.toLowerCase()) {
+      const ptIusdIndex = sortedStrategies.findIndex(s => s.address.toLowerCase() === ptIusdAddress.toLowerCase());
+      color = ptIusdIndex >= 0 ? COLORS[ptIusdIndex % COLORS.length] : color;
+    }
+    
+    // Map both address and name to the color
+    colorMap[strategy.address] = color;
+    colorMap[strategy.name] = color;
+  });
+  
+  return colorMap;
 };
 
 const COLORS = [
@@ -74,6 +115,7 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
   const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
   const [allStrategies, setAllStrategies] = useState<string[]>([]);
   const [selectedStrategies, setSelectedStrategies] = useState<Set<string>>(new Set());
+  const [strategyColorMap, setStrategyColorMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const fetchData = async () => {
@@ -103,21 +145,26 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
         // No date filtering - show all data
         const filteredData = allocationData;
 
-        // Get all unique strategies
-        const allStrategies = new Set<string>();
+        // Get all unique strategies with both address and display name
+        const strategyMap = new Map<string, {address: string, name: string}>();
         filteredData.forEach((dayData) => {
           dayData.strategies.forEach((strategy) => {
-            const normalizedAddress = normalizeAddress(strategy.strategy);
-            const strategyName = STRATEGY_NAME_MAP[normalizedAddress] || 
-              `${strategy.network}_${strategy.strategy.slice(0, 8)}...`;
-            allStrategies.add(strategyName);
+            const strategyName = getStrategyDisplayName(strategy.strategy);
+            const address = strategy.strategy.toLowerCase(); // Normalize address
+            strategyMap.set(address, { address, name: strategyName });
           });
         });
 
-        // Sort strategies consistently to match allocation chart
-        const strategyList = Array.from(allStrategies).sort();
+        // Convert to arrays for consistent processing
+        const strategiesWithAddresses = Array.from(strategyMap.values());
+        const strategyList = strategiesWithAddresses.map(s => s.name).sort();
+        
         setAllStrategies(strategyList);
         setSelectedStrategies(new Set(strategyList));
+        
+        // Create address-based color mapping for consistent colors across charts
+        const colorMap = createAddressBasedColorMap(strategiesWithAddresses);
+        setStrategyColorMap(colorMap);
 
         // Sort filtered data by date (earliest first)
         filteredData.sort((a, b) => {
@@ -151,9 +198,7 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
           // Use the weightedContributionPercentage directly from the API (multiply by 100 for display)
           strategyList.forEach((strategyName) => {
             const strategy = dayData.strategies.find((s) => {
-              const normalizedAddress = normalizeAddress(s.strategy);
-              const name = STRATEGY_NAME_MAP[normalizedAddress] || 
-                `${s.network}_${s.strategy.slice(0, 8)}...`;
+              const name = getStrategyDisplayName(s.strategy);
               return name === strategyName;
             });
 
@@ -254,22 +299,22 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
                   </div>
                 ))}
               
-              {/* Show Base APY if available */}
+              {/* Show Base APY if available - purple color */}
               {payload.find((item: any) => item.dataKey === 'baseApy' && item.value) && (
                 <div className="border-t border-gray-300 pt-2 mt-2">
                   <div className="flex items-center gap-3">
                     <div
                       className="w-3 h-3 rounded-full"
                       style={{ 
-                        backgroundColor: "#A8E6CF", 
-                        border: "2px solid #A8E6CF"
+                        backgroundColor: "#7B5FFF", 
+                        border: "2px solid #7B5FFF"
                       }}
                     />
                     <span className="text-sm text-gray-600 flex-1">
                       Base APY
                     </span>
                     <span className="text-sm font-semibold text-right" 
-                          style={{ color: "#A8E6CF" }}>
+                          style={{ color: "#7B5FFF" }}>
                       {payload.find((item: any) => item.dataKey === 'baseApy')?.value.toFixed(2)}%
                     </span>
                   </div>
@@ -362,10 +407,9 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
             {/* Render areas for each strategy with stacking */}
             {allStrategies
               .filter((strategy) => selectedStrategies.has(strategy))
-              .map((strategy, index) => {
+              .map((strategy) => {
                 // Use consistent color mapping: same strategy gets same color across all charts
-                const strategyIndex = allStrategies.indexOf(strategy);
-                const strategyColor = COLORS[strategyIndex % COLORS.length];
+                const strategyColor = strategyColorMap[strategy] || COLORS[0];
                 
                 return (
                   <Area
@@ -382,11 +426,11 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
                 );
               })}
 
-            {/* Base APY line overlay */}
+            {/* Base APY line overlay - purple color */}
             <Line
               type="linear"
               dataKey="baseApy"
-              stroke="#A8E6CF"
+              stroke="#7B5FFF"
               strokeWidth={3}
               dot={false}
               name="Base APY"
@@ -407,10 +451,10 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
               marginRight: "24px",
             }}
           >
-            {allStrategies.map((strategy, index) => {
+            {allStrategies.map((strategy) => {
               const isSelected = selectedStrategies.has(strategy);
-              // Use same color mapping as chart areas for consistency
-              const buttonColor = COLORS[index % COLORS.length];
+              // Use consistent color mapping: same strategy gets same color across all charts
+              const buttonColor = strategyColorMap[strategy] || COLORS[0];
               
               return (
                 <div

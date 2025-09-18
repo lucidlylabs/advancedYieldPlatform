@@ -300,9 +300,9 @@ const ExchangeRate: React.FC<ExchangeRateProps> = ({
         // Create client with fallback RPC endpoints for Base only
         const baseRpcUrls = [
           "https://base.llamarpc.com",
-          "https://mainnet.base.org",
-          "https://base-mainnet.g.alchemy.com/v2/demo",
           "https://base.blockpi.network/v1/rpc/public",
+          "https://base-mainnet.g.alchemy.com/v2/demo",
+          "https://base.meowrpc.com",
         ];
 
         const client = createPublicClient({
@@ -664,9 +664,9 @@ const DepositView: React.FC<DepositViewProps> = ({
       // RPC fallback URLs for Base only
       const baseRpcUrls = [
         "https://base.llamarpc.com",
-        "https://mainnet.base.org",
-        "https://base-mainnet.g.alchemy.com/v2/demo",
         "https://base.blockpi.network/v1/rpc/public",
+        "https://base-mainnet.g.alchemy.com/v2/demo",
+        "https://base.meowrpc.com",
       ];
 
       const client = createPublicClient({
