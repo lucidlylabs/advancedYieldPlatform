@@ -100,26 +100,8 @@ export default function StrategyPnlChart({}: StrategyPnlChartProps) {
         console.log("Raw PNL data dates:", pnlData.map(d => d.date));
         console.log("Raw data count:", pnlData.length);
 
-        // Remove August 26th and filter out dates after September 9th
-        const filteredData = pnlData.filter((dayData) => {
-          // Try multiple ways to check for August 26th
-          const originalDate = dayData.date;
-          const dateObj = new Date(originalDate);
-          
-          // Check if it's August 26th in any format
-          const isAugust26 = (
-            originalDate.includes('2025-08-26') ||
-            originalDate.includes('08-26') ||
-            originalDate.includes('Aug 26') ||
-            (dateObj.getFullYear() === 2025 && dateObj.getMonth() === 7 && dateObj.getDate() === 26)
-          );
-          
-          // Check if date is after September 9th, 2025
-          const sept9_2025 = new Date('2025-09-09');
-          const isAfterSept9 = dateObj > sept9_2025;
-          
-          return !isAugust26 && !isAfterSept9;
-        });
+        // Use all data without filtering any dates
+        const filteredData = pnlData;
 
         // Get all unique strategies
         const allStrategies = new Set<string>();
@@ -141,7 +123,7 @@ export default function StrategyPnlChart({}: StrategyPnlChartProps) {
           return new Date(a.date).getTime() - new Date(b.date).getTime();
         });
 
-        console.log("Filtered PNL data dates (excluding Aug 26):", filteredData.map(d => d.date));
+        console.log("All PNL data dates (no date filtering):", filteredData.map(d => d.date));
         console.log("Date range:", filteredData[0]?.date, "to", filteredData[filteredData.length - 1]?.date);
 
         // Process data for Recharts
