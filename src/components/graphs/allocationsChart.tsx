@@ -155,13 +155,21 @@ export default function AllocationChart({}: AllocationChartProps) {
         console.log("All allocation data (no date filtering):", filteredData);
         setData(filteredData);
 
-        // Extract strategy addresses and create color mapping
-        if (filteredData.length > 0 && filteredData[0].strategies) {
-          const firstEntry = filteredData[0];
-          const extractedKeys = firstEntry.strategies.map(
-            (strategy: Strategy) => strategy.strategy
-          );
-          console.log("Extracted strategy addresses:", extractedKeys);
+        // Extract strategy addresses from ALL dates, not just the first one
+        if (filteredData.length > 0) {
+          const allStrategyAddresses = new Set<string>();
+          
+          // Collect all unique strategy addresses from all data points
+          filteredData.forEach((dataPoint: ChartDataPoint) => {
+            if (dataPoint.strategies && Array.isArray(dataPoint.strategies)) {
+              dataPoint.strategies.forEach((strategy: Strategy) => {
+                allStrategyAddresses.add(strategy.strategy);
+              });
+            }
+          });
+          
+          const extractedKeys = Array.from(allStrategyAddresses);
+          console.log("Extracted strategy addresses from all dates:", extractedKeys);
           console.log("Strategy names from config:", extractedKeys.map((addr: string) => getStrategyDisplayName(addr)));
           
           // Create address-based color mapping for consistent colors across charts
@@ -211,6 +219,13 @@ export default function AllocationChart({}: AllocationChartProps) {
       totalTvl: item.totalTvl,
     };
 
+    // Initialize all strategies with 0 allocation and 0 TVL
+    keys.forEach((strategyKey) => {
+      transformed[strategyKey] = 0; // 0% allocation
+      transformed[`${strategyKey}_tvl`] = 0; // $0 TVL
+    });
+
+    // Override with actual values for strategies present in this data point
     if (item.strategies && Array.isArray(item.strategies)) {
       item.strategies.forEach((strategy: Strategy) => {
         // Keep original address as key for data consistency
