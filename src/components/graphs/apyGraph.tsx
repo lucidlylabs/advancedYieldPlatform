@@ -30,7 +30,7 @@ export default function BaseApyGraph({ vaultAddress = "0x279CAD277447965AF3d24a7
         setLoading(true);
         console.log(`Fetching base APY data for vault: ${vaultAddress}, period: ${period}`);
 
-        const response = await fetch(`http://localhost:3001/api/base-apy/${vaultAddress}?period=${period}`);
+        const response = await fetch(`http://localhost:3001/api/base-apy?period=${period}`);
 
         console.log("Response status:", response.status);
 
@@ -162,8 +162,8 @@ export default function BaseApyGraph({ vaultAddress = "0x279CAD277447965AF3d24a7
   // Custom tooltip content component
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-      const weeklyValue = payload.find((p: any) => p.dataKey === "weeklyAPY")?.value || 0;
-      const annualizedValue = payload.find((p: any) => p.dataKey === "annualizedAPY")?.value || 0;
+      const value = payload[0].value;
+      const formattedValue = `${value.toFixed(2)}%`;
 
       return (
         <div className="rounded-lg shadow-lg overflow-hidden border border-gray-200 relative z-50">
@@ -176,20 +176,12 @@ export default function BaseApyGraph({ vaultAddress = "0x279CAD277447965AF3d24a7
           
           {/* Content - Light grey background */}
           <div className="bg-gray-100 px-4 py-3 relative z-50">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-sm text-gray-600 flex-1">
-                Weekly APY:
-              </span>
-              <span className="text-sm font-semibold text-gray-700 text-right">
-                {weeklyValue.toFixed(2)}%
-              </span>
-            </div>
             <div className="flex items-center gap-3">
               <span className="text-sm text-gray-600 flex-1">
-                Annualized APY:
+                Total APY:
               </span>
               <span className="text-sm font-semibold text-gray-700 text-right">
-                {annualizedValue.toFixed(2)}%
+                {formattedValue}
               </span>
             </div>
           </div>
@@ -217,14 +209,14 @@ export default function BaseApyGraph({ vaultAddress = "0x279CAD277447965AF3d24a7
   return (
     <div className="pt-2 pl-6 pb-6 rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 mb-12 chart-container">
       <div className="flex justify-between items-center mb-4">
-        <div className="text-lg font-semibold text-white">Base APY</div>
+        <div className="text-lg font-semibold text-white"></div>
         <div className="flex gap-1 items-center">
           <button
             onClick={() => setPeriod("daily")}
             className={`px-2 py-1 rounded text-xs transition-colors ${
               period === "daily"
                 ? "bg-[#7B5FFF] text-white"
-                : "bg-[#2A2A3C] text-gray-400 hover:bg-gray-100 hover:text-gray-800"
+                : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
             }`}
           >
             Daily
@@ -234,7 +226,7 @@ export default function BaseApyGraph({ vaultAddress = "0x279CAD277447965AF3d24a7
             className={`px-2 py-1 rounded text-xs transition-colors ${
               period === "weekly"
                 ? "bg-[#7B5FFF] text-white"
-                : "bg-[#2A2A3C] text-gray-400 hover:bg-gray-100 hover:text-gray-800"
+                : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
             }`}
           >
             Weekly
@@ -244,7 +236,7 @@ export default function BaseApyGraph({ vaultAddress = "0x279CAD277447965AF3d24a7
             className={`px-2 py-1 rounded text-xs transition-colors ${
               period === "monthly"
                 ? "bg-[#7B5FFF] text-white"
-                : "bg-[#2A2A3C] text-gray-400 hover:bg-gray-100 hover:text-gray-800"
+                : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
             }`}
           >
             Monthly
@@ -266,13 +258,9 @@ export default function BaseApyGraph({ vaultAddress = "0x279CAD277447965AF3d24a7
             }}
           >
             <defs>
-              <linearGradient id="colorWeeklyApy" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id="colorAnnualizedApy" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#7B5FFF" stopOpacity={0.8} />
                 <stop offset="95%" stopColor="#7B5FFF" stopOpacity={0.1} />
-              </linearGradient>
-              <linearGradient id="colorAnnualizedApy" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#5CD6FF" stopOpacity={0.8} />
-                <stop offset="95%" stopColor="#5CD6FF" stopOpacity={0.1} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#2A2A3C" />
@@ -294,7 +282,7 @@ export default function BaseApyGraph({ vaultAddress = "0x279CAD277447965AF3d24a7
               tickLine={false}
               tickFormatter={(val: number) => `${val.toFixed(2)}%`}
               label={{
-                value: "APY (%)",
+                value: "Total APY (%)",
                 angle: -90,
                 position: "left",
                 offset: 15,
@@ -308,18 +296,10 @@ export default function BaseApyGraph({ vaultAddress = "0x279CAD277447965AF3d24a7
             <Area
               type="monotone"
               dataKey="annualizedAPY"
-              stroke="#5CD6FF"
-              strokeWidth={2}
-              fill="url(#colorAnnualizedApy)"
-              name="Annualized APY"
-            />
-            <Area
-              type="monotone"
-              dataKey="weeklyAPY"
               stroke="#7B5FFF"
               strokeWidth={2}
-              fill="url(#colorWeeklyApy)"
-              name="Weekly APY"
+              fill="url(#colorAnnualizedApy)"
+              name="Total APY"
             />
           </AreaChart>
         </ResponsiveContainer>

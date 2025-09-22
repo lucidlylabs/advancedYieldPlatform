@@ -129,7 +129,7 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
         setLoading(true);
         console.log(`Fetching Allocation Returns data for period: ${period}`);
 
-        const response = await fetch(`http://localhost:3001/api/allocation-returns/daily`);
+        const response = await fetch(`https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/allocation-returns/daily`);
 
         if (!response.ok) {
           console.error("API responded with status:", response.status);
@@ -217,7 +217,7 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
 
         // Fetch Base APY data to overlay
         try {
-          const apyResponse = await fetch(`http://localhost:3001/api/strategy-pnl/daily-base-apy?period=weekly`);
+          const apyResponse = await fetch(`https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/strategy-pnl/daily-base-apy`);
           if (apyResponse.ok) {
             const apyData = await apyResponse.json();
             console.log("Base APY data:", apyData);
