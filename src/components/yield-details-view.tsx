@@ -14,6 +14,7 @@ import StrategyDailyYieldChart from "./graphs/strategyDailyYieldChart";
 import BaseApyTotalChart from "./graphs/baseApyTotalChart";
 import StrategyPnlChart from "./graphs/strategyPnlChart";
 import AllocationReturnsChart from "./graphs/allocationReturnsChart";
+import BaseApyGraph from "./graphs/apyGraph";
 import { ERC20_ABI } from "../config/abi/erc20";
 
 interface MarketItem {
@@ -116,7 +117,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
     "deposits" | "allocation"
   >("deposits");
   const [activeBaseApyTab, setActiveBaseApyTab] = useState<
-    "totalApy" | "allocation"
+    "totalApy" | "allocation" | "baseapy"
   >("totalApy");
 
   const [userDeposits, setUserDeposits] = useState<string>("0.00");
@@ -397,6 +398,16 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
           >
             Returns Attribution
           </button>
+          <button
+            className={`px-3 py-1.5 w-28 text-xs transition-colors duration-150 ${
+              activeBaseApyTab === "baseapy"
+                ? "bg-[rgba(184,138,248,0.1)] text-white"
+                : "bg-transparent text-gray-400 hover:text-gray-300"
+            }`}
+            onClick={() => setActiveBaseApyTab("baseapy")}
+          >
+            Base APY
+          </button>
         </div>
       </div>
 
@@ -421,6 +432,12 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
       {activeBaseApyTab === "allocation" && (
         <div className="h-[800px] overflow-y-auto pb-2">
           <AllocationReturnsChart />
+        </div>
+      )}
+
+      {activeBaseApyTab === "baseapy" && (
+        <div className="h-[800px] overflow-y-auto pb-2">
+          <BaseApyGraph vaultAddress={contractAddress} />
         </div>
       )}
     </div>
