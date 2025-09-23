@@ -129,7 +129,7 @@ const UserActivity: React.FC = () => {
     setLoading(true);
     try {
       console.log(`Fetching user activity for address: ${userAddress}, page: ${page}`);
-      const response = await fetch(`https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/user-activity/${userAddress}?page=${page}`);
+      const response = await fetch(`http://localhost:3001/api/user-activity/${userAddress}?page=${page}`);
       
       console.log("API Response status:", response.status);
       console.log("API Response headers:", Object.fromEntries(response.headers.entries()));
@@ -182,32 +182,58 @@ const UserActivity: React.FC = () => {
     });
   };
 
-  const formatAmount = (amount: string, assetName: string) => {
-    const numAmount = parseFloat(amount);
-    
-    // Format ALL amounts consistently with 2 decimal places maximum
-    // This ensures deposits, withdrawals, and bridges all look the same
-    if (numAmount === 0) {
-      return `0.00 ${assetName}`;
+  const formatAmount = (amount: string | undefined, assetName: string | undefined) => {
+    const name = assetName || "";
+    if (amount === undefined || amount === null) {
+      return `0.00 ${name}`;
     }
-    
-    // For all non-zero amounts, show 2 decimal places
-    // This will automatically handle the long decimal bridge amounts
-    return `${numAmount.toFixed(2)} ${assetName}`;
+
+    const numAmount = Number(amount);
+    if (!isFinite(numAmount) || isNaN(numAmount)) {
+      return `0.00 ${name}`;
+    }
+
+    if (numAmount === 0) {
+      return `0.00 ${name}`;
+    }
+
+    // Show more precision for very small non-zero values
+    // < 0.01 -> up to 6 decimals, < 1 -> 4 decimals, otherwise 2 decimals
+    const formatted = numAmount < 0.01
+      ? numAmount.toFixed(6)
+      : numAmount < 1
+        ? numAmount.toFixed(4)
+        : numAmount.toFixed(2);
+
+    // Trim trailing zeros while keeping at least two decimals for readability
+    const trimmed = formatted.replace(/\.?(0+)$/,"");
+    const ensureMinimumTwoDecimals = (val: string) => {
+      if (!val.includes('.')) return `${val}.00`;
+      const [i, d] = val.split('.');
+      if ((d ?? '').length >= 2) return val;
+      return `${i}.${(d ?? '').padEnd(2,'0')}`;
+    };
+
+    return `${ensureMinimumTwoDecimals(trimmed)} ${name}`;
   };
 
   // Helper function to get the correct amount for display
   const getTransactionAmount = (transaction: Transaction) => {
-    // Try fromAmount first, fallback to amount
-    const amount = transaction.fromAmount || transaction.amount || "0";
-    // Always return the amount we found, even if it's 0
-    return amount;
+    // Prefer fromAmount for source; fallback to amount; finally use toAmount if others missing
+    return transaction.fromAmount || transaction.amount || transaction.toAmount || "0";
   };
 
   // Helper function to get the correct asset name for display  
   const getTransactionAssetName = (transaction: Transaction) => {
-    // Try fromAsset name first, fallback to assetName
-    return transaction.fromAsset?.symbol || transaction.fromAsset?.name || transaction.assetName;
+    // Prefer source asset; fallback to provided assetName; finally use destination asset
+    return (
+      transaction.fromAsset?.symbol ||
+      transaction.fromAsset?.name ||
+      transaction.assetName ||
+      transaction.toAsset?.symbol ||
+      transaction.toAsset?.name ||
+      ""
+    );
   };
 
   // Helper function to get the asset icon
