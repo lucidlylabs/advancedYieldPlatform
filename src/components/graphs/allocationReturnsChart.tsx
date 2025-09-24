@@ -27,6 +27,7 @@ interface AllocationDataPoint {
     dailyApyPercentage: number;
     aumWeightPercentage: number;
     weightedContributionPercentage: number;
+    weightedContributionPercentageAnnualized: number;
   }[];
 }
 
@@ -129,7 +130,7 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
         setLoading(true);
         console.log(`Fetching Allocation Returns data for period: ${period}`);
 
-        const response = await fetch(`https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/allocation-returns/daily`);
+        const response = await fetch(`http://localhost:3001/api/allocation-returns/returns?period=${period}`);
 
         if (!response.ok) {
           console.error("API responded with status:", response.status);
@@ -138,12 +139,14 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
 
         const rawData = await response.json();
         console.log("Raw Allocation Returns data:", rawData);
+        console.log(`Data points received for ${period}:`, rawData.data?.length);
 
         if (!rawData.success || !rawData.data) {
           throw new Error("Invalid API response format");
         }
 
         const allocationData: AllocationDataPoint[] = rawData.data;
+        console.log(`Processing ${allocationData.length} data points for ${period} period`);
 
         console.log("Raw Allocation data dates:", allocationData.map(d => d.date));
         console.log("Raw data count:", allocationData.length);
@@ -208,16 +211,19 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
               return name === strategyName;
             });
 
-            // Use the API's weightedContributionPercentage directly - no frontend calculations
-            chartPoint[strategyName] = strategy ? (strategy.weightedContributionPercentage * 100) : 0;
+            // Use the API's weightedContributionPercentageAnnualized directly - already in percentage format
+            chartPoint[strategyName] = strategy ? strategy.weightedContributionPercentageAnnualized : 0;
           });
 
           return chartPoint;
         });
 
+        console.log(`Final chart data for ${period}:`, chartData.length, "points");
+        console.log("Chart data dates:", chartData.map(d => d.date));
+
         // Fetch Base APY data to overlay
         try {
-          const apyResponse = await fetch(`https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/strategy-pnl/daily-base-apy`);
+          const apyResponse = await fetch(`http://localhost:3001/api/base-apy?period=${period}`);
           if (apyResponse.ok) {
             const apyData = await apyResponse.json();
             console.log("Base APY data:", apyData);
@@ -235,7 +241,7 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
               
               return {
                 ...chartPoint,
-                baseApy: matchingApyData ? (matchingApyData.dailyBaseAPY * 100) : null, // Convert to percentage
+                baseApy: matchingApyData ? matchingApyData.annualizedAPY : null, // Already in percentage format
               };
             });
             
@@ -365,16 +371,24 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
             Daily
           </button>
           <button
-            disabled
-            className="px-2 py-1 rounded text-xs bg-[#2A2A3C] text-gray-500 cursor-not-allowed opacity-50"
+            onClick={() => setPeriod("weekly")}
+            className={`px-2 py-1 rounded text-xs transition-colors ${
+              period === "weekly"
+                ? "bg-[#7B5FFF] text-white"
+                : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
+            }`}
           >
-            Weekly
+            7D MA
           </button>
           <button
-            disabled
-            className="px-2 py-1 rounded text-xs bg-[#2A2A3C] text-gray-500 cursor-not-allowed opacity-50"
+            onClick={() => setPeriod("monthly")}
+            className={`px-2 py-1 rounded text-xs transition-colors ${
+              period === "monthly"
+                ? "bg-[#7B5FFF] text-white"
+                : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
+            }`}
           >
-            Monthly
+            30D MA
           </button>
         </div>
       </div>
