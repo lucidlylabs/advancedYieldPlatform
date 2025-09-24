@@ -20,9 +20,9 @@ export const metadata = {
     siteName: 'Lucidly Finance',
     images: [
       {
-        url: '/images/logo/Dark_Logomark_200_200.png',
-        width: 1024,
-        height: 1024,
+        url: '/images/icons/thumbnail.png',
+        width: 1200,
+        height: 630,
         alt: 'Lucidly Finance - Advanced Yield Platform for DeFi',
       },
     ],
@@ -33,7 +33,7 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'Lucidly Finance - Advanced Yield Platform',
     description: 'Discover the most advanced DeFi yield platform. Earn optimal returns on your crypto assets with Lucidly Finance.',
-    images: ['/images/logo/Dark_Logomark_200_200.png'],
+    images: ['/images/icons/thumbnail.png'],
     creator: '@LucidlyFinance',
   },
 }
@@ -50,9 +50,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <meta property="og:description" content="Discover the most advanced DeFi yield platform. Earn optimal returns on your crypto assets with Lucidly Finance." />
         <meta property="og:url" content="https://dev.lucidly.finance" />
         <meta property="og:site_name" content="Lucidly Finance" />
-        <meta property="og:image" content="https://dev.lucidly.finance/images/logo/Dark_Logomark_200_200.png" />
-        <meta property="og:image:width" content="1024" />
-        <meta property="og:image:height" content="1024" />
+        <meta property="og:image" content="https://dev.lucidly.finance/images/icons/thumbnail.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
         <meta property="og:image:alt" content="Lucidly Finance - Advanced Yield Platform for DeFi" />
         <meta property="og:type" content="website" />
         <meta property="og:locale" content="en_US" />
@@ -61,7 +61,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Lucidly Finance - Advanced Yield Platform" />
         <meta name="twitter:description" content="Discover the most advanced DeFi yield platform. Earn optimal returns on your crypto assets with Lucidly Finance." />
-        <meta name="twitter:image" content="https://dev.lucidly.finance/images/logo/Dark_Logomark_200_200.png" />
+        <meta name="twitter:image" content="https://dev.lucidly.finance/images/icons/thumbnail.png" />
         <meta name="twitter:image:alt" content="Lucidly Finance - Advanced Yield Platform for DeFi" />
         <meta name="twitter:creator" content="@LucidlyFinance" />
       </head>
