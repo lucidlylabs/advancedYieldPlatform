@@ -185,7 +185,7 @@ export const USD_STRATEGIES = {
       },
 
       description: "Perpetual syUSD strategy on base network",
-      apy: "https://api.lucidly.finance/services/getAPY?units=7d&poolAddress=0x279CAD277447965AF3d24a78197aad1B02a2c589",
+      apy: "http://localhost:3001/api/base-apy/today-7d-ma",
       cap_limit: "1,000,000",
       filled_cap: "800,000",
       show_cap: true,
