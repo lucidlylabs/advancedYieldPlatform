@@ -126,23 +126,48 @@ export default function PortfolioChart({ userAddress }: { userAddress: string })
         console.log('balance history data', json);
 
         if (json.success && Array.isArray(json.balanceHistory)) {
-          const sorted = json.balanceHistory
+          const sortedData = json.balanceHistory
             .sort((a: BalanceHistoryEntry, b: BalanceHistoryEntry) =>
               new Date(a.date).getTime() - new Date(b.date).getTime()
-            )
-            .map((entry: BalanceHistoryEntry) => ({
-              timestamp: dayjs(entry.date).format('MMM DD'),
-              value: entry.totalUsdValue,
-            }));
+            );
+
+          // Check for gaps in the data and fill with zeros
+          const filledData = [];
+          for (let i = 0; i < sortedData.length - 1; i++) {
+            filledData.push({
+              timestamp: dayjs(sortedData[i].date).format('MMM DD'),
+              value: sortedData[i].totalUsdValue,
+            });
+            
+            const currentDate = dayjs(sortedData[i].date);
+            const nextDate = dayjs(sortedData[i + 1].date);
+            const daysDiff = nextDate.diff(currentDate, 'day');
+            
+            // If gap > 1 day, fill with zeros
+            if (daysDiff > 1) {
+              for (let j = 1; j < daysDiff; j++) {
+                filledData.push({
+                  timestamp: currentDate.add(j, 'day').format('MMM DD'),
+                  value: 0
+                });
+              }
+            }
+          }
+
+          // Add the last record
+          if (sortedData.length > 0) {
+            filledData.push({
+              timestamp: dayjs(sortedData[sortedData.length - 1].date).format('MMM DD'),
+              value: sortedData[sortedData.length - 1].totalUsdValue,
+            });
+          }
 
           // Add 2 days of padding before the first value with zero values
           const paddedData = [];
-          if (sorted.length > 0) {
-            const firstDate = dayjs(json.balanceHistory.find(entry => 
-              dayjs(entry.date).format('MMM DD') === sorted[0].timestamp
-            )?.date);
+          if (filledData.length > 0) {
+            const firstDate = dayjs(sortedData[0].date);
             
-            // Add 2 days before with zero values (e.g., July 16, July 17 if first data is July 18)
+            // Add 2 days before with zero values
             paddedData.push({
               timestamp: firstDate.subtract(2, 'day').format('MMM DD'),
               value: 0
@@ -153,9 +178,24 @@ export default function PortfolioChart({ userAddress }: { userAddress: string })
             });
           }
           
-          const finalData = [...paddedData, ...sorted];
+          // Add zero values from last recorded date to current date
+          const lastRecordDate = dayjs(json.summary.lastRecordDate);
+          const currentDate = dayjs();
+          const postData = [];
+          
+          // Add zero values for each day from last record to current date
+          let dateIterator = lastRecordDate.add(1, 'day');
+          while (dateIterator.isBefore(currentDate) || dateIterator.isSame(currentDate, 'day')) {
+            postData.push({
+              timestamp: dateIterator.format('MMM DD'),
+              value: 0
+            });
+            dateIterator = dateIterator.add(1, 'day');
+          }
+          
+          const finalData = [...paddedData, ...filledData, ...postData];
           setData(finalData);
-          console.log('sorted balance history with padding', finalData);
+          console.log('complete balance history with gap filling', finalData);
         } else {
           console.warn('Invalid response or balanceHistory is not an array', json);
           setData([]); // fallback to empty
