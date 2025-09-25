@@ -64,7 +64,7 @@ const EmptyPortfolioState = () => {
   }));
 
   return (
-    <div className="flex flex-col mb-5 p-4" style={{ backgroundColor: '#0A0D18' }}>
+    <div className="flex flex-col mb-5 p-4">
       <div className="text-[#9C9DA2] text-[16px] font-bold uppercase mb-4">
         TOTAL PORTFOLIO VALUE
       </div>    
