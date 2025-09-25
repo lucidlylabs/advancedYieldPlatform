@@ -1503,13 +1503,6 @@ const PortfolioSubpage: React.FC = () => {
           {/* Left Side - Assets Table */}
           <div className="w-1/2 border-r border-[rgba(255,255,255,0.1)] pt-8 pl-8 overflow-y-auto pb-36">
             <PortfolioChart userAddress={address ?? ""} />
-            <div className="mt-8">
-              <div className="mb-6">
-                <div className="text-[rgba(255,255,255,0.70)]   text-[16px] font-bold uppercase">
-                  Total Portfolio Value
-                </div>
-              </div>
-            </div>
 
             {/* Column Headers */}
             <div className="grid grid-cols-5 sm:pl-4 sm:pr-6 py-2 border-b border-[rgba(255,255,255,0.15)]">

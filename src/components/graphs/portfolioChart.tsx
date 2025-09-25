@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
-  BarChart,
-  Bar,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   Tooltip,
@@ -64,25 +64,31 @@ const EmptyPortfolioState = () => {
   }));
 
   return (
-    <div className="w-full h-96 flex flex-col bg-[rgba(255,255,255,0.01)] p-4">    
+    <div className="flex flex-col mb-5 p-4" style={{ backgroundColor: '#0A0D18' }}>
       <div className="text-[#9C9DA2] text-[16px] font-bold uppercase mb-4">
         TOTAL PORTFOLIO VALUE
-      </div>
-      <div className="flex-1 relative">
+      </div>    
+      <div style={{ width: '650px', height: '340px' }}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart 
+          <AreaChart 
             data={emptyData} 
-            margin={{ top: 10, right: 0, left: -20, bottom: 0 }}
+            margin={{ top: 10, right: -30, left: -20, bottom: 20 }}
             style={{ outline: "none", border: "none" }}
             className="focus:outline-none focus:ring-0 focus:border-0"
-            barCategoryGap="1%"
           >
+            <defs>
+              <linearGradient id="colorEmptyPortfolio" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#9C9DA2" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#9C9DA2" stopOpacity={0.1} />
+              </linearGradient>
+            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#2A2A3C" />
             <XAxis 
               dataKey="timestamp" 
               tick={{ fill: "#A3A3A3", fontSize: 10 }}
               axisLine={false}
               tickLine={false}
+              domain={['dataMin', 'dataMax']}
             />
             <YAxis
               tick={{ fill: "#A3A3A3", fontSize: 10 }}
@@ -91,13 +97,15 @@ const EmptyPortfolioState = () => {
               tickFormatter={(value) => value === 0 ? '$0' : ''}
               tickCount={3}
             />
-            <Bar 
+            <Area 
+              type="monotone"
               dataKey="value" 
-              fill="#9C9DA2"
+              stroke="#9C9DA2"
+              strokeWidth={2}
+              fill="url(#colorEmptyPortfolio)"
               name="Portfolio Value"
-              radius={[2, 2, 0, 0]}
             />
-          </BarChart>
+          </AreaChart>
         </ResponsiveContainer>
       </div>
     </div>
@@ -127,8 +135,27 @@ export default function PortfolioChart({ userAddress }: { userAddress: string })
               value: entry.totalUsdValue,
             }));
 
-          setData(sorted);
-          console.log('sorted balance history', sorted);
+          // Add 2 days of padding before the first value with zero values
+          const paddedData = [];
+          if (sorted.length > 0) {
+            const firstDate = dayjs(json.balanceHistory.find(entry => 
+              dayjs(entry.date).format('MMM DD') === sorted[0].timestamp
+            )?.date);
+            
+            // Add 2 days before with zero values (e.g., July 16, July 17 if first data is July 18)
+            paddedData.push({
+              timestamp: firstDate.subtract(2, 'day').format('MMM DD'),
+              value: 0
+            });
+            paddedData.push({
+              timestamp: firstDate.subtract(1, 'day').format('MMM DD'), 
+              value: 0
+            });
+          }
+          
+          const finalData = [...paddedData, ...sorted];
+          setData(finalData);
+          console.log('sorted balance history with padding', finalData);
         } else {
           console.warn('Invalid response or balanceHistory is not an array', json);
           setData([]); // fallback to empty
@@ -165,38 +192,47 @@ export default function PortfolioChart({ userAddress }: { userAddress: string })
   }
 
   return (
-    <div className="w-full h-96 pt-2 pb-6 rounded-xl text-white [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0"> 
-      <div className="w-full h-[300px] focus:outline-none focus:ring-0 focus:border-0 relative">
+    <div className="flex flex-col text-white mb-5 [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
+      <div className="text-[#9C9DA2] text-[16px] font-bold uppercase mb-4">
+        TOTAL PORTFOLIO VALUE
+      </div>
+      <div style={{ width: '700px', height: '340px' }} className="focus:outline-none focus:ring-0 focus:border-0 relative">
         <ResponsiveContainer 
           width="100%" 
           height="100%"
           className="focus:outline-none focus:ring-0 focus:border-0"
         >
-          <BarChart 
+          <AreaChart 
             data={data} 
-            margin={{ top: 10, right: 0, left: -20, bottom: 0 }}
+            margin={{ top: 10, right: -30, left: -20, bottom: 20 }}
             style={{ outline: "none", border: "none" }}
             className="focus:outline-none focus:ring-0 focus:border-0"
-            barCategoryGap="1%"
           >
+            <defs>
+              <linearGradient id="colorPortfolioValue" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#7B5FFF" stopOpacity={0.8} />
+                <stop offset="95%" stopColor="#7B5FFF" stopOpacity={0.1} />
+              </linearGradient>
+            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#2A2A3C" />
             <XAxis 
               dataKey="timestamp" 
               tick={{ fill: "#A3A3A3", fontSize: 10 }}
               axisLine={false}
               tickLine={false}
-              label={{
-                value: "Date",
-                position: "bottom",
-                offset: 0,
-                style: { fill: "#A3A3A3", fontSize: 12 },
-              }}
+              domain={['dataMin', 'dataMax']}
             />
             <YAxis
+              orientation="right"
               tick={{ fill: "#A3A3A3", fontSize: 10 }}
               axisLine={false}
               tickLine={false}
+              domain={[0, (dataMax) => dataMax * 1.1]}
+              tickCount={8}
               tickFormatter={(value) => {
+                if (value === 0) {
+                  return '';
+                }
                 if (value >= 1000000) {
                   return `$${(value / 1000000).toFixed(1)}M`;
                 } else if (value >= 1000) {
@@ -204,13 +240,6 @@ export default function PortfolioChart({ userAddress }: { userAddress: string })
                 } else {
                   return `$${value}`;
                 }
-              }}
-              label={{
-                value: "Portfolio Value",
-                angle: -90,
-                position: "left",
-                offset: 0,
-                style: { fill: "#A3A3A3", fontSize: 12 },
               }}
             />
             <Tooltip
@@ -240,13 +269,15 @@ export default function PortfolioChart({ userAddress }: { userAddress: string })
               )}
               labelFormatter={(label: string) => label}
             />
-            <Bar 
+            <Area 
+              type="monotone"
               dataKey="value" 
-              fill="#7B5FFF"
+              stroke="#7B5FFF"
+              strokeWidth={2}
+              fill="url(#colorPortfolioValue)"
               name="Portfolio Value"
-              radius={[2, 2, 0, 0]}
             />
-          </BarChart>
+          </AreaChart>
         </ResponsiveContainer>
       </div>
     </div>
