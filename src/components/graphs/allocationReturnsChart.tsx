@@ -378,7 +378,7 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
                 : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
             }`}
           >
-            7D MA
+            Weekly
           </button>
           <button
             onClick={() => setPeriod("monthly")}
@@ -388,7 +388,7 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
                 : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
             }`}
           >
-            30D MA
+             Monthly
           </button>
         </div>
       </div>
