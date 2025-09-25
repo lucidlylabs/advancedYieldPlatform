@@ -52,7 +52,7 @@ const isMobile = () => typeof window !== "undefined" && window.innerWidth < 640;
 //   CartesianGrid,
 // } from "recharts";
 import { Tooltip } from "@/components/ui/tooltip";
-// import PortfolioChart from "@/components/graphs/portfolioChart";
+import PortfolioChart from "@/components/graphs/portfolioChart";
 
 interface NetworkConfig {
   tokens: Array<{
@@ -1502,7 +1502,7 @@ const PortfolioSubpage: React.FC = () => {
         <div className="flex flex-1">
           {/* Left Side - Assets Table */}
           <div className="w-1/2 border-r border-[rgba(255,255,255,0.1)] pt-8 pl-8 overflow-y-auto pb-36">
-            {/* <PortfolioChart userAddress={address ?? ""} /> */}
+            <PortfolioChart userAddress={address ?? ""} />
             <div className="mt-8">
               <div className="mb-6">
                 <div className="text-[rgba(255,255,255,0.70)]   text-[16px] font-bold uppercase">
