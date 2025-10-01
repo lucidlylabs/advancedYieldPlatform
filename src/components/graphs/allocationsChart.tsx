@@ -122,7 +122,7 @@ export default function AllocationChart({}: AllocationChartProps) {
 
         console.log("Fetching allocation data...");
         const response = await fetch(
-          "https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/allocation/daily-allocation"
+          "http://localhost:3001/api/allocation/daily-allocation"
         );
 
         console.log("Response status:", response.status);
@@ -153,6 +153,11 @@ export default function AllocationChart({}: AllocationChartProps) {
         const filteredData = processedData;
 
         console.log("All allocation data (no date filtering):", filteredData);
+        console.log("Date range:", {
+          first: filteredData[0]?.date,
+          last: filteredData[filteredData.length - 1]?.date,
+          total: filteredData.length
+        });
         setData(filteredData);
 
         // Extract strategy addresses from ALL dates, not just the first one
@@ -215,6 +220,7 @@ export default function AllocationChart({}: AllocationChartProps) {
       date: new Date(item.date).toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
+        year: "2-digit",
       }),
       totalTvl: item.totalTvl,
     };
@@ -258,6 +264,8 @@ export default function AllocationChart({}: AllocationChartProps) {
   console.log("Selected keys:", Array.from(selectedKeys));
   console.log("Filtered data keys:", filteredData.length > 0 ? Object.keys(filteredData[0]) : []);
   console.log("Transformed data keys:", transformedData.length > 0 ? Object.keys(transformedData[0]) : []);
+  console.log("Transformed data dates:", transformedData.map(d => d.date));
+  console.log("Chart data length:", transformedData.length);
 
   if (initialLoading && loading) {
     return (
@@ -353,8 +361,11 @@ export default function AllocationChart({}: AllocationChartProps) {
                     
                     return "$0";
                   }}
-                  // Use strategy names in tooltip
-                  nameFormatter={(name) => getStrategyDisplayName(name)}
+                  // Use strategy names in tooltip, fallback to address if no name
+                  nameFormatter={(name) => {
+                    const displayName = getStrategyDisplayName(name);
+                    return displayName !== name ? displayName : `${name.slice(0, 6)}...${name.slice(-4)}`;
+                  }}
                 />
               )}
               labelFormatter={(label: string) => label}
@@ -363,10 +374,11 @@ export default function AllocationChart({}: AllocationChartProps) {
               .filter((k) => selectedKeys.has(k))
               .map((key) => {
                 const strategyName = getStrategyDisplayName(key);
+                const finalStrategyName = strategyName !== key ? strategyName : `${key.slice(0, 6)}...${key.slice(-4)}`;
                 // Use address-based color mapping for consistency across charts
                 const strategyColor = strategyColorMap[key.toLowerCase()] || strategyColorMap[strategyName] || colors[0];
                 
-                console.log(`Rendering Area for key: ${key}, name: ${strategyName}, color: ${strategyColor}`);
+                console.log(`Rendering Area for key: ${key}, name: ${strategyName}, finalName: ${finalStrategyName}, color: ${strategyColor}`);
                 return (
                   <Area
                     key={key}
@@ -376,7 +388,7 @@ export default function AllocationChart({}: AllocationChartProps) {
                     stroke={strategyColor}
                     fill={strategyColor}
                     fillOpacity={0.8}
-                    name={strategyName}
+                    name={finalStrategyName}
                   />
                 );
               })}
@@ -404,12 +416,13 @@ export default function AllocationChart({}: AllocationChartProps) {
           >
             {keys.map((key) => {
               const isSelected = selectedKeys.has(key);
-              // Convert address to strategy name for display
+              // Convert address to strategy name for display, fallback to truncated address
               const displayName = getStrategyDisplayName(key);
+              const finalDisplayName = displayName !== key ? displayName : `${key.slice(0, 6)}...${key.slice(-4)}`;
               // Use address-based color mapping for consistency across charts
               const buttonColor = strategyColorMap[key.toLowerCase()] || strategyColorMap[displayName] || colors[0];
               
-              console.log(`Legend item - key: ${key}, displayName: ${displayName}, isSelected: ${isSelected}, color: ${buttonColor}`);
+              console.log(`Legend item - key: ${key}, displayName: ${displayName}, finalDisplayName: ${finalDisplayName}, isSelected: ${isSelected}, color: ${buttonColor}`);
 
               return (
                 <div
@@ -435,7 +448,7 @@ export default function AllocationChart({}: AllocationChartProps) {
                       maxWidth: "120px",
                     }}
                   >
-                    {displayName}
+                    {finalDisplayName}
                   </span>
                 </div>
               );
