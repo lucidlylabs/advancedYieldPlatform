@@ -181,6 +181,13 @@ export const USD_STRATEGIES = {
             description:
               "Points earned through protocol fund allocation strategies",
           },
+          {
+            name: "XPL Rewards",
+            image: "/images/icons/syUSD/XPL.png",
+            multiplier: 1,
+            description:
+              "Points earned through protocol fund allocation strategies",
+          },
         ],
       },
 
