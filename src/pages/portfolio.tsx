@@ -9,6 +9,7 @@ import {
 import { USD_STRATEGIES, BTC_STRATEGIES, ETH_STRATEGIES } from "../config/env";
 import { ERC20_ABI } from "../config/abi/erc20";
 import { SOLVER_ABI } from "../config/abi/solver";
+import { RATE_PROVIDER_ABI } from "../config/abi/rateProvider";
 import {
   type Address,
   createPublicClient,
@@ -180,7 +181,6 @@ interface StrategyWithBalance {
   balance: number;
 }
 
-
 const ExternalLinkIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -299,6 +299,8 @@ const PortfolioSubpage: React.FC = () => {
     isProfitable: boolean;
   } | null>(null);
   const [isLoadingPnl, setIsLoadingPnl] = useState(false);
+  const [exchangeRate, setExchangeRate] = useState<number>(1.0);
+  const [isLoadingExchangeRate, setIsLoadingExchangeRate] = useState(false);
 
   const chainId = useChainId();
   const isBase = chainId === 8453;
@@ -374,6 +376,105 @@ const PortfolioSubpage: React.FC = () => {
       hash: transactionHash || undefined,
     });
 
+  // Fetch exchange rate for syUSD to USD conversion
+  const fetchExchangeRate = async () => {
+    setIsLoadingExchangeRate(true);
+    try {
+      // Use USDC as the quote token for USD conversion
+      const usdcContract = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+      const strategyConfig = USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
+      const rateProviderAddress = strategyConfig.rateProvider;
+
+      // Base RPC URLs with fallbacks
+      const baseRpcUrls = [
+        "https://base.llamarpc.com",
+        "https://base.blockpi.network/v1/rpc/public",
+        "https://base-mainnet.g.alchemy.com/v2/demo",
+        "https://base.meowrpc.com",
+      ];
+
+      let rate;
+      let lastError;
+
+      // Try each RPC URL until one works
+      for (const rpcUrl of baseRpcUrls) {
+        try {
+          const client = createPublicClient({
+            transport: http(rpcUrl),
+            chain: {
+              id: 8453,
+              name: "Base",
+              network: "base",
+              nativeCurrency: {
+                decimals: 18,
+                name: "Ether",
+                symbol: "ETH",
+              },
+              rpcUrls: {
+                default: { http: [rpcUrl] },
+                public: { http: [rpcUrl] },
+              },
+            },
+          });
+
+          rate = await client.readContract({
+            address: rateProviderAddress as Address,
+            abi: RATE_PROVIDER_ABI,
+            functionName: "getRateInQuoteSafe",
+            args: [usdcContract as Address],
+          });
+
+          console.log(
+            `Successfully fetched exchange rate using RPC: ${rpcUrl}`
+          );
+          break;
+        } catch (error) {
+          console.warn(`RPC ${rpcUrl} failed:`, error);
+          lastError = error;
+        }
+      }
+
+      if (!rate) {
+        throw lastError || new Error("All RPC endpoints failed");
+      }
+
+      console.log("Exchange rate debug:", {
+        rawRate: rate.toString(),
+        rateLength: rate.toString().length,
+      });
+
+      // USDC has 6 decimals, so format accordingly
+      // The rate represents how much USDC you get for 1 syUSD
+      const rateFormatted = formatUnits(rate as bigint, 6);
+      const rateNumber = parseFloat(rateFormatted);
+
+      console.log(
+        "Exchange rate formatted:",
+        rateFormatted,
+        "Rate number:",
+        rateNumber
+      );
+
+      // Since 1 syUSD = rateNumber USDC, and 1 USDC ≈ 1 USD
+      // The exchange rate for syUSD to USD is approximately the same
+      setExchangeRate(rateNumber);
+      console.log(
+        "🔥 EXCHANGE RATE FETCHED SUCCESSFULLY:",
+        rateNumber,
+        "USD per syUSD"
+      );
+      console.log("🔥 Raw rate from contract:", rate.toString());
+      console.log("🔥 Formatted rate:", rateFormatted);
+    } catch (error) {
+      console.error("🔥 ERROR FETCHING EXCHANGE RATE:", error);
+      // Fallback to 1.0 if exchange rate fetch fails
+      setExchangeRate(1.0);
+      console.log("🔥 USING FALLBACK EXCHANGE RATE: 1.0");
+    } finally {
+      setIsLoadingExchangeRate(false);
+    }
+  };
+
   // Fetch PnL data
   const fetchPnlData = async (userAddress: string) => {
     if (!userAddress) return;
@@ -384,10 +485,13 @@ const PortfolioSubpage: React.FC = () => {
       const response = await fetch(
         `https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/pnl/${userAddress}`
       );
-      
+
       console.log("PnL API Response status:", response.status);
-      console.log("PnL API Response headers:", Object.fromEntries(response.headers.entries()));
-      
+      console.log(
+        "PnL API Response headers:",
+        Object.fromEntries(response.headers.entries())
+      );
+
       const data = await response.json();
       console.log("=== FULL PnL API RESPONSE ===");
       console.log(JSON.stringify(data, null, 2));
@@ -436,6 +540,11 @@ const PortfolioSubpage: React.FC = () => {
       // If apyUrl is not a URL, use it directly (fallback value)
       setUsdApy(apyUrl);
     }
+  }, []);
+
+  // Fetch exchange rate on component mount
+  useEffect(() => {
+    fetchExchangeRate();
   }, []);
 
   // Fetch PnL when address changes
@@ -583,10 +692,14 @@ const PortfolioSubpage: React.FC = () => {
   };
 
   // Helper function to add delay between requests
-  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  const delay = (ms: number) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
 
   // Function to check balance for a strategy across all networks (withdrawable balance)
-  const checkWithdrawableBalance = async (strategy: any, delayMs: number = 0) => {
+  const checkWithdrawableBalance = async (
+    strategy: any,
+    delayMs: number = 0
+  ) => {
     if (!address || !strategy.boringVaultAddress) return 0;
 
     // Add delay to prevent rate limiting
@@ -644,8 +757,10 @@ const PortfolioSubpage: React.FC = () => {
       } catch (error) {
         console.error(`Error checking ${networkKey} balance:`, error);
         // Check if it's a rate limit error
-        if (error instanceof Error && error.message.includes('429')) {
-          console.warn(`Rate limited on ${networkKey}, waiting before retry...`);
+        if (error instanceof Error && error.message.includes("429")) {
+          console.warn(
+            `Rate limited on ${networkKey}, waiting before retry...`
+          );
           await delay(2000); // Wait 2 seconds before continuing
         }
         // Continue to next network instead of failing completely
@@ -714,7 +829,7 @@ const PortfolioSubpage: React.FC = () => {
       );
     } catch (error) {
       console.error("Error checking withdrawable balances:", error);
-      if (error instanceof Error && error.message.includes('429')) {
+      if (error instanceof Error && error.message.includes("429")) {
         setErrorMessage("Rate limited. Please wait a moment and try again.");
       } else {
         setErrorMessage("Failed to fetch withdrawable balances.");
@@ -1350,52 +1465,7 @@ const PortfolioSubpage: React.FC = () => {
                   Portfolio
                 </div>
                 <div className="text-[#D7E3EF] text-[20px] sm:text-[24px] font-semibold leading-normal mt-1">
-                  {isRefreshingBalance ? (
-                    <span className="inline-flex items-center gap-1">
-                      <svg
-                        className="animate-spin h-4 w-4 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      <span>Refreshing...</span>
-                    </span>
-                   ) : isClient && strategiesWithWithdrawableBalance.length > 0 ? (
-                     `$${strategiesWithWithdrawableBalance
-                       .reduce((sum, s) => sum + s.balance, 0)
-                       .toFixed(2)}`
-                   ) : (
-                     "$0.00"
-                   )}
-                </div>
-              </div>
-              {/* Vertical Divider */}
-              <div className="w-px bg-[rgba(217,217,217,0.05)] self-stretch mx-4 sm:mx-8 hidden sm:block"></div>
-              <div className="flex flex-col items-center sm:items-start">
-                <div className="flex items-center gap-2 text-[#9C9DA2] text-[14px] font-normal leading-[16px]">
-                  Withdrawable
-                  <Tooltip content="Withdrawals are only active on Base Network. To redeem assets from other networks, first bridge them to base.">
-                    <button type="button" className="cursor-help">
-                      <InfoIcon />
-                    </button>
-                  </Tooltip>
-                </div>
-                <div className="text-[#D7E3EF] text-[20px] sm:text-[24px] font-semibold leading-normal mt-1">
-                  {isRefreshingBalance ? (
+                  {isRefreshingBalance || isLoadingExchangeRate || !isClient ? (
                     <span className="inline-flex items-center gap-1">
                       <svg
                         className="animate-spin h-4 w-4 text-white"
@@ -1417,15 +1487,102 @@ const PortfolioSubpage: React.FC = () => {
                           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                         ></path>
                       </svg>
-                      <span>Refreshing...</span>
+                      <span>
+                        {isLoadingExchangeRate
+                          ? "Loading rates..."
+                          : "Refreshing..."}
+                      </span>
                     </span>
-                   ) : isClient && strategiesWithBalance.length > 0 ? (
-                     `$${strategiesWithBalance
-                       .reduce((sum, s) => sum + s.balance, 0)
-                       .toFixed(2)}`
-                   ) : (
-                     "$0.00"
-                   )}
+                  ) : strategiesWithWithdrawableBalance.length > 0 ? (
+                    (() => {
+                      const totalBalance =
+                        strategiesWithWithdrawableBalance.reduce((sum, s) => {
+                          console.log(
+                            "🔥 Portfolio Balance Calc:",
+                            s.balance,
+                            "* exchange rate:",
+                            exchangeRate,
+                            "=",
+                            s.balance * exchangeRate
+                          );
+                          return sum + s.balance * exchangeRate;
+                        }, 0);
+                      console.log(
+                        "🔥 Total Portfolio USD Value:",
+                        totalBalance
+                      );
+                      return `$${totalBalance.toFixed(2)}`;
+                    })()
+                  ) : (
+                    "$0.00"
+                  )}
+                </div>
+              </div>
+              {/* Vertical Divider */}
+              <div className="w-px bg-[rgba(217,217,217,0.05)] self-stretch mx-4 sm:mx-8 hidden sm:block"></div>
+              <div className="flex flex-col items-center sm:items-start">
+                <div className="flex items-center gap-2 text-[#9C9DA2] text-[14px] font-normal leading-[16px]">
+                  Withdrawable
+                  <Tooltip content="Withdrawals are only active on Base Network. To redeem assets from other networks, first bridge them to base.">
+                    <button type="button" className="cursor-help">
+                      <InfoIcon />
+                    </button>
+                  </Tooltip>
+                </div>
+                <div className="text-[#D7E3EF] text-[20px] sm:text-[24px] font-semibold leading-normal mt-1">
+                  {isRefreshingBalance || isLoadingExchangeRate || !isClient ? (
+                    <span className="inline-flex items-center gap-1">
+                      <svg
+                        className="animate-spin h-4 w-4 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 718-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      <span>
+                        {isLoadingExchangeRate
+                          ? "Loading rates..."
+                          : "Refreshing..."}
+                      </span>
+                    </span>
+                  ) : strategiesWithBalance.length > 0 ? (
+                    (() => {
+                      const totalBalance = strategiesWithBalance.reduce(
+                        (sum, s) => {
+                          console.log(
+                            "🔥 Withdrawable Balance Calc:",
+                            s.balance,
+                            "* exchange rate:",
+                            exchangeRate,
+                            "=",
+                            s.balance * exchangeRate
+                          );
+                          return sum + s.balance * exchangeRate;
+                        },
+                        0
+                      );
+                      console.log(
+                        "🔥 Total Withdrawable USD Value:",
+                        totalBalance
+                      );
+                      return `$${totalBalance.toFixed(2)}`;
+                    })()
+                  ) : (
+                    "$0.00"
+                  )}
                 </div>
               </div>
               {/* Vertical Divider */}
@@ -1435,15 +1592,15 @@ const PortfolioSubpage: React.FC = () => {
                   PNL
                 </div>
                 <div
-                className={`text-[16px] font-normal leading-normal mt-1 sm:mt-3 ${
-                  isLoadingPnl
-                    ? "text-[#9C9DA2]"        // Gray when loading
-                    : !address
-                    ? "text-[#9C9DA2]"        // Gray when no wallet connected
-                    : pnlData?.isProfitable
-                    ? "text-[#00D1A0]"        // Green when profitable
-                    : "text-[#EF4444]"        // Red when not profitable
-                }`}
+                  className={`text-[16px] font-normal leading-normal mt-1 sm:mt-3 ${
+                    isLoadingPnl
+                      ? "text-[#9C9DA2]" // Gray when loading
+                      : !address
+                      ? "text-[#9C9DA2]" // Gray when no wallet connected
+                      : pnlData?.isProfitable
+                      ? "text-[#00D1A0]" // Green when profitable
+                      : "text-[#EF4444]" // Red when not profitable
+                  }`}
                 >
                   {isLoadingPnl ? (
                     <span className="inline-flex items-center gap-1">
@@ -1469,17 +1626,17 @@ const PortfolioSubpage: React.FC = () => {
                       </svg>
                       <span>Loading...</span>
                     </span>
-                   ) : isClient && pnlData ? (
-                     `${pnlData.isProfitable ? "+" : ""}$${Math.abs(
-                       pnlData.value
-                     ).toFixed(4)} (${
-                       pnlData.isProfitable ? "+" : ""
-                     }${pnlData.percentage.toFixed(2)}%)`
-                   ) : isClient && !address ? (
-                     "---"
-                   ) : (
-                     "$0.0000 (0.00%)"
-                   )}
+                  ) : isClient && pnlData ? (
+                    `${pnlData.isProfitable ? "+" : ""}$${Math.abs(
+                      pnlData.value
+                    ).toFixed(4)} (${
+                      pnlData.isProfitable ? "+" : ""
+                    }${pnlData.percentage.toFixed(2)}%)`
+                  ) : isClient && !address ? (
+                    "---"
+                  ) : (
+                    "$0.0000 (0.00%)"
+                  )}
                 </div>
               </div>
             </div>
@@ -1664,29 +1821,31 @@ const PortfolioSubpage: React.FC = () => {
                           {strategy.type === "stable" ? "sy" : "Incentive Maxi"}
                           {strategy.asset}
                         </div>
-                         <div className="text-[#00D1A0]   text-[12px] font-normal">
-                           +
-                           {isClient ? (() => {
-                             // Use the correct APY value for calculations
-                             let apyToUse = strategy.apy;
-                             if (
-                               strategy.asset === "USD" &&
-                               strategy.type === "stable"
-                             ) {
-                               apyToUse = usdApy || strategy.apy;
-                             }
+                        <div className="text-[#00D1A0]   text-[12px] font-normal">
+                          +
+                          {isClient
+                            ? (() => {
+                                // Use the correct APY value for calculations
+                                let apyToUse = strategy.apy;
+                                if (
+                                  strategy.asset === "USD" &&
+                                  strategy.type === "stable"
+                                ) {
+                                  apyToUse = usdApy || strategy.apy;
+                                }
 
-                             const apyValue = parseFloat(
-                               apyToUse?.replace("%", "") || "0"
-                             );
-                             if (isNaN(apyValue)) return "0.00";
-                             return (
-                               (strategy.balance * apyValue) /
-                               100
-                             ).toFixed(2);
-                           })() : "0.00"}{" "}
-                           in 1 year
-                         </div>
+                                const apyValue = parseFloat(
+                                  apyToUse?.replace("%", "") || "0"
+                                );
+                                if (isNaN(apyValue)) return "0.00";
+                                return (
+                                  (strategy.balance * exchangeRate * apyValue) /
+                                  100
+                                ).toFixed(2);
+                              })()
+                            : "0.00"}{" "}
+                          in 1 year
+                        </div>
                       </div>
                     </div>
 
@@ -1737,10 +1896,12 @@ const PortfolioSubpage: React.FC = () => {
                       })()}
                     </div>
 
-                     {/* Current Balance */}
-                     <div className="flex justify-end text-[#EDF2F8] text-[12px] font-normal">
-                       {isClient ? `$${strategy.balance.toFixed(2)}` : "$0.00"}
-                     </div>
+                    {/* Current Balance */}
+                    <div className="flex justify-end text-[#EDF2F8] text-[12px] font-normal">
+                      {isClient
+                        ? `$${(strategy.balance * exchangeRate).toFixed(2)}`
+                        : "$0.00"}
+                    </div>
                   </div>
                 ))
               ) : (
@@ -1910,7 +2071,11 @@ const PortfolioSubpage: React.FC = () => {
                           <div className="text-[#9C9DA2] text-right   text-[12px] font-normal leading-normal">
                             Balance:{" "}
                             <span className="text-[#D7E3EF] text-[12px] font-semibold leading-normal">
-                              {selectedStrategy.balance.toFixed(2)}
+                              $
+                              {(
+                                selectedStrategy.balance * exchangeRate
+                              ).toFixed(2)}{" "}
+                              ({selectedStrategy.balance.toFixed(2)} syUSD)
                             </span>
                           </div>
                         </div>
