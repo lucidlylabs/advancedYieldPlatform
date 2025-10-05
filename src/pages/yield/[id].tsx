@@ -1,7 +1,10 @@
 import { useRouter } from "next/router";
 import { YieldDetailsView } from "@/components/yield-details-view";
+import DepositView from "@/components/deposit-view";
 import React , {useState, useEffect} from "react";
 import { ArrowLeft } from "lucide-react";
+import { Header } from "@/components/ui/header";
+import { Navigation } from "@/components/ui/navigation";
 
 interface MarketItem {
     id: number;
@@ -47,19 +50,39 @@ const YieldDetailPage = () => {
   }, [data]);
 
   return (
-    <div className="min-h-screen p-4 text-white">
-      <button className="text-lg" onClick={() => router.back()}>
-        <ArrowLeft className="mr-2" />
-      </button>
-      <YieldDetailsView
-        name={name as string}
-        tvl={tvl as string}
-        baseApy={baseApy as string}
-        contractAddress={contractAddress as string}
-        network={network as string}
-        data={parsedData}
-        onOpenDepositView={handleOpenDepositView}
-      />
+    <div className="min-h-screen flex flex-col pt-[52px]">
+      <Header onNavigateToDeposit={() => {}}>
+        <Navigation currentPage="yields" />
+      </Header>
+      <main className="flex-1 overflow-y-auto">
+        {showDepositView ? (
+          <DepositView
+            selectedAsset="USD"
+            duration="PERPETUAL_DURATION"
+            strategy="stable"
+            apy={baseApy as string}
+            onBack={handleCloseDepositView}
+            onReset={() => {
+              setShowDepositView(false);
+            }}
+          />
+        ) : (
+          <div className="p-4 text-white">
+            <button className="text-lg mb-4" onClick={() => router.back()}>
+              <ArrowLeft className="mr-2" />
+            </button>
+            <YieldDetailsView
+              name={name as string}
+              tvl={tvl as string}
+              baseApy={baseApy as string}
+              contractAddress={contractAddress as string}
+              network={network as string}
+              data={parsedData}
+              onOpenDepositView={handleOpenDepositView}
+            />
+          </div>
+        )}
+      </main>
     </div>
   );
 };

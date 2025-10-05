@@ -23,6 +23,7 @@ const LeaderboardPage: React.FC = () => {
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     fetchLeaderboardData();
@@ -147,7 +148,11 @@ const LeaderboardPage: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col pt-[52px]">
       <Header onNavigateToDeposit={() => {}}>
-        <Navigation currentPage="leaderboard" />
+        <Navigation 
+          currentPage="leaderboard" 
+          isMobileMenuOpen={isMobileMenuOpen}
+          setIsMobileMenuOpen={setIsMobileMenuOpen}
+        />
       </Header>
 
       <main className="flex-1 overflow-y-auto">

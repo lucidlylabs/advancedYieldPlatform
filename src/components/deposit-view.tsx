@@ -2117,7 +2117,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                               : openConnectModal
                           }
                           disabled={shouldDisable}
-                          className={`w-full py-4 mt-6 rounded font-semibold transition-all duration-200 ${
+                          className={`w-full py-4 mt-6 mb-8 sm:mb-0 rounded font-semibold transition-all duration-200 ${
                             isInactiveState
                               ? "bg-gray-500 text-white opacity-50 cursor-not-allowed"
                               : "bg-[#B88AF8] text-[#1A1B1E] hover:opacity-90"

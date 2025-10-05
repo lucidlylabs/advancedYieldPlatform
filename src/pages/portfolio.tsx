@@ -299,6 +299,7 @@ const PortfolioSubpage: React.FC = () => {
     isProfitable: boolean;
   } | null>(null);
   const [isLoadingPnl, setIsLoadingPnl] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const chainId = useChainId();
   const isBase = chainId === 8453;
@@ -1083,28 +1084,21 @@ const PortfolioSubpage: React.FC = () => {
   // Handler for row clicks
   const handleStrategySelect = (strategy: StrategyWithBalance) => {
     console.log("strategy", strategy);
-    if (isMobile()) {
-      router.push({
-        pathname: `/portfolio/${strategy.contract}`,
-        query: {
-          strategy: strategy.contract,
-          asset: strategy.asset,
-          balance: strategy.balance,
-          duration: strategy.duration,
-          type: strategy.type,
-          apy: strategy.apy,
-          solverAddress: strategy.solverAddress,
-          boringVaultAddress: strategy.boringVaultAddress,
-          // tvl: strategy.tvl,
-          // baseApy: strategy.baseYield,
-          // contractAddress: strategy.contractAddress || "",
-          // network: strategy.network || ""
-        },
-      });
-    } else {
-      setSelectedStrategy(strategy);
-      setWithdrawAmount(strategy.balance.toString());
-    }
+    // Always navigate to detail page for both mobile and desktop
+    router.push({
+      pathname: `/portfolio/${strategy.contract}`,
+      query: {
+        strategy: strategy.contract,
+        asset: strategy.asset,
+        balance: strategy.balance,
+        duration: strategy.duration,
+        type: strategy.type,
+        apy: strategy.apy,
+        solverAddress: strategy.solverAddress,
+        boringVaultAddress: strategy.boringVaultAddress,
+        rpc: strategy.rpc,
+      },
+    });
   };
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1338,7 +1332,11 @@ const PortfolioSubpage: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col pt-[52px]">
       <Header onNavigateToDeposit={() => {}}>
-        <Navigation currentPage="portfolio" />
+        <Navigation 
+          currentPage="portfolio" 
+          isMobileMenuOpen={isMobileMenuOpen}
+          setIsMobileMenuOpen={setIsMobileMenuOpen}
+        />
       </Header>
       <main className="flex-1 overflow-y-auto">
         {/* Top Section - Portfolio Value, PNL, and Wallet */}
@@ -1501,7 +1499,7 @@ const PortfolioSubpage: React.FC = () => {
         {/* Main Content - Split View */}
         <div className="flex flex-1">
           {/* Left Side - Assets Table */}
-          <div className="w-1/2 border-r border-[rgba(255,255,255,0.1)] pt-8 pl-8 overflow-y-auto pb-36">
+          <div className="w-full sm:w-1/2 border-r border-[rgba(255,255,255,0.1)] sm:border-r pt-8 pl-6 pr-6 sm:pr-0 overflow-y-auto pb-36">
             {/* <PortfolioChart userAddress={address ?? ""} /> */}
             <div className="mt-8">
               <div className="mb-6">
@@ -1512,7 +1510,7 @@ const PortfolioSubpage: React.FC = () => {
             </div>
 
             {/* Column Headers */}
-            <div className="grid grid-cols-5 sm:pl-4 sm:pr-6 py-2 border-b border-[rgba(255,255,255,0.15)]">
+            <div className="grid grid-cols-5 pl-4 pr-4 sm:pl-4 sm:pr-6 py-2 border-b border-[rgba(255,255,255,0.15)]">
               <div className="flex justify-start text-[#9C9DA2] text-[12px] font-normal">
                 Available Yields
               </div>
@@ -1633,7 +1631,7 @@ const PortfolioSubpage: React.FC = () => {
                 strategiesWithBalance.map((strategy, index) => (
                   <div
                     key={`${strategy.asset}-${strategy.duration}-${strategy.type}`}
-                    className={`grid grid-cols-5 items-center py-4 pl-4 pr-6 relative ${
+                    className={`grid grid-cols-5 items-center py-4 pl-4 pr-4 sm:pr-6 relative ${
                       index % 2 === 0
                         ? "bg-transparent"
                         : strategy.type === "stable"

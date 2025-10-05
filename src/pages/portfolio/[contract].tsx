@@ -3,6 +3,9 @@ import { useRouter } from "next/router";
 import { YieldDetailsView } from "@/components/yield-details-view";
 import Image from "next/image";
 import { ArrowLeft } from "lucide-react";
+import { Header } from "../../components/ui/header";
+import { Navigation } from "../../components/ui/navigation";
+import UserActivity from "../../components/UserActivity";
 import {
   type Address,
   createPublicClient,
@@ -110,6 +113,7 @@ const PortfolioDetailedPage = () => {
   const { address, isConnected } = useAccount();
   const router = useRouter();
   const { contract ,asset ,type ,balance ,duration , solverAddress, boringVaultAddress , rpc } = router.query;
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const [depositSuccess, setDepositSuccess] = useState(false);
   const [transactionHash, setTransactionHash] = useState<`0x${string}` | null>(
@@ -128,7 +132,7 @@ const PortfolioDetailedPage = () => {
   );
   const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"withdraw" | "request">("withdraw");
+  const [activeTab, setActiveTab] = useState<"withdraw" | "request" | "activity">("withdraw");
   const [requestTab, setRequestTab] = useState<"pending" | "completed">("pending");
   const [amountOut, setAmountOut] = useState<string | null>(null);
   const [selectedAssetIdx, setSelectedAssetIdx] = useState(0);
@@ -660,34 +664,61 @@ const PortfolioDetailedPage = () => {
 
 
   return (
-    <>
-      <button className="text-lg text-white" onClick={() => router.back()}>
-      <ArrowLeft className="absolute top-4 left-4" />
-      </button>
-      <div className="py-4 mt-4 px-4">
-        <div className="flex flex-col h-full rounded-lg">
-          <div className="flex gap-4 mb-6 border-b border-[rgba(255,255,255,0.15)]">
-            <button
-              onClick={() => setActiveTab("withdraw")}
-              className={`px-4 py-2 text-[14px] font-semibold transition-colors ${
-                activeTab === "withdraw"
-                  ? "text-white border-b-2 border-[#B88AF8]"
-                  : "text-[#9C9DA2]"
-              }`}
+    <div className="min-h-screen flex flex-col pt-[52px]">
+      <Header>
+        <Navigation
+          currentPage="portfolio"
+          isMobileMenuOpen={isMobileMenuOpen}
+          setIsMobileMenuOpen={setIsMobileMenuOpen}
+        />
+      </Header>
+
+      <main className="flex-1 overflow-y-auto">
+        <div className="px-4 sm:px-6 lg:px-8 py-8">
+          <div className="max-w-7xl mx-auto">
+            {/* Back Button */}
+            <button 
+              className="flex items-center gap-2 text-[#9C9DA2] hover:text-white transition-colors mb-6"
+              onClick={() => router.back()}
             >
-              Withdraw
+              <ArrowLeft className="w-4 h-4" />
+              Back to Portfolio
             </button>
-            <button
-              onClick={() => setActiveTab("request")}
-              className={`px-4 py-2 text-[14px] font-semibold transition-colors ${
-                activeTab === "request"
-                  ? "text-white border-b-2 border-[#B88AF8]"
-                  : "text-[#9C9DA2]"
-              }`}
-            >
-              Request
-            </button>
-          </div>
+
+            {/* Content */}
+            <div className="flex flex-col h-full rounded-lg">
+              <div className="flex gap-4 mb-6 border-b border-[rgba(255,255,255,0.15)]">
+                <button
+                  onClick={() => setActiveTab("withdraw")}
+                  className={`px-4 py-2 text-[14px] font-semibold transition-colors ${
+                    activeTab === "withdraw"
+                      ? "text-white border-b-2 border-[#B88AF8]"
+                      : "text-[#9C9DA2]"
+                  }`}
+                >
+                  Withdraw
+                </button>
+                <button
+                  onClick={() => setActiveTab("request")}
+                  className={`px-4 py-2 text-[14px] font-semibold transition-colors ${
+                    activeTab === "request"
+                      ? "text-white border-b-2 border-[#B88AF8]"
+                      : "text-[#9C9DA2]"
+                  }`}
+                >
+                  Request
+                </button>
+                <button
+                  onClick={() => setActiveTab("activity")}
+                  className={`px-4 py-2 text-[14px] font-semibold transition-colors ${
+                    activeTab === "activity"
+                      ? "text-white border-b-2 border-[#B88AF8]"
+                      : "text-[#9C9DA2]"
+                  }`}
+                >
+                  User Activity
+                </button>
+              </div>
           {activeTab === "withdraw" && (
             <>
             <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
@@ -934,7 +965,7 @@ const PortfolioDetailedPage = () => {
                   Transaction Successful
                 </div>
                 <a
-                  href={`https://sonicscan.org/tx/${withdrawTxHash}`}
+                  href={`https://basescan.org/tx/${withdrawTxHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[#00D1A0]   text-[14px] underline hover:text-[#00D1A0]/80"
@@ -1186,9 +1217,17 @@ const PortfolioDetailedPage = () => {
             </div>
           )}
 
+          {activeTab === "activity" && (
+            <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
+              <UserActivity />
+            </div>
+          )}
+
         </div>
-      </div>
-    </>
+          </div>
+        </div>
+      </main>
+    </div>
   );
 };
 

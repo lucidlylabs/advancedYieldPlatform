@@ -18,7 +18,7 @@ export function Navigation({
 
   return (
     <>
-      <div className="flex items-center justify-between w-full px-4 sm:px-0">
+      <div className="flex items-center justify-between w-full sm:px-0">
         <div className="flex items-stretch h-full">
           <div className="flex items-center">
             <div
@@ -179,20 +179,7 @@ export function Navigation({
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && setIsMobileMenuOpen && (
-        <div className="fixed top-[72px] left-0 right-0 z-40 md:hidden bg-[#0D101C] py-4 flex flex-col items-center gap-4 border-b border-[rgba(255,255,255,0.1)] px-4">
-          <button
-            className={`text-lg w-full text-center py-2 rounded transition-colors ${
-              currentPage === 'earn'
-                ? "text-white bg-[rgba(184,138,248,0.1)]"
-                : "text-[#9C9DA2] hover:text-white"
-            }`}
-            onClick={() => {
-              router.push('/earn');
-              setIsMobileMenuOpen(false);
-            }}
-          >
-            Earn
-          </button>
+        <div className="fixed top-[72px] left-0 right-0 z-40 md:hidden bg-[rgba(13,16,28,0.95)] backdrop-blur-md py-4 flex flex-col items-center gap-4 border-b border-[rgba(255,255,255,0.1)] px-4">
           <button
             className={`text-lg w-full text-center py-2 rounded transition-colors ${
               currentPage === 'yields'

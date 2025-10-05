@@ -21,15 +21,15 @@ function SimpleTooltip({ children, content, side = "top", sideOffset = 4 }: Simp
         <TooltipPrimitive.Content
           side={side}
           sideOffset={sideOffset}
-          className="z-50"
+          className="z-50 max-w-[280px] sm:max-w-[320px]"
           style={{ 
             '--radix-tooltip-arrow-width': '0px',
             '--radix-tooltip-arrow-height': '0px'
           } as React.CSSProperties}
         >
           <div className="rounded-lg shadow-lg overflow-hidden border border-gray-200 relative z-50">
-            <div className="bg-gray-100 px-4 py-3 relative z-50">
-              <div className="text-sm text-gray-700">
+            <div className="bg-gray-100 px-3 py-2 sm:px-4 sm:py-3 relative z-50">
+              <div className="text-xs sm:text-sm text-gray-700 leading-relaxed">
                 {content}
               </div>
             </div>
