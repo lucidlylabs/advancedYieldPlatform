@@ -1196,24 +1196,52 @@ const PortfolioSubpage: React.FC = () => {
     }
   };
 
+  // Screen size detection hook
+  const useScreenSize = () => {
+    const [isDesktop, setIsDesktop] = useState(false);
+
+    useEffect(() => {
+      const checkScreenSize = () => {
+        setIsDesktop(window.innerWidth >= 640); // sm breakpoint is 640px
+      };
+
+      checkScreenSize();
+      window.addEventListener('resize', checkScreenSize);
+
+      return () => window.removeEventListener('resize', checkScreenSize);
+    }, []);
+
+    return isDesktop;
+  };
+
+  const isDesktop = useScreenSize();
+
   // Handler for row clicks
   const handleStrategySelect = (strategy: StrategyWithBalance) => {
     console.log("strategy", strategy);
-    // Always navigate to detail page for both mobile and desktop
-    router.push({
-      pathname: `/portfolio/${strategy.contract}`,
-      query: {
-        strategy: strategy.contract,
-        asset: strategy.asset,
-        balance: strategy.balance,
-        duration: strategy.duration,
-        type: strategy.type,
-        apy: strategy.apy,
-        solverAddress: strategy.solverAddress,
-        boringVaultAddress: strategy.boringVaultAddress,
-        rpc: strategy.rpc,
-      },
-    });
+    
+    if (isDesktop) {
+      // On desktop, show withdraw interface on the right side
+      setSelectedStrategy(strategy);
+      setWithdrawAmount(strategy.balance.toFixed(2));
+      setActiveTab("withdraw");
+    } else {
+      // On mobile, navigate to detail page
+      router.push({
+        pathname: `/portfolio/${strategy.contract}`,
+        query: {
+          strategy: strategy.contract,
+          asset: strategy.asset,
+          balance: strategy.balance,
+          duration: strategy.duration,
+          type: strategy.type,
+          apy: strategy.apy,
+          solverAddress: strategy.solverAddress,
+          boringVaultAddress: strategy.boringVaultAddress,
+          rpc: strategy.rpc,
+        },
+      });
+    }
   };
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2369,6 +2397,18 @@ const PortfolioSubpage: React.FC = () => {
                           <br />
                           options for each yield source.
                         </p>
+                      </div>
+                    </div>
+                  )}
+                  {!selectedStrategy && (
+                    <div className="flex flex-col items-center justify-center py-12">
+                      <div className="text-[#9C9DA2] text-center">
+                        <div className="text-lg font-medium mb-2">
+                          Select a yield to withdraw
+                        </div>
+                        <div className="text-sm">
+                          Click on any yield from the table to start withdrawing
+                        </div>
                       </div>
                     </div>
                   )}
