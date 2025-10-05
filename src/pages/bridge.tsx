@@ -233,6 +233,7 @@ const BridgePage: React.FC = () => {
     TransactionHistoryItem[]
   >([]);
   const [hasTransactionHistory, setHasTransactionHistory] = useState<boolean | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // LayerZero Chain ID to network name mapping
   const chainIdToNetwork: { [key: number]: string } = {
@@ -773,7 +774,11 @@ const BridgePage: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col pt-[52px]">
       <Header onNavigateToDeposit={() => {}}>
-        <Navigation currentPage="bridge" />
+        <Navigation 
+          currentPage="bridge" 
+          isMobileMenuOpen={isMobileMenuOpen}
+          setIsMobileMenuOpen={setIsMobileMenuOpen}
+        />
       </Header>
       <main className="flex-1 overflow-y-auto mt-24">
         <div className="w-full px-24 py-12">

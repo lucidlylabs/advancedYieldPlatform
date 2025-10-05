@@ -106,6 +106,7 @@ const MarketsSubpage: React.FC = () => {
     incentives: true,
     tvl: true,
   });
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const toggleColumn = (column: keyof typeof visibleColumns) => {
     setVisibleColumns((prev) => ({
@@ -609,7 +610,11 @@ const MarketsSubpage: React.FC = () => {
     return (
       <div className="min-h-screen flex flex-col pt-[52px]">
         <Header onNavigateToDeposit={() => {}}>
-          <Navigation currentPage="yields" />
+          <Navigation 
+            currentPage="yields" 
+            isMobileMenuOpen={isMobileMenuOpen}
+            setIsMobileMenuOpen={setIsMobileMenuOpen}
+          />
         </Header>
         <main className="flex-1 overflow-y-auto">
           {renderContent()}

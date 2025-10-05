@@ -387,7 +387,11 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
     return (
       <div className="min-h-screen flex flex-col pt-[52px]">
         <Header onNavigateToDeposit={handleNavigateToDeposit}>
-          <Navigation currentPage="earn" />
+          <Navigation 
+            currentPage="earn" 
+            isMobileMenuOpen={isMobileMenuOpen}
+            setIsMobileMenuOpen={setIsMobileMenuOpen}
+          />
         </Header>
         <CodeVerificationPopup
           isOpen={isCodePopupOpen}
@@ -402,7 +406,11 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
   return (
     <div className="min-h-screen flex flex-col pt-[52px]">
       <Header onNavigateToDeposit={handleNavigateToDeposit}>
-          <Navigation currentPage="earn" />
+          <Navigation 
+            currentPage="earn" 
+            isMobileMenuOpen={isMobileMenuOpen}
+            setIsMobileMenuOpen={setIsMobileMenuOpen}
+          />
         </Header>
       <main className="flex-1 overflow-y-auto">
         <div
