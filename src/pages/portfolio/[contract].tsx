@@ -526,6 +526,29 @@ const PortfolioDetailedPage = () => {
     }
   };
 
+  // Fetch withdraw requests (pending and completed)
+  const fetchWithdrawRequests = async (
+    vaultAddress: string,
+    userAddress: string
+  ) => {
+    setIsLoadingRequests(true);
+    try {
+      const response = await fetch(
+        `https://api.lucidly.finance/services/queueData?vaultAddress=0x279CAD277447965AF3d24a78197aad1B02a2c589&userAddress=${userAddress}`
+      );
+      const data = await response.json();
+      console.log("response:", response);
+      setWithdrawRequests(data.result?.PENDING || []);
+      setCompletedRequests(data.result?.FULFILLED || []);
+      console.log("API response:", data);
+    } catch (error) {
+      setWithdrawRequests([]);
+      setCompletedRequests([]);
+    } finally {
+      setIsLoadingRequests(false);
+    }
+  };
+
   const getDepositedChainsViem = async ({
     userAddress,
     strategy,
@@ -595,6 +618,14 @@ const PortfolioDetailedPage = () => {
     };
     fetchDeposits();
   }, [address,strategy,chainConfigs]);
+
+  // Fetch withdraw requests when address is available
+  useEffect(() => {
+    if (address) {
+      console.log("Fetching withdraw requests for address:", address);
+      fetchWithdrawRequests("", address);
+    }
+  }, [address]);
 
   useEffect(() => {
     const fetchAmountOut = async () => {
@@ -682,7 +713,6 @@ const PortfolioDetailedPage = () => {
               onClick={() => router.back()}
             >
               <ArrowLeft className="w-4 h-4" />
-              Back to Portfolio
             </button>
 
             {/* Content */}
@@ -989,33 +1019,35 @@ const PortfolioDetailedPage = () => {
 
           {activeTab === "request" && (
             <div className="rounded-[4px] bg-[rgba(255,255,255,0.02)] p-6">
-            {/* Tabs */}
-            <div className="mb-4 flex gap-6 border-b border-[#1A1B1E]">
-              <button
-                className={`py-2 text-[14px] font-medium ${
-                  requestTab === "pending"
-                    ? "text-white border-b-2 border-[#B88AF8]"
-                    : "text-[#9C9DA2]"
-                }`}
-                onClick={() => setRequestTab("pending")}
-              >
-                Pending
-              </button>
-              <button
-                className={`py-2 text-[14px] font-medium ${
-                  requestTab === "completed"
-                    ? "text-white border-b-2 border-[#B88AF8]"
-                    : "text-[#9C9DA2]"
-                }`}
-                onClick={() => setRequestTab("completed")}
-              >
-                Completed
-              </button>
+            {/* Segmented Control Tabs */}
+            <div className="mb-4 flex justify-start">
+              <div className="relative bg-transparent rounded-[6px] flex w-[158px]">
+                <button
+                  className={`w-[71px] px-3 py-1.5 text-[12px] font-normal leading-[16px] transition-all duration-200 rounded-l-[6px] rounded-r-[0px] flex items-center justify-center ${
+                    requestTab === "pending"
+                      ? "bg-[rgba(184,138,248,0.15)] text-[#D7E3EF] shadow-sm border-l border-t border-b border-r border-[rgba(184,138,248,0.5)]"
+                      : "text-[#9C9DA2] hover:text-[#D7E3EF] border-l border-t border-b border-[rgba(255,255,255,0.2)]"
+                  }`}
+                  onClick={() => setRequestTab("pending")}
+                >
+                  Pending
+                </button>
+                <button
+                  className={`w-[87px] px-3 py-1.5 text-[12px] font-normal leading-[16px] transition-all duration-200 rounded-l-[0px] rounded-r-[6px] flex items-center justify-center ${
+                    requestTab === "completed"
+                      ? "bg-[rgba(184,138,248,0.15)] text-[#D7E3EF] shadow-sm border-l border-t border-b border-r border-[rgba(184,138,248,0.5)]"
+                      : "text-[#9C9DA2] hover:text-[#D7E3EF] border-r border-t border-b border-[rgba(255,255,255,0.2)]"
+                  }`}
+                  onClick={() => setRequestTab("completed")}
+                >
+                  Completed
+                </button>
+              </div>
             </div>
 
                   {/* Requests List */}
                   {requestTab === "pending" && (
-                    <div className="space-y-4 text-white">
+                    <div className="space-y-2">
                       {isLoadingRequests ? (
                         <div>Loading...</div>
                       ) : withdrawRequests.length === 0 ? (
@@ -1030,17 +1062,20 @@ const PortfolioDetailedPage = () => {
                           const assetImage = assetOption
                             ? assetOption.image
                             : "/images/icons/susd-stable.svg";
-                          const assetDecimals = assetOption ? assetOption.decimal : 18;
+                          const assetDecimals = assetOption
+                            ? assetOption.decimal
+                            : 18;
+
                           return (
                             <div
                               key={req.request_id || idx}
-                              className="bg-[rgba(255,255,255,0.02)] rounded-lg p-4 flex justify-between items-center"
+                              className="bg-[rgba(255,255,255,0.02)] rounded-[4px] py-4 px-6 flex justify-between items-center"
                             >
-                              <div className="flex items-center gap-4">
+                              <div className="flex items-center justify-between w-full">
                                 {/* Calendar Icon + Date */}
-                                <div className="flex items-center text-[#9C9DA2] text-[13px] gap-1">
+                                <div className="flex items-center text-[#D7E3EF] text-[12px] gap-1">
                                   <button
-                                    className="text-[#9C9DA2] hover:text-white transition-colors cursor-pointer"
+                                    className="text-[#D7E3EF] hover:text-white transition-colors cursor-pointer"
                                     onClick={() => {
                                       if (req.transaction_hash) {
                                         window.open(
@@ -1055,14 +1090,21 @@ const PortfolioDetailedPage = () => {
                                     <ExternalLinkIcon />
                                   </button>
                                   {req.creation_time
-                                    ? new Date(req.creation_time * 1000).toLocaleDateString()
+                                    ? new Date(
+                                        req.creation_time * 1000
+                                      ).toLocaleDateString()
                                     : "-"}
                                 </div>
 
                                 {/* Amounts row (same as completed) */}
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center justify-center gap-2 flex-1">
                                   {/* Shares pill */}
-                                  <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                                  <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1">
+                                    <span className="text-[#D7E3EF] text-[12px] font-normal">
+                                      {(
+                                        Number(req.amount_of_shares) / 1e6
+                                      ).toFixed(2)}
+                                    </span>
                                     <a
                                       href={
                                         req.transaction_hash
@@ -1073,42 +1115,53 @@ const PortfolioDetailedPage = () => {
                                       rel="noopener noreferrer"
                                       tabIndex={req.transaction_hash ? 0 : -1}
                                       style={{
-                                        pointerEvents: req.transaction_hash ? "auto" : "none",
+                                        pointerEvents: req.transaction_hash
+                                          ? "auto"
+                                          : "none",
                                       }}
                                     >
                                       <Image
                                         src="/images/icons/syUSD.svg"
                                         alt="Shares"
-                                        width={32}
-                                        height={32}
+                                        width={24}
+                                        height={24}
                                         className="cursor-pointer"
                                       />
                                     </a>
-                                    <span className="text-white text-sm font-medium">
-                                    {(Number(req.amount_of_shares) / 1e6).toFixed(2)}
-                                    </span>
                                   </div>
                                   {/* Arrow */}
-                                  <span className="text-[#9C9DA2] text-sm">→</span>
+                                  <svg
+                                    width="15"
+                                    height="12"
+                                    viewBox="0 0 15 12"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <path
+                                      d="M0.832031 6H14.1654M14.1654 6L9.16536 1M14.1654 6L9.16536 11"
+                                      stroke="#9C9DA2"
+                                      stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                    />
+                                  </svg>
                                   {/* Assets pill */}
-                                  <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
-                                    <span className="text-white text-sm font-medium">
-                                      {(Number(req.amount_of_assets) / Math.pow(10, assetDecimals)).toFixed(2)}
+                                  <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1">
+                                    <span className="text-white text-[12px] font-normal">
+                                      {(
+                                        Number(req.amount_of_assets) /
+                                        Math.pow(10, assetDecimals)
+                                      ).toFixed(2)}
                                     </span>
                                     <Image
                                       src={assetImage}
                                       alt="Assets"
-                                      width={32}
-                                      height={32}
+                                      width={24}
+                                      height={24}
                                       className="cursor-pointer"
                                     />
                                   </div>
                                 </div>
                               </div>
-                              {/* Cancel Button */}
-                              {/* <button className="text-[#F87171] text-[13px] font-medium hover:underline">
-                                Cancel Request
-                              </button> */}
                             </div>
                           );
                         })
@@ -1117,7 +1170,7 @@ const PortfolioDetailedPage = () => {
                   )}
 
                   {requestTab === "completed" && (
-                    <div className="space-y-4 text-white">
+                    <div className="space-y-2">
                       {isLoadingRequests ? (
                         <div>Loading...</div>
                       ) : completedRequests.length === 0 ? (
@@ -1129,42 +1182,33 @@ const PortfolioDetailedPage = () => {
                               opt.contract.toLowerCase() ===
                               (req.withdraw_asset_address || "").toLowerCase()
                           );
-                          const assetImage = assetOption
-                            ? assetOption.image
-                            : "/images/icons/susd-stable.svg";
-                          const assetDecimals = assetOption ? assetOption.decimal : 18;
+                          const assetImage = assetOption?.image || "/images/icons/default_assest.svg";
+                          const assetDecimals = assetOption?.decimal || 6;
+
                           return (
                             <div
-                              key={req.request_id || idx}
-                              className="bg-[rgba(255,255,255,0.02)] rounded-lg p-4 flex justify-between items-center"
+                              key={idx}
+                              className="bg-[rgba(255,255,255,0.02)] rounded-[4px] p-4 border border-[rgba(255,255,255,0.05)]"
                             >
-                              <div className="flex items-center gap-4">
-                                {/* Calendar Icon + Date */}
-                                <div className="flex items-center text-[#9C9DA2] text-[13px] gap-1">
-                                  <button
-                                    className="text-[#9C9DA2] hover:text-white transition-colors cursor-pointer"
-                                    onClick={() => {
-                                      if (req.transaction_hash) {
-                                        window.open(
-                                          `https://basescan.org/tx/${req.transaction_hash}`,
-                                          "_blank",
-                                          "noopener,noreferrer"
-                                        );
-                                      }
-                                    }}
-                                    type="button"
-                                  >
-                                    <ExternalLinkIcon />
-                                  </button>
+                              <div className="flex flex-col gap-3">
+                                {/* Date row */}
+                                <div className="flex items-center justify-center text-[#9C9DA2] text-[12px]">
                                   {req.creation_time
-                                    ? new Date(req.creation_time * 1000).toLocaleDateString()
+                                    ? new Date(
+                                        req.creation_time * 1000
+                                      ).toLocaleDateString()
                                     : "-"}
                                 </div>
 
                                 {/* Amounts row (same as completed) */}
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center justify-center gap-2 flex-1">
                                   {/* Shares pill */}
-                                  <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
+                                  <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1">
+                                    <span className="text-[#D7E3EF] text-[12px] font-normal">
+                                      {(
+                                        Number(req.amount_of_shares) / 1e6
+                                      ).toFixed(2)}
+                                    </span>
                                     <a
                                       href={
                                         req.transaction_hash
@@ -1175,33 +1219,48 @@ const PortfolioDetailedPage = () => {
                                       rel="noopener noreferrer"
                                       tabIndex={req.transaction_hash ? 0 : -1}
                                       style={{
-                                        pointerEvents: req.transaction_hash ? "auto" : "none",
+                                        pointerEvents: req.transaction_hash
+                                          ? "auto"
+                                          : "none",
                                       }}
                                     >
                                       <Image
                                         src="/images/icons/syUSD.svg"
                                         alt="Shares"
-                                        width={32}
-                                        height={32}
+                                        width={24}
+                                        height={24}
                                         className="cursor-pointer"
                                       />
                                     </a>
-                                    <span className="text-white text-sm font-medium">
-                                    {(Number(req.amount_of_shares) / 1e6).toFixed(2)}
-                                    </span>
                                   </div>
                                   {/* Arrow */}
-                                  <span className="text-[#9C9DA2] text-sm">→</span>
+                                  <svg
+                                    width="15"
+                                    height="12"
+                                    viewBox="0 0 15 12"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <path
+                                      d="M0.832031 6H14.1654M14.1654 6L9.16536 1M14.1654 6L9.16536 11"
+                                      stroke="#9C9DA2"
+                                      stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                    />
+                                  </svg>
                                   {/* Assets pill */}
-                                  <div className="flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-2">
-                                    <span className="text-white text-sm font-medium">
-                                      {(Number(req.amount_of_assets) / Math.pow(10, assetDecimals)).toFixed(2)}
+                                  <div className="flex items-center justify-end gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-2 py-1">
+                                    <span className="text-white text-[12px] font-normal">
+                                      {(
+                                        Number(req.amount_of_assets) /
+                                        Math.pow(10, assetDecimals)
+                                      ).toFixed(2)}
                                     </span>
                                     <Image
                                       src={assetImage}
                                       alt="Assets"
-                                      width={32}
-                                      height={32}
+                                      width={24}
+                                      height={24}
                                       className="cursor-pointer"
                                     />
                                   </div>
