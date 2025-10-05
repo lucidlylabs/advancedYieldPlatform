@@ -2400,18 +2400,6 @@ const PortfolioSubpage: React.FC = () => {
                       </div>
                     </div>
                   )}
-                  {!selectedStrategy && (
-                    <div className="flex flex-col items-center justify-center py-12">
-                      <div className="text-[#9C9DA2] text-center">
-                        <div className="text-lg font-medium mb-2">
-                          Select a yield to withdraw
-                        </div>
-                        <div className="text-sm">
-                          Click on any yield from the table to start withdrawing
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </>
               )}
 
