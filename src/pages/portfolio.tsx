@@ -42,6 +42,24 @@ const InfoIcon = () => (
 );
 
 const isMobile = () => typeof window !== "undefined" && window.innerWidth < 640;
+
+// More reliable mobile detection hook
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
+  return isMobile;
+};
 // import {
 //   BarChart,
 //   Bar,
@@ -180,7 +198,6 @@ interface StrategyWithBalance {
   balance: number;
 }
 
-
 const ExternalLinkIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -188,6 +205,7 @@ const ExternalLinkIcon = () => (
     height="15"
     viewBox="0 0 14 15"
     fill="none"
+    
   >
     <path
       d="M12.25 5.75L12.25 2.25M12.25 2.25H8.75M12.25 2.25L7.58333 6.91667M5.83333 3.41667H4.55C3.56991 3.41667 3.07986 3.41667 2.70552 3.60741C2.37623 3.77518 2.10852 4.0429 1.94074 4.37218C1.75 4.74653 1.75 5.23657 1.75 6.21667V9.95C1.75 10.9301 1.75 11.4201 1.94074 11.7945C2.10852 12.1238 2.37623 12.3915 2.70552 12.5593C3.07986 12.75 3.56991 12.75 4.55 12.75H8.28333C9.26342 12.75 9.75347 12.75 10.1278 12.5593C10.4571 12.3915 10.7248 12.1238 10.8926 11.7945C11.0833 11.4201 11.0833 10.9301 11.0833 9.95V8.66667"
@@ -235,6 +253,7 @@ const chainConfigs = {
 const PortfolioSubpage: React.FC = () => {
   const { address, isConnected, chain } = useAccount();
   const [isClient, setIsClient] = useState(false);
+  const isMobileDevice = useIsMobile();
 
   useEffect(() => {
     setIsClient(true);
@@ -1084,22 +1103,58 @@ const PortfolioSubpage: React.FC = () => {
   // Handler for row clicks
   const handleStrategySelect = (strategy: StrategyWithBalance) => {
     console.log("strategy", strategy);
-    // Always navigate to detail page for both mobile and desktop
-    router.push({
-      pathname: `/portfolio/${strategy.contract}`,
-      query: {
-        strategy: strategy.contract,
-        asset: strategy.asset,
-        balance: strategy.balance,
-        duration: strategy.duration,
-        type: strategy.type,
-        apy: strategy.apy,
-        solverAddress: strategy.solverAddress,
-        boringVaultAddress: strategy.boringVaultAddress,
-        rpc: strategy.rpc,
-      },
-    });
+    
+    // Check if we're on mobile
+    if (isMobileDevice) {
+      // Mobile: Navigate to detail page
+      router.push({
+        pathname: `/portfolio/${strategy.contract}`,
+        query: {
+          strategy: strategy.contract,
+          asset: strategy.asset,
+          balance: strategy.balance,
+          duration: strategy.duration,
+          type: strategy.type,
+          apy: strategy.apy,
+          solverAddress: strategy.solverAddress,
+          boringVaultAddress: strategy.boringVaultAddress,
+          rpc: strategy.rpc,
+        },
+      });
+    } else {
+      // Desktop: Set selected strategy and show withdrawal tab
+      setSelectedStrategy(strategy);
+      setActiveTab("withdraw");
+      // Reset withdrawal amount when selecting a new strategy
+      setWithdrawAmount("");
+    }
   };
+
+  // Auto-populate withdrawal form when strategy is selected on desktop
+  useEffect(() => {
+    if (selectedStrategy && !isMobileDevice) {
+      console.log("Auto-populating withdrawal form for strategy:", selectedStrategy);
+      
+      // Set the target chain based on the selected strategy
+      const targetNetwork = selectedStrategy.network || "base";
+      setTargetChain(targetNetwork);
+      console.log("Setting target chain to:", targetNetwork);
+      
+      // Find the corresponding asset in withdrawableAssets
+      const matchingAsset = withdrawableAssets.find(
+        (asset) => asset.contract === selectedStrategy.contract
+      );
+      if (matchingAsset) {
+        const assetIndex = withdrawableAssets.findIndex(
+          (asset) => asset.contract === selectedStrategy.contract
+        );
+        setSelectedAssetIdx(assetIndex);
+        console.log("Found matching asset at index:", assetIndex);
+      } else {
+        console.log("No matching asset found for contract:", selectedStrategy.contract);
+      }
+    }
+  }, [selectedStrategy, withdrawableAssets]);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -1822,19 +1877,21 @@ const PortfolioSubpage: React.FC = () => {
                               className="flex items-center justify-between w-full text-[#EDF2F8] rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] border border-[rgba(255,255,255,0.05)]"
                             >
                               <div className="flex items-center gap-2">
-                                {targetChain && (
-                                  <img
-                                    src={
-                                      getUniqueChainConfigs.find(
-                                        (c) => c.network === targetChain
-                                      )?.image || ""
-                                    }
-                                    alt={targetChain}
-                                    className="w-5 h-5 rounded-full"
-                                  />
-                                )}
+                                <img
+                                  src={
+                                    targetChain && getUniqueChainConfigs.find(
+                                      (c) => c.network === targetChain
+                                    )?.image || "/images/logo/base.svg"
+                                  }
+                                  alt={targetChain || "Base"}
+                                  className="w-5 h-5 rounded-full"
+                                  onError={(e) => {
+                                    console.log("Image failed to load for chain:", targetChain);
+                                    e.currentTarget.src = "/images/logo/base.svg";
+                                  }}
+                                />
                                 <span className="capitalize text-[12px]">
-                                  {targetChain}
+                                  {targetChain || "Base"}
                                 </span>
                                 <Tooltip
                                   content="To reduce bridging risks and ensure accurate yield tracking, deposits and withdrawals are limited to the Base network."
@@ -1915,7 +1972,7 @@ const PortfolioSubpage: React.FC = () => {
                           <div className="text-[#9C9DA2] text-right   text-[12px] font-normal leading-normal">
                             Balance:{" "}
                             <span className="text-[#D7E3EF] text-[12px] font-semibold leading-normal">
-                              {selectedStrategy.balance.toFixed(2)}
+                              {selectedStrategy?.balance?.toFixed(2) || "0.00"}
                             </span>
                           </div>
                         </div>
@@ -1931,6 +1988,11 @@ const PortfolioSubpage: React.FC = () => {
                                 value={withdrawAmount}
                                 onChange={handleAmountChange}
                                 placeholder="0.00"
+                                style={{ 
+                                  color: withdrawAmount ? '#ffffff' : '#9C9DA2',
+                                  fontSize: '20px',
+                                  fontWeight: '500'
+                                }}
                               />
                             </div>
                           </div>
