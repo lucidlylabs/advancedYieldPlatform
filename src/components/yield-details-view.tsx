@@ -10,10 +10,8 @@ import { IncentiveRewards } from "./ui/IncentiveRewards";
 import { FAQs, type FAQItemProps } from "./ui/FAQs";
 import DepositBarChart from "./graphs/depositChart";
 import AllocationChart from "./graphs/allocationsChart";
-import StrategyDailyYieldChart from "./graphs/strategyDailyYieldChart";
-import BaseApyTotalChart from "./graphs/baseApyTotalChart";
-import StrategyPnlChart from "./graphs/strategyPnlChart";
 import AllocationReturnsChart from "./graphs/allocationReturnsChart";
+import BaseApyGraph from "./graphs/apyGraph";
 import { ERC20_ABI } from "../config/abi/erc20";
 
 interface MarketItem {
@@ -402,21 +400,9 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
       {activeBaseApyTab === "totalApy" && (
         <div className="h-[800px] overflow-y-auto pb-2">
-          <BaseApyTotalChart />
+          <BaseApyGraph vaultAddress={contractAddress} />
         </div>
       )}
-
-      {/* {activeBaseApyTab === "bySource" && (
-        <div className="h-[800px] overflow-y-auto pb-2">
-          <StrategyDailyYieldChart />
-        </div>
-      )} */}
-
-      {/* {activeBaseApyTab === "pnl" && (
-        <div className="h-[800px] overflow-y-auto pb-2">
-          <StrategyPnlChart />
-        </div>
-      )} */}
 
       {activeBaseApyTab === "allocation" && (
         <div className="h-[800px] overflow-y-auto pb-2">
@@ -438,16 +424,6 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
   return (
     <>
-      {/* {showDepositView ? (
-            <DepositView
-            selectedAsset="USD"
-            duration="PERPETUAL_DURATION"
-            strategy="stable"
-            apy="4.5%"
-            onBack={() => setShowDepositView(false)}
-            onReset={() => setShowDepositView(false)}
-            />
-        ):( */}
       <div className="w-full pl-0 sm:pl-4 mt-2 sm:mt-10 px-4 sm:px-0">
         <div className="flex flex-col lg:flex-row justify-between items-start mb-2 gap-4">
           <div className="flex items-center pl-0 w-full lg:w-auto">
@@ -664,7 +640,6 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
           {activeTab === "faqs" && renderFAQsTab()}
         </div>
       </div>
-      {/* )} */}
     </>
   );
 };

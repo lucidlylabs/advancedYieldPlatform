@@ -11,28 +11,28 @@ import {
 
 interface ChartDataPoint {
   date: string;
-  totalApy: number;
+  weeklyAPY: number;
+  annualizedAPY: number;
 }
 
-interface BaseApyTotalChartProps {
-  // No props needed
+interface BaseApyGraphProps {
+  vaultAddress?: string;
 }
 
-export default function BaseApyTotalChart({}: BaseApyTotalChartProps) {
+export default function BaseApyGraph({ vaultAddress = "0x279CAD277447965AF3d24a78197aad1B02a2c589" }: BaseApyGraphProps) {
   const [data, setData] = useState<ChartDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
+  const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("weekly");
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        console.log(`Fetching base APY total data for period: ${period}`);
+        console.log(`Fetching base APY data for vault: ${vaultAddress}, period: ${period}`);
 
-        const response = await fetch(`https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/apy/exchange-rates-apy-simple?period=${period}`);
+        const response = await fetch(`https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/base-apy?period=${period}`);
 
         console.log("Response status:", response.status);
-        console.log("Response headers:", response.headers);
 
         if (!response.ok) {
           console.error("API responded with status:", response.status);
@@ -41,13 +41,10 @@ export default function BaseApyTotalChart({}: BaseApyTotalChartProps) {
         }
 
         const rawData = await response.json();
-        console.log("Raw base APY total data:", rawData);
-        console.log("Raw data type:", typeof rawData);
-        console.log("Raw data keys:", Object.keys(rawData));
+        console.log("Raw base APY data:", rawData);
 
-        // Process the data - API returns array directly
-        let processedData = rawData;
-        console.log("Processed data:", processedData);
+        // Extract the data array from the API response
+        let processedData = rawData.data || [];
 
         // Ensure we have an array
         if (!Array.isArray(processedData)) {
@@ -58,18 +55,32 @@ export default function BaseApyTotalChart({}: BaseApyTotalChartProps) {
           processedData = [processedData];
         }
 
-        console.log(
-          "Final processed data before transformation:",
-          processedData
-        );
+        console.log("Processed data before transformation:", processedData);
 
-        // Transform data for the chart - API has date and annualizedAPY fields
-        const transformedData = processedData.map(
+        // Filter data from August 1st onwards first, then transform
+        const august1st2024 = new Date('2024-08-01');
+        const filteredByDate = processedData.filter((item: any) => {
+          try {
+            if (item.date) {
+              const itemDate = new Date(item.date);
+              return !isNaN(itemDate.getTime()) && itemDate >= august1st2024;
+            }
+          } catch (error) {
+            console.warn(`Error parsing date for filtering:`, error);
+          }
+          return false;
+        });
+
+        console.log(`Filtered from ${processedData.length} to ${filteredByDate.length} data points (August 1st onwards)`);
+
+        // Transform the filtered data for the chart
+        const transformedData = filteredByDate.map(
           (item: any, index: number) => {
             console.log(`Processing item ${index}:`, item);
 
             let dateStr = "";
-            let apyValue = 0;
+            let weeklyApy = 0;
+            let annualizedApy = 0;
 
             try {
               // Use the date field from API response
@@ -77,24 +88,12 @@ export default function BaseApyTotalChart({}: BaseApyTotalChartProps) {
               if (dateField) {
                 const date = new Date(dateField);
                 if (!isNaN(date.getTime())) {
-                  // Format date based on period
-                  if (period === "weekly") {
-                    dateStr = `Week of ${date.toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })}`;
-                  } else if (period === "monthly") {
-                    dateStr = date.toLocaleDateString("en-US", {
-                      month: "short",
-                      year: "numeric",
-                    });
-                  } else {
-                    // Daily format
-                    dateStr = date.toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    });
-                  }
+                  // Format date consistently - just show the actual date
+                  dateStr = date.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "2-digit",
+                  });
                 } else {
                   console.warn(`Invalid date for item ${index}:`, dateField);
                   dateStr = `Item ${index}`;
@@ -104,40 +103,53 @@ export default function BaseApyTotalChart({}: BaseApyTotalChartProps) {
                 dateStr = `Item ${index}`;
               }
 
-              // Use the annualizedAPY field from API response
-              apyValue = item.annualizedAPY || 0;
-              if (typeof apyValue === "string") {
-                apyValue = parseFloat(apyValue) || 0;
+              // Use the weeklyAPY and annualizedAPY fields from API response
+              weeklyApy = item.weeklyAPY || 0;
+              annualizedApy = item.annualizedAPY || 0;
+              
+              if (typeof weeklyApy === "string") {
+                weeklyApy = parseFloat(weeklyApy) || 0;
+              }
+              
+              if (typeof annualizedApy === "string") {
+                annualizedApy = parseFloat(annualizedApy) || 0;
               }
 
               console.log(
-                `Item ${index} transformed: date="${dateStr}", apy=${apyValue}`
+                `Item ${index} transformed: date="${dateStr}", weeklyAPY=${weeklyApy}, annualizedAPY=${annualizedApy}`
               );
             } catch (error) {
               console.error(`Error processing item ${index}:`, error, item);
               dateStr = `Item ${index}`;
-              apyValue = 0;
+              weeklyApy = 0;
+              annualizedApy = 0;
             }
 
             return {
               date: dateStr,
-              totalApy: apyValue,
+              weeklyAPY: weeklyApy,
+              annualizedAPY: annualizedApy,
             };
           }
         );
 
         console.log("Final transformed data:", transformedData);
 
-        // Filter out invalid data points
+        // Filter out any remaining invalid data points
         const validData = transformedData.filter(
           (item: any) =>
-            item.date && item.totalApy !== undefined && !isNaN(item.totalApy)
+            item.date && 
+            item.weeklyAPY !== undefined && 
+            item.annualizedAPY !== undefined && 
+            !isNaN(item.weeklyAPY) && 
+            !isNaN(item.annualizedAPY)
         );
 
-        console.log("Valid data for chart:", validData);
+        console.log("Valid data for chart (from August 1st onwards):", validData);
+        console.log(`Filtered from ${transformedData.length} to ${validData.length} data points`);
         setData(validData);
       } catch (err) {
-        console.error("Error loading base APY total data:", err);
+        console.error("Error loading base APY data:", err);
         setData([]);
       } finally {
         setLoading(false);
@@ -145,7 +157,7 @@ export default function BaseApyTotalChart({}: BaseApyTotalChartProps) {
     };
 
     fetchData();
-  }, [period]);
+  }, [period, vaultAddress]);
 
   // Custom tooltip content component
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -186,7 +198,7 @@ export default function BaseApyTotalChart({}: BaseApyTotalChartProps) {
           <div className="flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
             <p className="text-gray-400 text-sm">
-              Loading base APY total data...
+              Loading base APY data...
             </p>
           </div>
         </div>
@@ -204,7 +216,7 @@ export default function BaseApyTotalChart({}: BaseApyTotalChartProps) {
             className={`px-2 py-1 rounded text-xs transition-colors ${
               period === "daily"
                 ? "bg-[#7B5FFF] text-white"
-                : "bg-[#2A2A3C] text-gray-400 hover:bg-gray-100 hover:text-gray-800"
+                : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
             }`}
           >
             Daily
@@ -214,7 +226,7 @@ export default function BaseApyTotalChart({}: BaseApyTotalChartProps) {
             className={`px-2 py-1 rounded text-xs transition-colors ${
               period === "weekly"
                 ? "bg-[#7B5FFF] text-white"
-                : "bg-[#2A2A3C] text-gray-400 hover:bg-gray-100 hover:text-gray-800"
+                : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
             }`}
           >
             Weekly
@@ -224,7 +236,7 @@ export default function BaseApyTotalChart({}: BaseApyTotalChartProps) {
             className={`px-2 py-1 rounded text-xs transition-colors ${
               period === "monthly"
                 ? "bg-[#7B5FFF] text-white"
-                : "bg-[#2A2A3C] text-gray-400 hover:bg-gray-100 hover:text-gray-800"
+                : "bg-[#2A2A3C] text-gray-400 hover:bg-[#3A3A4C]"
             }`}
           >
             Monthly
@@ -246,7 +258,7 @@ export default function BaseApyTotalChart({}: BaseApyTotalChartProps) {
             }}
           >
             <defs>
-              <linearGradient id="colorTotalApy" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id="colorAnnualizedApy" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#7B5FFF" stopOpacity={0.8} />
                 <stop offset="95%" stopColor="#7B5FFF" stopOpacity={0.1} />
               </linearGradient>
@@ -283,10 +295,10 @@ export default function BaseApyTotalChart({}: BaseApyTotalChartProps) {
             />
             <Area
               type="monotone"
-              dataKey="totalApy"
+              dataKey="annualizedAPY"
               stroke="#7B5FFF"
               strokeWidth={2}
-              fill="url(#colorTotalApy)"
+              fill="url(#colorAnnualizedApy)"
               name="Total APY"
             />
           </AreaChart>

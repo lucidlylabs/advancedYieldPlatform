@@ -181,11 +181,18 @@ export const USD_STRATEGIES = {
             description:
               "Points earned through protocol fund allocation strategies",
           },
+          {
+            name: "XPL Rewards",
+            image: "/images/icons/syUSD/XPL.png",
+            multiplier: 1,
+            description:
+              "Points earned through protocol fund allocation strategies",
+          },
         ],
       },
 
       description: "Perpetual syUSD strategy on base network",
-      apy: "https://api.lucidly.finance/services/getAPY?units=7d&poolAddress=0x279CAD277447965AF3d24a78197aad1B02a2c589",
+      apy: "https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/base-apy/today-7d-ma",
       cap_limit: "1,000,000",
       filled_cap: "800,000",
       show_cap: true,
@@ -215,17 +222,20 @@ export const BTC_STRATEGIES = {};
 export const STRATEGY_NAMES: { [address: string]: string } = {
   // Stable USD Strategy Names - Using the actual full addresses from your API
 
-  // Main strategies based on your allocation chart - these are placeholder mappings
-  // You need to replace these with the actual full addresses from your API response
-  "0x2fA9...cDCC": "PT-sUSDF/USDC SiloV2 (7.5x)",
-  "0xa32B...9BB1": "PT-iUSD/USDC Morpho (4x)",
-  "0xd0bc...b89E": "Gauntlet Frontier USDC",
-  "0x914f...Af86": "USR",
-  "0x7985...15bb": "sUSDe/USDC AaveV3 (7x)",
-  "0x1ed0...BD01": "RLP/USDC Morpho (4x)",
-  "0x34a0...Ea14": "RLP",
-  "0x56B3...813A": "sUSDe",
+  // Main strategies based on your allocation chart - using full addresses from API response
+  "0x2fA924E8474726DEc250Eead84f4f34E063AcDCC": "PT-sUSDF/USDC SiloV2 (7.5x)",
+  "0xa32BA04A547e1c6419D3fcF5Bbdb7461B3d19BB1": "PT-iUSD/USDC Morpho (4x)",
+  "0xd0bc4920F1B43882b334354FfAb23c9E9637b89E": "Gauntlet Frontier USDC",
+  "0x914f1e34Cd70C1d59392E577d58FC2dDAAEdAf86": "USR",
+  "0x79857aFB972E43c7049aE3c63274FC5eF3B815bb": "sUSDe/USDC AaveV3 (7x)",
+  "0x1ed0A3d7562066C228A0bb3FED738182F03aBD01": "RLP/USDC Morpho (4x)",
+  "0x34a06c87817EC6683Bc1788dBC9AA4038900Ea14": "RLP",
+  "0x56B3C60B4Ea708A6FDA0955B81dF52148E96813A": "sUSDe",
+  "0x2f6679945c215729608f9896F081D2aF42B39B45": "Fluid USDT0",
+  "0xd484c3501b7478bc9d52fb7455139c8b3141a911": "syrupUSDC/USDC Morpho (5x)",
+  "0x2F45b61B90B821EFDb4525F89162cfd857ef51fD": "USDT0",
   "0x24a56bdA1e697Dc5b9802770DE476D509f02Ff8e": "WsUSR",
+  "0x511E17508b60A464704Dbccbc1E402C35A715bc5": "siUSD/USDC Morpho (10x)",
 
   // Add more strategy mappings as needed
   // "0x1234567890abcdef1234567890abcdef12345678": "Strategy Name Here",

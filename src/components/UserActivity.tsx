@@ -4,7 +4,7 @@ import { useAccount } from "wagmi";
 
 interface Transaction {
   id: number;
-  type: "deposit" | "withdrawal" | "bridge";
+  type: "deposit" | "withdraw" | "bridge";
   amount: string;
   asset: string;
   assetName: string;
@@ -27,12 +27,14 @@ interface Transaction {
     name: string;
     symbol: string;
     icon: string;
+    network: string;
   };
   toAsset?: {
     address: string | null;
     name: string;
     symbol: string;
     icon: string;
+    network: string;
   };
 }
 
@@ -73,13 +75,17 @@ const networkIcons: AssetIcons = {
   arbitrum: "/images/logo/arb.svg",
   katana: "/images/logo/katana.svg",
   
-  // Bridge chain IDs - destination chains (each should have different icons)
-  "30101": "/images/logo/base.svg",        // Destination chain 1
-  "30110": "/images/logo/eth.svg",         // Destination chain 2  
-  "30375": "/images/logo/arb.svg",         // Destination chain 3
+  // LayerZero Chain IDs (from bridge.tsx mapping)
+  "chain-30101": "/images/logo/eth.svg",    // LayerZero Ethereum Mainnet
+  "chain-30110": "/images/logo/arb.svg",    // LayerZero Arbitrum One
+  "chain-30184": "/images/logo/base.svg",   // LayerZero Base
+  "chain-30375": "/images/logo/katana.svg", // LayerZero Katana
   
-  // API response mappings
-  "chain-30101": "/images/logo/katana.svg",
+  // Legacy bridge chain IDs
+  "30101": "/images/logo/eth.svg",          // LayerZero Ethereum Mainnet
+  "30110": "/images/logo/arb.svg",         // LayerZero Arbitrum One
+  "30184": "/images/logo/base.svg",        // LayerZero Base
+  "30375": "/images/logo/katana.svg",      // LayerZero Katana
   "chain-null": "/images/logo/base.svg",
   sonic: "/images/logo/katana.svg",
   
@@ -128,23 +134,40 @@ const UserActivity: React.FC = () => {
   const fetchUserActivity = async (userAddress: string, page: number = 1) => {
     setLoading(true);
     try {
-      console.log(`Fetching user activity for address: ${userAddress}, page: ${page}`);
-      const response = await fetch(`https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/user-activity/${userAddress}?page=${page}`);
+      const callId = Math.random().toString(36).substr(2, 9);
+      console.log(`[${callId}] Fetching user activity for address: ${userAddress}, page: ${page}`);
+      const response = await fetch(`https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/user-activity/${userAddress}?page=${page}&limit=10`);
       
-      console.log("API Response status:", response.status);
-      console.log("API Response headers:", Object.fromEntries(response.headers.entries()));
+      console.log(`[${callId}] API Response status:`, response.status);
+      console.log(`[${callId}] API Response headers:`, Object.fromEntries(response.headers.entries()));
       
       const data = await response.json();
-      console.log("=== FULL API RESPONSE ===");
+      console.log(`[${callId}] === FULL API RESPONSE ===`);
       console.log(JSON.stringify(data, null, 2));
-      console.log("=== END API RESPONSE ===");
+      console.log(`[${callId}] === END API RESPONSE ===`);
       
       if (data.success) {
         console.log("User activity data received:", data.data);
+        
+        // Enhanced debugging for summary data
+        if (data.data.summary) {
+          console.log(`[${callId}] === SUMMARY DEBUG ===`);
+          console.log(`[${callId}] Summary object:`, data.data.summary);
+          console.log(`[${callId}] totalDeposits:`, data.data.summary.totalDeposits);
+          console.log(`[${callId}] totalWithdraws:`, data.data.summary.totalWithdraws);
+          console.log(`[${callId}] totalWithdrawals:`, data.data.summary.totalWithdrawals);
+          console.log(`[${callId}] totalBridges:`, data.data.summary.totalBridges);
+          console.log(`[${callId}] totalTransactions:`, data.data.summary.totalTransactions);
+          console.log(`[${callId}] === END SUMMARY DEBUG ===`);
+        }
+        
         // Log transaction details for debugging
         if (data.data.transactions) {
           console.log(`Found ${data.data.transactions.length} transactions`);
-          data.data.transactions.forEach((tx: Transaction, index: number) => {
+          
+          // Count transaction types manually
+          const typeCounts = { deposit: 0, withdraw: 0, withdrawal: 0, bridge: 0 };
+          data.data.transactions.forEach((tx: any, index: number) => {
             console.log(`Transaction ${index}:`, {
               id: tx.id,
               type: tx.type,
@@ -158,10 +181,34 @@ const UserActivity: React.FC = () => {
               network: tx.network,
               transactionHash: tx.transactionHash
             });
+            
+            // Count types (using any to handle potential API inconsistencies)
+            if (tx.type === 'deposit') typeCounts.deposit++;
+            else if (tx.type === 'withdraw') {
+              typeCounts.withdraw++;
+              console.log(`*** WITHDRAW TRANSACTION FOUND ***`, tx);
+            }
+            else if (tx.type === 'withdrawal') {
+              typeCounts.withdrawal++;
+              console.log(`*** WITHDRAWAL TRANSACTION FOUND ***`, tx);
+            }
+            else if (tx.type === 'bridge') typeCounts.bridge++;
+            else {
+              console.log(`*** UNKNOWN TRANSACTION TYPE: ${tx.type} ***`, tx);
+            }
           });
+          
+          console.log("=== MANUAL TYPE COUNTS ===");
+          console.log("Deposits:", typeCounts.deposit);
+          console.log("Withdraws:", typeCounts.withdraw);
+          console.log("Withdrawals:", typeCounts.withdrawal);
+          console.log("Bridges:", typeCounts.bridge);
+          console.log("=== END MANUAL COUNTS ===");
         } else {
           console.log("No transactions found in response");
         }
+        
+        // Use the backend's correct summary calculation
         setActivityData(data.data);
       } else {
         console.error("Failed to fetch user activity:", data.message);
@@ -216,11 +263,19 @@ const UserActivity: React.FC = () => {
     return assetIcons[assetName] || "/images/icons/default_assest.svg";
   };
 
-  const getTransactionUrl = (hash: string, network: string) => {
+  const getTransactionUrl = (hash: string, network: string, transactionType?: string) => {
+    // For bridge transactions, use LayerZero explorer
+    if (transactionType === "bridge") {
+      return `https://layerzeroscan.com/tx/${hash}`;
+    }
+    
+    // For regular transactions, use network-specific explorers
     const baseUrls: { [key: string]: string } = {
       base: "https://basescan.org/tx/",
       ethereum: "https://etherscan.io/tx/",
       arbitrum: "https://arbiscan.io/tx/",
+      katana: "https://explorer.katanarpc.com/tx/",
+      "chain-null": "https://basescan.org/tx/", // Default to base scan for chain-null
     };
     return baseUrls[network] + hash;
   };
@@ -280,6 +335,15 @@ const UserActivity: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-2">
+              {/* Debug logging */}
+              {(() => {
+                console.log("=== RENDERING SUMMARY ===", activityData.summary);
+                console.log("=== WITHDRAWAL COUNT DEBUG ===", {
+                  totalWithdrawals: activityData.summary?.totalWithdrawals,
+                  summary: activityData.summary
+                });
+                return null;
+              })()}
               {/* Activity Summary */}
               {activityData.summary && (
                 <div className="mb-6 p-4 rounded-[4px] bg-[rgba(255,255,255,0.05)]">
@@ -305,7 +369,49 @@ const UserActivity: React.FC = () => {
               )}
 
               {/* Transaction List */}
-              {activityData.transactions.map((transaction) => (
+              {activityData.transactions.map((transaction, index) => {
+                try {
+                  // Debug logging for ALL transactions
+                  console.log(`*** RENDERING TRANSACTION ${index} ***`, {
+                    id: transaction.id,
+                    type: transaction.type,
+                    network: transaction.network,
+                    fromAssetNetwork: transaction.fromAsset?.network,
+                    toAssetNetwork: transaction.toAsset?.network,
+                    transactionHash: transaction.transactionHash,
+                    amount: transaction.amount,
+                    fromAmount: transaction.fromAmount,
+                    toAmount: transaction.toAmount
+                  });
+                  
+                  // Special debug for withdraw transactions
+                  if (transaction.type === 'withdraw') {
+                    console.log('*** WITHDRAW TRANSACTION DETAILS ***', transaction);
+                    console.log('Transaction URL:', getTransactionUrl(transaction.transactionHash, transaction.network, transaction.type));
+                    console.log('Network icon:', networkIcons[transaction.network]);
+                  }
+                  
+                  // Special debug for Katana transactions
+                  if (transaction.network === 'katana') {
+                    console.log('*** KATANA TRANSACTION DETAILS ***', transaction);
+                    console.log('Katana Transaction URL:', getTransactionUrl(transaction.transactionHash, transaction.network, transaction.type));
+                    console.log('Network:', transaction.network);
+                    console.log('Type:', transaction.type);
+                  }
+                  
+                  // Special debug for bridge transactions
+                  if (transaction.type === 'bridge') {
+                    console.log('*** BRIDGE TRANSACTION DETAILS ***', transaction);
+                    console.log('Bridge Transaction URL:', getTransactionUrl(transaction.transactionHash, transaction.network, transaction.type));
+                    console.log('Source Network:', transaction.sourceNetwork);
+                    console.log('Destination Network:', transaction.destinationNetwork);
+                    console.log('Source Network Icon:', networkIcons[transaction.sourceNetwork || ""]);
+                    console.log('Destination Network Icon:', networkIcons[transaction.destinationNetwork || ""]);
+                    console.log('Transaction Hash:', transaction.transactionHash);
+                    console.log('Network:', transaction.network);
+                    console.log('Type:', transaction.type);
+                  }
+                  return (
                 <div
                   key={transaction.id}
                   className="bg-[rgba(255,255,255,0.02)] rounded-[4px] py-4 px-6 grid grid-cols-12 items-center gap-4"
@@ -317,7 +423,7 @@ const UserActivity: React.FC = () => {
                       onClick={() => {
                         if (transaction.transactionHash) {
                           window.open(
-                            getTransactionUrl(transaction.transactionHash, transaction.network),
+                            getTransactionUrl(transaction.transactionHash, transaction.network, transaction.type),
                             "_blank",
                             "noopener,noreferrer"
                           );
@@ -340,12 +446,12 @@ const UserActivity: React.FC = () => {
                   </div>
 
                     {/* Right side - Amount with tokens/networks */}
-                    <div className="col-span-7 flex items-center justify-end gap-4">
+                    <div className="col-span-7 flex items-center justify-end gap-4 overflow-hidden">
                       {transaction.type === "bridge" ? (
                         // Bridge transaction: Source Network -> Destination Network
                         <>
                           {/* Source Network - Show network logo and coin name as text */}
-                          <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-1">
+                          <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-1 min-w-0">
                             <Image
                               src={networkIcons[transaction.sourceNetwork || ""] || networkIcons[transaction.network || ""] || "/images/logo/base.svg"}
                               alt={transaction.sourceNetwork || transaction.network || "Source"}
@@ -353,7 +459,7 @@ const UserActivity: React.FC = () => {
                               height={20}
                               className="rounded-full"
                             />
-                            <span className="text-[#D7E3EF] text-[12px] font-normal">
+                            <span className="text-[#D7E3EF] text-[12px] font-normal whitespace-nowrap flex-shrink-0">
                               {formatAmount(getTransactionAmount(transaction), getTransactionAssetName(transaction))}
                             </span>
                           </div>
@@ -375,7 +481,7 @@ const UserActivity: React.FC = () => {
                           </svg>
 
                           {/* Destination Network - Show network logo and coin name as text */}
-                          <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-1">
+                          <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-1 min-w-0">
                             <Image
                               src={networkIcons[transaction.destinationNetwork || ""] || networkIcons[transaction.network || ""] || "/images/logo/katana.svg"}
                               alt={transaction.destinationNetwork || transaction.network || "Destination"}
@@ -383,7 +489,7 @@ const UserActivity: React.FC = () => {
                               height={20}
                               className="rounded-full"
                             />
-                            <span className="text-white text-[12px] font-normal">
+                            <span className="text-white text-[12px] font-normal whitespace-nowrap flex-shrink-0">
                               {transaction.toAsset ? 
                                 formatAmount(transaction.toAmount || getTransactionAmount(transaction), transaction.toAsset.symbol || transaction.toAsset.name) :
                                 formatAmount(getTransactionAmount(transaction), getTransactionAssetName(transaction))
@@ -395,16 +501,19 @@ const UserActivity: React.FC = () => {
                         // Regular transaction: Network -> Network (with coin names as text)
                         <>
                           {/* Source Network - Show network logo and coin name as text */}
-                          <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-1">
+                          <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-1 min-w-0">
                             <Image
-                              src={networkIcons[transaction.network] || "/images/logo/base.svg"}
-                              alt={transaction.network}
+                              src={networkIcons[transaction.fromAsset?.network || transaction.network] || "/images/logo/base.svg"}
+                              alt={transaction.fromAsset?.network || transaction.network}
                               width={20}
                               height={20}
                               className="rounded-full"
                             />
-                            <span className="text-[#D7E3EF] text-[12px] font-normal">
-                              {formatAmount(getTransactionAmount(transaction), getTransactionAssetName(transaction))}
+                            <span className="text-[#D7E3EF] text-[12px] font-normal whitespace-nowrap flex-shrink-0">
+                              {transaction.fromAsset ? 
+                                formatAmount(transaction.fromAmount || getTransactionAmount(transaction), transaction.fromAsset.symbol || transaction.fromAsset.name) :
+                                formatAmount(getTransactionAmount(transaction), getTransactionAssetName(transaction))
+                              }
                             </span>
                           </div>
 
@@ -425,15 +534,15 @@ const UserActivity: React.FC = () => {
                           </svg>
 
                           {/* Destination Network - Show network logo and coin name as text */}
-                          <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-1">
+                          <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-1 min-w-0">
                             <Image
-                              src={transaction.type === "withdrawal" ? "/images/logo/base.svg" : (networkIcons[transaction.network] || "/images/logo/base.svg")}
-                              alt={transaction.network}
+                              src={networkIcons[transaction.toAsset?.network || transaction.network] || "/images/logo/base.svg"}
+                              alt={transaction.toAsset?.network || transaction.network}
                               width={20}
                               height={20}
                               className="rounded-full"
                             />
-                            <span className="text-white text-[12px] font-normal">
+                            <span className="text-white text-[12px] font-normal whitespace-nowrap flex-shrink-0">
                               {transaction.toAsset ? 
                                 formatAmount(transaction.toAmount || getTransactionAmount(transaction), transaction.toAsset.symbol || transaction.toAsset.name) :
                                 formatAmount(getTransactionAmount(transaction), getTransactionAssetName(transaction))
@@ -444,44 +553,59 @@ const UserActivity: React.FC = () => {
                       )}
                     </div>
                 </div>
-              ))}
+                );
+                } catch (error) {
+                  console.error(`*** ERROR RENDERING TRANSACTION ${index} ***`, error, transaction);
+                  return (
+                    <div key={transaction.id} className="bg-red-500/10 rounded-[4px] py-4 px-6">
+                      <div className="text-red-400 text-sm">Error rendering transaction {transaction.id}</div>
+                    </div>
+                  );
+                }
+              })}
 
               {/* Pagination */}
               {activityData.pagination && activityData.pagination.totalPages > 1 && (
-                <div className="flex items-center justify-center gap-4 mt-6">
-                  <button
-                    onClick={handlePreviousPage}
-                    disabled={!activityData.pagination.hasPrevPage}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-[4px] text-[12px] font-medium transition-colors ${
-                      activityData.pagination.hasPrevPage
-                        ? 'text-white bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.2)] cursor-pointer'
-                        : 'text-[#9C9DA2] bg-[rgba(255,255,255,0.05)] cursor-not-allowed'
-                    }`}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M7.5 9L4.5 6L7.5 3" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    Previous
-                  </button>
-                  
-                  <div className="text-[#9C9DA2] text-[12px] px-4">
-                    Page {currentPage} of {activityData.pagination.totalPages}
+                <div className="flex items-center justify-between mt-6 px-4">
+                  <div className="text-[#9C9DA2] text-[12px]">
+                    Showing {((currentPage - 1) * 10) + 1}-{Math.min(currentPage * 10, activityData.pagination.totalTransactions)} of {activityData.pagination.totalTransactions} transactions
                   </div>
                   
-                  <button
-                    onClick={handleNextPage}
-                    disabled={!activityData.pagination.hasNextPage}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-[4px] text-[12px] font-medium transition-colors ${
-                      activityData.pagination.hasNextPage
-                        ? 'text-white bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.2)] cursor-pointer'
-                        : 'text-[#9C9DA2] bg-[rgba(255,255,255,0.05)] cursor-not-allowed'
-                    }`}
-                  >
-                    Next
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handlePreviousPage}
+                      disabled={!activityData.pagination.hasPrevPage}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-[4px] text-[12px] font-medium transition-colors ${
+                        activityData.pagination.hasPrevPage
+                          ? 'text-white bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.2)] cursor-pointer'
+                          : 'text-[#9C9DA2] bg-[rgba(255,255,255,0.05)] cursor-not-allowed'
+                      }`}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M7.5 9L4.5 6L7.5 3" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Previous
+                    </button>
+                    
+                    <div className="text-[#9C9DA2] text-[12px] px-4">
+                      Page {currentPage} of {activityData.pagination.totalPages}
+                    </div>
+                    
+                    <button
+                      onClick={handleNextPage}
+                      disabled={!activityData.pagination.hasNextPage}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-[4px] text-[12px] font-medium transition-colors ${
+                        activityData.pagination.hasNextPage
+                          ? 'text-white bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.2)] cursor-pointer'
+                          : 'text-[#9C9DA2] bg-[rgba(255,255,255,0.05)] cursor-not-allowed'
+                      }`}
+                    >
+                      Next
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
