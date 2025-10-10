@@ -121,7 +121,7 @@ export default function PortfolioChart({ userAddress }: { userAddress: string })
     async function fetchData() {
       setIsLoading(true);
       try {
-        const res = await fetch(`http://localhost:3001/api/user-balance-history/${userAddress}`);
+        const res = await fetch(`https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/user-balance-history/${userAddress}`);
         const json: ApiResponse = await res.json();
         console.log('balance history data', json);
 
@@ -178,22 +178,7 @@ export default function PortfolioChart({ userAddress }: { userAddress: string })
             });
           }
           
-          // Add zero values from last recorded date to current date
-          const lastRecordDate = dayjs(json.summary.lastRecordDate);
-          const currentDate = dayjs();
-          const postData = [];
-          
-          // Add zero values for each day from last record to current date
-          let dateIterator = lastRecordDate.add(1, 'day');
-          while (dateIterator.isBefore(currentDate) || dateIterator.isSame(currentDate, 'day')) {
-            postData.push({
-              timestamp: dateIterator.format('MMM DD'),
-              value: 0
-            });
-            dateIterator = dateIterator.add(1, 'day');
-          }
-          
-          const finalData = [...paddedData, ...filledData, ...postData];
+          const finalData = [...paddedData, ...filledData];
           setData(finalData);
           console.log('complete balance history with gap filling', finalData);
         } else {

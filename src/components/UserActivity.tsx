@@ -136,7 +136,7 @@ const UserActivity: React.FC = () => {
     try {
       const callId = Math.random().toString(36).substr(2, 9);
       console.log(`[${callId}] Fetching user activity for address: ${userAddress}, page: ${page}`);
-      const response = await fetch(`http://localhost:3001/api/user-activity/${userAddress}?page=${page}&limit=10`);
+      const response = await fetch(`https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/user-activity/${userAddress}?page=${page}&limit=10`);
       
       console.log(`[${callId}] API Response status:`, response.status);
       console.log(`[${callId}] API Response headers:`, Object.fromEntries(response.headers.entries()));

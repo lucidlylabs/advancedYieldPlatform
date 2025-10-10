@@ -30,7 +30,7 @@ export default function BaseApyGraph({ vaultAddress = "0x279CAD277447965AF3d24a7
         setLoading(true);
         console.log(`Fetching base APY data for vault: ${vaultAddress}, period: ${period}`);
 
-        const response = await fetch(`http://localhost:3001/api/base-apy?period=${period}`);
+        const response = await fetch(`https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/base-apy?period=${period}`);
 
         console.log("Response status:", response.status);
 

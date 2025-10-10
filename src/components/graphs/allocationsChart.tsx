@@ -39,6 +39,7 @@ const createAddressBasedColorMap = (strategies: {address: string, name: string}[
   const ptIusdAddress = "0xa32ba04a547e1c6419d3fcf5bbdb7461b3d19bb1"; // PT-iUSD/USDC Morpho
   const gauntletAddress = "0xd0bc4920f1b43882b334354ffab23c9e9637b89e"; // Gauntlet Frontier USDC
   const usrAddress = "0x914f1e34cd70c1d59392e577d58fc2ddaaedaf86"; // USR
+  const siUsdUsdcMorphoAddress = "0x511E17508b60A464704Dbccbc1E402C35A715bc5"; // siUSD/USDC Morpho (10x)
   
   sortedStrategies.forEach((strategy, index) => {
     let color = colors[index % colors.length];
@@ -122,7 +123,7 @@ export default function AllocationChart({}: AllocationChartProps) {
 
         console.log("Fetching allocation data...");
         const response = await fetch(
-          "http://localhost:3001/api/allocation/daily-allocation"
+          "https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/allocation/daily-allocation"
         );
 
         console.log("Response status:", response.status);

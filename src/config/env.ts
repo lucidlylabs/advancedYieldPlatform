@@ -192,7 +192,7 @@ export const USD_STRATEGIES = {
       },
 
       description: "Perpetual syUSD strategy on base network",
-      apy: "http://localhost:3001/api/base-apy/today-7d-ma",
+      apy: "https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/base-apy/today-7d-ma",
       cap_limit: "1,000,000",
       filled_cap: "800,000",
       show_cap: true,
@@ -235,6 +235,7 @@ export const STRATEGY_NAMES: { [address: string]: string } = {
   "0xd484c3501b7478bc9d52fb7455139c8b3141a911": "syrupUSDC/USDC Morpho (5x)",
   "0x2F45b61B90B821EFDb4525F89162cfd857ef51fD": "USDT0",
   "0x24a56bdA1e697Dc5b9802770DE476D509f02Ff8e": "WsUSR",
+  "0x511E17508b60A464704Dbccbc1E402C35A715bc5": "siUSD/USDC Morpho (10x)",
 
   // Add more strategy mappings as needed
   // "0x1234567890abcdef1234567890abcdef12345678": "Strategy Name Here",
