@@ -188,6 +188,20 @@ export const USD_STRATEGIES = {
             description:
               "Points earned through protocol fund allocation strategies",
           },
+          {
+            name: "Katana",
+            image: "/images/icons/syUSD/katana.png",
+            multiplier: 1,
+            description:
+              "Points earned through protocol fund allocation strategies",
+          },
+          {
+            name: "Infini",
+            image: "/images/icons/syUSD/infini.png",
+            multiplier: 1,
+            description:
+              "Points earned through protocol fund allocation strategies",
+          },
         ],
       },
 

@@ -105,7 +105,7 @@ const IncentiveRewards: React.FC<IncentiveRewardsProps> = ({
         </h2>
       </div>
 
-      <div className=" overflow-y-auto">
+      <div className="max-h-[calc(100vh-300px)] overflow-y-auto">
         <div className="grid gap-4">
           {incentives.points.map((point, index) => (
             <div
