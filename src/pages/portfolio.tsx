@@ -2516,7 +2516,7 @@ const PortfolioSubpage: React.FC = () => {
                                 </div>
                               </div>
                               {/* Cancel Button */}
-                              {cancelStatusMap[req.request_id] ===
+                              {/* {cancelStatusMap[req.request_id] ===
                               "cancelling" ? (
                                 <span className="text-gray-400 text-[13px] font-medium">
                                   Cancelling...
@@ -2531,9 +2531,9 @@ const PortfolioSubpage: React.FC = () => {
                                   onClick={() => handleCancel(req.request_id)}
                                   className="text-[#F85A3E] text-[12px] font-medium hover:underline whitespace-nowrap"
                                 >
-                                  Cancel Request
+                                  Cancel Requests
                                 </button>
-                              )}
+                              )} */}
                             </div>
                           );
                         })
