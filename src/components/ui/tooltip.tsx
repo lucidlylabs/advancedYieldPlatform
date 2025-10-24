@@ -115,7 +115,7 @@ function GraphTooltip({
     payload.reduce((sum, item) => sum + (item.value * 100), 0);
 
   return (
-    <div className="rounded-lg shadow-lg overflow-hidden border border-gray-200 relative z-50">
+    <div className="rounded-lg shadow-lg overflow-hidden border border-gray-200 relative z-50 min-w-max">
       {/* Header - Darker grey background */}
       {(title || label) && (
         <div className="bg-gray-300 border-b border-gray-400 px-4 py-3">
@@ -137,7 +137,7 @@ function GraphTooltip({
               const monetaryValue = formatMonetary(item);
 
               return (
-                <div key={index} className="flex items-center gap-3">
+                <div key={index} className="flex items-center gap-3 min-w-max">
                   {showColoredCircles && (
                     <div 
                       className="w-5 h-5 rounded-full flex-shrink-0 relative z-50 bg-white border-2 border-white shadow-md"
@@ -147,7 +147,7 @@ function GraphTooltip({
                       }}
                     />
                   )}
-                  <span className="text-sm text-gray-600 flex-1 min-w-0">
+                  <span className="text-sm text-gray-600 whitespace-nowrap">
                     {displayName}
                   </span>
                   <span className="text-sm font-semibold text-gray-700 text-right min-w-[80px]">

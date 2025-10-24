@@ -121,7 +121,7 @@ export default function PortfolioChart({ userAddress }: { userAddress: string })
     async function fetchData() {
       setIsLoading(true);
       try {
-        const res = await fetch(`https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/user-balance-history/${userAddress}`);
+        const res = await fetch(`http://localhost:3001/api/user-balance-history/${userAddress}`);
         const json: ApiResponse = await res.json();
         console.log('balance history data', json);
 

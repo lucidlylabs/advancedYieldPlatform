@@ -130,8 +130,11 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
         setLoading(true);
         console.log(`Fetching Allocation Returns data for period: ${period}`);
 
-        const response = await fetch(`https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/allocation-returns/returns?period=${period}`);
+        // const response = await fetch(`https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/allocation-returns/returns?period=${period}`);
+        const response = await fetch(`http://localhost:3001/api/allocation-returns/returns?period=${period}`);
 
+
+        console.log("Response status:", response.status);
         if (!response.ok) {
           console.error("API responded with status:", response.status);
           throw new Error(`API responded with status: ${response.status}`);
@@ -224,6 +227,7 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
         // Fetch Base APY data to overlay
         try {
           const apyResponse = await fetch(`https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/base-apy?period=${period}`);
+          // const apyResponse = await fetch(`http://localhost:3001/api/strategy-pnl/daily-base-apy?period=${period}`);
           if (apyResponse.ok) {
             const apyData = await apyResponse.json();
             console.log("Base APY data:", apyData);
@@ -471,40 +475,48 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
               marginRight: "24px",
             }}
           >
-            {allStrategies.map((strategy) => {
-              const isSelected = selectedStrategies.has(strategy);
-              // Use consistent color mapping: same strategy gets same color across all charts
-              const buttonColor = strategyColorMap[strategy] || COLORS[0];
-              
-              return (
-                <div
-                  key={strategy}
-                  className="flex items-start gap-3 cursor-pointer transition-opacity duration-200 w-full"
-                  onClick={() => handleStrategyClick(strategy)}
-                  style={{
-                    opacity: isSelected ? 1 : 0.5,
-                  }}
-                >
+            {allStrategies
+              .filter((strategy) => {
+                // Only show strategies that have values > 0 in the latest date
+                if (data.length === 0) return false;
+                const latestDataPoint = data[data.length - 1];
+                const value = latestDataPoint[strategy] as number;
+                return value > 0;
+              })
+              .map((strategy) => {
+                const isSelected = selectedStrategies.has(strategy);
+                // Use consistent color mapping: same strategy gets same color across all charts
+                const buttonColor = strategyColorMap[strategy] || COLORS[0];
+                
+                return (
                   <div
-                    className="w-4 h-4 rounded-full flex-shrink-0 mt-0.5"
+                    key={strategy}
+                    className="flex items-start gap-3 cursor-pointer transition-opacity duration-200 w-full"
+                    onClick={() => handleStrategyClick(strategy)}
                     style={{
-                      backgroundColor: buttonColor,
-                    }}
-                  />
-                  <span
-                    className={`text-xs font-medium leading-tight ${
-                      isSelected ? "text-white" : "text-gray-400"
-                    }`}
-                    style={{
-                      wordBreak: "break-word",
-                      maxWidth: "120px",
+                      opacity: isSelected ? 1 : 0.5,
                     }}
                   >
-                    {strategy}
-                  </span>
-                </div>
-              );
-            })}
+                    <div
+                      className="w-4 h-4 rounded-full flex-shrink-0 mt-0.5"
+                      style={{
+                        backgroundColor: buttonColor,
+                      }}
+                    />
+                    <span
+                      className={`text-xs font-medium leading-tight ${
+                        isSelected ? "text-white" : "text-gray-400"
+                      }`}
+                      style={{
+                        wordBreak: "break-word",
+                        maxWidth: "120px",
+                      }}
+                    >
+                      {strategy}
+                    </span>
+                  </div>
+                );
+              })}
           </div>
         </div>
       )}

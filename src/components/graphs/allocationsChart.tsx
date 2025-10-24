@@ -314,61 +314,64 @@ export default function AllocationChart({}: AllocationChartProps) {
               tickFormatter={(val: number) => `${(val * 100).toFixed(0)}%`}
             />
             <Tooltip
-              content={({ active, payload, label }) => (
-                <CommonTooltip
-                  active={active}
-                  payload={payload}
-                  label={String(label)}
-                  title={String(label)}
-                  showTotal={true}
-                  totalLabel="Total"
-                  valueFormatter={(value) => `${(value * 100).toFixed(2)}%`}
-                  totalFormatter={(value) => {
-                    const totalTvl = payload?.[0]?.payload?.totalTvl || 0;
-                    return totalTvl >= 1000
-                      ? `$${(totalTvl / 1000).toFixed(1)}K`
-                      : `$${totalTvl.toFixed(0)}`;
-                  }}
-                  showColoredCircles={true}
-                  monetaryValueFormatter={(item) => {
-                    // The item.name is now the strategy name, but we need the original address to get TVL
-                    // We need to find the original address that corresponds to this strategy name
-                    const strategyAddress = keys.find(key => getStrategyDisplayName(key) === item.name);
-                    
-                    if (strategyAddress) {
-                      const tvlKey = `${strategyAddress}_tvl`;
-                      const tvlValue = item.payload[tvlKey];
-                      
-                      if (tvlValue !== undefined && tvlValue !== null) {
-                        const numValue = Number(tvlValue);
-                        if (!isNaN(numValue)) {
-                          return numValue >= 1000
-                            ? `$${(numValue / 1000).toFixed(1)}K`
-                            : `$${numValue.toFixed(0)}`;
+              content={({ active, payload, label }) => {
+                // Filter out strategies with TVL < $1
+                const filteredPayload = payload?.filter(item => {
+                  // Find the original address for this display name
+                  const originalAddress = keys.find(key => getStrategyDisplayName(key) === item.name);
+                  if (originalAddress) {
+                    const tvlKey = `${originalAddress}_tvl`;
+                    const tvlValue = item.payload[tvlKey];
+                    if (tvlValue !== undefined && tvlValue !== null) {
+                      const numValue = Number(tvlValue);
+                      return !isNaN(numValue) && numValue >= 1; // Filter by TVL >= $1
+                    }
+                  }
+                  return false;
+                }) || [];
+                
+                return (
+                  <CommonTooltip
+                    active={active}
+                    payload={filteredPayload}
+                    label={String(label)}
+                    title={String(label)}
+                    showTotal={true}
+                    totalLabel="Total"
+                    valueFormatter={(value) => `${(value * 100).toFixed(2)}%`}
+                    totalFormatter={(value) => {
+                      const totalTvl = payload?.[0]?.payload?.totalTvl || 0;
+                      return totalTvl >= 1000
+                        ? `$${(totalTvl / 1000).toFixed(1)}K`
+                        : `$${totalTvl.toFixed(0)}`;
+                    }}
+                    showColoredCircles={true}
+                    monetaryValueFormatter={(item) => {
+                      // Find the original address for this display name
+                      const originalAddress = keys.find(key => getStrategyDisplayName(key) === item.name);
+                      if (originalAddress) {
+                        const tvlKey = `${originalAddress}_tvl`;
+                        const tvlValue = item.payload[tvlKey];
+                        if (tvlValue !== undefined && tvlValue !== null) {
+                          const numValue = Number(tvlValue);
+                          if (!isNaN(numValue) && numValue > 0) {
+                            return numValue >= 1000
+                              ? `$${(numValue / 1000).toFixed(1)}K`
+                              : `$${numValue.toFixed(0)}`;
+                          }
                         }
                       }
-                    }
-                    
-                    // Fallback: try to get TVL from the item payload directly
-                    const directTvlValue = item.payload?.tvl || item.payload?.value;
-                    if (directTvlValue !== undefined && directTvlValue !== null) {
-                      const numValue = Number(directTvlValue);
-                      if (!isNaN(numValue)) {
-                        return numValue >= 1000
-                          ? `$${(numValue / 1000).toFixed(1)}K`
-                          : `$${numValue.toFixed(0)}`;
-                      }
-                    }
-                    
-                    return "$0";
-                  }}
-                  // Use strategy names in tooltip, fallback to address if no name
-                  nameFormatter={(name) => {
-                    const displayName = getStrategyDisplayName(name);
-                    return displayName !== name ? displayName : `${name.slice(0, 6)}...${name.slice(-4)}`;
-                  }}
-                />
-              )}
+                      return "$0";
+                    }}
+                    // Use strategy names in tooltip - show full names without truncation
+                    nameFormatter={(name) => {
+                      const displayName = getStrategyDisplayName(name);
+                      // Always return the full display name, never truncate
+                      return displayName;
+                    }}
+                  />
+                );
+              }}
               labelFormatter={(label: string) => label}
             />
             {keys
@@ -415,45 +418,60 @@ export default function AllocationChart({}: AllocationChartProps) {
               marginRight: "24px",
             }}
           >
-            {keys.map((key) => {
-              const isSelected = selectedKeys.has(key);
-              // Convert address to strategy name for display, fallback to truncated address
-              const displayName = getStrategyDisplayName(key);
-              const finalDisplayName = displayName !== key ? displayName : `${key.slice(0, 6)}...${key.slice(-4)}`;
-              // Use address-based color mapping for consistency across charts
-              const buttonColor = strategyColorMap[key.toLowerCase()] || strategyColorMap[displayName] || colors[0];
-              
-              console.log(`Legend item - key: ${key}, displayName: ${displayName}, finalDisplayName: ${finalDisplayName}, isSelected: ${isSelected}, color: ${buttonColor}`);
+            {keys
+              .filter((key) => {
+                // Only show strategies that have TVL >= $1 in the current data
+                // Check the most recent data point (first item after reverse)
+                const mostRecentData = filteredData[0];
+                if (!mostRecentData) return false;
+                
+                const tvlKey = `${key}_tvl`;
+                const tvlValue = mostRecentData[tvlKey];
+                if (tvlValue !== undefined && tvlValue !== null) {
+                  const numValue = Number(tvlValue);
+                  return !isNaN(numValue) && numValue >= 1; // Filter by TVL >= $1
+                }
+                return false;
+              })
+              .map((key) => {
+                const isSelected = selectedKeys.has(key);
+                // Convert address to strategy name for display, fallback to truncated address
+                const displayName = getStrategyDisplayName(key);
+                const finalDisplayName = displayName !== key ? displayName : `${key.slice(0, 6)}...${key.slice(-4)}`;
+                // Use address-based color mapping for consistency across charts
+                const buttonColor = strategyColorMap[key.toLowerCase()] || strategyColorMap[displayName] || colors[0];
+                
+                console.log(`Legend item - key: ${key}, displayName: ${displayName}, finalDisplayName: ${finalDisplayName}, isSelected: ${isSelected}, color: ${buttonColor}`);
 
-              return (
-                <div
-                  key={key}
-                  className="flex items-start gap-3 cursor-pointer transition-opacity duration-200 w-full"
-                  onClick={() => handleLegendClick(key)}
-                  style={{
-                    opacity: isSelected ? 1 : 0.5,
-                  }}
-                >
+                return (
                   <div
-                    className="w-4 h-4 rounded-full flex-shrink-0 mt-0.5"
+                    key={key}
+                    className="flex items-start gap-3 cursor-pointer transition-opacity duration-200 w-full"
+                    onClick={() => handleLegendClick(key)}
                     style={{
-                      backgroundColor: buttonColor,
-                    }}
-                  />
-                  <span
-                    className={`text-xs font-medium leading-tight ${
-                      isSelected ? "text-white" : "text-gray-400"
-                    }`}
-                    style={{
-                      wordBreak: "break-word",
-                      maxWidth: "120px",
+                      opacity: isSelected ? 1 : 0.5,
                     }}
                   >
-                    {finalDisplayName}
-                  </span>
-                </div>
-              );
-            })}
+                    <div
+                      className="w-4 h-4 rounded-full flex-shrink-0 mt-0.5"
+                      style={{
+                        backgroundColor: buttonColor,
+                      }}
+                    />
+                    <span
+                      className={`text-xs font-medium leading-tight ${
+                        isSelected ? "text-white" : "text-gray-400"
+                      }`}
+                      style={{
+                        wordBreak: "break-word",
+                        maxWidth: "120px",
+                      }}
+                    >
+                      {finalDisplayName}
+                    </span>
+                  </div>
+                );
+              })}
           </div>
         </div>
       )}

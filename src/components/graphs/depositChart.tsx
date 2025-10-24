@@ -271,7 +271,7 @@ export default function TotalDepositsChart({}: DepositBarChartProps) {
                             Total Cumulative Deposits:
                           </span>
                           <span className="text-sm font-medium text-gray-800">
-                            ${payload[0].value}
+                            ${Number(payload[0].value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
                       </div>

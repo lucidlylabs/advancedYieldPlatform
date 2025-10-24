@@ -483,7 +483,7 @@ const PortfolioSubpage: React.FC = () => {
     try {
       console.log(`Fetching PnL data for address: ${userAddress}`);
       const response = await fetch(
-        `https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/pnl/${userAddress}`
+        `http://localhost:3001/api/pnl/${userAddress}`
       );
 
       console.log("PnL API Response status:", response.status);
