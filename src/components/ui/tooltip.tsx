@@ -115,7 +115,7 @@ function GraphTooltip({
     payload.reduce((sum, item) => sum + (item.value * 100), 0);
 
   return (
-    <div className="rounded-lg shadow-lg overflow-hidden border border-gray-200 relative z-50 min-w-max">
+    <div className="rounded-lg shadow-lg overflow-hidden border border-gray-200 relative z-50 min-w-max" style={{ pointerEvents: 'none' }}>
       {/* Header - Darker grey background */}
       {(title || label) && (
         <div className="bg-gray-300 border-b border-gray-400 px-4 py-3">
@@ -137,23 +137,23 @@ function GraphTooltip({
               const monetaryValue = formatMonetary(item);
 
               return (
-                <div key={index} className="flex items-center gap-3 min-w-max">
+                <div key={index} className="flex items-center gap-2 min-w-max">
                   {showColoredCircles && (
                     <div 
-                      className="w-5 h-5 rounded-full flex-shrink-0 relative z-50 bg-white border-2 border-white shadow-md"
+                      className="w-4 h-4 rounded-full flex-shrink-0 relative z-50 bg-white border-2 border-white shadow-md"
                       style={{ 
                         backgroundColor: item.fill,
                         boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
                       }}
                     />
                   )}
-                  <span className="text-sm text-gray-600 whitespace-nowrap">
+                  <span className="text-sm text-gray-600 whitespace-nowrap flex-1">
                     {displayName}
                   </span>
-                  <span className="text-sm font-semibold text-gray-700 text-right min-w-[80px]">
+                  <span className="text-sm font-semibold text-gray-700 min-w-[70px] text-right">
                     {monetaryValue}
                   </span>
-                  <span className="text-sm font-semibold text-gray-700 text-right min-w-[60px]">
+                  <span className="text-sm font-semibold text-gray-700 min-w-[55px] text-right">
                     {displayValue}
                   </span>
                 </div>

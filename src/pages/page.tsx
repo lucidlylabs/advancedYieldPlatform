@@ -5,6 +5,7 @@ import { useRouter } from "next/router";
 import { CustomConnectButton } from "../components/ui/ConnectButton/CustomConnectButton";
 import { Header } from "../components/ui/header";
 import { Navigation } from "../components/ui/navigation";
+import { useHeaderHeight } from "../contexts/BannerContext";
 import PortfolioSubpage from "./portfolio";
 import Yieldsubpage from "./earn";
 import MarketsSubpage from "./yields";
@@ -18,6 +19,7 @@ enum SubPage {
 
 export default function Page() {
   const router = useRouter();
+  const headerHeight = useHeaderHeight();
   const [selectedSubPage, setSelectedSubPage] = useState<SubPage>(
     SubPage.Markets
   );
@@ -149,7 +151,7 @@ export default function Page() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col pt-[52px]">
+    <div className="min-h-screen flex flex-col" style={{ paddingTop: `${headerHeight}px` }}>
       <Header onNavigateToDeposit={handleNavigateToDeposit}>
         <Navigation
           currentPage={

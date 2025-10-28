@@ -5,6 +5,7 @@ import React , {useState, useEffect} from "react";
 import { ArrowLeft } from "lucide-react";
 import { Header } from "@/components/ui/header";
 import { Navigation } from "@/components/ui/navigation";
+import { useHeaderHeight } from "@/contexts/BannerContext";
 
 interface MarketItem {
     id: number;
@@ -21,6 +22,7 @@ interface MarketItem {
 
 const YieldDetailPage = () => {
   const router = useRouter();
+  const headerHeight = useHeaderHeight();
   const { name, tvl, baseApy, contractAddress, network, data } = router.query;
   const [showDepositView, setShowDepositView] = useState(false);
   const [parsedData, setParsedData] = useState<MarketItem[]>([]);
@@ -50,7 +52,7 @@ const YieldDetailPage = () => {
   }, [data]);
 
   return (
-    <div className="min-h-screen flex flex-col pt-[52px]">
+    <div className="min-h-screen flex flex-col" style={{ paddingTop: `${headerHeight}px` }}>
       <Header onNavigateToDeposit={() => {}}>
         <Navigation currentPage="yields" />
       </Header>

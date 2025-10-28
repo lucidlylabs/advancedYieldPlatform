@@ -52,7 +52,7 @@ export const USD_STRATEGIES = {
 
       // Ethereum Mainnet Configuration
       ethereum: {
-        image: "/images/icons/eth-stable.svg",
+        image: "/images/logo/eth.svg",
         rpc: "https://eth.llamarpc.com",
         chainId: 1,
         chainObject: {

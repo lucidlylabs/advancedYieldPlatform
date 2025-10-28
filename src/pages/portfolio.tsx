@@ -5,6 +5,7 @@ import {
   useTransaction,
   useWriteContract,
   useChainId,
+  useSwitchChain,
 } from "wagmi";
 import { USD_STRATEGIES, BTC_STRATEGIES, ETH_STRATEGIES } from "../config/env";
 import { ERC20_ABI } from "../config/abi/erc20";
@@ -22,6 +23,7 @@ import { useRouter } from "next/router";
 import { CustomConnectButton } from "../components/ui/ConnectButton/CustomConnectButton";
 import { Header } from "../components/ui/header";
 import { Navigation } from "../components/ui/navigation";
+import { useHeaderHeight } from "../contexts/BannerContext";
 import UserActivity from "../components/UserActivity";
 
 const InfoIcon = () => (
@@ -47,18 +49,18 @@ const isMobile = () => typeof window !== "undefined" && window.innerWidth < 640;
 // More reliable mobile detection hook
 const useIsMobile = () => {
   const [isMobile, setIsMobile] = useState(false);
-  
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 640);
     };
-    
+
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
-  
+
   return isMobile;
 };
 // import {
@@ -206,7 +208,6 @@ const ExternalLinkIcon = () => (
     height="15"
     viewBox="0 0 14 15"
     fill="none"
-    
   >
     <path
       d="M12.25 5.75L12.25 2.25M12.25 2.25H8.75M12.25 2.25L7.58333 6.91667M5.83333 3.41667H4.55C3.56991 3.41667 3.07986 3.41667 2.70552 3.60741C2.37623 3.77518 2.10852 4.0429 1.94074 4.37218C1.75 4.74653 1.75 5.23657 1.75 6.21667V9.95C1.75 10.9301 1.75 11.4201 1.94074 11.7945C2.10852 12.1238 2.37623 12.3915 2.70552 12.5593C3.07986 12.75 3.56991 12.75 4.55 12.75H8.28333C9.26342 12.75 9.75347 12.75 10.1278 12.5593C10.4571 12.3915 10.7248 12.1238 10.8926 11.7945C11.0833 11.4201 11.0833 10.9301 11.0833 9.95V8.66667"
@@ -217,32 +218,50 @@ const ExternalLinkIcon = () => (
   </svg>
 );
 
-const assetOptions = [
-  {
-    name: "USDC",
-    contract: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-    image: "/images/icons/usdc.svg",
-    decimal: 6,
-    isWithdrawable: true,
-  },
-  {
-    name: "USDS",
-    contract: "0x820C137fa70C8691f0e44Dc420a5e53c168921Dc",
-    image: "/images/icons/usds.svg",
-    decimal: 18,
-    isWithdrawable: false,
-  },
-  {
-    name: "sUSDS",
-    contract: "0x5875eEE11Cf8398102FdAd704C9E96607675467a",
-    image: "/images/icons/sUSDS.svg",
-    decimal: 18,
-    isWithdrawable: false,
-  },
-];
+// Asset options based on chain
+const getWithdrawableAssets = (chain: string) => {
+  if (chain === "ethereum") {
+    return [
+      {
+        name: "USDC",
+        contract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        image: "/images/icons/usdc.svg",
+        decimal: 6,
+        isWithdrawable: true,
+      },
+    ];
+  } else {
+    // Base (default)
+    return [
+      {
+        name: "USDC",
+        contract: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        image: "/images/icons/usdc.svg",
+        decimal: 6,
+        isWithdrawable: true,
+      },
+    ];
+  }
+};
 
-// Filter withdrawable assets for dropdown
-const withdrawableAssets = assetOptions.filter((opt) => opt.isWithdrawable);
+// Helper function to find asset by contract address across all chains
+const findAssetByAddress = (address: string) => {
+  // Check Base chain
+  const baseAssets = getWithdrawableAssets("base");
+  const baseAsset = baseAssets.find(
+    (asset) => asset.contract.toLowerCase() === address.toLowerCase()
+  );
+  if (baseAsset) return baseAsset;
+
+  // Check Ethereum chain
+  const ethereumAssets = getWithdrawableAssets("ethereum");
+  const ethereumAsset = ethereumAssets.find(
+    (asset) => asset.contract.toLowerCase() === address.toLowerCase()
+  );
+  if (ethereumAsset) return ethereumAsset;
+
+  return null;
+};
 
 const strategy = USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
 const chainConfigs = {
@@ -288,6 +307,7 @@ const PortfolioSubpage: React.FC = () => {
   const [withdrawTxHash, setWithdrawTxHash] = useState<`0x${string}` | null>(
     null
   );
+  const [isWithdrawSuccessLocal, setIsWithdrawSuccessLocal] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -307,9 +327,36 @@ const PortfolioSubpage: React.FC = () => {
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
   const [usdApy, setUsdApy] = useState<string | null>(null);
   const [isChainDropdownOpen, setIsChainDropdownOpen] = useState(false);
-  const [targetChain, setTargetChain] = useState<string>(
-    chain?.name.toLowerCase() || "base"
+  const [targetChain, setTargetChain] = useState<string>("ethereum");
+  // Get withdrawable assets based on target chain
+  const withdrawableAssets = useMemo(
+    () => getWithdrawableAssets(targetChain),
+    [targetChain]
   );
+  
+  // Reset selected asset index when chain changes
+  useEffect(() => {
+    setSelectedAssetIdx(0);
+  }, [targetChain]);
+
+  // Debug: Log withdrawableAssets changes
+  useEffect(() => {
+    console.log("🔄 withdrawableAssets updated:", {
+      targetChain,
+      withdrawableAssets,
+      assetContract: withdrawableAssets?.[0]?.contract
+    });
+  }, [withdrawableAssets, targetChain]);
+
+  // Get Ethereum-only balance for selected strategy (for withdrawal display)
+  const selectedStrategyEthereumBalance = useMemo(() => {
+    if (!selectedStrategy) return 0;
+    const ethereumStrategy = strategiesWithWithdrawableBalance.find(
+      (s) => s.contract === selectedStrategy.contract
+    );
+    return ethereumStrategy?.balance || 0;
+  }, [selectedStrategy, strategiesWithWithdrawableBalance]);
+
   const [cancelStatusMap, setCancelStatusMap] = useState<{
     [key: string]: "idle" | "cancelling" | "cancelled";
   }>({});
@@ -324,7 +371,8 @@ const PortfolioSubpage: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const chainId = useChainId();
-  const isBase = chainId === 8453;
+  const isEthereum = chainId === 1; // Check if wallet is on Ethereum network
+  const { switchChain } = useSwitchChain();
 
   const router = useRouter() as any;
 
@@ -388,7 +436,10 @@ const PortfolioSubpage: React.FC = () => {
     //   uniqueChains.set("base", { name: "Base", network: "base", image: stable30DaysConfig.base.image });
     // }
 
-    return Array.from(uniqueChains.values());
+    // Filter to only show Ethereum for withdrawal (contracts deployed on Ethereum)
+    return Array.from(uniqueChains.values()).filter(
+      (chain) => chain.network === "ethereum"
+    );
   }, [USD_STRATEGIES]);
 
   // Watch deposit transaction
@@ -587,13 +638,13 @@ const PortfolioSubpage: React.FC = () => {
   }, [isWaitingForDeposit, isDepositing, isDepositSuccess, transactionHash]);
 
   // Watch approval transaction
-  const { isLoading: isWaitingForApproval, isSuccess: isApprovalSuccess } =
+  const { isLoading: isWaitingForApproval, isSuccess: isApprovalSuccess, isError: isApprovalError } =
     useTransaction({
       hash: approvalHash || undefined,
     });
 
   // Watch withdraw transaction
-  const { isLoading: isWaitingForWithdraw, isSuccess: isWithdrawSuccess } =
+  const { isLoading: isWaitingForWithdraw, isSuccess: isWithdrawSuccess, isError: isWithdrawError } =
     useTransaction({
       hash: withdrawTxHash || undefined,
     });
@@ -614,37 +665,42 @@ const PortfolioSubpage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!isWaitingForWithdraw && isWithdrawing) {
+    if (withdrawTxHash && isWithdrawSuccess && !isWithdrawSuccessLocal) {
+      // Handle successful withdrawal
+      console.log("✅ Withdraw transaction confirmed successfully");
       setIsWithdrawing(false);
-      if (isWithdrawSuccess && withdrawTxHash) {
-        // Handle successful withdrawal
-        // Refresh balances with loading state
-        setIsRefreshingBalance(true);
-        Promise.all([checkAllBalances(), checkAllWithdrawableBalances()])
-          .then(() => {
-            setIsRefreshingBalance(false);
-          })
-          .catch((error) => {
-            console.error("Error refreshing balances:", error);
-            setErrorMessage("Failed to refresh balances.");
-            setIsRefreshingBalance(false);
-          });
-        setSelectedStrategy(null);
-        setWithdrawAmount("");
-      }
+      setIsWithdrawSuccessLocal(true);
+      // Refresh balances with loading state (but don't reset the form state)
+      setIsRefreshingBalance(true);
+      Promise.all([checkAllBalances(), checkAllWithdrawableBalances()])
+        .then(() => {
+          setIsRefreshingBalance(false);
+        })
+        .catch((error) => {
+          console.error("Error refreshing balances:", error);
+          setErrorMessage("Failed to refresh balances.");
+          setIsRefreshingBalance(false);
+        });
+      // Don't reset form state - let user see the transaction hash and close manually
+      // setSelectedStrategy(null);
+      // setWithdrawAmount("");
+      // setWithdrawTxHash(null);
     }
-  }, [isWaitingForWithdraw, isWithdrawing, isWithdrawSuccess, withdrawTxHash]);
+    // Keep loading until transaction completes - don't set isWithdrawing to false prematurely
+    // Don't check isError from useTransaction as it can give false positives during pending state
+  }, [withdrawTxHash, isWithdrawSuccess, isWithdrawSuccessLocal]);
 
   useEffect(() => {
     if (approvalHash && isApprovalSuccess) {
+      console.log("✅ Approval confirmed successfully");
       setIsApproved(true);
       setIsApproving(false);
-      console.log("Approval successful:");
-    } else if (approvalHash && !isWaitingForApproval && !isApprovalSuccess) {
-      setErrorMessage("Approval transaction failed");
-      setIsApproving(false);
+      // Don't reset approvalHash - let user see it was successful
+      // setApprovalHash(null);
     }
-  }, [isWaitingForApproval, isApproving, isApprovalSuccess]);
+    // Don't check isError from useTransaction as it can give false positives during pending state
+    // Error will be shown from the catch block in handleApprove
+  }, [approvalHash, isApprovalSuccess]);
 
   // Function to check balance for a strategy
   const checkStrategyBalance = async (strategy: any) => {
@@ -729,7 +785,8 @@ const PortfolioSubpage: React.FC = () => {
     }
 
     let totalBalance = 0;
-    const networks = ["base", "ethereum", "arbitrum", "katana"];
+    // Only check Ethereum balance for withdrawals (contracts are on Ethereum)
+    const networks = ["ethereum"];
 
     for (const networkKey of networks) {
       const networkConfig = strategy[networkKey];
@@ -945,27 +1002,34 @@ const PortfolioSubpage: React.FC = () => {
 
       const solverAddress = selectedStrategy.solverAddress as Address;
       const vaultAddress = selectedStrategy.boringVaultAddress as Address;
+      
+      // Get chain configuration based on target chain
+      const chainConfig = chainConfigs[targetChain as keyof typeof chainConfigs];
+      const chainId = chainConfig?.chainId || 1;
+      const rpcUrl = chainConfig?.rpc || selectedStrategy.rpc;
 
       console.log("Approval details:", {
         solverAddress,
         vaultAddress,
         address,
+        chainId,
+        targetChain,
       });
 
       const client = createPublicClient({
-        transport: http(selectedStrategy.rpc),
-        chain: {
-          id: 8453,
-          name: "Base",
-          network: "base",
+        transport: http(rpcUrl),
+        chain: chainConfig?.chainObject || {
+          id: chainId,
+          name: "Ethereum",
+          network: "ethereum",
           nativeCurrency: {
             decimals: 18,
             name: "Ether",
             symbol: "ETH",
           },
           rpcUrls: {
-            default: { http: ["https://base.llamarpc.com"] },
-            public: { http: ["https://base.llamarpc.com"] },
+            default: { http: [rpcUrl] },
+            public: { http: [rpcUrl] },
           },
         },
       });
@@ -987,7 +1051,7 @@ const PortfolioSubpage: React.FC = () => {
         abi: ERC20_ABI,
         functionName: "approve",
         args: [solverAddress, sharesAmount],
-        chainId: 8453,
+        chainId: chainId,
         account: address,
       });
 
@@ -1024,20 +1088,31 @@ const PortfolioSubpage: React.FC = () => {
       const assetOutAddress = withdrawableAssets[selectedAssetIdx]
         .contract as Address;
 
+      console.log("=== WITHDRAW DEBUG ===");
+      console.log("targetChain:", targetChain);
+      console.log("withdrawableAssets:", withdrawableAssets);
+      console.log("assetOutAddress:", assetOutAddress);
+      console.log("selectedAssetIdx:", selectedAssetIdx);
+
+      // Get chain configuration based on target chain
+      const chainConfig = chainConfigs[targetChain as keyof typeof chainConfigs];
+      const chainId = chainConfig?.chainId || 1;
+      const rpcUrl = chainConfig?.rpc || selectedStrategy.rpc;
+
       const client = createPublicClient({
-        transport: http(selectedStrategy.rpc),
-        chain: {
-          id: 8453,
-          name: "Base",
-          network: "base",
+        transport: http(rpcUrl),
+        chain: chainConfig?.chainObject || {
+          id: chainId,
+          name: "Ethereum",
+          network: "ethereum",
           nativeCurrency: {
             decimals: 18,
             name: "Ether",
             symbol: "ETH",
           },
           rpcUrls: {
-            default: { http: ["https://base.llamarpc.com"] },
-            public: { http: ["https://base.llamarpc.com"] },
+            default: { http: [rpcUrl] },
+            public: { http: [rpcUrl] },
           },
         },
       });
@@ -1058,6 +1133,8 @@ const PortfolioSubpage: React.FC = () => {
       console.log("Debug - Contract call parameters:", {
         functionName: "requestOnChainWithdraw",
         contractAddress: solverAddress,
+        chainId: chainId,
+        targetChain: targetChain,
         args: {
           assetOut: assetOutAddress,
           amountOfShares: amountOfShares.toString(),
@@ -1077,25 +1154,27 @@ const PortfolioSubpage: React.FC = () => {
         abi: SOLVER_ABI,
         functionName: "requestOnChainWithdraw",
         args: [assetOutAddress, amountOfShares, discount, secondsToDeadline],
-        chainId: 8453,
+        chainId: chainId,
         account: address,
       });
 
       if (tx && typeof tx === "string" && tx.startsWith("0x")) {
         console.log("Withdrawal transaction submitted:", tx);
         setWithdrawTxHash(tx as `0x${string}`);
+        // Keep isWithdrawing = true until transaction is confirmed
       } else {
         throw new Error("Failed to get transaction hash");
       }
     } catch (error: any) {
+      console.error("Withdrawal failed:", error);
       if (error.code === 4001) {
         setErrorMessage("Withdrawal cancelled by user.");
       } else {
-        setErrorMessage("Withdrawal failed. Please try again.");
+        setErrorMessage(error.message || "Withdrawal failed. Please try again.");
       }
-    } finally {
-      setIsWithdrawing(false);
+      setIsWithdrawing(false); // Only set to false on actual error
     }
+    // Don't set isWithdrawing to false in finally - wait for transaction confirmation
   };
 
   const handleCancel = async (requestId: string) => {
@@ -1109,26 +1188,33 @@ const PortfolioSubpage: React.FC = () => {
 
       const solverAddress = selectedStrategy.solverAddress as Address;
 
+      // Get chain configuration based on target chain
+      const chainConfig = chainConfigs[targetChain as keyof typeof chainConfigs];
+      const chainId = chainConfig?.chainId || 1;
+      const rpcUrl = chainConfig?.rpc || selectedStrategy.rpc;
+
       console.log("Cancel details:", {
         solverAddress,
         requestId,
         address,
+        chainId,
+        targetChain,
       });
 
       const client = createPublicClient({
-        transport: http(selectedStrategy.rpc),
-        chain: {
-          id: 8453,
-          name: "Base",
-          network: "base",
+        transport: http(rpcUrl),
+        chain: chainConfig?.chainObject || {
+          id: chainId,
+          name: "Ethereum",
+          network: "ethereum",
           nativeCurrency: {
             decimals: 18,
             name: "Ether",
             symbol: "ETH",
           },
           rpcUrls: {
-            default: { http: ["https://base.llamarpc.com"] },
-            public: { http: ["https://base.llamarpc.com"] },
+            default: { http: [rpcUrl] },
+            public: { http: [rpcUrl] },
           },
         },
       });
@@ -1144,13 +1230,20 @@ const PortfolioSubpage: React.FC = () => {
 
       console.log("Found request to cancel:", requestToCancel);
 
-      const assetOption = assetOptions.find(
-        (opt) =>
-          opt.contract.toLowerCase() ===
-          (requestToCancel.withdraw_asset_address || "").toLowerCase()
-      );
+      // USDC addresses for different chains
+      const usdcAddresses = {
+        base: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        ethereum: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      };
 
-      if (!assetOption) {
+      const assetContract = (requestToCancel.withdraw_asset_address || "")
+        .toLowerCase();
+      const isValidAsset =
+        Object.values(usdcAddresses).some(
+          (addr) => addr.toLowerCase() === assetContract
+        );
+
+      if (!isValidAsset) {
         throw new Error("Asset not found for this request");
       }
 
@@ -1184,7 +1277,7 @@ const PortfolioSubpage: React.FC = () => {
         abi: SOLVER_ABI,
         functionName: "cancelOnChainWithdraw",
         args: [request],
-        chainId: 8453,
+        chainId: chainId,
         account: address,
       });
 
@@ -1219,7 +1312,7 @@ const PortfolioSubpage: React.FC = () => {
   // Handler for row clicks
   const handleStrategySelect = (strategy: StrategyWithBalance) => {
     console.log("strategy", strategy);
-    
+
     // Check if we're on mobile
     if (isMobileDevice) {
       // Mobile: Navigate to detail page
@@ -1249,13 +1342,16 @@ const PortfolioSubpage: React.FC = () => {
   // Auto-populate withdrawal form when strategy is selected on desktop
   useEffect(() => {
     if (selectedStrategy && !isMobileDevice) {
-      console.log("Auto-populating withdrawal form for strategy:", selectedStrategy);
-      
-      // Set the target chain based on the selected strategy
-      const targetNetwork = selectedStrategy.network || "base";
-      setTargetChain(targetNetwork);
-      console.log("Setting target chain to:", targetNetwork);
-      
+      console.log(
+        "Auto-populating withdrawal form for strategy:",
+        selectedStrategy
+      );
+
+      // Keep target chain as Ethereum for withdrawals (don't auto-change based on strategy)
+      // const targetNetwork = selectedStrategy.network || "base";
+      // setTargetChain(targetNetwork);
+      console.log("Selected strategy network:", selectedStrategy.network, "but keeping targetChain as:", targetChain);
+
       // Find the corresponding asset in withdrawableAssets
       const matchingAsset = withdrawableAssets.find(
         (asset) => asset.contract === selectedStrategy.contract
@@ -1267,10 +1363,13 @@ const PortfolioSubpage: React.FC = () => {
         setSelectedAssetIdx(assetIndex);
         console.log("Found matching asset at index:", assetIndex);
       } else {
-        console.log("No matching asset found for contract:", selectedStrategy.contract);
+        console.log(
+          "No matching asset found for contract:",
+          selectedStrategy.contract
+        );
       }
     }
-  }, [selectedStrategy, withdrawableAssets]);
+  }, [selectedStrategy, withdrawableAssets, targetChain, isMobileDevice]);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -1281,14 +1380,14 @@ const PortfolioSubpage: React.FC = () => {
 
   const handlePercentageClick = (percentage: number) => {
     if (selectedStrategy) {
-      const amount = (selectedStrategy.balance * percentage).toFixed(2);
+      const amount = (selectedStrategyEthereumBalance * percentage).toFixed(2);
       setWithdrawAmount(amount);
     }
   };
 
   const handleMaxClick = () => {
     if (selectedStrategy) {
-      setWithdrawAmount(selectedStrategy.balance.toString());
+      setWithdrawAmount(selectedStrategyEthereumBalance.toString());
     }
   };
 
@@ -1393,14 +1492,22 @@ const PortfolioSubpage: React.FC = () => {
         const selectedAssetAddress = getAddress(
           withdrawableAssets[selectedAssetIdx].contract
         );
-        console.log("rpc", selectedStrategy.rpc);
+        
+        // Get chain configuration based on target chain
+        const chainConfig = chainConfigs[targetChain as keyof typeof chainConfigs];
+        const chainId = chainConfig?.chainId || 1;
+        const rpcUrl = chainConfig?.rpc || selectedStrategy.rpc;
+        
+        console.log("rpc", rpcUrl);
         console.log("solverAddress", solverAddress);
         console.log("vaultAddress", vaultAddress);
+        console.log("targetChain", targetChain);
+        console.log("chainId", chainId);
 
         const client = createPublicClient({
-          transport: http(selectedStrategy.rpc),
-          chain: {
-            id: 8453,
+          transport: http(rpcUrl),
+          chain: chainConfig?.chainObject || {
+            id: chainId,
             name: "Base",
             network: "base",
             nativeCurrency: {
@@ -1409,8 +1516,8 @@ const PortfolioSubpage: React.FC = () => {
               symbol: "ETH",
             },
             rpcUrls: {
-              default: { http: ["https://mainnet.base.org"] },
-              public: { http: ["https://mainnet.base.org"] },
+              default: { http: [rpcUrl] },
+              public: { http: [rpcUrl] },
             },
           },
         });
@@ -1442,7 +1549,7 @@ const PortfolioSubpage: React.FC = () => {
     };
 
     fetchAmountOut();
-  }, [selectedStrategy, withdrawAmount]);
+  }, [selectedStrategy, withdrawAmount, targetChain, withdrawableAssets, selectedAssetIdx]);
 
   const fetchWithdrawRequests = async (
     vaultAddress: string,
@@ -1500,11 +1607,16 @@ const PortfolioSubpage: React.FC = () => {
     }
   }, [isWithdrawSuccess, withdrawTxHash, address]);
 
+  const headerHeight = useHeaderHeight();
+
   return (
-    <div className="min-h-screen flex flex-col pt-[52px]">
+    <div
+      className="min-h-screen flex flex-col"
+      style={{ paddingTop: `${headerHeight}px` }}
+    >
       <Header onNavigateToDeposit={() => {}}>
-        <Navigation 
-          currentPage="portfolio" 
+        <Navigation
+          currentPage="portfolio"
           isMobileMenuOpen={isMobileMenuOpen}
           setIsMobileMenuOpen={setIsMobileMenuOpen}
         />
@@ -1547,12 +1659,12 @@ const PortfolioSubpage: React.FC = () => {
                           : "Refreshing..."}
                       </span>
                     </span>
-                  ) : strategiesWithWithdrawableBalance.length > 0 ? (
+                  ) : strategiesWithBalance.length > 0 ? (
                     (() => {
                       const totalBalance =
-                        strategiesWithWithdrawableBalance.reduce((sum, s) => {
+                        strategiesWithBalance.reduce((sum, s) => {
                           console.log(
-                            "🔥 Portfolio Balance Calc:",
+                            "🔥 Portfolio Balance Calc (All Networks):",
                             s.balance,
                             "* exchange rate:",
                             exchangeRate,
@@ -1562,7 +1674,7 @@ const PortfolioSubpage: React.FC = () => {
                           return sum + s.balance * exchangeRate;
                         }, 0);
                       console.log(
-                        "🔥 Total Portfolio USD Value:",
+                        "🔥 Total Portfolio USD Value (All Networks):",
                         totalBalance
                       );
                       return `$${totalBalance.toFixed(2)}`;
@@ -1577,7 +1689,7 @@ const PortfolioSubpage: React.FC = () => {
               <div className="flex flex-col items-center sm:items-start">
                 <div className="flex items-center gap-2 text-[#9C9DA2] text-[14px] font-normal leading-[16px]">
                   Withdrawable
-                  <Tooltip content="Withdrawals are only active on Base Network. To redeem assets from other networks, first bridge them to base.">
+                  <Tooltip content="Shows your Ethereum balance available for withdrawal on Ethereum network." side="top">
                     <button type="button" className="cursor-help">
                       <InfoIcon />
                     </button>
@@ -1612,12 +1724,12 @@ const PortfolioSubpage: React.FC = () => {
                           : "Refreshing..."}
                       </span>
                     </span>
-                  ) : strategiesWithBalance.length > 0 ? (
+                  ) : strategiesWithWithdrawableBalance.length > 0 ? (
                     (() => {
-                      const totalBalance = strategiesWithBalance.reduce(
+                      const totalBalance = strategiesWithWithdrawableBalance.reduce(
                         (sum, s) => {
                           console.log(
-                            "🔥 Withdrawable Balance Calc:",
+                            "🔥 Withdrawable Balance Calc (Ethereum Only):",
                             s.balance,
                             "* exchange rate:",
                             exchangeRate,
@@ -1629,7 +1741,7 @@ const PortfolioSubpage: React.FC = () => {
                         0
                       );
                       console.log(
-                        "🔥 Total Withdrawable USD Value:",
+                        "🔥 Total Withdrawable USD Value (Ethereum Only):",
                         totalBalance
                       );
                       return `$${totalBalance.toFixed(2)}`;
@@ -1713,7 +1825,7 @@ const PortfolioSubpage: React.FC = () => {
         <div className="flex flex-1">
           {/* Left Side - Assets Table */}
           <div className="w-full sm:w-1/2 border-r border-[rgba(255,255,255,0.1)] sm:border-r pt-8 pl-6 pr-6 sm:pl-8 sm:pr-0 overflow-y-auto pb-36">
-            <PortfolioChart userAddress={address ?? ""} />
+            {/* <PortfolioChart userAddress={address ?? ""} /> */}
             <div className="mt-8">
               <div className="mb-6">
                 <div className="text-[rgba(255,255,255,0.70)] text-[16px] font-bold uppercase">
@@ -2030,33 +2142,42 @@ const PortfolioSubpage: React.FC = () => {
                             Withdrawing assets from
                           </label>
 
-                          {/* Dropdown */}
-                          <div className="relative">
-                            <button
-                              onClick={() =>
-                                setIsChainDropdownOpen(!isChainDropdownOpen)
-                              }
-                              className="flex items-center justify-between w-full text-[#EDF2F8] rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] border border-[rgba(255,255,255,0.05)]"
+                          {/* Network Display - Ethereum only */}
+                          <div className="relative" key={targetChain}>
+                            <div
+                              className="flex items-center justify-between w-full text-[#EDF2F8] rounded-md px-3 py-1 text-sm border border-[rgba(255,255,255,0.05)] opacity-50 cursor-not-allowed"
                             >
                               <div className="flex items-center gap-2">
-                                <img
-                                  src={
-                                    targetChain && getUniqueChainConfigs.find(
-                                      (c) => c.network === targetChain
-                                    )?.image || "/images/logo/base.svg"
-                                  }
-                                  alt={targetChain || "Base"}
-                                  className="w-5 h-5 rounded-full"
-                                  onError={(e) => {
-                                    console.log("Image failed to load for chain:", targetChain);
-                                    e.currentTarget.src = "/images/logo/base.svg";
-                                  }}
-                                />
-                                <span className="capitalize text-[12px]">
-                                  {targetChain || "Base"}
-                                </span>
+                                {(() => {
+                                  const chainOption = getUniqueChainConfigs.find(
+                                    (c) => c.network === targetChain
+                                  ) || getUniqueChainConfigs[0];
+                                  console.log("Current targetChain:", targetChain);
+                                  console.log("Found chainOption:", chainOption);
+                                  return (
+                                    <>
+                                      <img
+                                        key={targetChain}
+                                        src={chainOption?.image || "/images/logo/base.svg"}
+                                        alt={chainOption?.name || "Base"}
+                                        className="w-5 h-5 rounded-full"
+                                        onError={(e) => {
+                                          console.log(
+                                            "Image failed to load for chain:",
+                                            targetChain
+                                          );
+                                          e.currentTarget.src =
+                                            "/images/logo/base.svg";
+                                        }}
+                                      />
+                                      <span key={`text-${targetChain}`} className="text-[12px]">
+                                        {chainOption?.name || "Base"}
+                                      </span>
+                                    </>
+                                  );
+                                })()}
                                 <Tooltip
-                                  content="To reduce bridging risks and ensure accurate yield tracking, deposits and withdrawals are limited to the Base network."
+                                  content="Withdrawals are available on Ethereum network."
                                   side="top"
                                 >
                                   <div className="ml-1">
@@ -2064,42 +2185,50 @@ const PortfolioSubpage: React.FC = () => {
                                   </div>
                                 </Tooltip>
                               </div>
-                              {/* Dropdown arrow */}
-                              {/* <svg
-                            className={`w-4 h-4 transform transition-transform duration-200 ${
-                              isChainDropdownOpen ? "rotate-180" : "rotate-0"
-                            }`}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
-                          </svg> */}
-                            </button>
+                            </div>
 
-                            {/* Dropdown options */}
-                            {/* {isChainDropdownOpen && (
+                            {/* Dropdown hidden - Ethereum only */}
+                            {false && (
                           <div className="absolute z-10 w-full mt-2 bg-[#1F202D] rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 focus:outline-none">
-                            {getUniqueChainConfigs.map((chainOption) => (
-                              <button
-                                key={chainOption.network}
-                                onClick={() => {
-                                  setTargetChain(chainOption.network);
-                                  setIsChainDropdownOpen(false);
-                                }}
-                                className="flex items-center w-full px-4 py-2 text-sm text-[#EDF2F8] hover:bg-[#1A1B1E]"
-                              >
-                                <img
-                                  src={chainOption.image}
-                                  alt={chainOption.name}
-                                  className="w-5 h-5 mr-2 rounded-full"
-                                />
-                                {chainOption.name}
-                              </button>
-                            ))}
+                            {getUniqueChainConfigs.map((chainOption) => {
+                              const isSelected = targetChain === chainOption.network;
+                              return (
+                                <button
+                                  key={chainOption.network}
+                                  onClick={() => {
+                                    setTargetChain(chainOption.network);
+                                    setIsChainDropdownOpen(false);
+                                  }}
+                                  className={`flex items-center w-full px-4 py-2 text-sm hover:bg-[#1A1B1E] ${
+                                    isSelected
+                                      ? "bg-[#1A1B1E] text-white"
+                                      : "text-[#EDF2F8]"
+                                  }`}
+                                >
+                                  <img
+                                    src={chainOption.image}
+                                    alt={chainOption.name}
+                                    className="w-5 h-5 mr-2 rounded-full"
+                                  />
+                                  {chainOption.name}
+                                  {isSelected && (
+                                    <svg
+                                      className="ml-auto w-4 h-4"
+                                      fill="currentColor"
+                                      viewBox="0 0 20 20"
+                                    >
+                                      <path
+                                        fillRule="evenodd"
+                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                        clipRule="evenodd"
+                                      />
+                                    </svg>
+                                  )}
+                                </button>
+                              );
+                            })}
                           </div>
-                        )} */}
+                        )}
                           </div>
                         </div>
 
@@ -2119,7 +2248,7 @@ const PortfolioSubpage: React.FC = () => {
                             <div>
                               <div className="text-white font-semibold text-[12px]">
                                 {selectedStrategy.type === "stable"
-                                  ? "Base Yield"
+                                  ? "Stable Yield"
                                   : "Incentive Maxi"}{" "}
                                 {selectedStrategy.asset}
                               </div>
@@ -2132,13 +2261,14 @@ const PortfolioSubpage: React.FC = () => {
                             </div>
                           </div>
                           <div className="text-[#9C9DA2] text-right   text-[12px] font-normal leading-normal">
-                            Balance:{" "}
+                            Balance (Ethereum):{" "}
                             <span className="text-[#D7E3EF] text-[12px] font-semibold leading-normal">
                               $
                               {(
-                                (selectedStrategy?.balance || 0) * exchangeRate
+                                selectedStrategyEthereumBalance * exchangeRate
                               ).toFixed(2)}{" "}
-                              ({(selectedStrategy?.balance || 0).toFixed(2)} syUSD)
+                              ({selectedStrategyEthereumBalance.toFixed(2)}{" "}
+                              syUSD)
                             </span>
                           </div>
                         </div>
@@ -2154,10 +2284,10 @@ const PortfolioSubpage: React.FC = () => {
                                 value={withdrawAmount}
                                 onChange={handleAmountChange}
                                 placeholder="0.00"
-                                style={{ 
-                                  color: withdrawAmount ? '#ffffff' : '#9C9DA2',
-                                  fontSize: '20px',
-                                  fontWeight: '500'
+                                style={{
+                                  color: withdrawAmount ? "#ffffff" : "#9C9DA2",
+                                  fontSize: "20px",
+                                  fontWeight: "500",
                                 }}
                               />
                             </div>
@@ -2197,15 +2327,16 @@ const PortfolioSubpage: React.FC = () => {
                             You Will Receive
                           </div>
                           <div className="flex justify-end items-center gap-4">
-                            <div className="text-[#EDF2F8] text-[16px] font-medium leading-normal">
+                            <div className="text-[#EDF2F8] text-[16px] font-medium leading-normal flex items-center gap-2">
                               {Number(
                                 formatUnits(
                                   amountOut ? BigInt(amountOut) : BigInt(0),
                                   6
                                 )
                               ).toFixed(2)}{" "}
+                              {withdrawableAssets[selectedAssetIdx]?.name || "USDC"}
                             </div>
-                            {assetOptions.length > 1 && (
+                            {false && (
                               <div className="">
                                 <div className="relative w-full">
                                   <button
@@ -2294,22 +2425,66 @@ const PortfolioSubpage: React.FC = () => {
                               : "bg-[#B88AF8] text-[#080B17] hover:bg-[#9F6EE9] transition-colors"
                           }
                       ${
-                        isBase
+                        isEthereum
                           ? ""
                           : "bg-[#383941] text-[#9C9DA2] cursor-not-allowed hover:!bg-[#383941]"
                       }
                   }`}
-                          onClick={isApproved ? handleWithdraw : handleApprove}
+                          onClick={
+                            !isEthereum
+                              ? () => {
+                                  // Switch to Ethereum network
+                                  switchChain({ chainId: 1 });
+                                }
+                              : isWithdrawSuccessLocal
+                              ? () => {
+                                  // Reset state for another withdrawal
+                                  setWithdrawTxHash(null);
+                                  setIsWithdrawSuccessLocal(false);
+                                  setErrorMessage("");
+                                  setIsApproved(false);
+                                  setWithdrawAmount("");
+                                }
+                              : isApproved
+                              ? handleWithdraw
+                              : handleApprove
+                          }
                           disabled={
                             isWithdrawing ||
                             isApproving ||
+                            isWaitingForWithdraw ||
+                            isWaitingForApproval ||
                             !withdrawAmount ||
                             parseFloat(withdrawAmount) <= 0 ||
-                            parseFloat(withdrawAmount) >
-                              selectedStrategy.balance
+                            (isWithdrawSuccessLocal ? false : parseFloat(withdrawAmount) >
+                              selectedStrategyEthereumBalance)
                           }
                         >
-                          {isApproving ? (
+                          {isWaitingForApproval ? (
+                            <>
+                              <svg
+                                className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#9C9DA2]"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                ></circle>
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                ></path>
+                              </svg>
+                              Waiting for Approval...
+                            </>
+                          ) : isApproving ? (
                             <>
                               <svg
                                 className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#9C9DA2]"
@@ -2332,6 +2507,30 @@ const PortfolioSubpage: React.FC = () => {
                                 ></path>
                               </svg>
                               Approving...
+                            </>
+                          ) : isWaitingForWithdraw ? (
+                            <>
+                              <svg
+                                className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#9C9DA2]"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                ></circle>
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                ></path>
+                              </svg>
+                              Waiting for Confirmation...
                             </>
                           ) : isWithdrawing ? (
                             <>
@@ -2357,12 +2556,12 @@ const PortfolioSubpage: React.FC = () => {
                               </svg>
                               Transaction in Progress
                             </>
-                          ) : isWithdrawSuccess ? (
+                          ) : isWithdrawSuccessLocal ? (
                             "Request Another Withdraw"
                           ) : isApproved ? (
                             "Approved - Click to Withdraw"
-                          ) : !isBase ? (
-                            "Switch Network to Base"
+                          ) : !isEthereum ? (
+                            "Switch to Ethereum Network"
                           ) : (
                             "Request Withdraw"
                           )}
@@ -2382,13 +2581,13 @@ const PortfolioSubpage: React.FC = () => {
                         )}
                         {!errorMessage &&
                           withdrawTxHash &&
-                          isWithdrawSuccess && (
+                          isWithdrawSuccessLocal && (
                             <div className="flex justify-between items-center mt-4 bg-[rgba(0,209,160,0.1)] rounded-[4px] p-4">
                               <div className="text-[#00D1A0]   text-[14px]">
                                 Transaction Successful
                               </div>
                               <a
-                                href={`https://basescan.org/tx/${withdrawTxHash}`}
+                                href={`https://etherscan.io/tx/${withdrawTxHash}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-[#00D1A0]   text-[14px] underline hover:text-[#00D1A0]/80"
@@ -2404,11 +2603,14 @@ const PortfolioSubpage: React.FC = () => {
                           initiating a withdrawal, your vault shares will be
                           converted into the underlying asset based on the
                           latest market rates, which may fluctuate slightly;
-                          once the request is submitted, please allow up to 24
-                          hours for the funds to be received, as processing
-                          times can vary depending on network conditions—there's
-                          no need to panic if the assets don't arrive
-                          immediately.
+                          once the request is submitted, 
+                          <span className="text-white font-bold">
+                            {" "}
+                            please allow up to 24 hours
+                          </span>{" "}
+                          for the funds to be received, as processing times can
+                          vary depending on network conditions—there's no need
+                          to panic if the assets don't arrive immediately.
                         </div>
                       </div>
                     </>
@@ -2475,10 +2677,8 @@ const PortfolioSubpage: React.FC = () => {
                         <div>No pending requests found.</div>
                       ) : (
                         withdrawRequests.map((req, idx) => {
-                          const assetOption = assetOptions.find(
-                            (opt) =>
-                              opt.contract.toLowerCase() ===
-                              (req.withdraw_asset_address || "").toLowerCase()
+                          const assetOption = findAssetByAddress(
+                            req.withdraw_asset_address || ""
                           );
                           const assetImage = assetOption
                             ? assetOption.image
@@ -2500,7 +2700,7 @@ const PortfolioSubpage: React.FC = () => {
                                     onClick={() => {
                                       if (req.transaction_hash) {
                                         window.open(
-                                          `https://basescan.org/tx/${req.transaction_hash}`,
+                                          `https://etherscan.io/tx/${req.transaction_hash}`,
                                           "_blank",
                                           "noopener,noreferrer"
                                         );
@@ -2529,7 +2729,7 @@ const PortfolioSubpage: React.FC = () => {
                                     <a
                                       href={
                                         req.transaction_hash
-                                          ? `https://basescan.org/tx/${req.transaction_hash}`
+                                          ? `https://etherscan.io/tx/${req.transaction_hash}`
                                           : undefined
                                       }
                                       target="_blank"
@@ -2617,10 +2817,8 @@ const PortfolioSubpage: React.FC = () => {
                         <div>No completed requests found.</div>
                       ) : (
                         completedRequests.map((req, idx) => {
-                          const assetOption = assetOptions.find(
-                            (opt) =>
-                              opt.contract.toLowerCase() ===
-                              (req.withdraw_asset_address || "").toLowerCase()
+                          const assetOption = findAssetByAddress(
+                            req.withdraw_asset_address || ""
                           );
                           const assetImage = assetOption
                             ? assetOption.image
@@ -2641,7 +2839,7 @@ const PortfolioSubpage: React.FC = () => {
                                     onClick={() => {
                                       if (req.transaction_hash) {
                                         window.open(
-                                          `https://basescan.org/tx/${req.transaction_hash}`,
+                                          `https://etherscan.io/tx/${req.transaction_hash}`,
                                           "_blank",
                                           "noopener,noreferrer"
                                         );
@@ -2670,7 +2868,7 @@ const PortfolioSubpage: React.FC = () => {
                                     <a
                                       href={
                                         req.transaction_hash
-                                          ? `https://basescan.org/tx/${req.transaction_hash}`
+                                          ? `https://etherscan.io/tx/${req.transaction_hash}`
                                           : undefined
                                       }
                                       target="_blank"

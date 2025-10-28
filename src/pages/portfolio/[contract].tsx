@@ -694,8 +694,10 @@ const PortfolioDetailedPage = () => {
   }, [router.isReady, contract, withdrawAmount]);
 
 
+  const headerHeight = useHeaderHeight();
+
   return (
-    <div className="min-h-screen flex flex-col pt-[52px]">
+    <div className="min-h-screen flex flex-col" style={{ paddingTop: `${headerHeight}px` }}>
       <Header>
         <Navigation
           currentPage="portfolio"

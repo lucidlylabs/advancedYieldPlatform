@@ -7,6 +7,7 @@ import { useRouter } from "next/router";
 import { CustomConnectButton } from "../components/ui/ConnectButton/CustomConnectButton";
 import { Header } from "../components/ui/header";
 import { Navigation } from "../components/ui/navigation";
+import { useHeaderHeight } from "../contexts/BannerContext";
 import CodeVerificationPopup from "@/components/ui/CodeVerificationPopup";
 
 type DurationType = "30_DAYS" | "60_DAYS" | "180_DAYS" | "PERPETUAL_DURATION";
@@ -230,6 +231,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
   const [isCodePopupOpen, setIsCodePopupOpen] = useState(true);
   const [verificationError, setVerificationError] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const headerHeight = useHeaderHeight();
 
   const router = useRouter();
 
@@ -385,7 +387,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
 
   if (!isVerified) {
     return (
-      <div className="min-h-screen flex flex-col pt-[52px]">
+      <div className="min-h-screen flex flex-col" style={{ paddingTop: `${headerHeight}px` }}>
         <Header onNavigateToDeposit={handleNavigateToDeposit}>
           <Navigation 
             currentPage="earn" 
@@ -404,7 +406,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col pt-[52px]">
+    <div className="min-h-screen flex flex-col" style={{ paddingTop: `${headerHeight}px` }}>
       <Header onNavigateToDeposit={handleNavigateToDeposit}>
           <Navigation 
             currentPage="earn" 

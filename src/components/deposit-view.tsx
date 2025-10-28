@@ -506,6 +506,7 @@ const DepositView: React.FC<DepositViewProps> = ({
   const [isDepositing, setIsDepositing] = useState(false);
   const [isApproved, setIsApproved] = useState(false);
   const [depositSuccess, setDepositSuccess] = useState(false);
+  const [isDepositSuccessLocal, setIsDepositSuccessLocal] = useState(false);
   const [transactionHash, setTransactionHash] = useState<`0x${string}` | null>(
     null
   );
@@ -984,28 +985,32 @@ const DepositView: React.FC<DepositViewProps> = ({
   }, [isWaitingForApproval, isApprovalSuccess]);
 
   useEffect(() => {
-    if (!isWaitingForDeposit) {
-      // Only reset approval state if deposit was successful or failed
-      if (isDepositSuccess || transactionHash) {
-        setIsApproved(false);
-      }
+    if (!isWaitingForDeposit && transactionHash) {
+      // Only fetch balance after transaction completes (success or failure)
+      // Don't reset approval state or form immediately
       fetchBalance();
-      setIsWaitingForSignature(false);
     }
-  }, [isWaitingForDeposit, isDepositSuccess, transactionHash]);
+    // Keep form state until user manually resets
+  }, [isWaitingForDeposit, transactionHash]);
 
   // Watch for deposit success
   useEffect(() => {
-    if (isDepositSuccess && transactionHash) {
+    if (isDepositSuccess && transactionHash && !isDepositSuccessLocal) {
+      console.log("✅ Deposit transaction confirmed successfully");
       setDepositSuccess(true);
+      setIsDepositSuccessLocal(true);
       setIsWaitingForSignature(false);
+      setIsDepositing(false);
       console.log("Deposit successful!", {
         hash: transactionHash,
         amount,
         token: selectedAssetOption?.name || "Unknown",
       });
+      // Don't reset form state - let user see the transaction hash and close manually
+      // Form will reset when user clicks "Make Another Deposit"
     }
-  }, [isDepositSuccess, transactionHash, amount, selectedAssetOption?.name]);
+    // Don't check isError from useTransaction as it can give false positives during pending state
+  }, [isDepositSuccess, transactionHash, amount, selectedAssetOption?.name, isDepositSuccessLocal]);
 
   useEffect(() => {
     if (isLoadingBalance) {
@@ -1596,7 +1601,7 @@ const DepositView: React.FC<DepositViewProps> = ({
   return (
     <>
       <div className="relative overflow-hidden pt-20 sm:pt-20 px-4 sm:px-0">
-        {depositSuccess ? (
+        {false ? (
           <div className="flex flex-col items-center justify-center h-full pt-12 px-4 sm:px-0">
             <div className="w-full max-w-[580px] bg-[#0D101C] rounded-lg p-6 sm:p-8 text-center">
               <div className="flex justify-center mb-6">
@@ -2071,6 +2076,8 @@ const DepositView: React.FC<DepositViewProps> = ({
                         depositIsPending ||
                         isWaitingForApproval ||
                         isWaitingForDeposit ||
+                        isDepositing ||
+                        isApproving ||
                         (isLoadingBalance && !isApproved); // Only include balance loading if not approved
 
                       const hasInsufficientFunds =
@@ -2092,8 +2099,16 @@ const DepositView: React.FC<DepositViewProps> = ({
                           ? "Enter Amount"
                           : hasInsufficientFunds
                           ? "Insufficient Funds"
-                          : isWaitingForSignature
-                          ? "Waiting for Signature..."
+                          : isWaitingForApproval
+                          ? "Waiting for Approval..."
+                          : isApproving
+                          ? "Approving..."
+                          : isWaitingForDeposit
+                          ? "Waiting for Confirmation..."
+                          : isDepositing
+                          ? "Transaction in Progress"
+                          : isDepositSuccessLocal
+                          ? "Request Another Deposit"
                           : isApproved && !isLoading
                           ? "Approval Done - Click to Deposit"
                           : "Deposit"
@@ -2113,10 +2128,23 @@ const DepositView: React.FC<DepositViewProps> = ({
                             !hasInsufficientFunds &&
                             amount &&
                             Number(amount) > 0
-                              ? handleDeposit
+                              ? isDepositSuccessLocal
+                                ? () => {
+                                    // Reset state for another deposit
+                                    setTransactionHash(null);
+                                    setApprovalHash(null);
+                                    setIsDepositSuccessLocal(false);
+                                    setDepositSuccess(false);
+                                    setErrorMessage(null);
+                                    setIsApproved(false);
+                                    setIsApproving(false);
+                                    setIsDepositing(false);
+                                    setAmount("");
+                                  }
+                                : handleDeposit
                               : openConnectModal
                           }
-                          disabled={shouldDisable}
+                          disabled={shouldDisable || isDepositSuccessLocal}
                           className={`w-full py-4 mt-6 mb-8 sm:mb-0 rounded font-semibold transition-all duration-200 ${
                             isInactiveState
                               ? "bg-gray-500 text-white opacity-50 cursor-not-allowed"
@@ -2155,6 +2183,23 @@ const DepositView: React.FC<DepositViewProps> = ({
                       )}
                     </div>
                   )}
+                  {!errorMessage &&
+                    transactionHash &&
+                    isDepositSuccessLocal && (
+                      <div className="flex justify-between items-center mt-4 bg-[rgba(0,209,160,0.1)] rounded-[4px] p-4">
+                        <div className="text-[#00D1A0] text-[14px]">
+                          Transaction Successful
+                        </div>
+                        <a
+                          href={getExplorerUrl(targetChain, transactionHash)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#00D1A0] text-[14px] underline hover:text-[#00D1A0]/80"
+                        >
+                          #{transactionHash.substring(0, 8)}...
+                        </a>
+                      </div>
+                    )}
                 </div>
               </div>
             </div>

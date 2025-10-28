@@ -17,6 +17,7 @@ import { base, mainnet, arbitrum } from "wagmi/chains";
 import { Header } from "../components/ui/header";
 import { Navigation } from "../components/ui/navigation";
 import { Tooltip } from "../components/ui/tooltip";
+import { useHeaderHeight } from "../contexts/BannerContext";
 import { ERC20_ABI } from "../config/abi/erc20";
 import { TELLER_WITH_LAYER_ZERO_ABI } from "../config/abi/TellerWithLayerZero";
 
@@ -213,6 +214,7 @@ const InfoIcon = () => (
 const BridgePage: React.FC = () => {
   const { address, isConnected } = useAccount();
   const { switchChain } = useSwitchChain();
+  const headerHeight = useHeaderHeight();
   const [amount, setAmount] = useState<string>("0.00");
   // Source network dropdown state
   const [sourceNetwork, setSourceNetwork] = useState<Network>(
@@ -772,7 +774,7 @@ const BridgePage: React.FC = () => {
   }, [writeError]);
 
   return (
-    <div className="min-h-screen flex flex-col pt-[52px]">
+    <div className="min-h-screen flex flex-col" style={{ paddingTop: `${headerHeight}px` }}>
       <Header onNavigateToDeposit={() => {}}>
         <Navigation 
           currentPage="bridge" 

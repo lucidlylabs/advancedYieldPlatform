@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import { useAccount } from "wagmi";
 import { Header } from "../components/ui/header";
 import { Navigation } from "../components/ui/navigation";
+import { useHeaderHeight } from "../contexts/BannerContext";
 
 interface LeaderboardEntry {
   rank: number;
@@ -17,6 +18,7 @@ interface LeaderboardEntry {
 const LeaderboardPage: React.FC = () => {
   const router = useRouter();
   const { address, isConnected } = useAccount();
+  const headerHeight = useHeaderHeight();
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>(
     []
   );
@@ -146,7 +148,7 @@ const LeaderboardPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col pt-[52px]">
+    <div className="min-h-screen flex flex-col" style={{ paddingTop: `${headerHeight}px` }}>
       <Header onNavigateToDeposit={() => {}}>
         <Navigation 
           currentPage="leaderboard" 
@@ -162,7 +164,7 @@ const LeaderboardPage: React.FC = () => {
             <div className="flex items-center">
               <div className="flex-1">
                 <div className="flex items-start gap-6">
-                  <h1 className="text-3xl font-bold text-white">
+                  <h1 className="text-3xl font-bold text-white mt-2">
                     Lucidly Drops
                   </h1>
                   {/* <div className="flex items-center gap-2 border border-[#1a4fd4] px-1  rounded-sm">

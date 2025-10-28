@@ -7,6 +7,7 @@ import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import { config } from '../wagmi';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Inter } from 'next/font/google';
+import { BannerProvider } from '../contexts/BannerContext';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 import Head from 'next/head';
@@ -28,22 +29,24 @@ function MyApp({ Component, pageProps }: AppProps) {
       <WagmiProvider config={config}>
         <QueryClientProvider client={client}>
           <RainbowKitProvider>
-            <Head>
-              <link rel="icon" type="image/png" href="/images/logo/Logomark_200_200.png" />
-              <title>Lucidly Finance - Advanced Yield Platform</title>
-              <meta property="og:title" content="Lucidly Finance - Advanced Yield Platform" />
-              <meta property="og:description" content="Discover the most advanced DeFi yield platform. Earn optimal returns on your crypto assets with Lucidly Finance." />
-              <meta property="og:image" content="https://dev.lucidly.finance/images/icons/thumbnail.png" />
-              <meta property="og:image:width" content="1200" />
-              <meta property="og:image:height" content="630" />
-              <meta property="og:image:alt" content="Lucidly Finance - Advanced Yield Platform for DeFi" />
-              <meta name="twitter:card" content="summary_large_image" />
-              <meta name="twitter:title" content="Lucidly Finance - Advanced Yield Platform" />
-              <meta name="twitter:description" content="Discover the most advanced DeFi yield platform. Earn optimal returns on your crypto assets with Lucidly Finance." />
-              <meta name="twitter:image" content="https://dev.lucidly.finance/images/icons/thumbnail.png" />
-              <meta name="twitter:creator" content="@LucidlyFinance" />
-            </Head>
-            <Component {...pageProps} />
+            <BannerProvider>
+              <Head>
+                <link rel="icon" type="image/png" href="/images/logo/Logomark_200_200.png" />
+                <title>Lucidly Finance - Advanced Yield Platform</title>
+                <meta property="og:title" content="Lucidly Finance - Advanced Yield Platform" />
+                <meta property="og:description" content="Discover the most advanced DeFi yield platform. Earn optimal returns on your crypto assets with Lucidly Finance." />
+                <meta property="og:image" content="https://dev.lucidly.finance/images/icons/thumbnail.png" />
+                <meta property="og:image:width" content="1200" />
+                <meta property="og:image:height" content="630" />
+                <meta property="og:image:alt" content="Lucidly Finance - Advanced Yield Platform for DeFi" />
+                <meta name="twitter:card" content="summary_large_image" />
+                <meta name="twitter:title" content="Lucidly Finance - Advanced Yield Platform" />
+                <meta name="twitter:description" content="Discover the most advanced DeFi yield platform. Earn optimal returns on your crypto assets with Lucidly Finance." />
+                <meta name="twitter:image" content="https://dev.lucidly.finance/images/icons/thumbnail.png" />
+                <meta name="twitter:creator" content="@LucidlyFinance" />
+              </Head>
+              <Component {...pageProps} />
+            </BannerProvider>
           </RainbowKitProvider>
         </QueryClientProvider>
       </WagmiProvider>
