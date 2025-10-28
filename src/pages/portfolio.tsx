@@ -765,9 +765,9 @@ const PortfolioSubpage: React.FC = () => {
     // Error will be shown from the catch block in handleApprove
   }, [approvalHash, isApprovalSuccess]);
 
-  // Function to check balance for a strategy
+  // Function to check balance for a strategy across all networks
   const checkStrategyBalance = async (strategy: any) => {
-    if (!address) return 0;
+    if (!address || !strategy.boringVaultAddress) return 0;
 
     try {
       // Validate boring vault address
@@ -780,52 +780,71 @@ const PortfolioSubpage: React.FC = () => {
         return 0;
       }
 
-      const client = createPublicClient({
-        transport: http(strategy.rpc),
-        chain: {
-          id: 8453,
-          name: "Base",
-          network: "base",
-          nativeCurrency: {
-            decimals: 18,
-            name: "Ether",
-            symbol: "ETH",
-          },
-          rpcUrls: {
-            default: { http: [strategy.rpc] },
-            public: { http: [strategy.rpc] },
-          },
-        },
-      });
+      let totalBalance = 0;
+      // Check all networks (Base, Ethereum, Arbitrum)
+      const networks = ["base", "ethereum", "arbitrum"];
 
-      try {
-        const [balance, decimals] = await Promise.all([
-          client.readContract({
-            address: strategy.boringVaultAddress as Address,
-            abi: ERC20_ABI,
-            functionName: "balanceOf",
-            args: [address as Address],
-          }),
-          client.readContract({
-            address: strategy.boringVaultAddress as Address,
-            abi: ERC20_ABI,
-            functionName: "decimals",
-          }),
-        ]);
-        console.log(`Checking chain balance: ${balance}`);
+      for (const networkKey of networks) {
+        const networkConfig = strategy[networkKey];
 
-        const formattedBalance = parseFloat(
-          formatUnits(balance as bigint, decimals as number)
-        );
+        // Skip if network config doesn't exist
+        if (!networkConfig || !networkConfig.rpc || !networkConfig.chainId) {
+          console.log(`Skipping ${networkKey} - no config`);
+          continue;
+        }
 
-        return formattedBalance;
-      } catch (error) {
-        // console.error("Error reading boring vault:", error);
-        setErrorMessage("Failed to read vault balance.");
-        return 0;
+        try {
+          const client = createPublicClient({
+            transport: http(networkConfig.rpc),
+            chain: {
+              id: networkConfig.chainId,
+              name: networkConfig.chainObject.name,
+              network: networkConfig.chainObject.network,
+              nativeCurrency: networkConfig.chainObject.nativeCurrency,
+              rpcUrls: networkConfig.chainObject.rpcUrls,
+            },
+          });
+
+          // Add small delay between contract calls to prevent rate limiting
+          await delay(100);
+
+          const [balance, decimals] = await Promise.all([
+            client.readContract({
+              address: strategy.boringVaultAddress as Address,
+              abi: ERC20_ABI,
+              functionName: "balanceOf",
+              args: [address as Address],
+            }),
+            client.readContract({
+              address: strategy.boringVaultAddress as Address,
+              abi: ERC20_ABI,
+              functionName: "decimals",
+            }),
+          ]);
+
+          const formattedBalance = parseFloat(
+            formatUnits(balance as bigint, decimals as number)
+          );
+
+          console.log(`${networkKey} balance: ${formattedBalance}`);
+          totalBalance += formattedBalance;
+        } catch (error) {
+          console.error(`Error checking ${networkKey} balance:`, error);
+          // Check if it's a rate limit error
+          if (error instanceof Error && error.message.includes("429")) {
+            console.warn(
+              `Rate limited on ${networkKey}, waiting before retry...`
+            );
+            await delay(2000); // Wait 2 seconds before continuing
+          }
+          // Continue to next network instead of failing completely
+        }
       }
+
+      console.log(`Total portfolio balance: ${totalBalance}`);
+      return totalBalance;
     } catch (error) {
-      // console.error("Error checking balance for strategy:", strategy, error);
+      console.error("Error checking strategy balance:", strategy, error);
       setErrorMessage("Failed to check strategy balance.");
       return 0;
     }
@@ -1021,12 +1040,13 @@ const PortfolioSubpage: React.FC = () => {
         ),
       ];
 
-      const balances = await Promise.all(
-        allStrategies.map(async (strategy) => {
-          const balance = await checkStrategyBalance(strategy);
-          return { ...strategy, balance } as StrategyWithBalance;
-        })
-      );
+      // Process strategies sequentially to prevent rate limiting
+      const balances: StrategyWithBalance[] = [];
+      for (let i = 0; i < allStrategies.length; i++) {
+        const strategy = allStrategies[i];
+        const balance = await checkStrategyBalance(strategy);
+        balances.push({ ...strategy, balance } as StrategyWithBalance);
+      }
       setStrategiesWithBalance(balances.filter((s) => s.balance > 0));
     } catch (error) {
       // console.error("Error checking all balances:", error);
