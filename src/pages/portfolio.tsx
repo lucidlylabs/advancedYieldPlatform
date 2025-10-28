@@ -2456,49 +2456,52 @@ const PortfolioSubpage: React.FC = () => {
 
                         <button
                           className={`w-full py-4 rounded-[4px] border border-[rgba(255,255,255,0.30)] flex justify-center items-center gap-[10px] text-center text-[16px] font-semibold ${
-                            isWithdrawing || isApproving
+                            !isEthereum
+                              ? "bg-[#383941] text-black hover:bg-[#4a4d56] transition-colors cursor-pointer"
+                              : isWithdrawing || isApproving
                               ? "bg-[#2D2F3D] text-[#9C9DA2] cursor-not-allowed"
                               : "bg-[#B88AF8] text-[#080B17] hover:bg-[#9F6EE9] transition-colors"
-                          }
-                      ${
-                        isEthereum
-                          ? ""
-                          : "bg-[#383941] text-[#9C9DA2] cursor-not-allowed hover:!bg-[#383941]"
-                      }
-                  }`}
-                          onClick={
-                            !isEthereum
-                              ? () => {
-                                  // Switch to Ethereum network
-                                  switchChain({ chainId: 1 });
-                                }
-                              : isWithdrawSuccessLocal
-                              ? () => {
-                                  // Reset state for another withdrawal
-                                  setWithdrawTxHash(null);
-                                  setIsWithdrawSuccessLocal(false);
-                                  setErrorMessage("");
-                                  setIsApproved(false);
-                                  setWithdrawAmount("");
-                                }
-                              : isApproved
-                              ? handleWithdraw
-                              : handleApprove
-                          }
+                          }`}
+                          onClick={async () => {
+                            if (!isEthereum) {
+                              // Switch to Ethereum network
+                              try {
+                                console.log("Attempting to switch to Ethereum network...");
+                                await switchChain({ chainId: 1 });
+                                console.log("Successfully switched to Ethereum network");
+                              } catch (error) {
+                                console.error("Failed to switch network:", error);
+                                setErrorMessage("Please switch to Ethereum network manually in your wallet");
+                              }
+                            } else if (isWithdrawSuccessLocal) {
+                              // Reset state for another withdrawal
+                              setWithdrawTxHash(null);
+                              setIsWithdrawSuccessLocal(false);
+                              setErrorMessage("");
+                              setIsApproved(false);
+                              setWithdrawAmount("");
+                            } else if (isApproved) {
+                              handleWithdraw();
+                            } else {
+                              handleApprove();
+                            }
+                          }}
                           disabled={
-                            isWithdrawing ||
-                            isApproving ||
-                            isWaitingForWithdraw ||
-                            isWaitingForApproval ||
-                            !withdrawAmount ||
-                            parseFloat(withdrawAmount) <= 0 ||
-                            (isWithdrawSuccessLocal
-                              ? false
-                              : parseFloat(withdrawAmount) >
-                                selectedStrategyEthereumBalance)
+                            isEthereum && (
+                              isWithdrawing ||
+                              isApproving ||
+                              !!(isWaitingForWithdraw && withdrawTxHash) ||
+                              !!(isWaitingForApproval && approvalHash) ||
+                              !withdrawAmount ||
+                              parseFloat(withdrawAmount) <= 0 ||
+                              (isWithdrawSuccessLocal
+                                ? false
+                                : parseFloat(withdrawAmount) >
+                                  selectedStrategyEthereumBalance)
+                            )
                           }
                         >
-                          {isWaitingForApproval ? (
+                          {(isWaitingForApproval && approvalHash) ? (
                             <>
                               <svg
                                 className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#9C9DA2]"
@@ -2520,9 +2523,9 @@ const PortfolioSubpage: React.FC = () => {
                                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                                 ></path>
                               </svg>
-                              Waiting for Approval...
+                              <span className={!isEthereum ? "text-black" : ""}>Waiting for Approval...</span>
                             </>
-                          ) : isApproving ? (
+                          ) : (isApproving && approvalHash) ? (
                             <>
                               <svg
                                 className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#9C9DA2]"
@@ -2544,9 +2547,9 @@ const PortfolioSubpage: React.FC = () => {
                                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                                 ></path>
                               </svg>
-                              Approving...
+                              <span className={!isEthereum ? "text-black" : ""}>Approving...</span>
                             </>
-                          ) : isWaitingForWithdraw ? (
+                          ) : (isWaitingForWithdraw && withdrawTxHash) ? (
                             <>
                               <svg
                                 className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#9C9DA2]"
@@ -2568,7 +2571,7 @@ const PortfolioSubpage: React.FC = () => {
                                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                                 ></path>
                               </svg>
-                              Waiting for Confirmation...
+                              <span className={!isEthereum ? "text-black" : ""}>Waiting for Confirmation...</span>
                             </>
                           ) : isWithdrawing ? (
                             <>
@@ -2592,7 +2595,7 @@ const PortfolioSubpage: React.FC = () => {
                                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                                 ></path>
                               </svg>
-                              Transaction in Progress
+                              <span className={!isEthereum ? "text-black" : ""}>Transaction in Progress</span>
                             </>
                           ) : isWithdrawSuccessLocal ? (
                             "Request Another Withdraw"

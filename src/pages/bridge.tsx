@@ -1015,7 +1015,7 @@ const BridgePage: React.FC = () => {
                         </div>
 
                         {/* Arrow Icon */}
-                        <div className="mx-4 mt-6">
+                        {/* <div className="mx-4 mt-6">
                           <svg
                             width="20"
                             height="20"
@@ -1039,7 +1039,7 @@ const BridgePage: React.FC = () => {
                               strokeLinejoin="round"
                             />
                           </svg>
-                        </div>
+                        </div> */}
 
                         {/* Destination Network */}
                         <div className="flex-1 relative">

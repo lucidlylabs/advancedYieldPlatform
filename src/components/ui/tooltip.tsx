@@ -11,7 +11,7 @@ interface SimpleTooltipProps {
   sideOffset?: number;
 }
 
-function SimpleTooltip({ children, content, side = "top", sideOffset = 4 }: SimpleTooltipProps) {
+function SimpleTooltip({ children, content, side = "top", sideOffset = 8 }: SimpleTooltipProps) {
   return (
     <TooltipPrimitive.Provider>
       <TooltipPrimitive.Root delayDuration={0}>
@@ -21,6 +21,8 @@ function SimpleTooltip({ children, content, side = "top", sideOffset = 4 }: Simp
         <TooltipPrimitive.Content
           side={side}
           sideOffset={sideOffset}
+          avoidCollisions={true}
+          collisionPadding={8}
           className="z-50 max-w-[280px] sm:max-w-[320px]"
           style={{ 
             '--radix-tooltip-arrow-width': '0px',
@@ -29,7 +31,7 @@ function SimpleTooltip({ children, content, side = "top", sideOffset = 4 }: Simp
         >
           <div className="rounded-lg shadow-lg overflow-hidden border border-gray-200 relative z-50">
             <div className="bg-gray-100 px-3 py-2 sm:px-4 sm:py-3 relative z-50">
-              <div className="text-xs sm:text-sm text-gray-700 leading-relaxed">
+              <div className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-normal">
                 {content}
               </div>
             </div>

@@ -428,7 +428,7 @@ const ExchangeRate: React.FC<ExchangeRateProps> = ({
           </span>
           <Tooltip
             content={`Current exchange rate between ${selectedAssetOption.name} and syUSD vault shares`}
-            side="top"
+            side="bottom"
           >
             <div className="w-4 h-4 rounded-full flex items-center justify-center">
               <svg
@@ -1783,7 +1783,8 @@ const DepositView: React.FC<DepositViewProps> = ({
                           Deposit Network
                           <Tooltip
                             content="Select the network you'll be depositing funds from."
-                            side="top"
+                            side="bottom"
+                            sideOffset={12}
                           >
                             <div>
                               <InfoIcon />
@@ -1936,7 +1937,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                           Destination Network
                           <Tooltip
                             content="This is the network where you'll receive your syUSD vault tokens"
-                            side="top"
+                            side="bottom"
                           >
                             <div>
                               <InfoIcon />
