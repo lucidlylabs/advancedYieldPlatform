@@ -333,7 +333,7 @@ const PortfolioSubpage: React.FC = () => {
     () => getWithdrawableAssets(targetChain),
     [targetChain]
   );
-  
+
   // Reset selected asset index when chain changes
   useEffect(() => {
     setSelectedAssetIdx(0);
@@ -344,7 +344,7 @@ const PortfolioSubpage: React.FC = () => {
     console.log("🔄 withdrawableAssets updated:", {
       targetChain,
       withdrawableAssets,
-      assetContract: withdrawableAssets?.[0]?.contract
+      assetContract: withdrawableAssets?.[0]?.contract,
     });
   }, [withdrawableAssets, targetChain]);
 
@@ -638,16 +638,22 @@ const PortfolioSubpage: React.FC = () => {
   }, [isWaitingForDeposit, isDepositing, isDepositSuccess, transactionHash]);
 
   // Watch approval transaction
-  const { isLoading: isWaitingForApproval, isSuccess: isApprovalSuccess, isError: isApprovalError } =
-    useTransaction({
-      hash: approvalHash || undefined,
-    });
+  const {
+    isLoading: isWaitingForApproval,
+    isSuccess: isApprovalSuccess,
+    isError: isApprovalError,
+  } = useTransaction({
+    hash: approvalHash || undefined,
+  });
 
   // Watch withdraw transaction
-  const { isLoading: isWaitingForWithdraw, isSuccess: isWithdrawSuccess, isError: isWithdrawError } =
-    useTransaction({
-      hash: withdrawTxHash || undefined,
-    });
+  const {
+    isLoading: isWaitingForWithdraw,
+    isSuccess: isWithdrawSuccess,
+    isError: isWithdrawError,
+  } = useTransaction({
+    hash: withdrawTxHash || undefined,
+  });
 
   const chainIconMap: Record<string, { src: string; label: string }> = {
     ethereum: {
@@ -1002,9 +1008,10 @@ const PortfolioSubpage: React.FC = () => {
 
       const solverAddress = selectedStrategy.solverAddress as Address;
       const vaultAddress = selectedStrategy.boringVaultAddress as Address;
-      
+
       // Get chain configuration based on target chain
-      const chainConfig = chainConfigs[targetChain as keyof typeof chainConfigs];
+      const chainConfig =
+        chainConfigs[targetChain as keyof typeof chainConfigs];
       const chainId = chainConfig?.chainId || 1;
       const rpcUrl = chainConfig?.rpc || selectedStrategy.rpc;
 
@@ -1095,7 +1102,8 @@ const PortfolioSubpage: React.FC = () => {
       console.log("selectedAssetIdx:", selectedAssetIdx);
 
       // Get chain configuration based on target chain
-      const chainConfig = chainConfigs[targetChain as keyof typeof chainConfigs];
+      const chainConfig =
+        chainConfigs[targetChain as keyof typeof chainConfigs];
       const chainId = chainConfig?.chainId || 1;
       const rpcUrl = chainConfig?.rpc || selectedStrategy.rpc;
 
@@ -1170,7 +1178,9 @@ const PortfolioSubpage: React.FC = () => {
       if (error.code === 4001) {
         setErrorMessage("Withdrawal cancelled by user.");
       } else {
-        setErrorMessage(error.message || "Withdrawal failed. Please try again.");
+        setErrorMessage(
+          error.message || "Withdrawal failed. Please try again."
+        );
       }
       setIsWithdrawing(false); // Only set to false on actual error
     }
@@ -1189,7 +1199,8 @@ const PortfolioSubpage: React.FC = () => {
       const solverAddress = selectedStrategy.solverAddress as Address;
 
       // Get chain configuration based on target chain
-      const chainConfig = chainConfigs[targetChain as keyof typeof chainConfigs];
+      const chainConfig =
+        chainConfigs[targetChain as keyof typeof chainConfigs];
       const chainId = chainConfig?.chainId || 1;
       const rpcUrl = chainConfig?.rpc || selectedStrategy.rpc;
 
@@ -1236,12 +1247,12 @@ const PortfolioSubpage: React.FC = () => {
         ethereum: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
       };
 
-      const assetContract = (requestToCancel.withdraw_asset_address || "")
-        .toLowerCase();
-      const isValidAsset =
-        Object.values(usdcAddresses).some(
-          (addr) => addr.toLowerCase() === assetContract
-        );
+      const assetContract = (
+        requestToCancel.withdraw_asset_address || ""
+      ).toLowerCase();
+      const isValidAsset = Object.values(usdcAddresses).some(
+        (addr) => addr.toLowerCase() === assetContract
+      );
 
       if (!isValidAsset) {
         throw new Error("Asset not found for this request");
@@ -1350,7 +1361,12 @@ const PortfolioSubpage: React.FC = () => {
       // Keep target chain as Ethereum for withdrawals (don't auto-change based on strategy)
       // const targetNetwork = selectedStrategy.network || "base";
       // setTargetChain(targetNetwork);
-      console.log("Selected strategy network:", selectedStrategy.network, "but keeping targetChain as:", targetChain);
+      console.log(
+        "Selected strategy network:",
+        selectedStrategy.network,
+        "but keeping targetChain as:",
+        targetChain
+      );
 
       // Find the corresponding asset in withdrawableAssets
       const matchingAsset = withdrawableAssets.find(
@@ -1492,12 +1508,13 @@ const PortfolioSubpage: React.FC = () => {
         const selectedAssetAddress = getAddress(
           withdrawableAssets[selectedAssetIdx].contract
         );
-        
+
         // Get chain configuration based on target chain
-        const chainConfig = chainConfigs[targetChain as keyof typeof chainConfigs];
+        const chainConfig =
+          chainConfigs[targetChain as keyof typeof chainConfigs];
         const chainId = chainConfig?.chainId || 1;
         const rpcUrl = chainConfig?.rpc || selectedStrategy.rpc;
-        
+
         console.log("rpc", rpcUrl);
         console.log("solverAddress", solverAddress);
         console.log("vaultAddress", vaultAddress);
@@ -1549,7 +1566,13 @@ const PortfolioSubpage: React.FC = () => {
     };
 
     fetchAmountOut();
-  }, [selectedStrategy, withdrawAmount, targetChain, withdrawableAssets, selectedAssetIdx]);
+  }, [
+    selectedStrategy,
+    withdrawAmount,
+    targetChain,
+    withdrawableAssets,
+    selectedAssetIdx,
+  ]);
 
   const fetchWithdrawRequests = async (
     vaultAddress: string,
@@ -1661,8 +1684,8 @@ const PortfolioSubpage: React.FC = () => {
                     </span>
                   ) : strategiesWithBalance.length > 0 ? (
                     (() => {
-                      const totalBalance =
-                        strategiesWithBalance.reduce((sum, s) => {
+                      const totalBalance = strategiesWithBalance.reduce(
+                        (sum, s) => {
                           console.log(
                             "🔥 Portfolio Balance Calc (All Networks):",
                             s.balance,
@@ -1672,7 +1695,9 @@ const PortfolioSubpage: React.FC = () => {
                             s.balance * exchangeRate
                           );
                           return sum + s.balance * exchangeRate;
-                        }, 0);
+                        },
+                        0
+                      );
                       console.log(
                         "🔥 Total Portfolio USD Value (All Networks):",
                         totalBalance
@@ -1688,8 +1713,8 @@ const PortfolioSubpage: React.FC = () => {
               <div className="w-px bg-[rgba(217,217,217,0.05)] self-stretch mx-4 sm:mx-8 hidden sm:block"></div>
               <div className="flex flex-col items-center sm:items-start">
                 <div className="flex items-center gap-2 text-[#9C9DA2] text-[14px] font-normal leading-[16px]">
-                  Withdrawable
-                  <Tooltip content="Shows your Ethereum balance available for withdrawal on Ethereum network." side="top">
+                  Withdrawable{" "}
+                  <Tooltip content="Withdrawals are only active on Ethereum Network. To redeem assets from other networks, first bridge them to Ethereum." side="bottom">
                     <button type="button" className="cursor-help">
                       <InfoIcon />
                     </button>
@@ -1726,8 +1751,8 @@ const PortfolioSubpage: React.FC = () => {
                     </span>
                   ) : strategiesWithWithdrawableBalance.length > 0 ? (
                     (() => {
-                      const totalBalance = strategiesWithWithdrawableBalance.reduce(
-                        (sum, s) => {
+                      const totalBalance =
+                        strategiesWithWithdrawableBalance.reduce((sum, s) => {
                           console.log(
                             "🔥 Withdrawable Balance Calc (Ethereum Only):",
                             s.balance,
@@ -1737,9 +1762,7 @@ const PortfolioSubpage: React.FC = () => {
                             s.balance * exchangeRate
                           );
                           return sum + s.balance * exchangeRate;
-                        },
-                        0
-                      );
+                        }, 0);
                       console.log(
                         "🔥 Total Withdrawable USD Value (Ethereum Only):",
                         totalBalance
@@ -2144,21 +2167,29 @@ const PortfolioSubpage: React.FC = () => {
 
                           {/* Network Display - Ethereum only */}
                           <div className="relative" key={targetChain}>
-                            <div
-                              className="flex items-center justify-between w-full text-[#EDF2F8] rounded-md px-3 py-1 text-sm border border-[rgba(255,255,255,0.05)] opacity-50 cursor-not-allowed"
-                            >
+                            <div className="flex items-center justify-between w-full text-[#EDF2F8] rounded-md px-3 py-1 text-sm border border-[rgba(255,255,255,0.05)] opacity-50 cursor-not-allowed">
                               <div className="flex items-center gap-2">
                                 {(() => {
-                                  const chainOption = getUniqueChainConfigs.find(
-                                    (c) => c.network === targetChain
-                                  ) || getUniqueChainConfigs[0];
-                                  console.log("Current targetChain:", targetChain);
-                                  console.log("Found chainOption:", chainOption);
+                                  const chainOption =
+                                    getUniqueChainConfigs.find(
+                                      (c) => c.network === targetChain
+                                    ) || getUniqueChainConfigs[0];
+                                  console.log(
+                                    "Current targetChain:",
+                                    targetChain
+                                  );
+                                  console.log(
+                                    "Found chainOption:",
+                                    chainOption
+                                  );
                                   return (
                                     <>
                                       <img
                                         key={targetChain}
-                                        src={chainOption?.image || "/images/logo/base.svg"}
+                                        src={
+                                          chainOption?.image ||
+                                          "/images/logo/base.svg"
+                                        }
                                         alt={chainOption?.name || "Base"}
                                         className="w-5 h-5 rounded-full"
                                         onError={(e) => {
@@ -2170,7 +2201,10 @@ const PortfolioSubpage: React.FC = () => {
                                             "/images/logo/base.svg";
                                         }}
                                       />
-                                      <span key={`text-${targetChain}`} className="text-[12px]">
+                                      <span
+                                        key={`text-${targetChain}`}
+                                        className="text-[12px]"
+                                      >
                                         {chainOption?.name || "Base"}
                                       </span>
                                     </>
@@ -2189,46 +2223,47 @@ const PortfolioSubpage: React.FC = () => {
 
                             {/* Dropdown hidden - Ethereum only */}
                             {false && (
-                          <div className="absolute z-10 w-full mt-2 bg-[#1F202D] rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 focus:outline-none">
-                            {getUniqueChainConfigs.map((chainOption) => {
-                              const isSelected = targetChain === chainOption.network;
-                              return (
-                                <button
-                                  key={chainOption.network}
-                                  onClick={() => {
-                                    setTargetChain(chainOption.network);
-                                    setIsChainDropdownOpen(false);
-                                  }}
-                                  className={`flex items-center w-full px-4 py-2 text-sm hover:bg-[#1A1B1E] ${
-                                    isSelected
-                                      ? "bg-[#1A1B1E] text-white"
-                                      : "text-[#EDF2F8]"
-                                  }`}
-                                >
-                                  <img
-                                    src={chainOption.image}
-                                    alt={chainOption.name}
-                                    className="w-5 h-5 mr-2 rounded-full"
-                                  />
-                                  {chainOption.name}
-                                  {isSelected && (
-                                    <svg
-                                      className="ml-auto w-4 h-4"
-                                      fill="currentColor"
-                                      viewBox="0 0 20 20"
+                              <div className="absolute z-10 w-full mt-2 bg-[#1F202D] rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                {getUniqueChainConfigs.map((chainOption) => {
+                                  const isSelected =
+                                    targetChain === chainOption.network;
+                                  return (
+                                    <button
+                                      key={chainOption.network}
+                                      onClick={() => {
+                                        setTargetChain(chainOption.network);
+                                        setIsChainDropdownOpen(false);
+                                      }}
+                                      className={`flex items-center w-full px-4 py-2 text-sm hover:bg-[#1A1B1E] ${
+                                        isSelected
+                                          ? "bg-[#1A1B1E] text-white"
+                                          : "text-[#EDF2F8]"
+                                      }`}
                                     >
-                                      <path
-                                        fillRule="evenodd"
-                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                        clipRule="evenodd"
+                                      <img
+                                        src={chainOption.image}
+                                        alt={chainOption.name}
+                                        className="w-5 h-5 mr-2 rounded-full"
                                       />
-                                    </svg>
-                                  )}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
+                                      {chainOption.name}
+                                      {isSelected && (
+                                        <svg
+                                          className="ml-auto w-4 h-4"
+                                          fill="currentColor"
+                                          viewBox="0 0 20 20"
+                                        >
+                                          <path
+                                            fillRule="evenodd"
+                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                            clipRule="evenodd"
+                                          />
+                                        </svg>
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
                         </div>
 
@@ -2334,7 +2369,8 @@ const PortfolioSubpage: React.FC = () => {
                                   6
                                 )
                               ).toFixed(2)}{" "}
-                              {withdrawableAssets[selectedAssetIdx]?.name || "USDC"}
+                              {withdrawableAssets[selectedAssetIdx]?.name ||
+                                "USDC"}
                             </div>
                             {false && (
                               <div className="">
@@ -2456,8 +2492,10 @@ const PortfolioSubpage: React.FC = () => {
                             isWaitingForApproval ||
                             !withdrawAmount ||
                             parseFloat(withdrawAmount) <= 0 ||
-                            (isWithdrawSuccessLocal ? false : parseFloat(withdrawAmount) >
-                              selectedStrategyEthereumBalance)
+                            (isWithdrawSuccessLocal
+                              ? false
+                              : parseFloat(withdrawAmount) >
+                                selectedStrategyEthereumBalance)
                           }
                         >
                           {isWaitingForApproval ? (
@@ -2603,7 +2641,7 @@ const PortfolioSubpage: React.FC = () => {
                           initiating a withdrawal, your vault shares will be
                           converted into the underlying asset based on the
                           latest market rates, which may fluctuate slightly;
-                          once the request is submitted, 
+                          once the request is submitted,
                           <span className="text-white font-bold">
                             {" "}
                             please allow up to 24 hours
@@ -2945,3 +2983,10 @@ const PortfolioSubpage: React.FC = () => {
 };
 
 export default PortfolioSubpage;
+
+// Disable static generation since this page uses client-side only features
+export async function getServerSideProps() {
+  return {
+    props: {},
+  };
+}

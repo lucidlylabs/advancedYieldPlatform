@@ -392,3 +392,10 @@ const LeaderboardPage: React.FC = () => {
 };
 
 export default LeaderboardPage;
+
+// Disable static generation since this page uses client-side only features
+export async function getServerSideProps() {
+  return {
+    props: {},
+  };
+}

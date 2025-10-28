@@ -1429,3 +1429,10 @@ const BridgePage: React.FC = () => {
 };
 
 export default BridgePage;
+
+// Disable static generation since this page uses client-side only features
+export async function getServerSideProps() {
+  return {
+    props: {},
+  };
+}

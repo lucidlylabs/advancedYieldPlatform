@@ -602,3 +602,10 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
 };
 
 export default YieldSubpage;
+
+// Disable static generation since this page uses client-side only features
+export async function getServerSideProps() {
+  return {
+    props: {},
+  };
+}

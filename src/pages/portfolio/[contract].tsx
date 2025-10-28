@@ -23,6 +23,7 @@ import {
 import { USD_STRATEGIES, BTC_STRATEGIES, ETH_STRATEGIES } from "../../config/env";
 import { ERC20_ABI } from "../../config/abi/erc20";
 import { SOLVER_ABI } from "../../config/abi/solver";
+import { useHeaderHeight } from "../../contexts/BannerContext";
 
 interface StrategyConfig {
   network: string;
@@ -693,14 +694,12 @@ const PortfolioDetailedPage = () => {
     fetchAmountOut();
   }, [router.isReady, contract, withdrawAmount]);
 
-
   const headerHeight = useHeaderHeight();
 
   return (
     <div className="min-h-screen flex flex-col" style={{ paddingTop: `${headerHeight}px` }}>
       <Header>
         <Navigation
-          currentPage="portfolio"
           isMobileMenuOpen={isMobileMenuOpen}
           setIsMobileMenuOpen={setIsMobileMenuOpen}
         />
@@ -1293,3 +1292,10 @@ const PortfolioDetailedPage = () => {
 };
 
 export default PortfolioDetailedPage;
+
+// Disable static generation since this page uses client-side only features
+export async function getServerSideProps() {
+  return {
+    props: {},
+  };
+}
