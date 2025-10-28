@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/router";
 import { CustomConnectButton } from "./ConnectButton/CustomConnectButton";
+import { useHeaderHeight } from "../../contexts/BannerContext";
 
 interface NavigationProps {
   currentPage?: 'earn' | 'yields' | 'portfolio' | 'leaderboard' | 'bridge';
@@ -15,10 +16,11 @@ export function Navigation({
   setIsMobileMenuOpen 
 }: NavigationProps) {
   const router = useRouter();
+  const headerHeight = useHeaderHeight();
 
   return (
     <>
-      <div className="flex items-center justify-between w-full px-4 sm:px-0">
+      <div className="flex items-center justify-between w-full sm:px-0">
         <div className="flex items-stretch h-full">
           <div className="flex items-center">
             <div
@@ -54,8 +56,6 @@ export function Navigation({
                   <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#B88AF8]"></div>
                 )}
               </button> */}
-
-              <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
 
               <button
                 className={`px-8 py-[18px] text-sm transition-colors relative ${
@@ -179,20 +179,7 @@ export function Navigation({
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && setIsMobileMenuOpen && (
-        <div className="fixed top-[72px] left-0 right-0 z-40 md:hidden bg-[#0D101C] py-4 flex flex-col items-center gap-4 border-b border-[rgba(255,255,255,0.1)] px-4">
-          <button
-            className={`text-lg w-full text-center py-2 rounded transition-colors ${
-              currentPage === 'earn'
-                ? "text-white bg-[rgba(184,138,248,0.1)]"
-                : "text-[#9C9DA2] hover:text-white"
-            }`}
-            onClick={() => {
-              router.push('/earn');
-              setIsMobileMenuOpen(false);
-            }}
-          >
-            Earn
-          </button>
+        <div className="fixed left-0 right-0 z-[55] md:hidden bg-[rgba(13,16,28,0.95)] backdrop-blur-md py-4 flex flex-col items-center gap-4 border-b border-[rgba(255,255,255,0.1)] px-4" style={{ top: `${headerHeight}px` }}>
           <button
             className={`text-lg w-full text-center py-2 rounded transition-colors ${
               currentPage === 'yields'

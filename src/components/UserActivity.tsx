@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useAccount } from "wagmi";
+import { useRouter } from "next/router";
 
 interface Transaction {
   id: number;
@@ -116,6 +117,7 @@ const ExternalLinkIcon = () => (
 
 const UserActivity: React.FC = () => {
   const { address, isConnected } = useAccount();
+  const router = useRouter();
   const [activityData, setActivityData] = useState<UserActivityData | null>(null);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -414,13 +416,24 @@ const UserActivity: React.FC = () => {
                   return (
                 <div
                   key={transaction.id}
-                  className="bg-[rgba(255,255,255,0.02)] rounded-[4px] py-4 px-6 grid grid-cols-12 items-center gap-4"
+                  className="bg-[rgba(255,255,255,0.02)] rounded-[4px] py-4 px-6 grid grid-cols-12 items-center gap-4 cursor-pointer hover:bg-[rgba(255,255,255,0.05)] transition-colors"
+                  onClick={() => {
+                    // Navigate to transaction detail page or external link
+                    if (transaction.transactionHash) {
+                      window.open(
+                        getTransactionUrl(transaction.transactionHash, transaction.network),
+                        "_blank",
+                        "noopener,noreferrer"
+                      );
+                    }
+                  }}
                 >
                   {/* Left side - Date and external link */}
                   <div className="col-span-3 flex items-center gap-3">
                     <button
                       className="text-[#D7E3EF] hover:text-white transition-colors cursor-pointer"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent row click
                         if (transaction.transactionHash) {
                           window.open(
                             getTransactionUrl(transaction.transactionHash, transaction.network, transaction.type),

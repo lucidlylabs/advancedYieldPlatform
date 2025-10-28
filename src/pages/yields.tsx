@@ -10,6 +10,7 @@ import DepositView from "../components/deposit-view";
 import { CustomConnectButton } from "../components/ui/ConnectButton/CustomConnectButton";
 import { Header } from "../components/ui/header";
 import { Navigation } from "../components/ui/navigation";
+import { useHeaderHeight } from "../contexts/BannerContext";
 
 const isMobile = () => typeof window !== "undefined" && window.innerWidth < 640;
 
@@ -91,6 +92,7 @@ const AssetButton: React.FC<{
 };
 
 const MarketsSubpage: React.FC = () => {
+  const headerHeight = useHeaderHeight();
 
   const [selectedAsset, setSelectedAsset] = useState<AssetType>("All");
   const [sortColumn, setSortColumn] = useState<string | null>(null);
@@ -106,6 +108,7 @@ const MarketsSubpage: React.FC = () => {
     incentives: true,
     tvl: true,
   });
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const toggleColumn = (column: keyof typeof visibleColumns) => {
     setVisibleColumns((prev) => ({
@@ -607,9 +610,13 @@ const MarketsSubpage: React.FC = () => {
   
   if (isStandalonePage) {
     return (
-      <div className="min-h-screen flex flex-col pt-[52px]">
+      <div className="min-h-screen flex flex-col" style={{ paddingTop: `${headerHeight}px` }}>
         <Header onNavigateToDeposit={() => {}}>
-          <Navigation currentPage="yields" />
+          <Navigation 
+            currentPage="yields" 
+            isMobileMenuOpen={isMobileMenuOpen}
+            setIsMobileMenuOpen={setIsMobileMenuOpen}
+          />
         </Header>
         <main className="flex-1 overflow-y-auto">
           {renderContent()}

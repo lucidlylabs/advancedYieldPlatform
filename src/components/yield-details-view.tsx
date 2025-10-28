@@ -425,7 +425,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   return (
     <>
       <div className="w-full pl-0 sm:pl-4 mt-2 sm:mt-10 px-4 sm:px-0">
-        <div className="flex flex-col lg:flex-row justify-between items-start mb-2 gap-4">
+        <div className="flex flex-col lg:flex-row justify-between items-start mb-8 sm:mb-2 gap-4">
           <div className="flex items-center pl-0 w-full lg:w-auto">
             <div className="inline-flex items-center gap-[8px] pl-0">
               <div className="flex items-baseline gap-2">

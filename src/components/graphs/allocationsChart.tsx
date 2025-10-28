@@ -24,60 +24,81 @@ const colors = [
   "#98D8C8", // mint
 ];
 
+// Unallocated cash addresses - these will be combined into one entry
+const UNALLOCATED_CASH_ADDRESSES = new Set([
+  // Base
+  "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", // USDC (Base)
+  "0x820c137fa70c8691f0e44dc420a5e53c168921dc", // USDS (Base)
+  "0x5875eee11cf8398102fdad704c9e96607675467a", // sUSDS (Base)
+  // Ethereum
+  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", // USDC (Ethereum)
+  "0xdac17f958d2ee523a2206206994597c13d831ec7", // USDT (Ethereum)
+  "0xdc035d45d973e3ec169d2276ddab16f1e407384f", // USDS (Ethereum)
+  // Arbitrum
+  "0xaf88d065e77c8cc2239327c5edb3a432268e5831", // USDC (Arbitrum)
+  "0x6491c05a82219b8d1479057361ff1654749b876b", // USDS (Arbitrum)
+  "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9", // USDT0 (Arbitrum)
+  // Katana
+  "0x203a662b0bd271a6ed5a60edfbd04bfce608fd36", // vbUSDC (Katana)
+  "0x62d6a123e8d19d06d68cf0d2294f9a3a0362c6b3", // vbUSDS (Katana)
+  "0x2dca96907fde857dd3d816880a0df407eeb2d2f2", // vbUSDT (Katana)
+]);
+
+function isUnallocatedCash(address: string): boolean {
+  return UNALLOCATED_CASH_ADDRESSES.has(address.toLowerCase());
+}
+
+const UNALLOCATED_CASH_KEY = "UNALLOCATED_CASH";
+
 // Create a consistent color mapping function based on strategy addresses
 // This ensures the same strategy gets the same color across all charts regardless of API order
 const createAddressBasedColorMap = (strategies: {address: string, name: string}[]): Record<string, string> => {
   // Sort by address to ensure consistent ordering across all charts
   const sortedStrategies = [...strategies].sort((a, b) => a.address.localeCompare(b.address));
   const colorMap: Record<string, string> = {};
+  const usedColors = new Set<string>();
   
-  // Strategy addresses for color swapping
-  const rlpMorphoAddress = "0x1ed0a3d7562066c228a0bb3fed738182f03abd01"; // RLP/USDC Morpho
-  const sUsdeUsdcAddress = "0x79857afb972e43c7049ae3c63274fc5ef3b815bb"; // sUSDe/USDC AaveV3
-  const ptSusdfAddress = "0x2fa924e8474726dec250eead84f4f34e063acdcc"; // PT-sUSDF/USDC
-  const rlpAddress = "0x34a06c87817ec6683bc1788dbc9aa4038900ea14"; // RLP (assumed full address)
-  const ptIusdAddress = "0xa32ba04a547e1c6419d3fcf5bbdb7461b3d19bb1"; // PT-iUSD/USDC Morpho
-  const gauntletAddress = "0xd0bc4920f1b43882b334354ffab23c9e9637b89e"; // Gauntlet Frontier USDC
-  const usrAddress = "0x914f1e34cd70c1d59392e577d58fc2ddaaedaf86"; // USR
-  const siUsdUsdcMorphoAddress = "0x511E17508b60A464704Dbccbc1E402C35A715bc5"; // siUSD/USDC Morpho (10x)
+  // Helper function to hash an address to a color index
+  const hashAddress = (address: string): number => {
+    let hash = 0;
+    for (let i = 0; i < address.length; i++) {
+      hash = ((hash << 5) - hash) + address.charCodeAt(i);
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash);
+  };
   
-  sortedStrategies.forEach((strategy, index) => {
-    let color = colors[index % colors.length];
+  sortedStrategies.forEach((strategy) => {
     const strategyAddr = strategy.address.toLowerCase();
     
-    // Color swaps and custom colors:
-    // 1. RLP gets custom yellow color (swapped from sUSDe/USDC AaveV3)
-    if (strategyAddr === rlpAddress.toLowerCase()) {
-      color = "#fde047"; // Yellow color for RLP
+    // For "UNALLOCATED_CASH" strategy, use a specific gray color
+    if (strategy.name === "Unallocated Cash" || strategy.address === "UNALLOCATED_CASH") {
+      const grayColor = "#9CA3AF"; // gray-400
+      colorMap[strategy.address] = grayColor;
+      colorMap[strategy.name] = grayColor;
+      usedColors.add(grayColor);
+      return;
     }
-    // 2. RLP/USDC Morpho gets custom teal color
-    else if (strategyAddr === rlpMorphoAddress.toLowerCase()) {
-      color = "#0d9488"; // Teal color for RLP/USDC Morpho
+    
+    // Hash the address to get a consistent color index
+    const colorIndex = hashAddress(strategyAddr) % colors.length;
+    let color = colors[colorIndex];
+    
+    // If color is already used, find next available color
+    let attempts = 0;
+    while (usedColors.has(color) && attempts < colors.length * 2) {
+      // Try the next color
+      const nextColorIndex = (hashAddress(strategyAddr) + attempts) % colors.length;
+      color = colors[nextColorIndex];
+      attempts++;
     }
-    // 3. sUSDe/USDC AaveV3 gets custom magenta color (swapped from RLP)
-    else if (strategyAddr === sUsdeUsdcAddress.toLowerCase()) {
-      color = "#FF00FF"; // Magenta color for sUSDe/USDC AaveV3
+    
+    // If still no unique color after trying, use a darker/lighter variant
+    if (usedColors.has(color)) {
+      color = "#" + Math.floor(Math.random()*16777215).toString(16);
     }
-    // 4. PT-sUSDF/USDC gets USR's original color (blue)
-    else if (strategyAddr === ptSusdfAddress.toLowerCase()) {
-      const usrIndex = sortedStrategies.findIndex(s => s.address.toLowerCase() === usrAddress.toLowerCase());
-      color = usrIndex >= 0 ? colors[usrIndex % colors.length] : color;
-    }
-    // 5. USR gets PT-sUSDF's original color
-    else if (strategyAddr === usrAddress.toLowerCase()) {
-      const ptSusdfIndex = sortedStrategies.findIndex(s => s.address.toLowerCase() === ptSusdfAddress.toLowerCase());
-      color = ptSusdfIndex >= 0 ? colors[ptSusdfIndex % colors.length] : color;
-    }
-    // 4. PT-iUSD/USDC Morpho gets Gauntlet's color
-    else if (strategyAddr === ptIusdAddress.toLowerCase()) {
-      const gauntletIndex = sortedStrategies.findIndex(s => s.address.toLowerCase() === gauntletAddress.toLowerCase());
-      color = gauntletIndex >= 0 ? colors[gauntletIndex % colors.length] : color;
-    }
-    // 5. Gauntlet gets PT-iUSD's color
-    else if (strategyAddr === gauntletAddress.toLowerCase()) {
-      const ptIusdIndex = sortedStrategies.findIndex(s => s.address.toLowerCase() === ptIusdAddress.toLowerCase());
-      color = ptIusdIndex >= 0 ? colors[ptIusdIndex % colors.length] : color;
-    }
+    
+    usedColors.add(color);
     
     // Map both address and name to the color
     colorMap[strategy.address] = color;
@@ -174,15 +195,45 @@ export default function AllocationChart({}: AllocationChartProps) {
             }
           });
           
-          const extractedKeys = Array.from(allStrategyAddresses);
-          console.log("Extracted strategy addresses from all dates:", extractedKeys);
-          console.log("Strategy names from config:", extractedKeys.map((addr: string) => getStrategyDisplayName(addr)));
+          const allExtractedKeys = Array.from(allStrategyAddresses);
+          
+          // Separate unallocated cash strategies from other strategies
+          const unallocatedCashKeys: string[] = [];
+          const otherKeys: string[] = [];
+          
+          allExtractedKeys.forEach((key) => {
+            if (isUnallocatedCash(key)) {
+              unallocatedCashKeys.push(key);
+            } else {
+              otherKeys.push(key);
+            }
+          });
+          
+          // Create combined keys list: UNALLOCATED_CASH + other strategies
+          const extractedKeys = unallocatedCashKeys.length > 0 
+            ? [UNALLOCATED_CASH_KEY, ...otherKeys]
+            : otherKeys;
+          
+          console.log("Extracted strategy addresses from all dates:", allExtractedKeys);
+          console.log("Unallocated cash addresses:", unallocatedCashKeys);
+          console.log("Combined keys:", extractedKeys);
+          console.log("Strategy names from config:", extractedKeys.map((addr: string) => addr === UNALLOCATED_CASH_KEY ? "Unallocated Cash" : getStrategyDisplayName(addr)));
           
           // Create address-based color mapping for consistent colors across charts
-          const strategiesWithAddresses = extractedKeys.map((address: string) => ({
-            address: address.toLowerCase(), // Normalize address
-            name: getStrategyDisplayName(address)
-          }));
+          // For the special UNALLOCATED_CASH entry, create a virtual entry
+          const strategiesWithAddresses = extractedKeys.map((address: string) => {
+            if (address === UNALLOCATED_CASH_KEY) {
+              // For unallocated cash, use a combination key
+              return {
+                address: UNALLOCATED_CASH_KEY.toLowerCase(),
+                name: "Unallocated Cash"
+              };
+            }
+            return {
+              address: address.toLowerCase(), // Normalize address
+              name: getStrategyDisplayName(address)
+            };
+          });
           
           const colorMap = createAddressBasedColorMap(strategiesWithAddresses);
           setStrategyColorMap(colorMap);
@@ -226,6 +277,10 @@ export default function AllocationChart({}: AllocationChartProps) {
       totalTvl: item.totalTvl,
     };
 
+    // Track unallocated cash separately
+    let unallocatedAllocation = 0;
+    let unallocatedTvl = 0;
+
     // Initialize all strategies with 0 allocation and 0 TVL
     keys.forEach((strategyKey) => {
       transformed[strategyKey] = 0; // 0% allocation
@@ -235,10 +290,22 @@ export default function AllocationChart({}: AllocationChartProps) {
     // Override with actual values for strategies present in this data point
     if (item.strategies && Array.isArray(item.strategies)) {
       item.strategies.forEach((strategy: Strategy) => {
-        // Keep original address as key for data consistency
-        transformed[strategy.strategy] = strategy.allocationPercentage / 100; // Convert percentage to decimal
-        transformed[`${strategy.strategy}_tvl`] = strategy.tvl;
+        if (isUnallocatedCash(strategy.strategy)) {
+          // Combine unallocated cash strategies
+          unallocatedAllocation += strategy.allocationPercentage / 100;
+          unallocatedTvl += strategy.tvl;
+        } else {
+          // Keep original address as key for data consistency
+          transformed[strategy.strategy] = strategy.allocationPercentage / 100; // Convert percentage to decimal
+          transformed[`${strategy.strategy}_tvl`] = strategy.tvl;
+        }
       });
+      
+      // Set the combined unallocated cash values if there are any
+      if (keys.includes(UNALLOCATED_CASH_KEY)) {
+        transformed[UNALLOCATED_CASH_KEY] = unallocatedAllocation;
+        transformed[`${UNALLOCATED_CASH_KEY}_tvl`] = unallocatedTvl;
+      }
     }
 
     return transformed;
@@ -294,7 +361,7 @@ export default function AllocationChart({}: AllocationChartProps) {
           {filteredData.length > 0 ? (
             <AreaChart
               data={[...filteredData].reverse()}
-              margin={{ top: 10, right: 0, left: -25, bottom: 20 }}
+              margin={{ top: 10, right: 20, left: -25, bottom: 20 }}
               stackOffset="expand"
               style={{ outline: "none", border: "none" }}
               className="focus:outline-none focus:ring-0 focus:border-0"
@@ -314,11 +381,29 @@ export default function AllocationChart({}: AllocationChartProps) {
               tickFormatter={(val: number) => `${(val * 100).toFixed(0)}%`}
             />
             <Tooltip
+              cursor={{ stroke: '#666', strokeWidth: 1 }}
+              wrapperStyle={{ outline: 'none' }}
+              contentStyle={{ backgroundColor: 'rgba(0, 0, 0, 0.8)', border: 'none', borderRadius: '8px' }}
               content={({ active, payload, label }) => {
                 // Filter out strategies with TVL < $1
                 const filteredPayload = payload?.filter(item => {
+                  // Check if this is the combined unallocated cash entry
+                  if (item.name === "Unallocated Cash") {
+                    const tvlKey = `${UNALLOCATED_CASH_KEY}_tvl`;
+                    const tvlValue = item.payload[tvlKey];
+                    if (tvlValue !== undefined && tvlValue !== null) {
+                      const numValue = Number(tvlValue);
+                      return !isNaN(numValue) && numValue >= 1;
+                    }
+                  }
+                  
                   // Find the original address for this display name
-                  const originalAddress = keys.find(key => getStrategyDisplayName(key) === item.name);
+                  const originalAddress = keys.find(key => {
+                    if (key === UNALLOCATED_CASH_KEY) {
+                      return item.name === "Unallocated Cash";
+                    }
+                    return getStrategyDisplayName(key) === item.name;
+                  });
                   if (originalAddress) {
                     const tvlKey = `${originalAddress}_tvl`;
                     const tvlValue = item.payload[tvlKey];
@@ -329,6 +414,8 @@ export default function AllocationChart({}: AllocationChartProps) {
                   }
                   return false;
                 }) || [];
+                
+                if (!active || filteredPayload.length === 0) return null;
                 
                 return (
                   <CommonTooltip
@@ -347,8 +434,27 @@ export default function AllocationChart({}: AllocationChartProps) {
                     }}
                     showColoredCircles={true}
                     monetaryValueFormatter={(item) => {
+                      // Handle unallocated cash
+                      if (item.name === "Unallocated Cash") {
+                        const tvlKey = `${UNALLOCATED_CASH_KEY}_tvl`;
+                        const tvlValue = item.payload[tvlKey];
+                        if (tvlValue !== undefined && tvlValue !== null) {
+                          const numValue = Number(tvlValue);
+                          if (!isNaN(numValue) && numValue > 0) {
+                            return numValue >= 1000
+                              ? `$${(numValue / 1000).toFixed(1)}K`
+                              : `$${numValue.toFixed(0)}`;
+                          }
+                        }
+                      }
+                      
                       // Find the original address for this display name
-                      const originalAddress = keys.find(key => getStrategyDisplayName(key) === item.name);
+                      const originalAddress = keys.find(key => {
+                        if (key === UNALLOCATED_CASH_KEY) {
+                          return item.name === "Unallocated Cash";
+                        }
+                        return getStrategyDisplayName(key) === item.name;
+                      });
                       if (originalAddress) {
                         const tvlKey = `${originalAddress}_tvl`;
                         const tvlValue = item.payload[tvlKey];
@@ -365,6 +471,9 @@ export default function AllocationChart({}: AllocationChartProps) {
                     }}
                     // Use strategy names in tooltip - show full names without truncation
                     nameFormatter={(name) => {
+                      if (name === "Unallocated Cash") {
+                        return "Unallocated Cash";
+                      }
                       const displayName = getStrategyDisplayName(name);
                       // Always return the full display name, never truncate
                       return displayName;
@@ -377,7 +486,9 @@ export default function AllocationChart({}: AllocationChartProps) {
             {keys
               .filter((k) => selectedKeys.has(k))
               .map((key) => {
-                const strategyName = getStrategyDisplayName(key);
+                const strategyName = key === UNALLOCATED_CASH_KEY 
+                  ? "Unallocated Cash" 
+                  : getStrategyDisplayName(key);
                 const finalStrategyName = strategyName !== key ? strategyName : `${key.slice(0, 6)}...${key.slice(-4)}`;
                 // Use address-based color mapping for consistency across charts
                 const strategyColor = strategyColorMap[key.toLowerCase()] || strategyColorMap[strategyName] || colors[0];
@@ -425,6 +536,17 @@ export default function AllocationChart({}: AllocationChartProps) {
                 const mostRecentData = filteredData[0];
                 if (!mostRecentData) return false;
                 
+                // Handle unallocated cash specially
+                if (key === UNALLOCATED_CASH_KEY) {
+                  const tvlKey = `${UNALLOCATED_CASH_KEY}_tvl`;
+                  const tvlValue = mostRecentData[tvlKey];
+                  if (tvlValue !== undefined && tvlValue !== null) {
+                    const numValue = Number(tvlValue);
+                    return !isNaN(numValue) && numValue >= 1;
+                  }
+                  return false;
+                }
+                
                 const tvlKey = `${key}_tvl`;
                 const tvlValue = mostRecentData[tvlKey];
                 if (tvlValue !== undefined && tvlValue !== null) {
@@ -436,7 +558,9 @@ export default function AllocationChart({}: AllocationChartProps) {
               .map((key) => {
                 const isSelected = selectedKeys.has(key);
                 // Convert address to strategy name for display, fallback to truncated address
-                const displayName = getStrategyDisplayName(key);
+                const displayName = key === UNALLOCATED_CASH_KEY 
+                  ? "Unallocated Cash" 
+                  : getStrategyDisplayName(key);
                 const finalDisplayName = displayName !== key ? displayName : `${key.slice(0, 6)}...${key.slice(-4)}`;
                 // Use address-based color mapping for consistency across charts
                 const buttonColor = strategyColorMap[key.toLowerCase()] || strategyColorMap[displayName] || colors[0];
