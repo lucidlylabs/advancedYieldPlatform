@@ -118,7 +118,9 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   >("totalApy");
 
   const [userDeposits, setUserDeposits] = useState<string>("0.00");
-  const [networkBalances, setNetworkBalances] = useState<{[key: string]: number}>({});
+  const [networkBalances, setNetworkBalances] = useState<{
+    [key: string]: number;
+  }>({});
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -129,13 +131,21 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   const { address, isConnected } = useAccount();
 
   // Function to check balance for a specific network
-  const checkNetworkBalance = async (networkConfig: any, vaultAddress: string) => {
-    if (!address || !networkConfig || !vaultAddress || vaultAddress === "0x0000000000000000000000000000000000000000") {
+  const checkNetworkBalance = async (
+    networkConfig: any,
+    vaultAddress: string
+  ) => {
+    if (
+      !address ||
+      !networkConfig ||
+      !vaultAddress ||
+      vaultAddress === "0x0000000000000000000000000000000000000000"
+    ) {
       console.log(`Skipping network check - missing data:`, {
         hasAddress: !!address,
         hasNetworkConfig: !!networkConfig,
         vaultAddress,
-        networkName: networkConfig?.chainObject?.name
+        networkName: networkConfig?.chainObject?.name,
       });
       return 0;
     }
@@ -144,7 +154,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
       console.log(`Checking balance on ${networkConfig.chainObject.name}:`, {
         rpc: networkConfig.rpc,
         vaultAddress,
-        userAddress: address
+        userAddress: address,
       });
 
       const client = createPublicClient({
@@ -173,12 +183,15 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
       console.log(`Balance result for ${networkConfig.chainObject.name}:`, {
         rawBalance: balance.toString(),
         decimals,
-        formattedBalance
+        formattedBalance,
       });
 
       return formattedBalance;
     } catch (error) {
-      console.warn(`Error checking balance on ${networkConfig.chainObject.name}:`, error);
+      console.warn(
+        `Error checking balance on ${networkConfig.chainObject.name}:`,
+        error
+      );
       return 0;
     }
   };
@@ -193,46 +206,64 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
     try {
       const strategy = USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
-      
+
       // syUSD vault exists on all networks with the same address
       const networks = [
-        { config: strategy.base, address: strategy.boringVaultAddress, name: "Base" },
-        { config: strategy.ethereum, address: strategy.boringVaultAddress, name: "Ethereum" },
-        { config: strategy.arbitrum, address: strategy.boringVaultAddress, name: "Arbitrum" },
-        { config: strategy.katana, address: strategy.boringVaultAddress, name: "Katana" },
-      ].filter(network => network.config && network.address);
+        {
+          config: strategy.base,
+          address: strategy.boringVaultAddress,
+          name: "Base",
+        },
+        {
+          config: strategy.ethereum,
+          address: strategy.boringVaultAddress,
+          name: "Ethereum",
+        },
+        {
+          config: strategy.arbitrum,
+          address: strategy.boringVaultAddress,
+          name: "Arbitrum",
+        },
+        {
+          config: strategy.katana,
+          address: strategy.boringVaultAddress,
+          name: "Katana",
+        },
+      ].filter((network) => network.config && network.address);
 
       console.log("🔍 Checking syUSD vault on all networks:", {
         vaultAddress: strategy.boringVaultAddress,
-        networksToCheck: networks.map(n => `${n.name} (${n.config?.rpc})`)
+        networksToCheck: networks.map((n) => `${n.name} (${n.config?.rpc})`),
       });
 
-      const balancePromises = networks.map(network =>
+      const balancePromises = networks.map((network) =>
         checkNetworkBalance(network.config, network.address)
       );
 
       const balances = await Promise.all(balancePromises);
       const totalBalance = balances.reduce((sum, balance) => sum + balance, 0);
-      
+
       // Debug logging
       console.log("Network balance check results:");
       networks.forEach((network, index) => {
-        console.log(`${network.name}: ${balances[index]} (RPC: ${network.config?.rpc})`);
+        console.log(
+          `${network.name}: ${balances[index]} (RPC: ${network.config?.rpc})`
+        );
         if (network.name === "Base" && balances[index] === 0) {
           console.warn("🔍 Base balance is 0 - this might be the issue!");
           console.log("Base network config:", network.config);
           console.log("Base vault address:", network.address);
         }
       });
-      
+
       // Store individual network balances
-      const networkBalanceMap: {[key: string]: number} = {};
+      const networkBalanceMap: { [key: string]: number } = {};
       networks.forEach((network, index) => {
         if (balances[index] > 0) {
           networkBalanceMap[network.name] = balances[index];
         }
       });
-      
+
       setNetworkBalances(networkBalanceMap);
       setUserDeposits(totalBalance.toFixed(2));
     } catch (error) {
@@ -255,11 +286,11 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
     }
 
     // Map network names to their corresponding images
-    const networkImages: {[key: string]: string} = {
-      "Base": "/images/logo/base.svg",
-      "Ethereum": "/images/logo/eth.svg", 
-      "Arbitrum": "/images/logo/arb.svg",
-      "Katana": "/images/logo/katana.svg"
+    const networkImages: { [key: string]: string } = {
+      Base: "/images/logo/base.svg",
+      Ethereum: "/images/logo/eth.svg",
+      Arbitrum: "/images/logo/arb.svg",
+      Katana: "/images/logo/katana.svg",
     };
 
     return (
@@ -272,7 +303,9 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
             <div key={network} className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Image
-                  src={networkImages[network] || "/images/icons/default_assest.svg"}
+                  src={
+                    networkImages[network] || "/images/icons/default_assest.svg"
+                  }
                   alt={network}
                   width={20}
                   height={20}
@@ -294,28 +327,34 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   const faqItems: FAQItemProps[] = [
     {
       question: "What is syUSD?",
-      answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore."
+      answer:
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore.",
     },
     {
       question: "Difference b/w syAssets and ryAssets.",
-      answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+      answer:
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
     },
     {
       question: "Is is secure?",
-      answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Security is our top priority with multiple audits and safety measures in place."
+      answer:
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Security is our top priority with multiple audits and safety measures in place.",
     },
     {
       question: "How are fixed yield positions created?",
-      answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Fixed yield positions are created through smart contract mechanisms that lock in rates."
+      answer:
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Fixed yield positions are created through smart contract mechanisms that lock in rates.",
     },
     {
       question: "Where is the yield coming from?",
-      answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Yield is generated through various DeFi strategies and protocols."
+      answer:
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Yield is generated through various DeFi strategies and protocols.",
     },
     {
       question: "Who is the curator?",
-      answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. The curator is responsible for managing and optimizing the yield strategies."
-    }
+      answer:
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. The curator is responsible for managing and optimizing the yield strategies.",
+    },
   ];
 
   // Sub-components for each tab
@@ -370,7 +409,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
     <div className="w-full">
       <div className="flex justify-between items-center mb-3 mt-4">
         <h2 className="text-[rgba(255,255,255,0.70)] text-[16px] font-extrabold ">
-         Base APY History
+          Base APY History
         </h2>
 
         {/* Toggle buttons */}
@@ -427,13 +466,16 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
       <div className="w-full pl-0 sm:pl-4 mt-2 sm:mt-10 px-4 sm:px-0">
         <div className="flex flex-col lg:flex-row justify-between items-start mb-8 sm:mb-2 gap-4">
           <div className="flex items-center pl-0 w-full lg:w-auto">
-            <div className="inline-flex items-center gap-[8px] pl-0">
+            <div className="inline-flex flex-col items-start gap-[8px] pl-0">
               <div className="flex items-baseline gap-2">
                 <h1 className="text-[18px] sm:text-[20px] font-semibold text-[#D7E3EF] leading-none">
                   {name}
                 </h1>
 
-                <Tooltip content="syUSD is a synthetic USD stablecoin that provides yield through various DeFi strategies" side="top">
+                <Tooltip
+                  content="syUSD is a synthetic USD stablecoin that provides yield through various DeFi strategies"
+                  side="top"
+                >
                   <div className="flex items-center">
                     <svg
                       width="14"
@@ -452,6 +494,22 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                   </div>
                 </Tooltip>
               </div>
+              <div className="flex items-center gap-1 mt-[-20px] mb-[10px]">
+                <span className="text-[#9C9DA2] text-[12px]">View on DeBank</span>
+                <a
+                  href={`https://debank.com/profile/0x279cad277447965af3d24a78197aad1b02a2c589`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center"
+                >
+                  <Image
+                    src="/images/icons/debank.svg"
+                    alt="DeBank"
+                    width={10}
+                    height={10}
+                  />
+                </a>
+              </div>
             </div>
           </div>
 
@@ -461,12 +519,15 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
             {isClient && isConnected && userDeposits !== "0.00" && (
               <Tooltip content={formatNetworkBalancesTooltip()} side="bottom">
                 <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-[4px] px-2 py-1.5 cursor-help">
-                  <span className="text-[#9C9DA2] text-[12px]">Your Holdings:</span>
+                  <span className="text-[#9C9DA2] text-[12px]">
+                    Your Holdings:
+                  </span>
                   <span className="text-white text-[14px] font-medium">
                     {userDeposits}
                   </span>
                   {/* Circular icon next to deposit amount */}
                   <div className="w-4 h-4 rounded-full overflow-hidden flex items-center justify-center">
+        
                     <Image
                       src="/images/icons/syUSD.svg"
                       alt="syUSD"
@@ -557,7 +618,11 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
               )
                 .filter(Boolean)
                 .map((networkConfig, index) => (
-                  <Tooltip key={networkConfig.chainObject.name} content={networkConfig.chainObject.name} side="top">
+                  <Tooltip
+                    key={networkConfig.chainObject.name}
+                    content={networkConfig.chainObject.name}
+                    side="top"
+                  >
                     <div
                       className={cn(
                         "relative z-10 transition-transform duration-300 hover:scale-110",
