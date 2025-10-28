@@ -474,7 +474,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
                 <Tooltip
                   content="syUSD is a synthetic USD stablecoin that provides yield through various DeFi strategies"
-                  side="top"
+                  side="bottom"
                 >
                   <div className="flex items-center">
                     <svg
@@ -505,8 +505,8 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                   <Image
                     src="/images/icons/debank.svg"
                     alt="DeBank"
-                    width={10}
-                    height={10}
+                    width={8}
+                    height={7.5}
                   />
                 </a>
               </div>
