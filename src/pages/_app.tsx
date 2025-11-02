@@ -44,6 +44,20 @@ function MyApp({ Component, pageProps }: AppProps) {
                 <meta name="twitter:description" content="Discover the most advanced DeFi yield platform. Earn optimal returns on your crypto assets with Lucidly Finance." />
                 <meta name="twitter:image" content="https://app.lucidly.finance/images/icons/thumbnail.png" />
                 <meta name="twitter:creator" content="@LucidlyFinance" />
+                <meta name="fc:miniapp" content={JSON.stringify({
+                  version: 'next',
+                  imageUrl: 'https://app.lucidly.finance/assets/farcaster/og-image.png',
+                  button: {
+                    title: 'Launch Lucidly',
+                    action: {
+                      type: 'launch_miniapp',
+                      name: 'Lucidly',
+                      url: 'https://app.lucidly.finance/farcaster',
+                      splashImageUrl: 'https://app.lucidly.finance/images/logo/Dark_Logomark_200_200.png',
+                      splashBackgroundColor: '#080B17',
+                    },
+                  },
+                })} />
               </Head>
               <Component {...pageProps} />
             </BannerProvider>
