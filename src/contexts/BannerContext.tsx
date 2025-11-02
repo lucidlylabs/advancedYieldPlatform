@@ -47,7 +47,7 @@ export function useHeaderHeight() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Mobile: 64px banner (with padding) + 52px nav = 116px total
+  // Mobile: 64px banner (min-height with padding) + 52px nav = 116px total
   // Desktop: 40px banner + 52px nav = 92px total
   return isBannerVisible ? (isMobile ? 116 : 92) : 52;
 }
