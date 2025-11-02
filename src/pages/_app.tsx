@@ -50,7 +50,7 @@ function MyApp({ Component, pageProps }: AppProps) {
                   button: {
                     title: 'Launch Lucidly',
                     action: {
-                      type: 'launch_miniapp',
+                      type: 'launch_frame',
                       name: 'Lucidly',
                       url: 'https://app.lucidly.finance/farcaster',
                       splashImageUrl: 'https://app.lucidly.finance/images/logo/Dark_Logomark_200_200.png',
