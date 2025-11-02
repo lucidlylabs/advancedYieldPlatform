@@ -35,14 +35,14 @@ function MyApp({ Component, pageProps }: AppProps) {
                 <title>Lucidly Finance - Advanced Yield Platform</title>
                 <meta property="og:title" content="Lucidly Finance - Advanced Yield Platform" />
                 <meta property="og:description" content="Discover the most advanced DeFi yield platform. Earn optimal returns on your crypto assets with Lucidly Finance." />
-                <meta property="og:image" content="https://dev.lucidly.finance/images/icons/thumbnail.png" />
+                <meta property="og:image" content="https://app.lucidly.finance/images/icons/thumbnail.png" />
                 <meta property="og:image:width" content="1200" />
                 <meta property="og:image:height" content="630" />
                 <meta property="og:image:alt" content="Lucidly Finance - Advanced Yield Platform for DeFi" />
                 <meta name="twitter:card" content="summary_large_image" />
                 <meta name="twitter:title" content="Lucidly Finance - Advanced Yield Platform" />
                 <meta name="twitter:description" content="Discover the most advanced DeFi yield platform. Earn optimal returns on your crypto assets with Lucidly Finance." />
-                <meta name="twitter:image" content="https://dev.lucidly.finance/images/icons/thumbnail.png" />
+                <meta name="twitter:image" content="https://app.lucidly.finance/images/icons/thumbnail.png" />
                 <meta name="twitter:creator" content="@LucidlyFinance" />
               </Head>
               <Component {...pageProps} />
