@@ -10,9 +10,9 @@ export async function GET() {
   // Manifest object - update accountAssociation and baseBuilder.ownerAddress in step 5
   const manifest = {
         "accountAssociation": {
-          "header": "eyJmaWQiOjIyODcsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHgyNzBlMTgwNTMxNUMxYUY1ZjA3MDQ3Njc4MEZDQTY1OTMwMzNlMzYxIn0",
+          "header": "eyJmaWQiOjgzMDc2MSwidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweEYxMTQ1YTgxM0E1NzU0NmM5NThjZjM1ZDRhOTRCNDIyMmJlRDQ2QjYifQ",
           "payload": "eyJkb21haW4iOiJhcHAubHVjaWRseS5maW5hbmNlIn0",
-          "signature": "J/ee7swoif6sa1+yg0BTHvD4Aofp3YIjS89gk+6NlulD9qD0aFAjD8sulX2yyQIgateZ2k0PWhMVgnDo7mucLBw="
+          "signature": "C286sNuueuE+IZJ+BEQdfS9NSaOzRwq4P3xJ6qIXQacJu7XTmxk6i3rzTDedPMDeDTqXphoPj5rolZ/+i8HrQRw="
         },
     baseBuilder: {
       ownerAddress: "0xF902E6483c651CfB1F8518D069e70Ebd9b9e7606" // add your Base Account address here
