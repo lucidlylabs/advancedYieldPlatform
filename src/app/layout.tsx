@@ -47,7 +47,7 @@ export async function generateMetadata(): Promise<Metadata> {
           action: {
             type: 'launch_miniapp',
             name: 'Lucidly',
-            url: 'https://app.lucidly.finance/farcaster',
+            url: 'https://app.lucidly.finance',
             splashImageUrl: 'https://app.lucidly.finance/images/logo/Dark_Logomark_200_200.png',
             splashBackgroundColor: '#080B17',
           },
