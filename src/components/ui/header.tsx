@@ -51,35 +51,34 @@ export function Header({
       {...props}
     >
       {isBannerVisible && (
-        <div className="w-full min-h-[64px] sm:h-[40px] flex-shrink-0 bg-[#0E0C1E] text-white px-3 sm:px-4 py-3 sm:py-0 relative flex items-center z-[60] pr-10 sm:pr-4">
-          <div className="flex flex-col sm:flex-row items-center justify-center text-center text-xs sm:text-sm gap-2 sm:gap-2 w-full px-4 sm:px-0">
-            <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2">
-              <img
-                src="/images/icons/usd-stable.svg"
-                alt="USD Stable"
-                className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0"
-              />
-              <span className="text-[rgba(215,227,239,0.6)] font-inter text-[11px] sm:text-[12px] font-normal leading-[14px] tracking-[0.33px]">
-                Join the Merkl Campaign — Start Collecting{" "}
-                <span className="font-semibold text-[#D7E3EF] whitespace-nowrap">
-                  Lucidly Drops
-                </span>{" "}
-                Today
+        <div className="w-full min-h-[64px] sm:h-[40px] flex-shrink-0 bg-[#0E0C1E] text-white px-3 sm:px-4 py-3 sm:py-0 relative flex items-center justify-center z-[60] pr-10 sm:pr-4">
+          <div className="flex flex-row items-center justify-center gap-2 sm:gap-2 w-full max-w-full">
+            <img
+              src="/images/icons/usd-stable.svg"
+              alt="USD Stable"
+              className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0 self-center"
+            />
+            <span className="text-[rgba(215,227,239,0.6)] font-inter text-[11px] sm:text-[12px] font-normal leading-[14px] tracking-[0.33px] text-center flex-shrink flex-grow-0">
+              <span className="block sm:inline">Join the Merkl Campaign — Start </span>
+              <span className="block sm:inline">
+                Collecting{" "}
+                <span className="font-semibold text-[#D7E3EF]">
+                  Lucidly Drops Today
+                </span>
               </span>
-            </div>
-
+            </span>
             <button
               onClick={handleReadMoreClick}
-              className="text-[#B88AF8] font-inter text-[11px] sm:text-[12px] font-normal leading-[14px] flex items-center gap-1 hover:opacity-80 transition-opacity whitespace-nowrap mt-1 sm:mt-0"
+              className="flex text-[#B88AF8] font-inter text-[11px] sm:text-[12px] font-normal leading-[14px] items-center justify-center gap-1 hover:opacity-80 transition-opacity whitespace-nowrap flex-shrink-0 self-center"
             >
-              Read More
+              <span className="hidden sm:inline">Read More</span>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="14"
                 height="14"
                 viewBox="0 0 16 16"
                 fill="none"
-                className="sm:w-4 sm:h-4"
+                className="w-3 h-3 sm:w-4 sm:h-4"
               >
                 <path
                   d="M6 12L10 8L6 4"
