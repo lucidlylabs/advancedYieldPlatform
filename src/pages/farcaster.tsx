@@ -6,6 +6,16 @@ export default function App() {
     // Dynamically import SDK to avoid SSR issues
     import('@farcaster/miniapp-sdk').then(({ sdk }) => {
       sdk.actions.ready();
+      
+      // Redirect to main app after SDK is ready
+      setTimeout(() => {
+        window.location.href = 'https://app.lucidly.finance';
+      }, 1000); // 1 second delay to show splash screen
+    }).catch(() => {
+      // If SDK fails, still redirect to main app
+      setTimeout(() => {
+        window.location.href = 'https://app.lucidly.finance';
+      }, 1000);
     });
   }, []);
 
