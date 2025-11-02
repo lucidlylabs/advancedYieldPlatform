@@ -23,6 +23,7 @@ export async function GET() {
         name: "Lucidly",
         homeUrl: `${URL}/farcaster`,
         iconUrl: `${URL}/images/logo/Dark_Logomark_1024_1024.png`,
+        imageUrl: `${URL}/assets/farcaster/og-image.png`, // Required for Base Build preview
         splashImageUrl: `${URL}/images/logo/Dark_Logomark_200_200.png`,
         splashBackgroundColor: "#080B17",
         subtitle: "Advanced Yield Platform",
