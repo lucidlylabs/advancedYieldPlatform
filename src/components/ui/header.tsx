@@ -51,13 +51,13 @@ export function Header({
       {...props}
     >
       {isBannerVisible && (
-        <div className="w-full h-[40px] flex-shrink-0 bg-[#0E0C1E] text-white px-4 relative flex items-center z-[60]">
+        <div className="w-full h-auto min-h-[40px] sm:h-[40px] flex-shrink-0 bg-[#0E0C1E] text-white px-4 py-2 sm:py-0 relative flex items-center z-[60] pr-10 sm:pr-4">
           <div className="flex flex-col sm:flex-row items-center justify-center text-center text-sm gap-2 w-full">
-            <span className="text-[rgba(215,227,239,0.6)] font-inter text-[12px] font-normal leading-[14px] tracking-[0.33px] flex items-center gap-2">
+            <span className="text-[rgba(215,227,239,0.6)] font-inter text-[12px] font-normal leading-[14px] tracking-[0.33px] flex items-center gap-2 whitespace-nowrap">
               <img
                 src="/images/icons/usd-stable.svg"
                 alt="USD Stable"
-                className="w-4 h-4"
+                className="w-4 h-4 flex-shrink-0"
               />
               Join the Merkl Campaign — Start Collecting
               <span className="font-semibold text-[#D7E3EF]">

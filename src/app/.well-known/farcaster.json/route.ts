@@ -40,8 +40,7 @@ export async function GET() {
         ogTitle: "Lucidly",
         ogDescription: "Discover and earn from the best DeFi yield opportunities across multiple chains.",
         ogImageUrl: `${URL}/assets/farcaster/og-image.png`
-      }),
-      noindex: true
+      })
     }
   };
 

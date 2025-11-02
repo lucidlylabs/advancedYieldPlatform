@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
 interface BannerContextType {
   isBannerVisible: boolean;
@@ -32,5 +32,22 @@ export function useBanner() {
 // Hook to get the total header height including banner
 export function useHeaderHeight() {
   const { isBannerVisible } = useBanner();
-  return isBannerVisible ? 92 : 52; // 40px banner + 52px nav = 92px total
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    // Check if mobile on mount
+    setIsMobile(typeof window !== 'undefined' && window.innerWidth < 640);
+
+    // Update on resize
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Mobile: 64px banner (with padding) + 52px nav = 116px total
+  // Desktop: 40px banner + 52px nav = 92px total
+  return isBannerVisible ? (isMobile ? 116 : 92) : 52;
 }
