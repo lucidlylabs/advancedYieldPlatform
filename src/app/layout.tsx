@@ -41,7 +41,7 @@ export async function generateMetadata(): Promise<Metadata> {
     other: {
       'fc:miniapp': JSON.stringify({
         version: 'next',
-        imageUrl: 'https://app.lucidly.finance/assets/farcaster/og-image.png',
+        imageUrl: 'https://app.lucidly.finance/images/logo/Dark_Logomark_200_200.png',
         button: {
           title: 'Launch Lucidly',
           action: {
