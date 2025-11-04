@@ -331,6 +331,22 @@ const PortfolioSubpage: React.FC = () => {
   const [targetChain, setTargetChain] = useState<string>("base");
   const [selectedStrategyNetworkBalance, setSelectedStrategyNetworkBalance] = useState<number>(0);
   const [isLoadingNetworkBalance, setIsLoadingNetworkBalance] = useState(false);
+  
+  // Helper function to get explorer URL based on chain
+  const getExplorerUrl = (chainName: string, txHash: string) => {
+    switch (chainName.toLowerCase()) {
+      case "ethereum":
+        return `https://etherscan.io/tx/${txHash}`;
+      case "arbitrum":
+        return `https://arbiscan.io/tx/${txHash}`;
+      case "katana":
+        return `https://explorer.katanarpc.com/tx/${txHash}`;
+      case "base":
+      default:
+        return `https://basescan.org/tx/${txHash}`;
+    }
+  };
+  
   // Get withdrawable assets based on target chain
   const withdrawableAssets = useMemo(
     () => getWithdrawableAssets(targetChain),
@@ -2805,7 +2821,9 @@ const PortfolioSubpage: React.FC = () => {
                                 Transaction Successful
                               </div>
                               <a
-                                href={`https://etherscan.io/tx/${withdrawTxHash}`}
+                                href={targetChain === "ethereum" 
+                                  ? `https://etherscan.io/tx/${withdrawTxHash}`
+                                  : `https://basescan.org/tx/${withdrawTxHash}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-[#00D1A0]   text-[14px] underline hover:text-[#00D1A0]/80"
@@ -2918,7 +2936,7 @@ const PortfolioSubpage: React.FC = () => {
                                     onClick={() => {
                                       if (req.transaction_hash) {
                                         window.open(
-                                          `https://etherscan.io/tx/${req.transaction_hash}`,
+                                          getExplorerUrl(targetChain, req.transaction_hash),
                                           "_blank",
                                           "noopener,noreferrer"
                                         );
@@ -2947,7 +2965,7 @@ const PortfolioSubpage: React.FC = () => {
                                     <a
                                       href={
                                         req.transaction_hash
-                                          ? `https://etherscan.io/tx/${req.transaction_hash}`
+                                          ? getExplorerUrl(targetChain, req.transaction_hash)
                                           : undefined
                                       }
                                       target="_blank"
@@ -3057,7 +3075,7 @@ const PortfolioSubpage: React.FC = () => {
                                     onClick={() => {
                                       if (req.transaction_hash) {
                                         window.open(
-                                          `https://etherscan.io/tx/${req.transaction_hash}`,
+                                          getExplorerUrl(targetChain, req.transaction_hash),
                                           "_blank",
                                           "noopener,noreferrer"
                                         );
@@ -3086,7 +3104,7 @@ const PortfolioSubpage: React.FC = () => {
                                     <a
                                       href={
                                         req.transaction_hash
-                                          ? `https://etherscan.io/tx/${req.transaction_hash}`
+                                          ? getExplorerUrl(targetChain, req.transaction_hash)
                                           : undefined
                                       }
                                       target="_blank"
