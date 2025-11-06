@@ -1001,6 +1001,8 @@ const DepositView: React.FC<DepositViewProps> = ({
       setIsDepositSuccessLocal(true);
       setIsWaitingForSignature(false);
       setIsDepositing(false);
+      // Clear any previous error messages when transaction succeeds
+      setErrorMessage(null);
       console.log("Deposit successful!", {
         hash: transactionHash,
         amount,
@@ -1114,6 +1116,12 @@ const DepositView: React.FC<DepositViewProps> = ({
 
     try {
       setIsWaitingForSignature(true);
+      // Clear any previous error messages and transaction state when starting a new transaction
+      setErrorMessage(null);
+      // Don't clear transactionHash here - it will be set when the new transaction is sent
+      // But clear the success state to allow new transaction tracking
+      setIsDepositSuccessLocal(false);
+      setDepositSuccess(false);
       const amountFloat = parseFloat(amount);
       if (isNaN(amountFloat) || amountFloat <= 0) {
         throw new Error("Invalid amount");
@@ -2091,6 +2099,7 @@ const DepositView: React.FC<DepositViewProps> = ({
 
                       const shouldDisable =
                         connected &&
+                        !isDepositSuccessLocal && // Allow button to be enabled when showing "Request Another Deposit"
                         (isLoading ||
                           isLoadingBalance ||
                           hasInsufficientFunds ||
@@ -2118,6 +2127,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                         : "Connect Wallet";
 
                       const isInactiveState =
+                        !isDepositSuccessLocal && // Allow button to be active when showing "Request Another Deposit"
                         (connected &&
                           (hasInsufficientFunds ||
                             !amount ||
@@ -2127,10 +2137,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                       return (
                         <button
                           onClick={
-                            connected &&
-                            !hasInsufficientFunds &&
-                            amount &&
-                            Number(amount) > 0
+                            connected
                               ? isDepositSuccessLocal
                                 ? () => {
                                     // Reset state for another deposit
@@ -2142,16 +2149,23 @@ const DepositView: React.FC<DepositViewProps> = ({
                                     setIsApproved(false);
                                     setIsApproving(false);
                                     setIsDepositing(false);
+                                    setIsWaitingForSignature(false);
                                     setAmount("");
+                                    // Refresh allowance check for new deposit
+                                    refetchAllowance();
                                   }
-                                : handleDeposit
+                                : !hasInsufficientFunds &&
+                                  amount &&
+                                  Number(amount) > 0
+                                ? handleDeposit
+                                : undefined
                               : openConnectModal
                           }
-                          disabled={shouldDisable || isDepositSuccessLocal}
+                          disabled={isDepositSuccessLocal ? false : shouldDisable}
                           className={`w-full py-4 mt-6 mb-8 sm:mb-0 rounded font-semibold transition-all duration-200 ${
-                            isInactiveState
-                              ? "bg-gray-500 text-white opacity-50 cursor-not-allowed"
-                              : "bg-[#B88AF8] text-[#1A1B1E] hover:opacity-90"
+                            isDepositSuccessLocal || !isInactiveState
+                              ? "bg-[#B88AF8] text-[#1A1B1E] hover:opacity-90"
+                              : "bg-gray-500 text-white opacity-50 cursor-not-allowed"
                           }`}
                         >
                           {buttonText}
