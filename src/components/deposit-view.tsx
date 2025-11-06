@@ -2084,8 +2084,8 @@ const DepositView: React.FC<DepositViewProps> = ({
                       const hasInsufficientFunds =
                         connected &&
                         amount &&
-                        balance &&
-                        Number(amount) > Number(balance);
+                        rawBalance &&
+                        Number(amount) > Number(rawBalance);
 
                       const shouldDisable =
                         connected &&
