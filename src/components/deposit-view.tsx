@@ -1134,12 +1134,14 @@ const DepositView: React.FC<DepositViewProps> = ({
 
       const receiveChainId = getChainConfig(strategyConfig.network).chainId;
 
-      setIsMultiChain(depositChainId !== receiveChainId);
+      // Calculate isMultiChain as a local variable to avoid stale state issues
+      const isMultiChainCalculated = depositChainId !== receiveChainId;
+      setIsMultiChain(isMultiChainCalculated);
 
       console.log("Multi-chain check:", {
         depositChainId,
         receiveChainId,
-        isMultiChainCalculated: depositChainId !== receiveChainId,
+        isMultiChainCalculated,
       });
 
       // Get rate from rate provider
@@ -1233,7 +1235,7 @@ const DepositView: React.FC<DepositViewProps> = ({
 
       // Only proceed with deposit if we have sufficient allowance and no pending approval
       if ((!needsApproval || isApproved) && !approveIsPending) {
-        if (isMultiChain) {
+        if (isMultiChainCalculated) {
           // Preview bridge fee before proceeding
           const calculatedBridgeFee = await previewBridgeFee(amountInWei);
 
