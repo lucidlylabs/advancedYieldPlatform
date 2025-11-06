@@ -510,7 +510,9 @@ const DepositView: React.FC<DepositViewProps> = ({
   const [transactionHash, setTransactionHash] = useState<`0x${string}` | null>(
     null
   );
+  const [transactionChain, setTransactionChain] = useState<string | null>(null); // Store chain where transaction was executed
   const [approvalHash, setApprovalHash] = useState<`0x${string}` | null>(null);
+  const [approvalChain, setApprovalChain] = useState<string | null>(null); // Store chain where approval was executed
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isWaitingForSignature, setIsWaitingForSignature] = useState(false);
   const [status, setStatus] = useState<
@@ -1217,6 +1219,7 @@ const DepositView: React.FC<DepositViewProps> = ({
 
           if (typeof approveTx === "string" && approveTx.startsWith("0x")) {
             setApprovalHash(approveTx as `0x${string}`);
+            setApprovalChain(targetChain); // Store the chain where approval was executed
             // Wait for approval transaction to be mined
             await new Promise((resolve) => {
               const checkApproval = setInterval(async () => {
@@ -1286,6 +1289,7 @@ const DepositView: React.FC<DepositViewProps> = ({
 
             if (tx && typeof tx === "string" && tx.startsWith("0x")) {
               setTransactionHash(tx as `0x${string}`);
+              setTransactionChain(targetChain); // Store the chain where transaction was executed
               console.log("Multi-chain deposit transaction sent:", tx);
             } else {
               throw new Error("Invalid transaction response");
@@ -1325,6 +1329,7 @@ const DepositView: React.FC<DepositViewProps> = ({
 
             if (tx && typeof tx === "string" && tx.startsWith("0x")) {
               setTransactionHash(tx as `0x${string}`);
+              setTransactionChain(targetChain); // Store the chain where transaction was executed
               console.log("Deposit transaction sent:", tx);
             } else {
               throw new Error("Invalid transaction response");
@@ -1668,7 +1673,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                 </span>
                 <div className="flex items-center gap-3">
                   <a
-                    href={getExplorerUrl(targetChain, transactionHash || "")}
+                    href={getExplorerUrl(transactionChain || targetChain, transactionHash || "")}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[#B88AF8] hover:underline flex items-center gap-1 text-sm font-normal break-all"
@@ -2142,7 +2147,9 @@ const DepositView: React.FC<DepositViewProps> = ({
                                 ? () => {
                                     // Reset state for another deposit
                                     setTransactionHash(null);
+                                    setTransactionChain(null);
                                     setApprovalHash(null);
+                                    setApprovalChain(null);
                                     setIsDepositSuccessLocal(false);
                                     setDepositSuccess(false);
                                     setErrorMessage(null);
@@ -2189,7 +2196,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                       {errorMessage}
                       {transactionHash && (
                         <a
-                          href={getExplorerUrl(targetChain, transactionHash)}
+                          href={getExplorerUrl(transactionChain || targetChain, transactionHash)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="underline"
@@ -2208,7 +2215,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                           Transaction Successful
                         </div>
                         <a
-                          href={getExplorerUrl(targetChain, transactionHash)}
+                          href={getExplorerUrl(transactionChain || targetChain, transactionHash)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-[#00D1A0] text-[14px] underline hover:text-[#00D1A0]/80"
