@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { YieldDetailsView } from "@/components/yield-details-view";
 import Image from "next/image";
@@ -133,29 +133,6 @@ const PortfolioDetailedPage = () => {
   );
   const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const formattedErrorMessage = useMemo(() => {
-    if (!errorMessage) return null;
-
-    const normalizedMessage = errorMessage.toLowerCase();
-    const cancellationIndicators = [
-      "user rejected",
-      "user denied",
-      "denied transaction signature",
-      "request arguments",
-      "metamask tx signature",
-      "transaction signature",
-    ];
-
-    const isCancellation = cancellationIndicators.some((indicator) =>
-      normalizedMessage.includes(indicator)
-    );
-
-    if (isCancellation) {
-      return "Transaction cancelled by user.";
-    }
-
-    return errorMessage;
-  }, [errorMessage]);
   const [activeTab, setActiveTab] = useState<"withdraw" | "request" | "activity">("withdraw");
   const [requestTab, setRequestTab] = useState<"pending" | "completed">("pending");
   const [amountOut, setAmountOut] = useState<string | null>(null);
@@ -1099,19 +1076,14 @@ const PortfolioDetailedPage = () => {
                 "Request Withdraw"
               )}
             </button>
-            {formattedErrorMessage && (
+            {errorMessage && (
               <div className="flex justify-between items-center mt-4 bg-[rgba(239,68,68,0.1)] rounded-[4px] p-4">
                 <div className="text-[#EF4444]   text-[14px]">
-                  {formattedErrorMessage}
+                  Transaction Failed
                 </div>
-                {withdrawTxHash && (
-                  <div className="text-[#EF4444]   text-[14px] underline">
-                    #{withdrawTxHash.substring(0, 8)}...
-                  </div>
-                )}
               </div>
             )}
-            {!formattedErrorMessage && withdrawTxHash && isWithdrawSuccess && (
+            {!errorMessage && withdrawTxHash && isWithdrawSuccess && (
               <div className="flex justify-between items-center mt-4 bg-[rgba(0,209,160,0.1)] rounded-[4px] p-4">
                 <div className="text-[#00D1A0]   text-[14px]">
                   Transaction Successful

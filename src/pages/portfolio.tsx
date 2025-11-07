@@ -2803,13 +2803,7 @@ const PortfolioSubpage: React.FC = () => {
                         {errorMessage && (
                           <div className="flex justify-between items-center mt-4 bg-[rgba(239,68,68,0.1)] rounded-[4px] p-4">
                             <div className="text-[#EF4444]   text-[14px]">
-                              {errorMessage}
-                            </div>
-                            <div className="text-[#EF4444]   text-[14px] underline">
-                              #
-                              {withdrawTxHash
-                                ? withdrawTxHash.substring(0, 8) + "..."
-                                : ""}
+                              Transaction Failed
                             </div>
                           </div>
                         )}
