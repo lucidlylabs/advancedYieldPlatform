@@ -5,6 +5,9 @@ import { useAccount } from "wagmi";
 import { Header } from "../components/ui/header";
 import { Navigation } from "../components/ui/navigation";
 import { useHeaderHeight } from "../contexts/BannerContext";
+import { createPublicClient, formatUnits, http, type Address } from "viem";
+import { USD_STRATEGIES } from "../config/env";
+import { ERC20_ABI } from "../config/abi/erc20";
 
 interface LeaderboardEntry {
   rank: number;
@@ -14,6 +17,49 @@ interface LeaderboardEntry {
   tokenType: string;
   rewardsFormatted: string;
 }
+
+const LEADERBOARD_API_URL =
+  "https://ow5g1cjqsd.execute-api.ap-south-1.amazonaws.com/dev/api/leaderboard/leaderboard";
+const USER_LEADERBOARD_API_URL =
+  "https://ow5g1cjqsd.execute-api.ap-south-1.amazonaws.com/dev/api/leaderboard/user";
+
+const syUsdStrategy = USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
+const syUsdDecimals = syUsdStrategy?.shareAddress_token_decimal ?? 6;
+
+const formatCompactNumber = (value: number): string =>
+  new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: 3,
+  }).format(value);
+
+const fetchUserSyUsdBalance = async (
+  userAddress: Address
+): Promise<number | null> => {
+  try {
+    if (!syUsdStrategy?.base?.rpc || !syUsdStrategy?.shareAddress) {
+      return null;
+    }
+
+    const client = createPublicClient({
+      transport: http(syUsdStrategy.base.rpc),
+      chain: syUsdStrategy.base.chainObject,
+    });
+
+    const balance = await client.readContract({
+      address: syUsdStrategy.shareAddress as Address,
+      abi: ERC20_ABI,
+      functionName: "balanceOf",
+      args: [userAddress],
+    });
+
+    const formatted = parseFloat(formatUnits(balance as bigint, syUsdDecimals));
+
+    return Number.isFinite(formatted) ? formatted : null;
+  } catch (err) {
+    console.error("Failed to fetch user syUSD balance:", err);
+    return null;
+  }
+};
 
 const LeaderboardPage: React.FC = () => {
   const router = useRouter();
@@ -29,23 +75,92 @@ const LeaderboardPage: React.FC = () => {
 
   useEffect(() => {
     fetchLeaderboardData();
-  }, []);
+  }, [address]);
 
   const fetchLeaderboardData = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(
-        "https://ow5g1cjqsd.execute-api.ap-south-1.amazonaws.com/dev/api/leaderboard/leaderboard?limit=25"
-      );
+      const params = new URLSearchParams({ limit: "25" });
+      if (address) {
+        params.append("address", address);
+      }
+
+      const response = await fetch(`${LEADERBOARD_API_URL}?${params.toString()}`);
       const data = await response.json();
 
-      if (data.success) {
-        setLeaderboardData(data.data.leaderboard);
-      } else {
-        setError(data.message || "Failed to fetch leaderboard data");
+      if (!data?.success) {
+        setError(data?.message || "Failed to fetch leaderboard data");
+        setLeaderboardData([]);
+        return;
       }
+
+      let leaderboard: LeaderboardEntry[] = Array.isArray(data?.data?.leaderboard)
+        ? data.data.leaderboard
+        : [];
+
+      if (address) {
+        const normalizedAddress = address.toLowerCase();
+        const hasUserEntry = leaderboard.some(
+          (entry) => entry.address.toLowerCase() === normalizedAddress
+        );
+
+        if (!hasUserEntry) {
+          let userEntry: LeaderboardEntry | null = null;
+
+          try {
+            const userResponse = await fetch(
+              `${USER_LEADERBOARD_API_URL}?address=${address}`
+            );
+            const userData = await userResponse.json();
+
+            if (userResponse.ok && userData?.success) {
+              const maybeEntry = userData?.data?.leaderboard?.[0] ?? userData?.data;
+              if (maybeEntry?.address) {
+                const rewardsEarnedNumber = Number(maybeEntry.rewardsEarned ?? 0);
+                userEntry = {
+                  rank:
+                    typeof maybeEntry.rank === "number" && !Number.isNaN(maybeEntry.rank)
+                      ? maybeEntry.rank
+                      : 21,
+                  address: maybeEntry.address,
+                  percentage: Number(maybeEntry.percentage ?? 0),
+                  rewardsEarned: rewardsEarnedNumber,
+                  tokenType: maybeEntry.tokenType ?? syUsdStrategy?.name ?? "syUSD",
+                  rewardsFormatted:
+                    typeof maybeEntry.rewardsFormatted === "string"
+                      ? maybeEntry.rewardsFormatted
+                      : formatCompactNumber(rewardsEarnedNumber),
+                };
+              }
+            }
+          } catch (userFetchError) {
+            console.warn("Could not fetch user leaderboard entry:", userFetchError);
+          }
+
+          if (!userEntry) {
+            const balance = await fetchUserSyUsdBalance(address as Address);
+            if (balance && balance > 0) {
+              userEntry = {
+                rank: 21,
+                address,
+                percentage: 0,
+                rewardsEarned: balance,
+                tokenType: syUsdStrategy?.name || "syUSD",
+                rewardsFormatted: formatCompactNumber(balance),
+              };
+            }
+          }
+
+          if (userEntry) {
+            const leaderboardWithUser = [...leaderboard, userEntry];
+            leaderboard = leaderboardWithUser;
+          }
+        }
+      }
+
+      setLeaderboardData(leaderboard);
     } catch (err) {
       setError("Failed to connect to server");
       console.error("Error fetching leaderboard:", err);
