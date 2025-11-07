@@ -425,7 +425,7 @@ const PortfolioSubpage: React.FC = () => {
     };
 
     fetchNetworkSpecificBalance();
-  }, [selectedStrategy, targetChain, address, chainConfigs]);
+  }, [selectedStrategy, targetChain, address, chainConfigs, isWithdrawSuccessLocal]);
 
   // Keep legacy variable for compatibility
   const selectedStrategyEthereumBalance = selectedStrategyNetworkBalance;
@@ -744,22 +744,32 @@ const PortfolioSubpage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (withdrawTxHash && isWithdrawSuccess && !isWithdrawSuccessLocal) {
+    let refreshTimeout: ReturnType<typeof setTimeout> | undefined;
+
+    if (withdrawTxHash && isWithdrawSuccess && !isWithdrawSuccessLocal && address) {
       // Handle successful withdrawal
       console.log("✅ Withdraw transaction confirmed successfully");
       setIsWithdrawing(false);
       setIsWithdrawSuccessLocal(true);
-      // Refresh balances with loading state (but don't reset the form state)
-      setIsRefreshingBalance(true);
-      Promise.all([checkAllBalances(), checkAllWithdrawableBalances()])
-        .then(() => {
-          setIsRefreshingBalance(false);
-        })
-        .catch((error) => {
+
+      const refreshAfterWithdraw = async () => {
+        try {
+          setIsRefreshingBalance(true);
+          await Promise.all([checkAllBalances(), checkAllWithdrawableBalances()]);
+        } catch (error) {
           console.error("Error refreshing balances:", error);
           setErrorMessage("Failed to refresh balances.");
+        } finally {
           setIsRefreshingBalance(false);
-        });
+        }
+
+        // Give the indexer a moment to update, then refresh queued requests
+        refreshTimeout = setTimeout(() => {
+          fetchWithdrawRequests("", address);
+        }, 1500);
+      };
+
+      refreshAfterWithdraw();
       // Don't reset form state - let user see the transaction hash and close manually
       // setSelectedStrategy(null);
       // setWithdrawAmount("");
@@ -767,7 +777,12 @@ const PortfolioSubpage: React.FC = () => {
     }
     // Keep loading until transaction completes - don't set isWithdrawing to false prematurely
     // Don't check isError from useTransaction as it can give false positives during pending state
-  }, [withdrawTxHash, isWithdrawSuccess, isWithdrawSuccessLocal]);
+    return () => {
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
+    };
+  }, [withdrawTxHash, isWithdrawSuccess, isWithdrawSuccessLocal, address]);
 
   useEffect(() => {
     if (approvalHash && isApprovalSuccess) {
