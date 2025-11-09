@@ -52,7 +52,7 @@ export const USD_STRATEGIES = {
 
       // Ethereum Mainnet Configuration
       ethereum: {
-        image: "/images/logo/eth.svg",
+        image: "/images/icons/eth-stable.svg",
         rpc: "https://eth.llamarpc.com",
         chainId: 1,
         chainObject: {
@@ -192,7 +192,7 @@ export const USD_STRATEGIES = {
       },
 
       description: "Perpetual syUSD strategy on base network",
-      apy: "https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/base-apy/today-7d-ma",
+      apy: "https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/base-apy/today-1d",
       cap_limit: "1,000,000",
       filled_cap: "800,000",
       show_cap: true,
@@ -216,7 +216,76 @@ export const USD_STRATEGIES = {
 };
 
 export const ETH_STRATEGIES = {};
-export const BTC_STRATEGIES = {};
+
+export const BTC_STRATEGIES = {
+  PERPETUAL_DURATION: {
+    STABLE: {
+      name: "syBTC",
+      displayName: "Stable Yield BTC",
+      type: "btc",
+      network: "Arbitrum",
+      contract: "0x692A1752542259BCdE867bb17a06307FE78374c4", // drone-0
+      boringVaultAddress: "0xC0D48269f8d6E427B0637F5e0695De11C8E75F6c", // vault_address
+      solverAddress: "0xD2e11B3E6f88bF1712cEAAE558D030da0c970F79", // QueueSolver
+      shareAddress: "0xC0D48269f8d6E427B0637F5e0695De11C8E75F6c", // vault_address (same as boringVaultAddress)
+      shareAddress_token_decimal: 8, // decimals
+      rateProvider: "0xDda6274D69F464172CC7F52194d16FF27ec0D5A6", // accountant_address
+      image: "/images/icons/syBTC.svg",
+
+      // Arbitrum Network Configuration
+      arbitrum: {
+        image: "/images/logo/arb.svg",
+        rpc: "https://arb1.arbitrum.io/rpc", // Arbitrum mainnet RPC
+        chainId: 42161,
+        chainObject: {
+          id: 42161,
+          name: "Arbitrum One",
+          network: "arbitrum",
+          nativeCurrency: { decimals: 18, name: "Ether", symbol: "ETH" },
+          rpcUrls: {
+            default: { http: ["https://arb1.arbitrum.io/rpc"] },
+            public: { http: ["https://arb1.arbitrum.io/rpc"] },
+          },
+        },
+        tokens: [
+          {
+            name: "WBTC",
+            contract: "0x2f2aA3C9B9Fc96B0e4C4e4F4C4e4F4C4e4F4C4e4F", // WBTC on Arbitrum - REPLACE WITH ACTUAL ADDRESS
+            decimal: 8,
+            image: "/images/icons/wbtc.svg",
+            isWithdrawable: true,
+          },
+        ],
+      },
+
+      // No incentives for syBTC
+      incentives: {
+        enabled: false,
+        points: [],
+      },
+
+      description: "Perpetual syBTC strategy on Arbitrum network",
+      apy: "https://api.example.com/sybtc/apy", // REPLACE WITH ACTUAL APY ENDPOINT
+      cap_limit: "0", // No cap limit
+      filled_cap: "0",
+      show_cap: false,
+      tvl: "https://api.example.com/sybtc/tvl", // REPLACE WITH ACTUAL TVL ENDPOINT
+      withdraw_request: "https://api.example.com/sybtc/withdrawals", // REPLACE WITH ACTUAL WITHDRAWAL ENDPOINT
+      rpc: "https://arb1.arbitrum.io/rpc",
+    },
+    INCENTIVE: {
+      network: "",
+      comingSoon: true,
+      contract: "",
+      deposit_token: "",
+      deposit_token_contract: "",
+      tvl: "",
+      rpc: "",
+      description: "",
+      apy: "",
+    },
+  },
+};
 
 // Strategy address to name mapping configuration for charts and UI
 export const STRATEGY_NAMES: { [address: string]: string } = {
@@ -236,19 +305,12 @@ export const STRATEGY_NAMES: { [address: string]: string } = {
   "0x2F45b61B90B821EFDb4525F89162cfd857ef51fD": "USDT0",
   "0x24a56bdA1e697Dc5b9802770DE476D509f02Ff8e": "WsUSR",
   "0x511E17508b60A464704Dbccbc1E402C35A715bc5": "siUSD/USDC Morpho (10x)",
-  "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913": "USDC (Base)",
-  "0x820C137fa70C8691f0e44Dc420a5e53c168921Dc": "USDS (Base)",
-  "0x5875eEE11Cf8398102FdAd704C9E96607675467a": "sUSDS (Base)",
-  "0xdAC17F958D2ee523a2206206994597C13D831ec7": "USDT (Ethereum)",
-  "0xdC035D45d973E3EC169d2276DDab16f1e407384F": "USDS (Ethereum)",
-  "0xaf88d065e77c8cC2239327C5EDb3A432268e5831": "USDC (Arbitrum)",
-  "0x6491c05A82219b8D1479057361ff1654749b876b": "USDS (Arbitrum)",
-  "0x203A662b0BD271A6ed5a60EdFbd04bFce608FD36": "vbUSDC (Katana)",
-  "0x62D6A123E8D19d06d68cf0d2294F9A3A0362c6b3": "vbUSDS (Katana)",
-  "0x2DCa96907fde857dd3D816880A0df407eeB2D2F2": "vbUSDT (Katana)",
-  "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb": "USDT0 (Plasma)",
-  "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9": "USDT0 (Arbitrum)",
-  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": "USDC (Ethereum)",
+
+  // syBTC Strategy Names
+  "0x692A1752542259BCdE867bb17a06307FE78374c4": "syBTC Drone",
+  "0xC0D48269f8d6E427B0637F5e0695De11C8E75F6c": "syBTC Vault",
+  "0xD2e11B3E6f88bF1712cEAAE558D030da0c970F79": "syBTC Queue Solver",
+  "0xDda6274D69F464172CC7F52194d16FF27ec0D5A6": "syBTC Accountant",
 
   // Add more strategy mappings as needed
   // "0x1234567890abcdef1234567890abcdef12345678": "Strategy Name Here",
