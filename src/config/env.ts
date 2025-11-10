@@ -167,13 +167,13 @@ export const USD_STRATEGIES = {
               "Earn 1.5x Lucildy Drops  as bonus for Liquidity Land users ",
             link: "https://app.liquidity.land/project/Lucidly",
           },
-          {
-            name: "Ethena Sats",
-            image: "/images/icons/syUSD/ethena.svg",
-            multiplier: 1,
-            description:
-              "Points earned through protocol fund allocation strategies",
-          },
+          // {
+          //   name: "Ethena Sats",
+          //   image: "/images/icons/syUSD/ethena.svg",
+          //   multiplier: 1,
+          //   description:
+          //     "Points earned through protocol fund allocation strategies",
+          // },
           {
             name: "Resolv Points",
             image: "/images/icons/syUSD/resolv.svg",
@@ -181,13 +181,13 @@ export const USD_STRATEGIES = {
             description:
               "Points earned through protocol fund allocation strategies",
           },
-          {
-            name: "XPL Rewards",
-            image: "/images/icons/syUSD/XPL.png",
-            multiplier: 1,
-            description:
-              "Points earned through protocol fund allocation strategies",
-          },
+          // {
+          //   name: "XPL Rewards",
+          //   image: "/images/icons/syUSD/XPL.png",
+          //   multiplier: 1,
+          //   description:
+          //     "Points earned through protocol fund allocation strategies",
+          // },
         ],
       },
 
