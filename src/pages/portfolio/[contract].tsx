@@ -143,16 +143,26 @@ const PortfolioDetailedPage = () => {
   const [completedRequests, setCompletedRequests] = useState<any[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
   const [withdrawRequests, setWithdrawRequests] = useState<any[]>([]);
+  const [currentBalance, setCurrentBalance] = useState<string | null>(null);
 
   const chainId = useChainId();
   const isBase = chainId === 8453;
 
-  // Initialize `withdrawAmount` from query param
+  // Initialize `withdrawAmount` from query param and fetch current balance
   useEffect(() => {
     if (router.query.balance && typeof router.query.balance === "string") {
       setWithdrawAmount(router.query.balance.toString());
+      // Also set as initial currentBalance
+      setCurrentBalance(router.query.balance.toString());
     }
   }, [router.query.balance]);
+
+  // Fetch current vault balance when component mounts or relevant params change
+  useEffect(() => {
+    if (address && boringVaultAddress && rpc) {
+      fetchCurrentVaultBalance();
+    }
+  }, [address, boringVaultAddress, rpc]);
 
   // Watch deposit transaction
   const { isLoading: isWaitingForDeposit, isSuccess: isDepositSuccess } =
@@ -198,26 +208,36 @@ const PortfolioDetailedPage = () => {
       },
     };
 
+  // Handle withdrawal transaction completion
+  useEffect(() => {
+    if (isWithdrawSuccess && withdrawTxHash && !isWaitingForWithdraw) {
+      setIsWithdrawing(false);
+      // Handle successful withdrawal
+      // Refresh balances, current vault balance, and pending requests
+      setIsRefreshingBalance(true);
+      Promise.all([
+        checkAllBalances(),
+        fetchCurrentVaultBalance(),
+        fetchWithdrawRequests("", address || ""),
+      ])
+        .then(() => {
+          setIsRefreshingBalance(false);
+        })
+        .catch((error) => {
+          console.error("Error refreshing data:", error);
+          setErrorMessage("Failed to refresh data.");
+          setIsRefreshingBalance(false);
+        });
+      setWithdrawAmount("");
+    }
+  }, [isWithdrawSuccess, withdrawTxHash, isWaitingForWithdraw, address]);
+
+  // Reset withdrawing state when transaction completes (success or failure)
   useEffect(() => {
     if (!isWaitingForWithdraw && isWithdrawing) {
       setIsWithdrawing(false);
-      if (isWithdrawSuccess && withdrawTxHash) {
-        // Handle successful withdrawal
-        // Refresh balances with loading state
-        setIsRefreshingBalance(true);
-        checkAllBalances()
-          .then(() => {
-            setIsRefreshingBalance(false);
-          })
-          .catch((error) => {
-            // console.error("Error refreshing balances:", error);
-            setErrorMessage("Failed to refresh balances.");
-            setIsRefreshingBalance(false);
-          });
-        setWithdrawAmount("");
-      }
     }
-  }, [isWaitingForWithdraw, isWithdrawing, isWithdrawSuccess, withdrawTxHash]);
+  }, [isWaitingForWithdraw, isWithdrawing]);
 
   useEffect(() => {
       if (approvalHash && isApprovalSuccess) {
@@ -229,6 +249,53 @@ const PortfolioDetailedPage = () => {
         setIsApproving(false);
       }
   }, [isWaitingForApproval, isApproving, isApprovalSuccess]);
+
+  // Function to fetch current vault balance
+  const fetchCurrentVaultBalance = async () => {
+    if (!address || !boringVaultAddress || !rpc) return;
+
+    try {
+      const normalizedRpc = Array.isArray(rpc) ? rpc[0] : (rpc as string || "https://base.llamarpc.com");
+      const client = createPublicClient({
+        transport: http(normalizedRpc),
+        chain: {
+          id: 8453,
+          name: "Base",
+          network: "base",
+          nativeCurrency: {
+            decimals: 18,
+            name: "Ether",
+            symbol: "ETH",
+          },
+          rpcUrls: {
+            default: { http: [normalizedRpc] },
+            public: { http: [normalizedRpc] },
+          },
+        },
+      });
+
+      const [balance, decimals] = await Promise.all([
+        client.readContract({
+          address: boringVaultAddress as Address,
+          abi: ERC20_ABI,
+          functionName: "balanceOf",
+          args: [address as Address],
+        }),
+        client.readContract({
+          address: boringVaultAddress as Address,
+          abi: ERC20_ABI,
+          functionName: "decimals",
+        }),
+      ]);
+
+      const formattedBalance = formatUnits(balance as bigint, decimals as number);
+      setCurrentBalance(formattedBalance);
+      return formattedBalance;
+    } catch (error) {
+      console.error("Error fetching current vault balance:", error);
+      return null;
+    }
+  };
 
   // Function to check balance for a strategy
   const checkStrategyBalance = async (strategy: any) => {
@@ -409,10 +476,23 @@ const PortfolioDetailedPage = () => {
       }
     } catch (error: any) {
       console.error("Approval failed:", error);
-      if (error.code === 4001) {
-        setErrorMessage("Approval cancelled by user.");
+      // Check for user rejection in multiple ways
+      const isUserRejection = 
+        error.code === 4001 ||
+        error.name === "UserRejectedRequestError" ||
+        error.shortMessage?.includes("rejected") ||
+        error.shortMessage?.includes("denied") ||
+        error.message?.includes("User rejected") ||
+        error.message?.includes("User denied") ||
+        error.message?.includes("denied transaction signature") ||
+        error.message?.includes("rejected the request") ||
+        error.cause?.message?.includes("User denied") ||
+        error.cause?.message?.includes("rejected");
+      
+      if (isUserRejection) {
+        setErrorMessage("Transaction cancelled by user.");
       } else {
-        setErrorMessage(error.message || "Approval transaction failed");
+        setErrorMessage("Approval transaction failed. Please try again.");
       }
       setIsApproving(false); 
     }
@@ -495,8 +575,22 @@ const PortfolioDetailedPage = () => {
         throw new Error("Failed to get transaction hash");
       }
     } catch (error: any) {
-      if (error.code === 4001) {
-        setErrorMessage("Withdrawal cancelled by user.");
+      console.error("Withdrawal failed:", error);
+      // Check for user rejection in multiple ways
+      const isUserRejection = 
+        error.code === 4001 ||
+        error.name === "UserRejectedRequestError" ||
+        error.shortMessage?.includes("rejected") ||
+        error.shortMessage?.includes("denied") ||
+        error.message?.includes("User rejected") ||
+        error.message?.includes("User denied") ||
+        error.message?.includes("denied transaction signature") ||
+        error.message?.includes("rejected the request") ||
+        error.cause?.message?.includes("User denied") ||
+        error.cause?.message?.includes("rejected");
+      
+      if (isUserRejection) {
+        setErrorMessage("Transaction cancelled by user.");
       } else {
         setErrorMessage("Withdrawal failed. Please try again.");
       }
@@ -514,16 +608,16 @@ const PortfolioDetailedPage = () => {
 
   const handlePercentageClick = (percentage: number) => {
     if (contract) {
-      const amount = balance !== undefined ? (Number(balance) * percentage).toFixed(2) : "0.00";
+      const balanceToUse = currentBalance !== null ? currentBalance : (balance !== undefined ? balance.toString() : "0");
+      const amount = (Number(balanceToUse) * percentage).toFixed(2);
       setWithdrawAmount(amount);
     }
   };
 
   const handleMaxClick = () => {
     if (contract) {
-      if (balance !== undefined) {
-        setWithdrawAmount(balance.toString());
-      }
+      const balanceToUse = currentBalance !== null ? currentBalance : (balance !== undefined ? balance.toString() : "0");
+      setWithdrawAmount(balanceToUse);
     }
   };
 
@@ -781,7 +875,11 @@ const PortfolioDetailedPage = () => {
               <div className="text-[#9C9DA2] text-right   text-[12px] font-normal leading-normal">
                 Balance:{" "}
                 <span className="text-[#D7E3EF] text-[12px] font-semibold leading-normal">
-                  {typeof balance === "string" ? parseFloat(balance).toFixed(2) : ""}
+                  {currentBalance !== null 
+                    ? parseFloat(currentBalance).toFixed(2) 
+                    : typeof balance === "string" 
+                    ? parseFloat(balance).toFixed(2) 
+                    : "0.00"}
                 </span>
               </div>
             </div>
@@ -915,7 +1013,8 @@ const PortfolioDetailedPage = () => {
                 isApproving ||
                 !withdrawAmount ||
                 parseFloat(withdrawAmount) <= 0 ||
-                balance !== undefined && parseFloat(withdrawAmount) > Number(balance)
+                (currentBalance !== null && parseFloat(withdrawAmount) > Number(currentBalance)) ||
+                (currentBalance === null && balance !== undefined && parseFloat(withdrawAmount) > Number(balance))
               }
             >
               {isApproving ? (
@@ -980,13 +1079,7 @@ const PortfolioDetailedPage = () => {
             {errorMessage && (
               <div className="flex justify-between items-center mt-4 bg-[rgba(239,68,68,0.1)] rounded-[4px] p-4">
                 <div className="text-[#EF4444]   text-[14px]">
-                  {errorMessage}
-                </div>
-                <div className="text-[#EF4444]   text-[14px] underline">
-                  #
-                  {withdrawTxHash
-                    ? withdrawTxHash.substring(0, 8) + "..."
-                    : ""}
+                  Transaction Failed
                 </div>
               </div>
             )}

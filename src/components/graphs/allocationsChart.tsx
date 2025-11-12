@@ -311,22 +311,9 @@ export default function AllocationChart({}: AllocationChartProps) {
     return transformed;
   });
 
-  const filteredData = transformedData.map((item) => {
-    const filtered: any = { date: item.date, totalTvl: item.totalTvl };
-    Object.keys(item).forEach((k) => {
-      if (k === "date" || k === "totalTvl" || selectedKeys.has(k)) {
-        filtered[k] = item[k];
-        // Also include the corresponding TVL value
-        if (selectedKeys.has(k)) {
-          const tvlKey = `${k}_tvl`;
-          if (item[tvlKey] !== undefined) {
-            filtered[tvlKey] = item[tvlKey];
-          }
-        }
-      }
-    });
-    return filtered;
-  });
+  // Always include all data - don't filter based on selectedKeys
+  // We'll use opacity to show/hide instead
+  const filteredData = transformedData;
 
   // Debug logging
   console.log("Selected keys:", Array.from(selectedKeys));
@@ -484,8 +471,8 @@ export default function AllocationChart({}: AllocationChartProps) {
               labelFormatter={(label: string) => label}
             />
             {keys
-              .filter((k) => selectedKeys.has(k))
               .map((key) => {
+                const isSelected = selectedKeys.has(key);
                 const strategyName = key === UNALLOCATED_CASH_KEY 
                   ? "Unallocated Cash" 
                   : getStrategyDisplayName(key);
@@ -493,7 +480,7 @@ export default function AllocationChart({}: AllocationChartProps) {
                 // Use address-based color mapping for consistency across charts
                 const strategyColor = strategyColorMap[key.toLowerCase()] || strategyColorMap[strategyName] || colors[0];
                 
-                console.log(`Rendering Area for key: ${key}, name: ${strategyName}, finalName: ${finalStrategyName}, color: ${strategyColor}`);
+                console.log(`Rendering Area for key: ${key}, name: ${strategyName}, finalName: ${finalStrategyName}, color: ${strategyColor}, isSelected: ${isSelected}`);
                 return (
                   <Area
                     key={key}
@@ -502,7 +489,8 @@ export default function AllocationChart({}: AllocationChartProps) {
                     stackId="1"
                     stroke={strategyColor}
                     fill={strategyColor}
-                    fillOpacity={0.8}
+                    fillOpacity={isSelected ? 0.8 : 0.2}
+                    strokeOpacity={isSelected ? 1 : 0.3}
                     name={finalStrategyName}
                   />
                 );

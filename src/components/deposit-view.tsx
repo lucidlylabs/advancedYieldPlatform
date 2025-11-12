@@ -510,7 +510,9 @@ const DepositView: React.FC<DepositViewProps> = ({
   const [transactionHash, setTransactionHash] = useState<`0x${string}` | null>(
     null
   );
+  const [transactionChain, setTransactionChain] = useState<string | null>(null); // Store chain where transaction was executed
   const [approvalHash, setApprovalHash] = useState<`0x${string}` | null>(null);
+  const [approvalChain, setApprovalChain] = useState<string | null>(null); // Store chain where approval was executed
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isWaitingForSignature, setIsWaitingForSignature] = useState(false);
   const [status, setStatus] = useState<
@@ -1001,6 +1003,8 @@ const DepositView: React.FC<DepositViewProps> = ({
       setIsDepositSuccessLocal(true);
       setIsWaitingForSignature(false);
       setIsDepositing(false);
+      // Clear any previous error messages when transaction succeeds
+      setErrorMessage(null);
       console.log("Deposit successful!", {
         hash: transactionHash,
         amount,
@@ -1114,6 +1118,12 @@ const DepositView: React.FC<DepositViewProps> = ({
 
     try {
       setIsWaitingForSignature(true);
+      // Clear any previous error messages and transaction state when starting a new transaction
+      setErrorMessage(null);
+      // Don't clear transactionHash here - it will be set when the new transaction is sent
+      // But clear the success state to allow new transaction tracking
+      setIsDepositSuccessLocal(false);
+      setDepositSuccess(false);
       const amountFloat = parseFloat(amount);
       if (isNaN(amountFloat) || amountFloat <= 0) {
         throw new Error("Invalid amount");
@@ -1134,12 +1144,14 @@ const DepositView: React.FC<DepositViewProps> = ({
 
       const receiveChainId = getChainConfig(strategyConfig.network).chainId;
 
-      setIsMultiChain(depositChainId !== receiveChainId);
+      // Calculate isMultiChain as a local variable to avoid stale state issues
+      const isMultiChainCalculated = depositChainId !== receiveChainId;
+      setIsMultiChain(isMultiChainCalculated);
 
       console.log("Multi-chain check:", {
         depositChainId,
         receiveChainId,
-        isMultiChainCalculated: depositChainId !== receiveChainId,
+        isMultiChainCalculated,
       });
 
       // Get rate from rate provider
@@ -1207,6 +1219,7 @@ const DepositView: React.FC<DepositViewProps> = ({
 
           if (typeof approveTx === "string" && approveTx.startsWith("0x")) {
             setApprovalHash(approveTx as `0x${string}`);
+            setApprovalChain(targetChain); // Store the chain where approval was executed
             // Wait for approval transaction to be mined
             await new Promise((resolve) => {
               const checkApproval = setInterval(async () => {
@@ -1233,7 +1246,7 @@ const DepositView: React.FC<DepositViewProps> = ({
 
       // Only proceed with deposit if we have sufficient allowance and no pending approval
       if ((!needsApproval || isApproved) && !approveIsPending) {
-        if (isMultiChain) {
+        if (isMultiChainCalculated) {
           // Preview bridge fee before proceeding
           const calculatedBridgeFee = await previewBridgeFee(amountInWei);
 
@@ -1276,6 +1289,7 @@ const DepositView: React.FC<DepositViewProps> = ({
 
             if (tx && typeof tx === "string" && tx.startsWith("0x")) {
               setTransactionHash(tx as `0x${string}`);
+              setTransactionChain(targetChain); // Store the chain where transaction was executed
               console.log("Multi-chain deposit transaction sent:", tx);
             } else {
               throw new Error("Invalid transaction response");
@@ -1315,6 +1329,7 @@ const DepositView: React.FC<DepositViewProps> = ({
 
             if (tx && typeof tx === "string" && tx.startsWith("0x")) {
               setTransactionHash(tx as `0x${string}`);
+              setTransactionChain(targetChain); // Store the chain where transaction was executed
               console.log("Deposit transaction sent:", tx);
             } else {
               throw new Error("Invalid transaction response");
@@ -1658,7 +1673,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                 </span>
                 <div className="flex items-center gap-3">
                   <a
-                    href={getExplorerUrl(targetChain, transactionHash || "")}
+                    href={getExplorerUrl(transactionChain || targetChain, transactionHash || "")}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[#B88AF8] hover:underline flex items-center gap-1 text-sm font-normal break-all"
@@ -2084,11 +2099,12 @@ const DepositView: React.FC<DepositViewProps> = ({
                       const hasInsufficientFunds =
                         connected &&
                         amount &&
-                        balance &&
-                        Number(amount) > Number(balance);
+                        rawBalance &&
+                        Number(amount) > Number(rawBalance);
 
                       const shouldDisable =
                         connected &&
+                        !isDepositSuccessLocal && // Allow button to be enabled when showing "Request Another Deposit"
                         (isLoading ||
                           isLoadingBalance ||
                           hasInsufficientFunds ||
@@ -2116,6 +2132,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                         : "Connect Wallet";
 
                       const isInactiveState =
+                        !isDepositSuccessLocal && // Allow button to be active when showing "Request Another Deposit"
                         (connected &&
                           (hasInsufficientFunds ||
                             !amount ||
@@ -2125,31 +2142,37 @@ const DepositView: React.FC<DepositViewProps> = ({
                       return (
                         <button
                           onClick={
-                            connected &&
-                            !hasInsufficientFunds &&
-                            amount &&
-                            Number(amount) > 0
+                            connected
                               ? isDepositSuccessLocal
                                 ? () => {
                                     // Reset state for another deposit
                                     setTransactionHash(null);
+                                    setTransactionChain(null);
                                     setApprovalHash(null);
+                                    setApprovalChain(null);
                                     setIsDepositSuccessLocal(false);
                                     setDepositSuccess(false);
                                     setErrorMessage(null);
                                     setIsApproved(false);
                                     setIsApproving(false);
                                     setIsDepositing(false);
+                                    setIsWaitingForSignature(false);
                                     setAmount("");
+                                    // Refresh allowance check for new deposit
+                                    refetchAllowance();
                                   }
-                                : handleDeposit
+                                : !hasInsufficientFunds &&
+                                  amount &&
+                                  Number(amount) > 0
+                                ? handleDeposit
+                                : undefined
                               : openConnectModal
                           }
-                          disabled={shouldDisable || isDepositSuccessLocal}
+                          disabled={isDepositSuccessLocal ? false : shouldDisable}
                           className={`w-full py-4 mt-6 mb-8 sm:mb-0 rounded font-semibold transition-all duration-200 ${
-                            isInactiveState
-                              ? "bg-gray-500 text-white opacity-50 cursor-not-allowed"
-                              : "bg-[#B88AF8] text-[#1A1B1E] hover:opacity-90"
+                            isDepositSuccessLocal || !isInactiveState
+                              ? "bg-[#B88AF8] text-[#1A1B1E] hover:opacity-90"
+                              : "bg-gray-500 text-white opacity-50 cursor-not-allowed"
                           }`}
                         >
                           {buttonText}
@@ -2173,7 +2196,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                       {errorMessage}
                       {transactionHash && (
                         <a
-                          href={getExplorerUrl(targetChain, transactionHash)}
+                          href={getExplorerUrl(transactionChain || targetChain, transactionHash)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="underline"
@@ -2192,7 +2215,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                           Transaction Successful
                         </div>
                         <a
-                          href={getExplorerUrl(targetChain, transactionHash)}
+                          href={getExplorerUrl(transactionChain || targetChain, transactionHash)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-[#00D1A0] text-[14px] underline hover:text-[#00D1A0]/80"
