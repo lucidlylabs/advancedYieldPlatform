@@ -230,7 +230,7 @@ export const BTC_STRATEGIES = {
       shareAddress: "0xC0D48269f8d6E427B0637F5e0695De11C8E75F6c", // vault_address (same as boringVaultAddress)
       shareAddress_token_decimal: 8, // decimals
       rateProvider: "0xDda6274D69F464172CC7F52194d16FF27ec0D5A6", // accountant_address
-      image: "/images/icons/syBTC.svg",
+      image: "/images/icons/btc-stable.svg", // Using btc-stable.svg since syBTC.svg doesn't exist
 
       // Arbitrum Network Configuration
       arbitrum: {
@@ -249,10 +249,10 @@ export const BTC_STRATEGIES = {
         },
         tokens: [
           {
-            name: "WBTC",
-            contract: "0x2f2aA3C9B9Fc96B0e4C4e4F4C4e4F4C4e4F4C4e4F", // WBTC on Arbitrum - REPLACE WITH ACTUAL ADDRESS
+            name: "wBTC",
+            contract: "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f", // eBTC on Arbitrum One
             decimal: 8,
-            image: "/images/icons/wbtc.svg",
+            image: "/images/icons/wbtc.png", // Using wbtc icon for eBTC (or update to ebtc icon if available)
             isWithdrawable: true,
           },
         ],

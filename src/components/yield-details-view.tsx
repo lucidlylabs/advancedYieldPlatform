@@ -130,6 +130,19 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   // Get connected wallet address
   const { address, isConnected } = useAccount();
 
+  // Determine which strategy we're viewing based on contract address
+  const usdVaultAddress = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.toLowerCase();
+  const btcVaultAddress = BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.toLowerCase();
+  const currentVaultAddress = contractAddress?.toLowerCase() || usdVaultAddress;
+  const isBtcStrategy = currentVaultAddress === btcVaultAddress;
+  const strategy = isBtcStrategy 
+    ? BTC_STRATEGIES.PERPETUAL_DURATION.STABLE 
+    : USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
+  const strategyIcon = isBtcStrategy ? "/images/icons/syBTC.svg" : "/images/icons/syUSD.svg";
+  const strategyDescription = isBtcStrategy 
+    ? "syBTC is a synthetic BTC strategy that provides yield through various DeFi strategies"
+    : "syUSD is a synthetic USD stablecoin that provides yield through various DeFi strategies";
+
   // Function to check balance for a specific network
   const checkNetworkBalance = async (
     networkConfig: any,
@@ -205,38 +218,80 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
     }
 
     try {
-      const strategy = USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
+      // Determine which strategy we're viewing based on contract address
+      const usdVaultAddress = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.toLowerCase();
+      const btcVaultAddress = BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.toLowerCase();
+      const currentVaultAddress = contractAddress?.toLowerCase() || usdVaultAddress;
 
-      // syUSD vault exists on all networks with the same address
-      const networks = [
-        {
-          config: strategy.base,
-          address: strategy.boringVaultAddress,
-          name: "Base",
-        },
-        {
-          config: strategy.ethereum,
-          address: strategy.boringVaultAddress,
-          name: "Ethereum",
-        },
-        {
-          config: strategy.arbitrum,
-          address: strategy.boringVaultAddress,
-          name: "Arbitrum",
-        },
-        {
-          config: strategy.katana,
-          address: strategy.boringVaultAddress,
-          name: "Katana",
-        },
-      ].filter((network) => network.config && network.address);
+      let strategy;
+      let strategyName;
+      
+      if (currentVaultAddress === btcVaultAddress) {
+        strategy = BTC_STRATEGIES.PERPETUAL_DURATION.STABLE;
+        strategyName = "syBTC";
+      } else {
+        strategy = USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
+        strategyName = "syUSD";
+      }
 
-      console.log("🔍 Checking syUSD vault on all networks:", {
+      // Build networks array based on strategy type
+      const networks: Array<{
+        config: any;
+        address: string;
+        name: string;
+      }> = [];
+
+      if (strategyName === "syUSD") {
+        // syUSD vault exists on all networks with the same address
+        const usdStrategy = strategy as typeof USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
+        if (usdStrategy.base) {
+          networks.push({
+            config: usdStrategy.base,
+            address: usdStrategy.boringVaultAddress,
+            name: "Base",
+          });
+        }
+        if (usdStrategy.ethereum) {
+          networks.push({
+            config: usdStrategy.ethereum,
+            address: usdStrategy.boringVaultAddress,
+            name: "Ethereum",
+          });
+        }
+        if (usdStrategy.arbitrum) {
+          networks.push({
+            config: usdStrategy.arbitrum,
+            address: usdStrategy.boringVaultAddress,
+            name: "Arbitrum",
+          });
+        }
+        if (usdStrategy.katana) {
+          networks.push({
+            config: usdStrategy.katana,
+            address: usdStrategy.boringVaultAddress,
+            name: "Katana",
+          });
+        }
+      } else if (strategyName === "syBTC") {
+        // syBTC vault exists only on Arbitrum
+        const btcStrategy = strategy as typeof BTC_STRATEGIES.PERPETUAL_DURATION.STABLE;
+        if (btcStrategy.arbitrum) {
+          networks.push({
+            config: btcStrategy.arbitrum,
+            address: btcStrategy.boringVaultAddress,
+            name: "Arbitrum",
+          });
+        }
+      }
+
+      const validNetworks = networks.filter((network) => network.config && network.address);
+
+      console.log(`🔍 Checking ${strategyName} vault on all networks:`, {
         vaultAddress: strategy.boringVaultAddress,
-        networksToCheck: networks.map((n) => `${n.name} (${n.config?.rpc})`),
+        networksToCheck: validNetworks.map((n) => `${n.name} (${n.config?.rpc})`),
       });
 
-      const balancePromises = networks.map((network) =>
+      const balancePromises = validNetworks.map((network) =>
         checkNetworkBalance(network.config, network.address)
       );
 
@@ -245,20 +300,15 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
       // Debug logging
       console.log("Network balance check results:");
-      networks.forEach((network, index) => {
+      validNetworks.forEach((network, index) => {
         console.log(
           `${network.name}: ${balances[index]} (RPC: ${network.config?.rpc})`
         );
-        if (network.name === "Base" && balances[index] === 0) {
-          console.warn("🔍 Base balance is 0 - this might be the issue!");
-          console.log("Base network config:", network.config);
-          console.log("Base vault address:", network.address);
-        }
       });
 
       // Store individual network balances
       const networkBalanceMap: { [key: string]: number } = {};
-      networks.forEach((network, index) => {
+      validNetworks.forEach((network, index) => {
         if (balances[index] > 0) {
           networkBalanceMap[network.name] = balances[index];
         }
@@ -276,7 +326,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   // Check balances across all networks when address or connection changes
   useEffect(() => {
     checkAllNetworkBalances();
-  }, [address, isConnected]);
+  }, [address, isConnected, contractAddress]);
 
   // Format tooltip content for network balances
   const formatNetworkBalancesTooltip = () => {
@@ -473,7 +523,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                 </h1>
 
                 <Tooltip
-                  content="syUSD is a synthetic USD stablecoin that provides yield through various DeFi strategies"
+                  content={strategyDescription}
                   side="bottom"
                 >
                   <div className="flex items-center">
@@ -497,7 +547,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
               <div className="flex items-center gap-1 mt-[-20px] mb-[10px]">
                 <span className="text-[#9C9DA2] text-[12px]">View on DeBank</span>
                 <a
-                  href={`https://debank.com/profile/0x279cad277447965af3d24a78197aad1b02a2c589`}
+                  href={`https://debank.com/profile/${contractAddress || strategy.boringVaultAddress}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center"
@@ -529,8 +579,8 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                   <div className="w-4 h-4 rounded-full overflow-hidden flex items-center justify-center">
         
                     <Image
-                      src="/images/icons/syUSD.svg"
-                      alt="syUSD"
+                      src={strategyIcon}
+                      alt={isBtcStrategy ? "syBTC" : "syUSD"}
                       width={16}
                       height={16}
                       className="object-contain"
@@ -594,7 +644,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                   )}`
                 : "N/A"}
               <a
-                href={`https://basescan.org/address/${contractAddress}`}
+                href={`https://${isBtcStrategy ? 'arbiscan.io' : 'basescan.org'}/address/${contractAddress || strategy.boringVaultAddress}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[#9C9DA2] hover:text-white transition-colors"
@@ -609,14 +659,15 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
             <div className="text-[#9C9DA2] text-xs leading-none">Network</div>
             <div className="relative mt-0 text-[14px] flex items-center cursor-pointer group">
               {(
-                [
-                  USD_STRATEGIES.PERPETUAL_DURATION.STABLE.base,
-                  USD_STRATEGIES.PERPETUAL_DURATION.STABLE.ethereum,
-                  USD_STRATEGIES.PERPETUAL_DURATION.STABLE.arbitrum,
-                  USD_STRATEGIES.PERPETUAL_DURATION.STABLE.katana,
-                ] as const
+                isBtcStrategy
+                  ? [(strategy as typeof BTC_STRATEGIES.PERPETUAL_DURATION.STABLE).arbitrum].filter(Boolean)
+                  : [
+                      (strategy as typeof USD_STRATEGIES.PERPETUAL_DURATION.STABLE).base,
+                      (strategy as typeof USD_STRATEGIES.PERPETUAL_DURATION.STABLE).ethereum,
+                      (strategy as typeof USD_STRATEGIES.PERPETUAL_DURATION.STABLE).arbitrum,
+                      (strategy as typeof USD_STRATEGIES.PERPETUAL_DURATION.STABLE).katana,
+                    ].filter(Boolean)
               )
-                .filter(Boolean)
                 .map((networkConfig, index) => (
                   <Tooltip
                     key={networkConfig.chainObject.name}

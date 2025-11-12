@@ -101,6 +101,8 @@ const MarketsSubpage: React.FC = () => {
   const [showDepositView, setShowDepositView] = useState(false);
   const [usdTvl, setUsdTvl] = useState<string>("Loading...");
   const [usdApy, setUsdApy] = useState<string>("Loading...");
+  const [btcTvl, setBtcTvl] = useState<string>("Loading...");
+  const [btcApy, setBtcApy] = useState<string>("Loading...");
   const [showColumnsDropdown, setShowColumnsDropdown] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState({
     availableYields: true,
@@ -150,12 +152,55 @@ const MarketsSubpage: React.FC = () => {
 
   const router = useRouter();
 
-  // Update market data when usdApy or usdTvl changes
+  // Update market data when usdApy, usdTvl, btcApy, or btcTvl changes
   useEffect(() => {
     const newMarketData: Record<AssetType, MarketItem[]> = {
       All: [],
       ETH: [], // Empty for now - no ETH strategies available yet
-      BTC: [], // Empty for now - no BTC strategies available yet
+      BTC: [
+        {
+          id: 6,
+          name: BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.displayName,
+          ticker: BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.name, // syBTC
+          type: BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.type,
+          baseYield: btcApy,
+          incentives: (() => {
+            const incentives =
+              BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.incentives;
+            console.log("Raw BTC incentives config:", incentives);
+
+            if (
+              !incentives?.enabled ||
+              !incentives.points ||
+              incentives.points.length === 0
+            ) {
+              console.log("No BTC incentives enabled or no points");
+              return [];
+            }
+
+            // Return objects with image, name, and link for tooltips and navigation
+            const incentiveData = (incentives.points as Array<{
+              name: string;
+              image: string;
+              multiplier: number;
+              description: string;
+              link?: string;
+            }>).map((point) => ({
+              image: point.image,
+              name: point.name,
+              link: point.link || "#", // Use link from config or fallback to "#"
+            }));
+            console.log("BTC Incentive data:", incentiveData);
+            return incentiveData;
+          })(),
+          tvl: btcTvl,
+          description: BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.description,
+          riskLevel: "Very Low",
+          network: BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.network,
+          contractAddress:
+            BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress,
+        },
+      ],
       USD: [
         {
           id: 5,
@@ -204,7 +249,7 @@ const MarketsSubpage: React.FC = () => {
     ];
 
     setMarketData(newMarketData);
-  }, [usdApy, usdTvl]);
+  }, [usdApy, usdTvl, btcApy, btcTvl]);
 
   // Fetch TVL for USD strategy if it's a URL
   useEffect(() => {
@@ -271,6 +316,78 @@ const MarketsSubpage: React.FC = () => {
     } else if (typeof apyUrl === "string" && !apyUrl.startsWith("http")) {
       // If apyUrl is not a URL, use it directly (fallback value)
       setUsdApy(apyUrl);
+    }
+  }, []);
+
+  // Fetch TVL for BTC strategy if it's a URL
+  useEffect(() => {
+    const tvlUrl = BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.tvl;
+    if (typeof tvlUrl === "string" && tvlUrl.startsWith("http")) {
+      fetch(tvlUrl)
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          return res.json();
+        })
+        .then((data) => {
+          if (typeof data.result === "number") {
+            setBtcTvl(
+              data.result.toLocaleString("en-US", {
+                style: "currency",
+                currency: "USD",
+                maximumFractionDigits: 0,
+                minimumFractionDigits: 0,
+              })
+            );
+          } else {
+            console.warn("Unexpected BTC TVL data structure:", data);
+            setBtcTvl("N/A");
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching BTC TVL:", error);
+          setBtcTvl("N/A");
+        });
+    } else if (typeof tvlUrl === "string" && !tvlUrl.startsWith("http")) {
+      // If tvlUrl is not a URL, use it directly (fallback value)
+      setBtcTvl(tvlUrl);
+    } else {
+      // If no TVL URL is available, set to N/A
+      setBtcTvl("N/A");
+    }
+  }, []);
+
+  // Fetch APY for BTC strategy if it's a URL
+  useEffect(() => {
+    const apyUrl = BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.apy;
+    if (typeof apyUrl === "string" && apyUrl.startsWith("http")) {
+      fetch(apyUrl)
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          return res.json();
+        })
+        .then((data) => {
+          const trailingApy = data?.result?.trailing_total_APY;
+          if (typeof trailingApy === "number") {
+            setBtcApy(`${trailingApy.toFixed(2)}%`);
+          } else {
+            console.warn("Unexpected BTC APY data structure:", data);
+            setBtcApy("N/A");
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching BTC APY:", error);
+          setBtcApy("N/A");
+        });
+    } else if (typeof apyUrl === "string" && !apyUrl.startsWith("http")) {
+      // If apyUrl is not a URL, use it directly (fallback value)
+      setBtcApy(apyUrl);
+    } else {
+      // If no APY URL is available, set to N/A
+      setBtcApy("N/A");
     }
   }, []);
 
@@ -379,10 +496,14 @@ const MarketsSubpage: React.FC = () => {
         <>
           {showDepositView ? (
             <DepositView
-              selectedAsset="USD"
+              selectedAsset={selectedItem?.type === "btc" ? "BTC" : "USD"}
               duration="PERPETUAL_DURATION"
               strategy="stable"
-              apy={usdApy === "Loading..." ? "N/A" : usdApy}
+              apy={
+                selectedItem?.type === "btc"
+                  ? btcApy === "Loading..." ? "N/A" : btcApy
+                  : usdApy === "Loading..." ? "N/A" : usdApy
+              }
               onBack={() => setShowDepositView(false)}
               onReset={() => setShowDepositView(false)}
             />
@@ -462,7 +583,6 @@ const MarketsSubpage: React.FC = () => {
                         asset="BTC"
                         activeAsset={selectedAsset}
                         onClick={setSelectedAsset}
-                        disabled
                       />
                     </div>
 

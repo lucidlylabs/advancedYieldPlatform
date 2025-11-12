@@ -224,6 +224,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
   const [selectedStrategy, setSelectedStrategy] =
     useState<SelectedStrategy | null>(null);
   const [usdApy, setUsdApy] = useState<string | null>(null);
+  const [btcApy, setBtcApy] = useState<string | null>(null);
   const [usdTvl, setUsdTvl] = useState<string>("--");
   const [ethTvl, setEthTvl] = useState<string>("--");
   const [btcTvl, setBtcTvl] = useState<string>("--");
@@ -290,6 +291,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
     });
   };
 
+  // Fetch USD APY
   useEffect(() => {
     const apyUrl = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.apy;
     if (typeof apyUrl === "string" && apyUrl.startsWith("http")) {
@@ -305,17 +307,50 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
           if (typeof trailingApy === "number") {
             setUsdApy(`${trailingApy.toFixed(2)}%`);
           } else {
-            console.warn('Unexpected APY data structure:', data);
+            console.warn('Unexpected USD APY data structure:', data);
             setUsdApy("N/A");
           }
         })
         .catch((error) => {
-          console.error('Error fetching APY:', error);
+          console.error('Error fetching USD APY:', error);
           setUsdApy("N/A");
         });
     } else if (typeof apyUrl === "string" && !apyUrl.startsWith("http")) {
       // If apyUrl is not a URL, use it directly (fallback value)
       setUsdApy(apyUrl);
+    }
+  }, []);
+
+  // Fetch BTC APY
+  useEffect(() => {
+    const apyUrl = BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.apy;
+    if (typeof apyUrl === "string" && apyUrl.startsWith("http")) {
+      fetch(apyUrl)
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          return res.json();
+        })
+        .then((data) => {
+          const trailingApy = data?.result?.trailing_total_APY;
+          if (typeof trailingApy === "number") {
+            setBtcApy(`${trailingApy.toFixed(2)}%`);
+          } else {
+            console.warn('Unexpected BTC APY data structure:', data);
+            setBtcApy("N/A");
+          }
+        })
+        .catch((error) => {
+          console.error('Error fetching BTC APY:', error);
+          setBtcApy("N/A");
+        });
+    } else if (typeof apyUrl === "string" && !apyUrl.startsWith("http")) {
+      // If apyUrl is not a URL, use it directly (fallback value)
+      setBtcApy(apyUrl);
+    } else {
+      // If no APY URL is available, set to N/A
+      setBtcApy("N/A");
     }
   }, []);
 
@@ -329,10 +364,17 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
         setUsdTvl(usdTvlValue);
       }
 
-      // ETH and BTC are coming soon, so no TVL data for now
-      // When they become available, you can add their TVL fetching here
+      // Fetch BTC TVL
+      const btcTvlUrl = BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.tvl;
+      if (btcTvlUrl && typeof btcTvlUrl === "string" && btcTvlUrl.startsWith("http")) {
+        const btcTvlValue = await fetchTVLData(btcTvlUrl);
+        setBtcTvl(btcTvlValue);
+      } else {
+        setBtcTvl("--");
+      }
+
+      // ETH is coming soon, so no TVL data for now
       setEthTvl("--");
-      setBtcTvl("--");
     };
 
     fetchAllTVL();
@@ -430,7 +472,11 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
           selectedAsset={selectedStrategy.asset}
           duration={selectedStrategy.duration}
           strategy={selectedStrategy.type}
-          apy={usdApy || "--"}
+          apy={
+            selectedStrategy.asset === "BTC"
+              ? btcApy || selectedStrategy.apy || "--"
+              : usdApy || selectedStrategy.apy || "--"
+          }
           onBack={() => setSelectedStrategy(null)}
           onReset={handleReset}
         />
@@ -474,6 +520,8 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                     heading={
                       selectedAsset.asset === "USD"
                         ? USD_STRATEGIES.PERPETUAL_DURATION.STABLE.name
+                        : selectedAsset.asset === "BTC"
+                        ? BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.name
                         : `${selectedAsset.asset} Strategy`
                     }
                     imageSrc={`/images/icons/${(
@@ -484,7 +532,13 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
                         selectedAsset.asset as AssetType
                       ].description
                     }
-                    apy={{ value: usdApy || "--", info: "-" }}
+                    apy={{
+                      value:
+                        selectedAsset.asset === "BTC"
+                          ? btcApy || "--"
+                          : usdApy || "--",
+                      info: "-",
+                    }}
                     isStrategyCard={true}
                     selectedDuration={selectedAsset.duration}
                     onReset={handleReset}
@@ -587,7 +641,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
               onDurationSelect={(duration: DurationType) =>
                 handleDurationSelect("BTC", duration)
               }
-              isComingSoon={true}
+              availableDurations={["PERPETUAL_DURATION"]}
               className="w-[300px] h-[311px]"
               showRadialGradient={true}
               tvl={btcTvl}
