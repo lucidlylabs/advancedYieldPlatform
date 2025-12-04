@@ -443,13 +443,13 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
       {activeDepositTab === "deposits" && (
         <div className="h-[800px] overflow-y-auto pb-2">
-          <DepositBarChart />
+          <DepositBarChart strategyType={isBtcStrategy ? "BTC" : "USD"} />
         </div>
       )}
 
       {activeDepositTab === "allocation" && (
         <div className="overflow-y-auto pb-2">
-          <AllocationChart />
+          <AllocationChart strategyType={isBtcStrategy ? "BTC" : "USD"} />
         </div>
       )}
     </div>
@@ -489,13 +489,13 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
       {activeBaseApyTab === "totalApy" && (
         <div className="h-[800px] overflow-y-auto pb-2">
-          <BaseApyGraph vaultAddress={contractAddress} />
+          <BaseApyGraph vaultAddress={contractAddress} strategyType={isBtcStrategy ? "BTC" : "USD"} />
         </div>
       )}
 
       {activeBaseApyTab === "allocation" && (
         <div className="h-[800px] overflow-y-auto pb-2">
-          <AllocationReturnsChart />
+          <AllocationReturnsChart strategyType={isBtcStrategy ? "BTC" : "USD"} />
         </div>
       )}
     </div>
@@ -569,15 +569,8 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
             {isClient && isConnected && userDeposits !== "0.00" && (
               <Tooltip content={formatNetworkBalancesTooltip()} side="bottom">
                 <div className="flex items-center gap-2 bg-[rgba(255,255,255,0.05)] rounded-[4px] px-2 py-1.5 cursor-help">
-                  <span className="text-[#9C9DA2] text-[12px]">
-                    Your Holdings:
-                  </span>
-                  <span className="text-white text-[14px] font-medium">
-                    {userDeposits}
-                  </span>
-                  {/* Circular icon next to deposit amount */}
+                  {/* Strategy logo icon - shown first */}
                   <div className="w-4 h-4 rounded-full overflow-hidden flex items-center justify-center">
-        
                     <Image
                       src={strategyIcon}
                       alt={isBtcStrategy ? "syBTC" : "syUSD"}
@@ -586,6 +579,12 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                       className="object-contain"
                     />
                   </div>
+                  <span className="text-[#9C9DA2] text-[12px]">
+                    Your Holdings:
+                  </span>
+                  <span className="text-white text-[14px] font-medium">
+                    {userDeposits}
+                  </span>
                 </div>
               </Tooltip>
             )}

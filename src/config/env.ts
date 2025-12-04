@@ -224,7 +224,7 @@ export const BTC_STRATEGIES = {
       displayName: "Stable Yield BTC",
       type: "btc",
       network: "Arbitrum",
-      contract: "0x692A1752542259BCdE867bb17a06307FE78374c4", // drone-0
+      contract: "0xdE4FD4DD35F78389CDaCF111D7Ba31A31A61b2a7", // drone-0
       boringVaultAddress: "0xC0D48269f8d6E427B0637F5e0695De11C8E75F6c", // vault_address
       solverAddress: "0xD2e11B3E6f88bF1712cEAAE558D030da0c970F79", // QueueSolver
       shareAddress: "0xC0D48269f8d6E427B0637F5e0695De11C8E75F6c", // vault_address (same as boringVaultAddress)
@@ -265,12 +265,12 @@ export const BTC_STRATEGIES = {
       },
 
       description: "Perpetual syBTC strategy on Arbitrum network",
-      apy: "https://api.example.com/sybtc/apy", // REPLACE WITH ACTUAL APY ENDPOINT
+      apy: "", // Graph data not available for syBTC
       cap_limit: "0", // No cap limit
       filled_cap: "0",
       show_cap: false,
-      tvl: "https://api.example.com/sybtc/tvl", // REPLACE WITH ACTUAL TVL ENDPOINT
-      withdraw_request: "https://api.example.com/sybtc/withdrawals", // REPLACE WITH ACTUAL WITHDRAWAL ENDPOINT
+      tvl: "", // Graph data not available for syBTC
+      withdraw_request: "", // Graph data not available for syBTC
       rpc: "https://arb1.arbitrum.io/rpc",
     },
     INCENTIVE: {

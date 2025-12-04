@@ -37,10 +37,6 @@ interface ChartDataPoint {
   [key: string]: string | number | null | undefined;
 }
 
-interface AllocationReturnsChartProps {
-  // No props needed
-}
-
 // Create a consistent color mapping function based on strategy addresses
 // This ensures the same strategy gets the same color across all charts regardless of API order
 const createAddressBasedColorMap = (strategies: {address: string, name: string}[]): Record<string, string> => {
@@ -116,7 +112,11 @@ const COLORS = [
   "#98D8C8", // mint
 ];
 
-export default function AllocationReturnsChart({}: AllocationReturnsChartProps) {
+interface AllocationReturnsChartProps {
+  strategyType?: "USD" | "BTC" | "ETH";
+}
+
+export default function AllocationReturnsChart({ strategyType = "USD" }: AllocationReturnsChartProps) {
   const [data, setData] = useState<ChartDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
@@ -128,7 +128,18 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
     const fetchData = async () => {
       try {
         setLoading(true);
-        console.log(`Fetching Allocation Returns data for period: ${period}`);
+        
+        // For syBTC, if no endpoint is available, return empty data
+        if (strategyType === "BTC") {
+          console.log("syBTC allocation returns data not available");
+          setData([]);
+          setAllStrategies([]);
+          setSelectedStrategies(new Set());
+          setLoading(false);
+          return;
+        }
+
+        console.log(`Fetching Allocation Returns data for period: ${period}, strategy: ${strategyType}`);
 
         const response = await fetch(`https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/allocation-returns/returns?period=${period}`);
         // const response = await fetch(`http://localhost:3001/api/allocation-returns/returns?period=${period}`);
@@ -266,7 +277,7 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
     };
 
     fetchData();
-  }, [period]);
+  }, [period, strategyType]);
 
   const handleStrategyClick = (strategy: string) => {
     setSelectedStrategies((prev) => {
@@ -346,8 +357,8 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
 
   if (loading) {
     return (
-      <div className="pt-2 pl-6 pb-6 rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 mb-12 chart-container">
-        <div className="w-full h-[300px] flex items-center justify-center">
+      <div className="rounded-xl text-white w-full max-h-[600px] [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
+        <div className="w-full h-[300px] px-6 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
             <p className="text-gray-400 text-sm">
@@ -359,9 +370,23 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
     );
   }
 
+  // Show empty state for syBTC when no data
+  if (strategyType === "BTC" && data.length === 0) {
+    return (
+      <div className="rounded-xl text-white w-full max-h-[600px] [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
+        <div className="w-full h-[300px] px-6 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <p className="text-gray-400 text-sm">Allocation returns data not available for syBTC</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="pt-2 pl-6 pb-6 rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 mb-12 chart-container">
-      <div className="flex justify-between items-center mb-4">
+    <div className="w-full mb-12 overflow-x-hidden" style={{ overflowY: 'visible' }}>
+      <div className="pb-6 rounded-xl text-white w-full max-h-[600px] [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0" style={{ overflow: 'visible' }}>
+      <div className="flex justify-between items-center mb-4 px-6">
         <div className="text-lg font-semibold text-white"></div>
         <div className="flex gap-1 items-center">
           <button
@@ -396,11 +421,18 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
           </button>
         </div>
       </div>
-      <div className="w-full h-[400px]">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="w-full h-[345px] focus:outline-none focus:ring-0 focus:border-0" style={{ overflow: 'visible' }}>
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
+          className="focus:outline-none focus:ring-0 focus:border-0"
+          style={{ overflow: 'visible' }}
+        >
           <ComposedChart
             data={data}
-            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+            margin={{ top: 10, right: 20, left: -25, bottom: 20 }}
+            style={{ outline: "none", border: "none" }}
+            className="focus:outline-none focus:ring-0 focus:border-0"
           >
             <defs>
               {/* Neon glow effect for Base APY line */}
@@ -520,6 +552,7 @@ export default function AllocationReturnsChart({}: AllocationReturnsChartProps) 
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
