@@ -226,7 +226,7 @@ export const BTC_STRATEGIES = {
       network: "Arbitrum",
       contract: "0xdE4FD4DD35F78389CDaCF111D7Ba31A31A61b2a7", // drone-0
       boringVaultAddress: "0xC0D48269f8d6E427B0637F5e0695De11C8E75F6c", // vault_address
-      solverAddress: "0xD2e11B3E6f88bF1712cEAAE558D030da0c970F79", // QueueSolver
+      solverAddress: "0x2f2e71bdd62f87FCF8d19d234CA3bd903848D3a5", // QueueSolver
       shareAddress: "0xC0D48269f8d6E427B0637F5e0695De11C8E75F6c", // vault_address (same as boringVaultAddress)
       shareAddress_token_decimal: 8, // decimals
       rateProvider: "0xDda6274D69F464172CC7F52194d16FF27ec0D5A6", // accountant_address

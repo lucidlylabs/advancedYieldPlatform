@@ -81,7 +81,12 @@ interface NetworkConfig {
     contract: string;
     decimal: number;
     image: string;
+    isWithdrawable?: boolean;
   }>;
+  image?: string;
+  rpc?: string;
+  chainId?: number;
+  chainObject?: any;
 }
 
 interface TokenConfig {
@@ -89,6 +94,7 @@ interface TokenConfig {
   contract: string;
   decimal: number;
   image: string;
+  isWithdrawable?: boolean;
 }
 
 interface ChainConfig {
@@ -187,6 +193,7 @@ interface StrategyWithBalance {
   base: NetworkConfig;
   ethereum: NetworkConfig;
   arbitrum: NetworkConfig;
+  katana?: NetworkConfig;
   description: string;
   apy: string;
   incentives: string;
@@ -199,6 +206,7 @@ interface StrategyWithBalance {
   type: string;
   asset: string;
   balance: number;
+  image?: string; // Strategy icon/image
 }
 
 const ExternalLinkIcon = () => (
@@ -218,8 +226,25 @@ const ExternalLinkIcon = () => (
   </svg>
 );
 
-// Asset options based on chain
-const getWithdrawableAssets = (chain: string) => {
+// Asset options based on chain and strategy
+const getWithdrawableAssets = (chain: string, strategy?: StrategyWithBalance | null) => {
+  // If strategy is provided, use its network config
+  if (strategy) {
+    const chainConfig = strategy[chain as keyof typeof strategy] as NetworkConfig | undefined;
+    if (chainConfig && chainConfig.tokens) {
+      return chainConfig.tokens
+        .filter((token) => token.isWithdrawable)
+        .map((token) => ({
+          name: token.name,
+          contract: token.contract,
+          image: token.image,
+          decimal: token.decimal,
+          isWithdrawable: true,
+        }));
+    }
+  }
+
+  // Fallback to default behavior for backward compatibility
   if (chain === "ethereum") {
     return [
       {
@@ -227,6 +252,16 @@ const getWithdrawableAssets = (chain: string) => {
         contract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
         image: "/images/icons/usdc.svg",
         decimal: 6,
+        isWithdrawable: true,
+      },
+    ];
+  } else if (chain === "arbitrum") {
+    return [
+      {
+        name: "wBTC",
+        contract: "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f",
+        image: "/images/icons/wbtc.png",
+        decimal: 8,
         isWithdrawable: true,
       },
     ];
@@ -263,11 +298,29 @@ const findAssetByAddress = (address: string) => {
   return null;
 };
 
-const strategy = USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
-const chainConfigs = {
-  base: strategy.base,
-  ethereum: strategy.ethereum,
-  arbitrum: strategy.arbitrum,
+// Helper function to get chain configs for a strategy
+const getChainConfigs = (strategy: StrategyWithBalance | null): Record<string, any> => {
+  if (!strategy) return {};
+  
+  const configs: Record<string, any> = {};
+  
+  if (strategy.base) {
+    configs.base = strategy.base;
+  }
+  
+  if (strategy.ethereum) {
+    configs.ethereum = strategy.ethereum;
+  }
+  
+  if (strategy.arbitrum) {
+    configs.arbitrum = strategy.arbitrum;
+  }
+  
+  if (strategy.katana) {
+    configs.katana = strategy.katana;
+  }
+  
+  return configs;
 };
 
 const PortfolioSubpage: React.FC = () => {
@@ -323,6 +376,8 @@ const PortfolioSubpage: React.FC = () => {
   // Add state for custom dropdown
   const [isAssetDropdownOpen, setIsAssetDropdownOpen] = useState(false);
   const [depositedChains, setDepositedChains] = useState<string[]>([]);
+  // Store deposited chains per strategy (keyed by strategy contract address)
+  const [depositedChainsPerStrategy, setDepositedChainsPerStrategy] = useState<Record<string, string[]>>({});
   const [withdrawRequests, setWithdrawRequests] = useState<any[]>([]);
   const [completedRequests, setCompletedRequests] = useState<any[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
@@ -347,19 +402,34 @@ const PortfolioSubpage: React.FC = () => {
     }
   };
   
-  // Get withdrawable assets based on target chain
-  const withdrawableAssets = useMemo(
-    () => getWithdrawableAssets(targetChain),
-    [targetChain]
+  // Get chain configs for selected strategy
+  const chainConfigs = useMemo(
+    () => getChainConfigs(selectedStrategy),
+    [selectedStrategy]
   );
 
-  // Reset selected asset index and withdraw amount when chain changes
+  // Get withdrawable assets based on target chain and selected strategy
+  const withdrawableAssets = useMemo(
+    () => getWithdrawableAssets(targetChain, selectedStrategy),
+    [targetChain, selectedStrategy]
+  );
+
+  // Reset selected asset index and withdraw amount when chain or strategy changes
   useEffect(() => {
     setSelectedAssetIdx(0);
     setWithdrawAmount(""); // Reset withdrawal amount when changing networks
     setIsApproved(false); // Reset approval state when changing networks
     setApprovalHash(null); // Reset approval hash when changing networks
-  }, [targetChain]);
+    
+    // Set default target chain based on strategy
+    if (selectedStrategy) {
+      if (selectedStrategy.asset === "BTC") {
+        setTargetChain("arbitrum");
+      } else if (selectedStrategy.asset === "USD") {
+        setTargetChain("base"); // Default to base for USD
+      }
+    }
+  }, [targetChain, selectedStrategy]);
 
   // Debug: Log withdrawableAssets changes
   useEffect(() => {
@@ -380,9 +450,12 @@ const PortfolioSubpage: React.FC = () => {
 
       setIsLoadingNetworkBalance(true);
       try {
-        const chainConfig = chainConfigs[targetChain as keyof typeof chainConfigs];
+        // Get chain configs dynamically
+        const configs = getChainConfigs(selectedStrategy);
+        const chainConfig = configs[targetChain as keyof typeof configs];
+        
         if (!chainConfig) {
-          console.error(`No chain config found for: ${targetChain}`);
+          console.error(`No chain config found for: ${targetChain} on strategy ${selectedStrategy.asset}`);
           setSelectedStrategyNetworkBalance(0);
           setIsLoadingNetworkBalance(false);
           return;
@@ -425,7 +498,7 @@ const PortfolioSubpage: React.FC = () => {
     };
 
     fetchNetworkSpecificBalance();
-  }, [selectedStrategy, targetChain, address, chainConfigs, isWithdrawSuccessLocal]);
+  }, [selectedStrategy, targetChain, address, isWithdrawSuccessLocal]);
 
   // Keep legacy variable for compatibility
   const selectedStrategyEthereumBalance = selectedStrategyNetworkBalance;
@@ -433,12 +506,13 @@ const PortfolioSubpage: React.FC = () => {
   const [cancelStatusMap, setCancelStatusMap] = useState<{
     [key: string]: "idle" | "cancelling" | "cancelled";
   }>({});
-  const [pnlData, setPnlData] = useState<{
-    value: number;
-    percentage: number;
-    isProfitable: boolean;
-  } | null>(null);
-  const [isLoadingPnl, setIsLoadingPnl] = useState(false);
+  // PNL temporarily commented out
+  // const [pnlData, setPnlData] = useState<{
+  //   value: number;
+  //   percentage: number;
+  //   isProfitable: boolean;
+  // } | null>(null);
+  // const [isLoadingPnl, setIsLoadingPnl] = useState(false);
   const [exchangeRate, setExchangeRate] = useState<number>(1.0);
   const [isLoadingExchangeRate, setIsLoadingExchangeRate] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -461,59 +535,56 @@ const PortfolioSubpage: React.FC = () => {
       { name: string; network: string; image: string }
     >();
 
-    // Directly access the STABLE strategy within PERPETUAL_DURATION
-    const stablePerpetualConfig = USD_STRATEGIES.PERPETUAL_DURATION
-      .STABLE as unknown as StrategyConfig;
-
-    if (stablePerpetualConfig) {
-      if (stablePerpetualConfig.base && stablePerpetualConfig.base.image) {
+    if (selectedStrategy) {
+      // Get chains from selected strategy
+      if (selectedStrategy.base && selectedStrategy.base.image) {
         uniqueChains.set("base", {
           name: "Base",
           network: "base",
-          image: stablePerpetualConfig.base.image,
+          image: selectedStrategy.base.image,
         });
       }
-      if (
-        stablePerpetualConfig.ethereum &&
-        stablePerpetualConfig.ethereum.image
-      ) {
+      if (selectedStrategy.ethereum && selectedStrategy.ethereum.image) {
         uniqueChains.set("ethereum", {
           name: "Ethereum",
           network: "ethereum",
-          image: stablePerpetualConfig.ethereum.image,
+          image: selectedStrategy.ethereum.image,
         });
       }
-      if (
-        stablePerpetualConfig.arbitrum &&
-        stablePerpetualConfig.arbitrum.image
-      ) {
+      if (selectedStrategy.arbitrum && selectedStrategy.arbitrum.image) {
         uniqueChains.set("arbitrum", {
           name: "Arbitrum",
           network: "arbitrum",
-          image: stablePerpetualConfig.arbitrum.image,
+          image: selectedStrategy.arbitrum.image,
         });
       }
-      if (stablePerpetualConfig.katana && stablePerpetualConfig.katana.image) {
+      if (selectedStrategy.katana && selectedStrategy.katana.image) {
         uniqueChains.set("katana", {
           name: "Katana",
           network: "katana",
-          image: stablePerpetualConfig.katana.image,
+          image: selectedStrategy.katana.image,
         });
       }
     }
 
-    // Optionally, you can add other durations if they also define chain images
-    // For example:
-    // const stable30DaysConfig = USD_STRATEGIES["30_DAYS"].STABLE as StrategyConfig;
-    // if (stable30DaysConfig && stable30DaysConfig.base && stable30DaysConfig.base.image) {
-    //   uniqueChains.set("base", { name: "Base", network: "base", image: stable30DaysConfig.base.image });
-    // }
-
-    // Show both Base and Ethereum for withdrawals
-    return Array.from(uniqueChains.values()).filter(
-      (chain) => chain.network === "base" || chain.network === "ethereum"
-    );
-  }, [USD_STRATEGIES]);
+    // Filter chains based on strategy type
+    // syUSD: Base and Ethereum
+    // syBTC: Arbitrum only
+    // Others: All available chains
+    const filteredChains = Array.from(uniqueChains.values());
+    
+    if (selectedStrategy) {
+      if (selectedStrategy.asset === "USD") {
+        return filteredChains.filter(
+          (chain) => chain.network === "base" || chain.network === "ethereum"
+        );
+      } else if (selectedStrategy.asset === "BTC") {
+        return filteredChains.filter((chain) => chain.network === "arbitrum");
+      }
+    }
+    
+    return filteredChains;
+  }, [selectedStrategy]);
 
   // Watch deposit transaction
   const { isLoading: isWaitingForDeposit, isSuccess: isDepositSuccess } =
@@ -521,43 +592,90 @@ const PortfolioSubpage: React.FC = () => {
       hash: transactionHash || undefined,
     });
 
-  // Fetch exchange rate for syUSD to USD conversion
-  const fetchExchangeRate = async () => {
+  // Fetch exchange rate for strategy to underlying asset conversion
+  const fetchExchangeRate = async (strategy?: StrategyWithBalance | null) => {
     setIsLoadingExchangeRate(true);
     try {
-      // Use USDC as the quote token for USD conversion
-      const usdcContract = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
-      const strategyConfig = USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
-      const rateProviderAddress = strategyConfig.rateProvider;
+      // Use the selected strategy or default to first strategy with balance
+      const strategyToUse = strategy || strategiesWithBalance[0];
+      
+      if (!strategyToUse || !strategyToUse.rateProvider) {
+        console.log("No strategy or rate provider available, using fallback rate 1.0");
+        setExchangeRate(1.0);
+        setIsLoadingExchangeRate(false);
+        return;
+      }
 
-      // Base RPC URLs with fallbacks
-      const baseRpcUrls = [
-        "https://base.llamarpc.com",
-        "https://base.blockpi.network/v1/rpc/public",
-        "https://base-mainnet.g.alchemy.com/v2/demo",
-        "https://base.meowrpc.com",
+      // Get quote token based on strategy asset type
+      let quoteTokenContract: string;
+      let quoteTokenDecimals: number;
+      
+      if (strategyToUse.asset === "USD") {
+        // For USD strategies, use USDC on Base
+        quoteTokenContract = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+        quoteTokenDecimals = 6;
+      } else if (strategyToUse.asset === "BTC") {
+        // For BTC strategies, use wBTC on Arbitrum
+        quoteTokenContract = "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f";
+        quoteTokenDecimals = 8;
+      } else {
+        // Fallback
+        quoteTokenContract = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+        quoteTokenDecimals = 6;
+      }
+
+      const rateProviderAddress = strategyToUse.rateProvider;
+
+      // Get RPC URL based on strategy network
+      let rpcUrl: string;
+      let chainId: number;
+      let chainName: string;
+      
+      if (strategyToUse.asset === "BTC") {
+        // syBTC is on Arbitrum
+        rpcUrl = (strategyToUse.arbitrum as any)?.rpc || "https://arb1.arbitrum.io/rpc";
+        chainId = 42161;
+        chainName = "Arbitrum One";
+      } else {
+        // syUSD is on Base (default)
+        rpcUrl = (strategyToUse.base as any)?.rpc || "https://base.llamarpc.com";
+        chainId = 8453;
+        chainName = "Base";
+      }
+
+      // RPC URLs with fallbacks
+      const rpcUrls = [
+        rpcUrl,
+        ...(strategyToUse.asset === "BTC" 
+          ? ["https://arb1.arbitrum.io/rpc"]
+          : [
+              "https://base.llamarpc.com",
+              "https://base.blockpi.network/v1/rpc/public",
+              "https://base-mainnet.g.alchemy.com/v2/demo",
+              "https://base.meowrpc.com",
+            ]),
       ];
 
       let rate;
       let lastError;
 
       // Try each RPC URL until one works
-      for (const rpcUrl of baseRpcUrls) {
+      for (const rpc of rpcUrls) {
         try {
           const client = createPublicClient({
-            transport: http(rpcUrl),
+            transport: http(rpc),
             chain: {
-              id: 8453,
-              name: "Base",
-              network: "base",
+              id: chainId,
+              name: chainName,
+              network: strategyToUse.asset === "BTC" ? "arbitrum" : "base",
               nativeCurrency: {
                 decimals: 18,
                 name: "Ether",
                 symbol: "ETH",
               },
               rpcUrls: {
-                default: { http: [rpcUrl] },
-                public: { http: [rpcUrl] },
+                default: { http: [rpc] },
+                public: { http: [rpc] },
               },
             },
           });
@@ -566,15 +684,15 @@ const PortfolioSubpage: React.FC = () => {
             address: rateProviderAddress as Address,
             abi: RATE_PROVIDER_ABI,
             functionName: "getRateInQuoteSafe",
-            args: [usdcContract as Address],
+            args: [quoteTokenContract as Address],
           });
 
           console.log(
-            `Successfully fetched exchange rate using RPC: ${rpcUrl}`
+            `Successfully fetched exchange rate using RPC: ${rpc}`
           );
           break;
         } catch (error) {
-          console.warn(`RPC ${rpcUrl} failed:`, error);
+          console.warn(`RPC ${rpc} failed:`, error);
           lastError = error;
         }
       }
@@ -588,9 +706,9 @@ const PortfolioSubpage: React.FC = () => {
         rateLength: rate.toString().length,
       });
 
-      // USDC has 6 decimals, so format accordingly
-      // The rate represents how much USDC you get for 1 syUSD
-      const rateFormatted = formatUnits(rate as bigint, 6);
+      // Format rate based on quote token decimals
+      // The rate represents how much quote token you get for 1 share token
+      const rateFormatted = formatUnits(rate as bigint, quoteTokenDecimals);
       const rateNumber = parseFloat(rateFormatted);
 
       console.log(
@@ -606,7 +724,7 @@ const PortfolioSubpage: React.FC = () => {
       console.log(
         "🔥 EXCHANGE RATE FETCHED SUCCESSFULLY:",
         rateNumber,
-        "USD per syUSD"
+        `${strategyToUse.asset === "BTC" ? "wBTC" : "USD"} per ${strategyToUse.asset === "USD" ? "syUSD" : "syBTC"}`
       );
       console.log("🔥 Raw rate from contract:", rate.toString());
       console.log("🔥 Formatted rate:", rateFormatted);
@@ -620,43 +738,44 @@ const PortfolioSubpage: React.FC = () => {
     }
   };
 
-  // Fetch PnL data
-  const fetchPnlData = async (userAddress: string) => {
-    if (!userAddress) return;
+  // PNL temporarily commented out
+  // // Fetch PnL data
+  // const fetchPnlData = async (userAddress: string) => {
+  //   if (!userAddress) return;
 
-    setIsLoadingPnl(true);
-    try {
-      console.log(`Fetching PnL data for address: ${userAddress}`);
-      const response = await fetch(
-        `http://localhost:3001/api/pnl/${userAddress}`
-      );
+  //   setIsLoadingPnl(true);
+  //   try {
+  //     console.log(`Fetching PnL data for address: ${userAddress}`);
+  //     const response = await fetch(
+  //       `http://localhost:3001/api/pnl/${userAddress}`
+  //     );
 
-      console.log("PnL API Response status:", response.status);
-      console.log(
-        "PnL API Response headers:",
-        Object.fromEntries(response.headers.entries())
-      );
+  //     console.log("PnL API Response status:", response.status);
+  //     console.log(
+  //       "PnL API Response headers:",
+  //       Object.fromEntries(response.headers.entries())
+  //     );
 
-      const data = await response.json();
-      console.log("=== FULL PnL API RESPONSE ===");
-      console.log(JSON.stringify(data, null, 2));
-      console.log("=== END PnL API RESPONSE ===");
+  //     const data = await response.json();
+  //     console.log("=== FULL PnL API RESPONSE ===");
+  //     console.log(JSON.stringify(data, null, 2));
+  //     console.log("=== END PnL API RESPONSE ===");
 
-      if (data.success && data.data && data.data.pnl) {
-        console.log("PnL data received:", data.data.pnl);
-        setPnlData(data.data.pnl);
-      } else {
-        console.error("Failed to fetch PnL data:", data.message);
-        console.error("Full PnL error response:", data);
-        setPnlData(null);
-      }
-    } catch (error) {
-      console.error("Error fetching PnL data:", error);
-      setPnlData(null);
-    } finally {
-      setIsLoadingPnl(false);
-    }
-  };
+  //     if (data.success && data.data && data.data.pnl) {
+  //       console.log("PnL data received:", data.data.pnl);
+  //       setPnlData(data.data.pnl);
+  //     } else {
+  //       console.error("Failed to fetch PnL data:", data.message);
+  //       console.error("Full PnL error response:", data);
+  //       setPnlData(null);
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching PnL data:", error);
+  //     setPnlData(null);
+  //   } finally {
+  //     setIsLoadingPnl(false);
+  //   }
+  // };
 
   useEffect(() => {
     const apyUrl = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.apy;
@@ -687,17 +806,20 @@ const PortfolioSubpage: React.FC = () => {
     }
   }, []);
 
-  // Fetch exchange rate on component mount
+  // Fetch exchange rate when strategies with balance change or selected strategy changes
   useEffect(() => {
-    fetchExchangeRate();
-  }, []);
-
-  // Fetch PnL when address changes
-  useEffect(() => {
-    if (address && isConnected) {
-      fetchPnlData(address);
+    if (strategiesWithBalance.length > 0 || selectedStrategy) {
+      fetchExchangeRate(selectedStrategy);
     }
-  }, [address, isConnected]);
+  }, [strategiesWithBalance, selectedStrategy]);
+
+  // PNL temporarily commented out
+  // // Fetch PnL when address changes
+  // useEffect(() => {
+  //   if (address && isConnected) {
+  //     fetchPnlData(address);
+  //   }
+  // }, [address, isConnected]);
 
   // Watch for deposit completion
   useEffect(() => {
@@ -898,8 +1020,18 @@ const PortfolioSubpage: React.FC = () => {
     }
 
     let totalBalance = 0;
-    // Check both Base and Ethereum balances for withdrawals
-    const networks = ["base", "ethereum"];
+    // Determine which networks to check based on strategy asset
+    let networks: string[];
+    if (strategy.asset === "BTC") {
+      // syBTC is only on Arbitrum
+      networks = ["arbitrum"];
+    } else if (strategy.asset === "USD") {
+      // syUSD is on Base and Ethereum
+      networks = ["base", "ethereum"];
+    } else {
+      // Default: check all available networks
+      networks = ["base", "ethereum", "arbitrum"];
+    }
 
     for (const networkKey of networks) {
       const networkConfig = strategy[networkKey];
@@ -1073,12 +1205,55 @@ const PortfolioSubpage: React.FC = () => {
 
       // Process strategies sequentially to prevent rate limiting
       const balances: StrategyWithBalance[] = [];
+      const depositedChainsMap: Record<string, string[]> = {};
+      
       for (let i = 0; i < allStrategies.length; i++) {
         const strategy = allStrategies[i];
         const balance = await checkStrategyBalance(strategy);
+        
+        // Only fetch deposited chains for strategies with balance
+        if (balance > 0) {
+          try {
+            const configs = getChainConfigs(strategy as StrategyWithBalance);
+            if (Object.keys(configs).length > 0) {
+              console.log(`Fetching deposited chains for ${strategy.asset} strategy:`, {
+                contract: strategy.contract,
+                shareAddress: strategy.shareAddress,
+                boringVaultAddress: strategy.boringVaultAddress,
+                configs: Object.keys(configs),
+              });
+              
+              const depositedOn = await getDepositedChainsViem({
+                userAddress: address as Address,
+                strategy: strategy,
+                chainConfigs: configs as Record<string, {
+                  rpc: string;
+                  chainId: number;
+                  image: string;
+                  chainObject: any;
+                }>,
+              });
+              
+              console.log(`Deposited chains for ${strategy.contract}:`, depositedOn);
+              depositedChainsMap[strategy.contract] = depositedOn;
+            } else {
+              console.warn(`No chain configs found for strategy ${strategy.contract}`);
+              depositedChainsMap[strategy.contract] = [];
+            }
+          } catch (error) {
+            console.error(`Error fetching deposited chains for ${strategy.contract}:`, error);
+            depositedChainsMap[strategy.contract] = [];
+          }
+        } else {
+          // Even if balance is 0, initialize empty array
+          depositedChainsMap[strategy.contract] = [];
+        }
+        
         balances.push({ ...strategy, balance } as StrategyWithBalance);
       }
+      
       setStrategiesWithBalance(balances.filter((s) => s.balance > 0));
+      setDepositedChainsPerStrategy(depositedChainsMap);
     } catch (error) {
       // console.error("Error checking all balances:", error);
       setErrorMessage("Failed to fetch all balances.");
@@ -1504,14 +1679,39 @@ const PortfolioSubpage: React.FC = () => {
 
   const handlePercentageClick = (percentage: number) => {
     if (selectedStrategy) {
-      const amount = (selectedStrategyEthereumBalance * percentage).toFixed(2);
+      const calculatedAmount = selectedStrategyEthereumBalance * percentage;
+      
+      // For syBTC (8 decimals), preserve more decimal places
+      // For syUSD (6 decimals), 2 decimal places is usually enough
+      const decimals = selectedStrategy.shareAddress_token_decimal || 18;
+      const decimalPlaces = decimals === 8 ? 8 : decimals === 6 ? 6 : 2;
+      
+      // Format with appropriate decimal places, but remove trailing zeros
+      const amount = calculatedAmount.toFixed(decimalPlaces).replace(/\.?0+$/, '');
       setWithdrawAmount(amount);
+      
+      console.log("Percentage click:", {
+        percentage,
+        balance: selectedStrategyEthereumBalance,
+        calculatedAmount,
+        formattedAmount: amount,
+        decimals,
+      });
     }
   };
 
   const handleMaxClick = () => {
     if (selectedStrategy) {
-      setWithdrawAmount(selectedStrategyEthereumBalance.toString());
+      const decimals = selectedStrategy.shareAddress_token_decimal || 18;
+      const decimalPlaces = decimals === 8 ? 8 : decimals === 6 ? 6 : 2;
+      const amount = selectedStrategyEthereumBalance.toFixed(decimalPlaces).replace(/\.?0+$/, '');
+      setWithdrawAmount(amount);
+      
+      console.log("Max click:", {
+        balance: selectedStrategyEthereumBalance,
+        formattedAmount: amount,
+        decimals,
+      });
     }
   };
 
@@ -1547,6 +1747,15 @@ const PortfolioSubpage: React.FC = () => {
   }): Promise<string[]> => {
     const depositedChains: string[] = [];
 
+    // Use shareAddress (vault token address) to check balances
+    const vaultAddress = strategy.shareAddress || strategy.boringVaultAddress;
+    if (!vaultAddress) {
+      console.error("No shareAddress or boringVaultAddress found for strategy");
+      return [];
+    }
+
+    console.log(`Checking deposited chains for vault: ${vaultAddress}`);
+
     for (const [chainKey, chain] of Object.entries(chainConfigs)) {
       try {
         const client = createPublicClient({
@@ -1557,7 +1766,7 @@ const PortfolioSubpage: React.FC = () => {
         const decimals = strategy.shareAddress_token_decimal ?? 18;
 
         const balance = await client.readContract({
-          address: strategy.shareAddress as Address,
+          address: vaultAddress as Address,
           abi: ERC20_ABI,
           functionName: "balanceOf",
           args: [userAddress],
@@ -1565,46 +1774,59 @@ const PortfolioSubpage: React.FC = () => {
 
         const formatted = Number(formatUnits(balance as bigint, decimals));
 
-        console.log(`[${chainKey}] Balance: ${formatted}`);
+        console.log(`[${chainKey}] Balance for ${vaultAddress}: ${formatted}`);
 
         if (formatted > 0) {
           depositedChains.push(chainKey);
+          console.log(`Found deposit on ${chainKey}`);
         }
       } catch (err) {
-        console.error(`Error on ${chainKey}:`, err);
+        console.error(`Error checking balance on ${chainKey}:`, err);
+        // Continue to next chain instead of failing completely
       }
     }
 
+    console.log(`Total deposited chains found: ${depositedChains.join(", ")}`);
     return depositedChains;
   };
 
   useEffect(() => {
     const fetchDeposits = async () => {
-      if (!address || !strategy || !chainConfigs) {
+      if (!address || !selectedStrategy) {
         console.log("Missing required data:", {
           address,
-          strategy,
-          chainConfigs,
+          selectedStrategy,
         });
         return;
       }
+      
+      const configs = getChainConfigs(selectedStrategy);
+      if (Object.keys(configs).length === 0) {
+        return;
+      }
+      
       console.log("Fetching deposits with:", {
         address,
-        strategy,
-        chainConfigs,
+        selectedStrategy,
+        chainConfigs: configs,
       });
 
       const depositedOn = await getDepositedChainsViem({
         userAddress: address as Address,
-        strategy,
-        chainConfigs,
+        strategy: selectedStrategy,
+        chainConfigs: configs as Record<string, {
+          rpc: string;
+          chainId: number;
+          image: string;
+          chainObject: any;
+        }>,
       });
 
       setDepositedChains(depositedOn);
       console.log("Deposited on:", depositedOn);
     };
     fetchDeposits();
-  }, [address, strategy, chainConfigs]);
+  }, [address, selectedStrategy]);
 
   useEffect(() => {
     const fetchAmountOut = async () => {
@@ -1620,60 +1842,169 @@ const PortfolioSubpage: React.FC = () => {
       try {
         const solverAddress = selectedStrategy.solverAddress as Address;
         const vaultAddress = selectedStrategy.boringVaultAddress as Address;
-        const selectedAssetAddress = getAddress(
-          withdrawableAssets[selectedAssetIdx].contract
-        );
+        
+        // Ensure we have a valid asset selected
+        if (!withdrawableAssets || withdrawableAssets.length === 0) {
+          console.error("No withdrawable assets available for this strategy/chain");
+          setAmountOut(null);
+          setIsLoadingAmountOut(false);
+          return;
+        }
+        
+        // For syBTC, ensure we're using wBTC on Arbitrum
+        let selectedAsset = withdrawableAssets[selectedAssetIdx] || withdrawableAssets[0];
+        
+        // Validate asset matches strategy requirements
+        if (selectedStrategy.asset === "BTC" && targetChain === "arbitrum") {
+          // Ensure we're using wBTC
+          const wbtcAsset = withdrawableAssets.find(asset => 
+            asset.name === "wBTC" || 
+            asset.contract.toLowerCase() === "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f".toLowerCase()
+          );
+          if (wbtcAsset) {
+            selectedAsset = wbtcAsset;
+          }
+        }
+        
+        const selectedAssetAddress = getAddress(selectedAsset.contract);
 
-        // Get chain configuration based on target chain
-        const chainConfig =
-          chainConfigs[targetChain as keyof typeof chainConfigs];
-        const chainId = chainConfig?.chainId || 1;
-        const rpcUrl = chainConfig?.rpc || selectedStrategy.rpc;
+        // Get chain configuration based on target chain - use strategy's chain config directly
+        const strategyChainConfig = selectedStrategy[targetChain as keyof typeof selectedStrategy] as any;
+        const chainId = strategyChainConfig?.chainId || 
+          (targetChain === "arbitrum" ? 42161 : 
+           targetChain === "ethereum" ? 1 : 8453);
+        const rpcUrl = strategyChainConfig?.rpc || selectedStrategy.rpc;
 
+        console.log("=== PREVIEW ASSETS OUT DEBUG ===");
+        console.log("selectedStrategy.asset:", selectedStrategy.asset);
+        console.log("targetChain:", targetChain);
+        console.log("selectedAsset:", selectedAsset);
+        console.log("selectedAssetAddress:", selectedAssetAddress);
         console.log("rpc", rpcUrl);
         console.log("solverAddress", solverAddress);
         console.log("vaultAddress", vaultAddress);
-        console.log("targetChain", targetChain);
         console.log("chainId", chainId);
+
+        // Get chain object from strategy config or create default
+        const chainObject = strategyChainConfig?.chainObject || {
+          id: chainId,
+          name: targetChain === "arbitrum" ? "Arbitrum One" : 
+                targetChain === "ethereum" ? "Ethereum" : "Base",
+          network: targetChain,
+          nativeCurrency: {
+            decimals: 18,
+            name: "Ether",
+            symbol: "ETH",
+          },
+          rpcUrls: {
+            default: { http: [rpcUrl] },
+            public: { http: [rpcUrl] },
+          },
+        };
 
         const client = createPublicClient({
           transport: http(rpcUrl),
-          chain: chainConfig?.chainObject || {
-            id: chainId,
-            name: "Base",
-            network: "base",
-            nativeCurrency: {
-              decimals: 18,
-              name: "Ether",
-              symbol: "ETH",
-            },
-            rpcUrls: {
-              default: { http: [rpcUrl] },
-              public: { http: [rpcUrl] },
-            },
-          },
+          chain: chainObject,
         });
 
-        //Get decimals of the vault
-        const decimals = (await client.readContract({
-          address: vaultAddress as Address,
-          abi: ERC20_ABI,
-          functionName: "decimals",
-        })) as number;
+        // Use strategy's configured decimals (more reliable than fetching from contract)
+        // For syBTC: 8 decimals, for syUSD: 6 decimals
+        const strategyDecimals = selectedStrategy.shareAddress_token_decimal || 18;
+        
+        // Also fetch from contract to verify (but use strategy config as primary)
+        let contractDecimals: number;
+        try {
+          contractDecimals = (await client.readContract({
+            address: vaultAddress as Address,
+            abi: ERC20_ABI,
+            functionName: "decimals",
+          })) as number;
+          
+          // Log if there's a mismatch (shouldn't happen, but good to know)
+          if (contractDecimals !== strategyDecimals) {
+            console.warn(`Decimals mismatch: strategy config says ${strategyDecimals}, contract says ${contractDecimals}. Using strategy config.`);
+          }
+        } catch (error) {
+          console.warn("Could not fetch decimals from contract, using strategy config:", error);
+          contractDecimals = strategyDecimals;
+        }
+        
+        // Use strategy decimals as primary source
+        const decimals = strategyDecimals;
+
+        // Validate withdraw amount
+        const withdrawAmountNum = parseFloat(withdrawAmount);
+        if (isNaN(withdrawAmountNum) || withdrawAmountNum <= 0) {
+          console.error("Invalid withdraw amount:", withdrawAmount);
+          setAmountOut(null);
+          setIsLoadingAmountOut(false);
+          return;
+        }
 
         //Convert withdrawAmount to uint128 (BigInt)
         const shares = parseUnits(withdrawAmount, decimals);
+        
+        // Check if shares amount is too small (less than 1 in smallest unit)
+        if (shares === BigInt(0)) {
+          console.error("Shares amount is zero after conversion");
+          setAmountOut(null);
+          setIsLoadingAmountOut(false);
+          return;
+        }
+        
+        // For syBTC with 8 decimals, check if amount is reasonable
+        // Minimum might be 0.00000001 (1 in smallest unit)
+        if (selectedStrategy.asset === "BTC" && shares < BigInt(1)) {
+          console.warn("Amount might be too small for syBTC. Minimum is 0.00000001 syBTC");
+        }
+
         const discount = 0;
 
-        //Call the previewAssetsOut
-        const result = await client.readContract({
-          address: solverAddress as Address,
-          abi: SOLVER_ABI,
-          functionName: "previewAssetsOut",
-          args: [selectedAssetAddress, shares, discount],
-        });
+        console.log("=== PREVIEW ASSETS OUT CALL ===");
+        console.log("solverAddress:", solverAddress);
+        console.log("selectedAssetAddress:", selectedAssetAddress);
+        console.log("shares (raw):", shares.toString());
+        console.log("shares (formatted):", formatUnits(shares, decimals));
+        console.log("decimals:", decimals);
+        console.log("discount:", discount);
 
-        setAmountOut(result.toString());
+        //Call the previewAssetsOut
+        try {
+          const result = await client.readContract({
+            address: solverAddress as Address,
+            abi: SOLVER_ABI,
+            functionName: "previewAssetsOut",
+            args: [selectedAssetAddress, shares, discount],
+          });
+
+          console.log("previewAssetsOut result:", result.toString());
+          setAmountOut(result.toString());
+        } catch (error: any) {
+          console.error("Error calling previewAssetsOut:", error);
+          console.error("Error details:", {
+            solverAddress,
+            selectedAssetAddress,
+            shares: shares.toString(),
+            discount,
+            withdrawAmount,
+            decimals,
+            strategyAsset: selectedStrategy.asset,
+            targetChain,
+          });
+          
+          // If the error is about the contract reverting, it might be:
+          // 1. Amount too small
+          // 2. Asset not whitelisted
+          // 3. Invalid parameters
+          if (error.message?.includes("revert") || error.message?.includes("execution reverted")) {
+            console.error("Contract reverted - possible reasons:");
+            console.error("- Amount might be too small (minimum not met)");
+            console.error("- Asset address might not be whitelisted");
+            console.error("- Invalid contract state");
+          }
+          
+          setAmountOut(null);
+        }
       } catch (err) {
         console.error("Error reading previewAssetsOut:", err);
         setAmountOut(null);
@@ -1697,8 +2028,10 @@ const PortfolioSubpage: React.FC = () => {
   ) => {
     setIsLoadingRequests(true);
     try {
+      // Use provided vault address or fallback to syUSD vault
+      const vaultAddr = vaultAddress || "0x279CAD277447965AF3d24a78197aad1B02a2c589";
       const response = await fetch(
-        `https://api.lucidly.finance/services/queueData?vaultAddress=0x279CAD277447965AF3d24a78197aad1B02a2c589&userAddress=${userAddress}`
+        `https://api.lucidly.finance/services/queueData?vaultAddress=${vaultAddr}&userAddress=${userAddress}`
       );
       const data = await response.json();
       console.log("response:", response);
@@ -1715,10 +2048,11 @@ const PortfolioSubpage: React.FC = () => {
 
   useEffect(() => {
     if (address) {
-      console.log("withdrwaimg");
-      fetchWithdrawRequests("", address);
+      // Use selected strategy's vault address if available, otherwise use syUSD default
+      const vaultAddress = selectedStrategy?.boringVaultAddress || "";
+      fetchWithdrawRequests(vaultAddress, address);
     }
-  }, [address]);
+  }, [address, selectedStrategy]);
 
   useEffect(() => {
     console.log("Fetched withdraw requests:", withdrawRequests);
@@ -1726,8 +2060,8 @@ const PortfolioSubpage: React.FC = () => {
 
   // Call cacheQueueData API when withdrawal is successful
   useEffect(() => {
-    if (isWithdrawSuccess && withdrawTxHash && address) {
-      const vaultAddress = "0x279CAD277447965AF3d24a78197aad1B02a2c589";
+    if (isWithdrawSuccess && withdrawTxHash && address && selectedStrategy) {
+      const vaultAddress = selectedStrategy.boringVaultAddress || "0x279CAD277447965AF3d24a78197aad1B02a2c589";
       const apiUrl = `https://api.lucidly.finance/services/cacheQueueData?vaultAddress=${vaultAddress}&userAddress=${address}`;
       fetch(apiUrl, { method: "GET" })
         .then((res) => res.json())
@@ -1745,7 +2079,7 @@ const PortfolioSubpage: React.FC = () => {
           console.error("Error calling cacheQueueData API:", err);
         });
     }
-  }, [isWithdrawSuccess, withdrawTxHash, address]);
+  }, [isWithdrawSuccess, withdrawTxHash, address, selectedStrategy]);
 
   const headerHeight = useHeaderHeight();
 
@@ -1831,7 +2165,22 @@ const PortfolioSubpage: React.FC = () => {
               <div className="flex flex-col items-center sm:items-start">
                 <div className="flex items-center gap-2 text-[#9C9DA2] text-[14px] font-normal leading-[16px]">
                   Withdrawable{" "}
-                  <Tooltip content="Withdrawals are available on Base and Ethereum networks." side="bottom">
+                  <Tooltip 
+                    content={
+                      strategiesWithWithdrawableBalance.some(s => s.asset === "BTC") && 
+                      strategiesWithWithdrawableBalance.some(s => s.asset === "USD")
+                        ? (
+                          <div>
+                            <strong>syUSD</strong> withdrawals are on Base and Ethereum.<br />
+                            <strong>syBTC</strong> withdrawals are on Arbitrum.
+                          </div>
+                        )
+                        : strategiesWithWithdrawableBalance.some(s => s.asset === "BTC")
+                        ? <div><strong>syBTC</strong> withdrawals are on Arbitrum.</div>
+                        : <div><strong>syUSD</strong> withdrawals are on Base and Ethereum.</div>
+                    }
+                    side="bottom"
+                  >
                     <button type="button" className="cursor-help">
                       <InfoIcon />
                     </button>
@@ -1891,8 +2240,9 @@ const PortfolioSubpage: React.FC = () => {
                   )}
                 </div>
               </div>
+              {/* PNL temporarily commented out */}
               {/* Vertical Divider */}
-              <div className="w-px bg-[rgba(217,217,217,0.05)] self-stretch mx-4 sm:mx-8 hidden sm:block"></div>
+              {/* <div className="w-px bg-[rgba(217,217,217,0.05)] self-stretch mx-4 sm:mx-8 hidden sm:block"></div>
               <div className="flex flex-col items-center sm:items-start">
                 <div className="text-[#9C9DA2] text-[14px] font-normal leading-[16px]">
                   PNL
@@ -1927,7 +2277,7 @@ const PortfolioSubpage: React.FC = () => {
                         <path
                           className="opacity-75"
                           fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                         ></path>
                       </svg>
                       <span>Loading...</span>
@@ -1944,7 +2294,7 @@ const PortfolioSubpage: React.FC = () => {
                     "$0.0000 (0.00%)"
                   )}
                 </div>
-              </div>
+              </div> */}
             </div>
           </div>
           <div className="flex flex-col w-full sm:w-auto justify-center items-center sm:items-end gap-2 py-[10px] px-4 rounded-[4px] border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] mt-4 sm:mt-0">
@@ -2122,7 +2472,7 @@ const PortfolioSubpage: React.FC = () => {
                     {/* Strategy Name */}
                     <div className="flex items-center gap-4">
                       <Image
-                        src={`/images/icons/${strategy.asset.toLowerCase()}-${
+                        src={strategy.image || `/images/icons/${strategy.asset.toLowerCase()}-${
                           strategy.type === "stable" ? "stable" : "incentive"
                         }.svg`}
                         alt={strategy.asset}
@@ -2164,27 +2514,36 @@ const PortfolioSubpage: React.FC = () => {
 
                     {/* Deposited on */}
                     <div className="flex justify-end text-[#EDF2F8] text-[12px] font-normal">
-                      {depositedChains.length > 0 ? (
-                        <div className="flex items-center gap-1">
-                          {depositedChains.map((chain, idx) => (
-                            <div key={chain} className="flex items-center">
-                              <img
-                                src={
-                                  chainIconMap[chain]?.src ||
-                                  "/images/logo/base.svg"
-                                }
-                                alt={chain}
-                                className="w-4 h-4 rounded-full"
-                              />
-                              {idx < depositedChains.length - 1 && (
-                                <span className="mx-1">,</span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        "-"
-                      )}
+                      {(() => {
+                        // Get deposited chains for this specific strategy
+                        const strategyDepositedChains = depositedChainsPerStrategy[strategy.contract] || [];
+                        console.log(`Displaying deposited chains for ${strategy.contract} (${strategy.asset}):`, {
+                          contract: strategy.contract,
+                          chains: strategyDepositedChains,
+                          allDepositedChains: depositedChainsPerStrategy,
+                        });
+                        return strategyDepositedChains.length > 0 ? (
+                          <div className="flex items-center gap-1">
+                            {strategyDepositedChains.map((chain, idx) => (
+                              <div key={chain} className="flex items-center">
+                                <img
+                                  src={
+                                    chainIconMap[chain]?.src ||
+                                    "/images/logo/base.svg"
+                                  }
+                                  alt={chain}
+                                  className="w-4 h-4 rounded-full"
+                                />
+                                {idx < strategyDepositedChains.length - 1 && (
+                                  <span className="mx-1">,</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          "-"
+                        );
+                      })()}
                     </div>
 
                     {/* Expiry */}
@@ -2212,7 +2571,11 @@ const PortfolioSubpage: React.FC = () => {
                     {/* Current Balance */}
                     <div className="flex justify-end text-[#EDF2F8] text-[12px] font-normal">
                       {isClient
-                        ? `$${(strategy.balance * exchangeRate).toFixed(2)}`
+                        ? (() => {
+                            // For syBTC, show 6 decimal places; for syUSD, show 2
+                            const decimalPlaces = strategy.asset === "BTC" ? 6 : 2;
+                            return `$${(strategy.balance * exchangeRate).toFixed(decimalPlaces)}`;
+                          })()
                         : "$0.00"}
                     </div>
                   </div>
@@ -2417,7 +2780,7 @@ const PortfolioSubpage: React.FC = () => {
                         <div className="flex items-end justify-between p-4 rounded-tl-[4px] rounded-tr-[4px] bg-[rgba(255,255,255,0.02)] border-b border-[rgba(255,255,255,0.15)]">
                           <div className="flex items-start gap-4">
                             <Image
-                              src={`/images/icons/${selectedStrategy.asset.toLowerCase()}-${
+                              src={selectedStrategy.image || `/images/icons/${selectedStrategy.asset.toLowerCase()}-${
                                 selectedStrategy.type === "stable"
                                   ? "stable"
                                   : "incentive"
@@ -2442,7 +2805,7 @@ const PortfolioSubpage: React.FC = () => {
                             </div>
                           </div>
                           <div className="text-[#9C9DA2] text-right   text-[12px] font-normal leading-normal">
-                            Balance ({targetChain === "ethereum" ? "Ethereum" : "Base"}):{" "}
+                            Balance ({targetChain === "ethereum" ? "Ethereum" : targetChain === "arbitrum" ? "Arbitrum" : "Base"}):{" "}
                             <span className="text-[#D7E3EF] text-[12px] font-semibold leading-normal">
                               {isLoadingNetworkBalance ? (
                                 <span className="inline-flex items-center gap-1">
@@ -2473,9 +2836,11 @@ const PortfolioSubpage: React.FC = () => {
                                   $
                                   {(
                                     selectedStrategyEthereumBalance * exchangeRate
-                                  ).toFixed(2)}{" "}
-                                  ({selectedStrategyEthereumBalance.toFixed(2)}{" "}
-                                  syUSD)
+                                  ).toFixed(selectedStrategy?.asset === "BTC" ? 6 : 2)}{" "}
+                                  ({selectedStrategyEthereumBalance.toFixed(
+                                    selectedStrategy?.asset === "BTC" ? 6 : 2
+                                  )}{" "}
+                                  {selectedStrategy?.asset === "BTC" ? "syBTC" : "syUSD"})
                                 </>
                               )}
                             </span>
@@ -2563,16 +2928,31 @@ const PortfolioSubpage: React.FC = () => {
                                 </span>
                               ) : withdrawAmount && amountOut ? (
                                 <>
-                                  {Number(
-                                    formatUnits(
-                                      BigInt(amountOut),
-                                      6
-                                    )
-                                  ).toFixed(2)}{" "}
-                                  {withdrawableAssets[selectedAssetIdx]?.name || "USDC"}
+                                  {(() => {
+                                    const assetName = withdrawableAssets[selectedAssetIdx]?.name || (selectedStrategy?.asset === "BTC" ? "wBTC" : "USDC");
+                                    const isBTC = assetName === "wBTC" || selectedStrategy?.asset === "BTC";
+                                    const decimalPlaces = isBTC ? 6 : 2;
+                                    return (
+                                      <>
+                                        {Number(
+                                          formatUnits(
+                                            BigInt(amountOut),
+                                            withdrawableAssets[selectedAssetIdx]?.decimal || 6
+                                          )
+                                        ).toFixed(decimalPlaces)}{" "}
+                                        {assetName}
+                                      </>
+                                    );
+                                  })()}
                                 </>
                               ) : withdrawAmount ? (
-                                <span className="text-[#9C9DA2]">0.00 USDC</span>
+                                <span className="text-[#9C9DA2]">
+                                  {(() => {
+                                    const assetName = withdrawableAssets[selectedAssetIdx]?.name || (selectedStrategy?.asset === "BTC" ? "wBTC" : "USDC");
+                                    const isBTC = assetName === "wBTC" || selectedStrategy?.asset === "BTC";
+                                    return isBTC ? `0.000000 ${assetName}` : `0.00 ${assetName}`;
+                                  })()}
+                                </span>
                               ) : (
                                 <span className="text-[#9C9DA2]">-</span>
                               )}
@@ -2661,25 +3041,38 @@ const PortfolioSubpage: React.FC = () => {
 
                         <button
                           className={`w-full py-4 rounded-[4px] border border-[rgba(255,255,255,0.30)] flex justify-center items-center gap-[10px] text-center text-[16px] font-semibold ${
-                            (targetChain === "ethereum" && chainId !== 1) || (targetChain === "base" && chainId !== 8453)
+                            (targetChain === "ethereum" && chainId !== 1) || 
+                            (targetChain === "base" && chainId !== 8453) ||
+                            (targetChain === "arbitrum" && chainId !== 42161)
                               ? "bg-[#383941] text-black hover:bg-[#4a4d56] transition-colors cursor-pointer"
                               : isWithdrawing || isApproving
                               ? "bg-[#2D2F3D] text-[#9C9DA2] cursor-not-allowed"
                               : "bg-[#B88AF8] text-[#080B17] hover:bg-[#9F6EE9] transition-colors"
                           }`}
                           onClick={async () => {
-                            const targetChainId = targetChain === "ethereum" ? 1 : 8453;
+                            const targetChainId = 
+                              targetChain === "ethereum" ? 1 :
+                              targetChain === "arbitrum" ? 42161 :
+                              8453; // base
                             const isOnCorrectNetwork = chainId === targetChainId;
                             
                             if (!isOnCorrectNetwork) {
                               // Switch to the target network
                               try {
-                                console.log(`Attempting to switch to ${targetChain} network...`);
+                                const chainName = 
+                                  targetChain === "ethereum" ? "Ethereum" :
+                                  targetChain === "arbitrum" ? "Arbitrum" :
+                                  "Base";
+                                console.log(`Attempting to switch to ${chainName} network...`);
                                 await switchChain({ chainId: targetChainId });
-                                console.log(`Successfully switched to ${targetChain} network`);
+                                console.log(`Successfully switched to ${chainName} network`);
                               } catch (error) {
                                 console.error("Failed to switch network:", error);
-                                setErrorMessage(`Please switch to ${targetChain} network manually in your wallet`);
+                                const chainName = 
+                                  targetChain === "ethereum" ? "Ethereum" :
+                                  targetChain === "arbitrum" ? "Arbitrum" :
+                                  "Base";
+                                setErrorMessage(`Please switch to ${chainName} network manually in your wallet`);
                               }
                             } else if (isWithdrawSuccessLocal) {
                               // Reset state for another withdrawal
@@ -2695,7 +3088,9 @@ const PortfolioSubpage: React.FC = () => {
                             }
                           }}
                           disabled={
-                            ((targetChain === "ethereum" && chainId === 1) || (targetChain === "base" && chainId === 8453)) && (
+                            ((targetChain === "ethereum" && chainId === 1) || 
+                             (targetChain === "base" && chainId === 8453) ||
+                             (targetChain === "arbitrum" && chainId === 42161)) && (
                               isWithdrawing ||
                               isApproving ||
                               !!(isWaitingForWithdraw && withdrawTxHash) ||
@@ -2809,8 +3204,14 @@ const PortfolioSubpage: React.FC = () => {
                             "Request Another Withdraw"
                           ) : isApproved ? (
                             "Approved - Click to Withdraw"
-                          ) : (targetChain === "ethereum" && chainId !== 1) || (targetChain === "base" && chainId !== 8453) ? (
-                            `Switch to ${targetChain === "ethereum" ? "Ethereum" : "Base"} Network`
+                          ) : (targetChain === "ethereum" && chainId !== 1) || 
+                               (targetChain === "base" && chainId !== 8453) ||
+                               (targetChain === "arbitrum" && chainId !== 42161) ? (
+                            `Switch to ${
+                              targetChain === "ethereum" ? "Ethereum" :
+                              targetChain === "arbitrum" ? "Arbitrum" :
+                              "Base"
+                            } Network`
                           ) : (
                             "Request Withdraw"
                           )}
@@ -2830,9 +3231,7 @@ const PortfolioSubpage: React.FC = () => {
                                 Transaction Successful
                               </div>
                               <a
-                                href={targetChain === "ethereum" 
-                                  ? `https://etherscan.io/tx/${withdrawTxHash}`
-                                  : `https://basescan.org/tx/${withdrawTxHash}`}
+                                href={getExplorerUrl(targetChain, withdrawTxHash)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-[#00D1A0]   text-[14px] underline hover:text-[#00D1A0]/80"
