@@ -251,7 +251,7 @@ export const USD_STRATEGIES = {
       cap_limit: "",
       filled_cap: "",
       show_cap: false,
-      tvl: "",
+      tvl: "https://api.lucidly.finance/services/aum_data?vaultName=syHLP",
       withdraw_request: "",
       rpc: "",
     },

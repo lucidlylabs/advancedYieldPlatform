@@ -194,6 +194,7 @@ interface StrategyWithBalance {
   ethereum: NetworkConfig;
   arbitrum: NetworkConfig;
   katana?: NetworkConfig;
+  hyperEVM?: NetworkConfig; // Add hyperEVM support
   description: string;
   apy: string;
   incentives: string;
@@ -207,6 +208,8 @@ interface StrategyWithBalance {
   asset: string;
   balance: number;
   image?: string; // Strategy icon/image
+  name?: string; // Strategy name (e.g., "syUSD", "syHLP")
+  displayName?: string; // Display name
 }
 
 const ExternalLinkIcon = () => (
@@ -230,7 +233,9 @@ const ExternalLinkIcon = () => (
 const getWithdrawableAssets = (chain: string, strategy?: StrategyWithBalance | null) => {
   // If strategy is provided, use its network config
   if (strategy) {
-    const chainConfig = strategy[chain as keyof typeof strategy] as NetworkConfig | undefined;
+    // Handle hyperliquid chain (maps to hyperEVM in strategy config)
+    const chainKey = chain === "hyperliquid" ? "hyperEVM" : chain;
+    const chainConfig = (strategy as any)[chainKey] as NetworkConfig | undefined;
     if (chainConfig && chainConfig.tokens) {
       return chainConfig.tokens
         .filter((token) => token.isWithdrawable)
@@ -320,6 +325,10 @@ const getChainConfigs = (strategy: StrategyWithBalance | null): Record<string, a
     configs.katana = strategy.katana;
   }
   
+  if ((strategy as any).hyperEVM) {
+    configs.hyperliquid = (strategy as any).hyperEVM;
+  }
+  
   return configs;
 };
 
@@ -383,7 +392,11 @@ const PortfolioSubpage: React.FC = () => {
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
   const [usdApy, setUsdApy] = useState<string | null>(null);
   const [isChainDropdownOpen, setIsChainDropdownOpen] = useState(false);
-  const [targetChain, setTargetChain] = useState<string>("base");
+  // Initialize targetChain based on selectedStrategy if available
+  const [targetChain, setTargetChain] = useState<string>(() => {
+    // This will be set by useEffect when selectedStrategy changes
+    return "base";
+  });
   const [selectedStrategyNetworkBalance, setSelectedStrategyNetworkBalance] = useState<number>(0);
   const [isLoadingNetworkBalance, setIsLoadingNetworkBalance] = useState(false);
   
@@ -417,22 +430,29 @@ const PortfolioSubpage: React.FC = () => {
     [targetChain, selectedStrategy]
   );
 
-  // Reset selected asset index and withdraw amount when chain or strategy changes
+  // Reset selected asset index and withdraw amount when chain changes
   useEffect(() => {
     setSelectedAssetIdx(0);
     setWithdrawAmount(""); // Reset withdrawal amount when changing networks
     setIsApproved(false); // Reset approval state when changing networks
     setApprovalHash(null); // Reset approval hash when changing networks
-    
-    // Set default target chain based on strategy
+  }, [targetChain]);
+  
+  // Set default target chain based on strategy when strategy changes
+  useEffect(() => {
     if (selectedStrategy) {
-      if (selectedStrategy.asset === "BTC") {
+      // Check if it's syHLP by name or hyperEVM config
+      const isSyHLP = (selectedStrategy as any).name === "syHLP" || (selectedStrategy as any).hyperEVM;
+      
+      if (isSyHLP) {
+        setTargetChain("hyperliquid"); // syHLP is only on HyperLiquid
+      } else if (selectedStrategy.asset === "BTC") {
         setTargetChain("arbitrum");
       } else if (selectedStrategy.asset === "USD") {
-        setTargetChain("base"); // Default to base for USD
+        setTargetChain("base"); // Default to base for USD (syUSD)
       }
     }
-  }, [targetChain, selectedStrategy]);
+  }, [selectedStrategy]);
 
   // Debug: Log withdrawableAssets changes
   useEffect(() => {
@@ -572,16 +592,29 @@ const PortfolioSubpage: React.FC = () => {
           image: selectedStrategy.katana.image,
         });
       }
+      if ((selectedStrategy as any).hyperEVM && (selectedStrategy as any).hyperEVM.image) {
+        uniqueChains.set("hyperliquid", {
+          name: "HyperEVM",
+          network: "hyperliquid",
+          image: (selectedStrategy as any).hyperEVM.image,
+        });
+      }
     }
 
     // Filter chains based on strategy type
     // syUSD: Base and Ethereum
     // syBTC: Arbitrum only
+    // syHLP: HyperEVM only
     // Others: All available chains
     const filteredChains = Array.from(uniqueChains.values());
     
     if (selectedStrategy) {
-      if (selectedStrategy.asset === "USD") {
+      // Check if it's syHLP by name or hyperEVM config
+      const isSyHLP = (selectedStrategy as any).name === "syHLP" || (selectedStrategy as any).hyperEVM;
+      
+      if (isSyHLP) {
+        return filteredChains.filter((chain) => chain.network === "hyperliquid");
+      } else if (selectedStrategy.asset === "USD") {
         return filteredChains.filter(
           (chain) => chain.network === "base" || chain.network === "ethereum"
         );
@@ -637,6 +670,11 @@ const PortfolioSubpage: React.FC = () => {
         rpcUrl = (strategy.arbitrum as any)?.rpc || "https://arb1.arbitrum.io/rpc";
         chainId = 42161;
         chainName = "Arbitrum One";
+      } else if ((strategy as any).name === "syHLP" || (strategy as any).hyperEVM) {
+        // syHLP is on HyperEVM
+        rpcUrl = ((strategy as any).hyperEVM as any)?.rpc || "https://rpc.hypurrscan.io";
+        chainId = 999;
+        chainName = "HyperLiquid";
       } else {
         // syUSD is on Base (default)
         rpcUrl = (strategy.base as any)?.rpc || "https://base.llamarpc.com";
@@ -1038,11 +1076,21 @@ const PortfolioSubpage: React.FC = () => {
       }
 
       let totalBalance = 0;
-      // Check all networks (Base, Ethereum, Arbitrum)
-      const networks = ["base", "ethereum", "arbitrum"];
+      // Check all networks (Base, Ethereum, Arbitrum, HyperEVM)
+      // Determine which networks to check based on strategy
+      let networks: string[];
+      if (strategy.asset === "BTC") {
+        networks = ["arbitrum"];
+      } else if ((strategy as any).name === "syHLP" || (strategy as any).hyperEVM) {
+        networks = ["hyperliquid"]; // syHLP is only on HyperEVM
+      } else {
+        networks = ["base", "ethereum", "arbitrum"]; // syUSD checks Base and Ethereum
+      }
 
       for (const networkKey of networks) {
-        const networkConfig = strategy[networkKey];
+        // Handle hyperliquid -> hyperEVM mapping
+        const configKey = networkKey === "hyperliquid" ? "hyperEVM" : networkKey;
+        const networkConfig = (strategy as any)[configKey];
 
         // Skip if network config doesn't exist
         if (!networkConfig || !networkConfig.rpc || !networkConfig.chainId) {
@@ -1129,6 +1177,9 @@ const PortfolioSubpage: React.FC = () => {
     if (strategy.asset === "BTC") {
       // syBTC is only on Arbitrum
       networks = ["arbitrum"];
+    } else if ((strategy as any).name === "syHLP" || (strategy as any).hyperEVM) {
+      // syHLP is only on HyperEVM
+      networks = ["hyperliquid"];
     } else if (strategy.asset === "USD") {
       // syUSD is on Base and Ethereum
       networks = ["base", "ethereum"];
@@ -1274,36 +1325,42 @@ const PortfolioSubpage: React.FC = () => {
       const allStrategies = [
         ...Object.entries(USD_STRATEGIES as unknown as StrategyAsset).flatMap(
           ([duration, strategies]) =>
-            Object.entries(strategies as StrategyDuration).map(
-              ([type, strategy]) => ({
-                ...strategy,
-                duration,
-                type: type.toLowerCase(),
-                asset: "USD",
-              })
-            )
+            Object.entries(strategies as StrategyDuration)
+              .filter(([type]) => type !== "INCENTIVE") // Skip INCENTIVE config
+              .map(
+                ([type, strategy]) => ({
+                  ...strategy,
+                  duration,
+                  type: type.toLowerCase(),
+                  asset: "USD",
+                })
+              )
         ),
         ...Object.entries(BTC_STRATEGIES as unknown as StrategyAsset).flatMap(
           ([duration, strategies]) =>
-            Object.entries(strategies as StrategyDuration).map(
-              ([type, strategy]) => ({
-                ...strategy,
-                duration,
-                type: type.toLowerCase(),
-                asset: "BTC",
-              })
-            )
+            Object.entries(strategies as StrategyDuration)
+              .filter(([type]) => type !== "INCENTIVE") // Skip INCENTIVE config
+              .map(
+                ([type, strategy]) => ({
+                  ...strategy,
+                  duration,
+                  type: type.toLowerCase(),
+                  asset: "BTC",
+                })
+              )
         ),
         ...Object.entries(ETH_STRATEGIES as unknown as StrategyAsset).flatMap(
           ([duration, strategies]) =>
-            Object.entries(strategies as StrategyDuration).map(
-              ([type, strategy]) => ({
-                ...strategy,
-                duration,
-                type: type.toLowerCase(),
-                asset: "ETH",
-              })
-            )
+            Object.entries(strategies as StrategyDuration)
+              .filter(([type]) => type !== "INCENTIVE") // Skip INCENTIVE config
+              .map(
+                ([type, strategy]) => ({
+                  ...strategy,
+                  duration,
+                  type: type.toLowerCase(),
+                  asset: "ETH",
+                })
+              )
         ),
       ];
 
@@ -1356,10 +1413,14 @@ const PortfolioSubpage: React.FC = () => {
         balances.push({ ...strategy, balance } as StrategyWithBalance);
       }
       
-      // Always include syBTC even if balance is 0, otherwise filter to only show strategies with balance
+      // Always include syBTC and syHLP even if balance is 0, otherwise filter to only show strategies with balance
       const filteredBalances = balances.filter((s) => {
         // Always show syBTC (BTC asset, stable type)
         if (s.asset === "BTC" && s.type === "stable") {
+          return true;
+        }
+        // Always show syHLP (USD asset, syhlp type or name contains "syHLP")
+        if (s.asset === "USD" && ((s as any).name === "syHLP" || s.type === "syhlp")) {
           return true;
         }
         // For other strategies, only show if balance > 0
@@ -1407,10 +1468,21 @@ const PortfolioSubpage: React.FC = () => {
       const vaultAddress = selectedStrategy.boringVaultAddress as Address;
 
       // Get chain configuration based on target chain
-      const chainConfig =
-        chainConfigs[targetChain as keyof typeof chainConfigs];
-      const chainId = chainConfig?.chainId || 1;
-      const rpcUrl = chainConfig?.rpc || selectedStrategy.rpc;
+      // For syHLP on hyperliquid, ensure we get the correct chainId (999)
+      let chainId: number;
+      let rpcUrl: string;
+      let chainObject: any;
+      
+      if (targetChain === "hyperliquid" && (selectedStrategy as any).hyperEVM) {
+        chainId = (selectedStrategy as any).hyperEVM.chainId || 999;
+        rpcUrl = (selectedStrategy as any).hyperEVM.rpc || "https://rpc.hypurrscan.io";
+        chainObject = (selectedStrategy as any).hyperEVM.chainObject;
+      } else {
+        const chainConfig = chainConfigs[targetChain as keyof typeof chainConfigs];
+        chainId = chainConfig?.chainId || (targetChain === "arbitrum" ? 42161 : targetChain === "ethereum" ? 1 : 8453);
+        rpcUrl = chainConfig?.rpc || selectedStrategy.rpc;
+        chainObject = chainConfig?.chainObject;
+      }
 
       console.log("Approval details:", {
         solverAddress,
@@ -1418,14 +1490,15 @@ const PortfolioSubpage: React.FC = () => {
         address,
         chainId,
         targetChain,
+        rpcUrl,
       });
 
       const client = createPublicClient({
         transport: http(rpcUrl),
-        chain: chainConfig?.chainObject || {
+        chain: chainObject || {
           id: chainId,
-          name: "Ethereum",
-          network: "ethereum",
+          name: targetChain === "hyperliquid" ? "HyperLiquid" : targetChain === "arbitrum" ? "Arbitrum One" : targetChain === "ethereum" ? "Ethereum" : "Base",
+          network: targetChain === "hyperliquid" ? "hyperliquid" : targetChain,
           nativeCurrency: {
             decimals: 18,
             name: "Ether",
@@ -1499,17 +1572,31 @@ const PortfolioSubpage: React.FC = () => {
       console.log("selectedAssetIdx:", selectedAssetIdx);
 
       // Get chain configuration based on target chain
-      const chainConfig =
-        chainConfigs[targetChain as keyof typeof chainConfigs];
-      const chainId = chainConfig?.chainId || 1;
-      const rpcUrl = chainConfig?.rpc || selectedStrategy.rpc;
+      // For syHLP on hyperliquid, ensure we get the correct chainId (999)
+      let chainId: number;
+      let rpcUrl: string;
+      let chainObject: any;
+      
+      if (targetChain === "hyperliquid" && (selectedStrategy as any).hyperEVM) {
+        chainId = (selectedStrategy as any).hyperEVM.chainId || 999;
+        rpcUrl = (selectedStrategy as any).hyperEVM.rpc || "https://rpc.hypurrscan.io";
+        chainObject = (selectedStrategy as any).hyperEVM.chainObject;
+      } else {
+        const chainConfig = chainConfigs[targetChain as keyof typeof chainConfigs];
+        chainId = chainConfig?.chainId || (targetChain === "arbitrum" ? 42161 : targetChain === "ethereum" ? 1 : 8453);
+        rpcUrl = chainConfig?.rpc || selectedStrategy.rpc;
+        chainObject = chainConfig?.chainObject;
+      }
+
+      console.log("Withdraw chainId:", chainId);
+      console.log("Withdraw rpcUrl:", rpcUrl);
 
       const client = createPublicClient({
         transport: http(rpcUrl),
-        chain: chainConfig?.chainObject || {
+        chain: chainObject || {
           id: chainId,
-          name: "Ethereum",
-          network: "ethereum",
+          name: targetChain === "hyperliquid" ? "HyperLiquid" : targetChain === "arbitrum" ? "Arbitrum One" : targetChain === "ethereum" ? "Ethereum" : "Base",
+          network: targetChain === "hyperliquid" ? "hyperliquid" : targetChain,
           nativeCurrency: {
             decimals: 18,
             name: "Ether",
@@ -1596,10 +1683,21 @@ const PortfolioSubpage: React.FC = () => {
       const solverAddress = selectedStrategy.solverAddress as Address;
 
       // Get chain configuration based on target chain
-      const chainConfig =
-        chainConfigs[targetChain as keyof typeof chainConfigs];
-      const chainId = chainConfig?.chainId || 1;
-      const rpcUrl = chainConfig?.rpc || selectedStrategy.rpc;
+      // For syHLP on hyperliquid, ensure we get the correct chainId (999)
+      let chainId: number;
+      let rpcUrl: string;
+      let chainObject: any;
+      
+      if (targetChain === "hyperliquid" && (selectedStrategy as any).hyperEVM) {
+        chainId = (selectedStrategy as any).hyperEVM.chainId || 999;
+        rpcUrl = (selectedStrategy as any).hyperEVM.rpc || "https://rpc.hypurrscan.io";
+        chainObject = (selectedStrategy as any).hyperEVM.chainObject;
+      } else {
+        const chainConfig = chainConfigs[targetChain as keyof typeof chainConfigs];
+        chainId = chainConfig?.chainId || (targetChain === "arbitrum" ? 42161 : targetChain === "ethereum" ? 1 : 8453);
+        rpcUrl = chainConfig?.rpc || selectedStrategy.rpc;
+        chainObject = chainConfig?.chainObject;
+      }
 
       console.log("Cancel details:", {
         solverAddress,
@@ -1607,14 +1705,15 @@ const PortfolioSubpage: React.FC = () => {
         address,
         chainId,
         targetChain,
+        rpcUrl,
       });
 
       const client = createPublicClient({
         transport: http(rpcUrl),
-        chain: chainConfig?.chainObject || {
+        chain: chainObject || {
           id: chainId,
-          name: "Ethereum",
-          network: "ethereum",
+          name: targetChain === "hyperliquid" ? "HyperLiquid" : targetChain === "arbitrum" ? "Arbitrum One" : targetChain === "ethereum" ? "Ethereum" : "Base",
+          network: targetChain === "hyperliquid" ? "hyperliquid" : targetChain,
           nativeCurrency: {
             decimals: 18,
             name: "Ether",
@@ -1755,14 +1854,22 @@ const PortfolioSubpage: React.FC = () => {
         selectedStrategy
       );
 
-      // Keep target chain as Ethereum for withdrawals (don't auto-change based on strategy)
-      // const targetNetwork = selectedStrategy.network || "base";
-      // setTargetChain(targetNetwork);
+      // Set target chain based on strategy type
+      const isSyHLP = (selectedStrategy as any).name === "syHLP" || (selectedStrategy as any).hyperEVM;
+      
+      if (isSyHLP) {
+        setTargetChain("hyperliquid"); // syHLP is only on HyperLiquid
+      } else if (selectedStrategy.asset === "BTC") {
+        setTargetChain("arbitrum"); // syBTC is only on Arbitrum
+      } else if (selectedStrategy.asset === "USD") {
+        setTargetChain("base"); // syUSD defaults to Base
+      }
+      
       console.log(
         "Selected strategy network:",
         selectedStrategy.network,
-        "but keeping targetChain as:",
-        targetChain
+        "targetChain set to:",
+        isSyHLP ? "hyperliquid" : selectedStrategy.asset === "BTC" ? "arbitrum" : "base"
       );
 
       // Find the corresponding asset in withdrawableAssets
@@ -1983,10 +2090,13 @@ const PortfolioSubpage: React.FC = () => {
         const selectedAssetAddress = getAddress(selectedAsset.contract);
 
         // Get chain configuration based on target chain - use strategy's chain config directly
-        const strategyChainConfig = selectedStrategy[targetChain as keyof typeof selectedStrategy] as any;
+        // Handle hyperliquid -> hyperEVM mapping
+        const configKey = targetChain === "hyperliquid" ? "hyperEVM" : targetChain;
+        const strategyChainConfig = (selectedStrategy as any)[configKey] as any;
         const chainId = strategyChainConfig?.chainId || 
           (targetChain === "arbitrum" ? 42161 : 
-           targetChain === "ethereum" ? 1 : 8453);
+           targetChain === "ethereum" ? 1 : 
+           targetChain === "hyperliquid" ? 999 : 8453);
         const rpcUrl = strategyChainConfig?.rpc || selectedStrategy.rpc;
 
         console.log("=== PREVIEW ASSETS OUT DEBUG ===");
@@ -2003,8 +2113,9 @@ const PortfolioSubpage: React.FC = () => {
         const chainObject = strategyChainConfig?.chainObject || {
           id: chainId,
           name: targetChain === "arbitrum" ? "Arbitrum One" : 
-                targetChain === "ethereum" ? "Ethereum" : "Base",
-          network: targetChain,
+                targetChain === "ethereum" ? "Ethereum" : 
+                targetChain === "hyperliquid" ? "HyperLiquid" : "Base",
+          network: targetChain === "hyperliquid" ? "hyperliquid" : targetChain,
           nativeCurrency: {
             decimals: 18,
             name: "Ether",
@@ -2655,8 +2766,8 @@ const PortfolioSubpage: React.FC = () => {
                       />
                       <div>
                         <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
-                          {strategy.type === "stable" ? "sy" : "Incentive Maxi"}
-                          {strategy.asset}
+                          {(strategy as any).displayName || (strategy as any).name || 
+                            (strategy.type === "stable" ? "sy" : "Incentive Maxi") + strategy.asset}
                         </div>
                         <div className="text-[#00D1A0]   text-[12px] font-normal">
                           +
@@ -2844,10 +2955,27 @@ const PortfolioSubpage: React.FC = () => {
                             >
                               <div className="flex items-center gap-2">
                                 {(() => {
-                                  const chainOption =
-                                    getUniqueChainConfigs.find(
-                                      (c) => c.network === targetChain
-                                    ) || getUniqueChainConfigs[0];
+                                  // Find the chain option that matches targetChain
+                                  let chainOption = getUniqueChainConfigs.find(
+                                    (c) => c.network === targetChain
+                                  );
+                                  
+                                  // If not found, use the first available chain (should be the only one for syHLP)
+                                  // But also update targetChain if it doesn't match any available chain
+                                  if (!chainOption && getUniqueChainConfigs.length > 0) {
+                                    chainOption = getUniqueChainConfigs[0];
+                                    // Update targetChain to match the first available chain if current targetChain is invalid
+                                    if (targetChain !== chainOption.network) {
+                                      console.log(`Updating targetChain from ${targetChain} to ${chainOption.network}`);
+                                      setTargetChain(chainOption.network);
+                                    }
+                                  }
+                                  
+                                  // If still no chain option, provide a fallback (shouldn't happen)
+                                  if (!chainOption) {
+                                    console.warn("No chain option found for targetChain:", targetChain, "Available chains:", getUniqueChainConfigs);
+                                    return null;
+                                  }
                                   console.log(
                                     "Current targetChain:",
                                     targetChain
@@ -2979,10 +3107,10 @@ const PortfolioSubpage: React.FC = () => {
                             />
                             <div>
                               <div className="text-white font-semibold text-[12px]">
-                                {selectedStrategy.type === "stable"
-                                  ? "Stable Yield"
-                                  : "Incentive Maxi"}{" "}
-                                {selectedStrategy.asset}
+                                {(selectedStrategy as any).displayName || (selectedStrategy as any).name || 
+                                  (selectedStrategy.type === "stable"
+                                    ? "Stable Yield"
+                                    : "Incentive Maxi") + " " + selectedStrategy.asset}
                               </div>
                               <div className="text-[#00D1A0] text-[12px]">
                                 +0.00 in 1 year
@@ -2993,7 +3121,7 @@ const PortfolioSubpage: React.FC = () => {
                             </div>
                           </div>
                           <div className="text-[#9C9DA2] text-right   text-[12px] font-normal leading-normal">
-                            Balance ({targetChain === "ethereum" ? "Ethereum" : targetChain === "arbitrum" ? "Arbitrum" : "Base"}):{" "}
+                            Balance ({targetChain === "ethereum" ? "Ethereum" : targetChain === "arbitrum" ? "Arbitrum" : targetChain === "hyperliquid" ? "HyperEVM" : "Base"}):{" "}
                             <span className="text-[#D7E3EF] text-[12px] font-semibold leading-normal">
                               {isLoadingNetworkBalance || (selectedStrategy?.asset === "BTC" && isLoadingWbtcPrice) ? (
                                 <span className="inline-flex items-center gap-1">

@@ -105,6 +105,8 @@ const MarketsSubpage: React.FC = () => {
   const [usdApy, setUsdApy] = useState<string>("Loading...");
   const [btcTvl, setBtcTvl] = useState<string>("Loading...");
   const [btcApy, setBtcApy] = useState<string>("Loading...");
+  // Store TVL for each strategy by key (e.g., "syHLP" -> "$5.00")
+  const [strategyTvls, setStrategyTvls] = useState<Record<string, string>>({});
   const [showColumnsDropdown, setShowColumnsDropdown] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState({
     availableYields: true,
@@ -205,7 +207,7 @@ const MarketsSubpage: React.FC = () => {
       ],
       USD: (() => {
         const usdStrategies: MarketItem[] = [];
-        let idCounter = 5;
+        let idCounter = 7; // Start at 7 to avoid conflict with BTC (id: 6) and ensure unique IDs
         
         // Iterate through all strategies in PERPETUAL_DURATION
         Object.entries(USD_STRATEGIES.PERPETUAL_DURATION).forEach(([key, strategy]) => {
@@ -243,7 +245,7 @@ const MarketsSubpage: React.FC = () => {
               console.log(`Incentive data for ${key}:`, incentiveData);
               return incentiveData;
             })(),
-            tvl: key === "STABLE" ? usdTvl : (strategy.tvl && strategy.tvl.trim() !== "" ? strategy.tvl : "$0"),
+            tvl: key === "STABLE" ? usdTvl : (strategyTvls[key] || (strategy.tvl && strategy.tvl.trim() !== "" && !strategy.tvl.startsWith("http") ? strategy.tvl : "$0")),
             description: strategy.description || "",
             riskLevel: "Very Low",
             network: strategy.network || "",
@@ -265,7 +267,7 @@ const MarketsSubpage: React.FC = () => {
     ];
 
     setMarketData(newMarketData);
-  }, [usdApy, usdTvl, btcApy, btcTvl]);
+  }, [usdApy, usdTvl, btcApy, btcTvl, strategyTvls]);
 
   // Fetch TVL for USD strategy if it's a URL
   useEffect(() => {
@@ -304,6 +306,67 @@ const MarketsSubpage: React.FC = () => {
       // If no TVL URL is available, set to N/A
       setUsdTvl("N/A");
     }
+  }, []);
+
+  // Fetch TVL for all USD strategies (not just STABLE)
+  useEffect(() => {
+    const fetchStrategyTVLs = async () => {
+      const tvlPromises: Array<Promise<{ key: string; tvl: string }>> = [];
+      
+      Object.entries(USD_STRATEGIES.PERPETUAL_DURATION).forEach(([key, strategy]) => {
+        // Skip INCENTIVE and STABLE (STABLE is handled separately)
+        if (key === "INCENTIVE" || key === "STABLE") return;
+        
+        const tvlUrl = strategy.tvl;
+        if (typeof tvlUrl === "string" && tvlUrl.startsWith("http")) {
+          tvlPromises.push(
+            fetch(tvlUrl)
+              .then((res) => {
+                if (!res.ok) {
+                  throw new Error(`HTTP error! status: ${res.status}`);
+                }
+                return res.json();
+              })
+              .then((data) => {
+                let tvlValue = "$0";
+                if (typeof data.result === "number") {
+                  tvlValue = data.result.toLocaleString("en-US", {
+                    style: "currency",
+                    currency: "USD",
+                    maximumFractionDigits: 0,
+                    minimumFractionDigits: 0,
+                  });
+                } else if (typeof data.result === "string") {
+                  // Handle string numbers
+                  const numValue = parseFloat(data.result);
+                  if (!isNaN(numValue)) {
+                    tvlValue = numValue.toLocaleString("en-US", {
+                      style: "currency",
+                      currency: "USD",
+                      maximumFractionDigits: 0,
+                      minimumFractionDigits: 0,
+                    });
+                  }
+                }
+                return { key, tvl: tvlValue };
+              })
+              .catch((error) => {
+                console.error(`Error fetching TVL for ${key}:`, error);
+                return { key, tvl: "N/A" };
+              })
+          );
+        }
+      });
+      
+      const results = await Promise.all(tvlPromises);
+      const tvlMap: Record<string, string> = {};
+      results.forEach(({ key, tvl }) => {
+        tvlMap[key] = tvl;
+      });
+      setStrategyTvls(tvlMap);
+    };
+    
+    fetchStrategyTVLs();
   }, []);
 
   useEffect(() => {
