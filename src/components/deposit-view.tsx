@@ -541,6 +541,7 @@ const DepositView: React.FC<DepositViewProps> = ({
   const [rawBalance, setRawBalance] = useState<string>("0"); // New state for unformatted balance
   const [sharesToReceive, setSharesToReceive] = useState<string>("0");
   const [usdValue, setUsdValue] = useState<string>("0.00"); // New state for shares calculation
+  const [wbtcPrice, setWbtcPrice] = useState<number>(0); // wBTC price in USD
 
   // Add state for custom dropdown
   const [isChainDropdownOpen, setIsChainDropdownOpen] = useState(false);
@@ -829,8 +830,8 @@ const DepositView: React.FC<DepositViewProps> = ({
 
       setSharesToReceive(sharesFormatted);
 
-      // Calculate USD value: (shares/10^shareDecimals) * rateNumber
-      const sharesForUsd = parseFloat(sharesFormatted);
+      // Calculate USD value
+      const sharesForUsd = parseFloat(sharesFormatted); // This is already in human-readable format (e.g., 0.0002154 syBTC)
       // Use 10^6 for USDC, USDT, vbUSDC, and vbUSDT; 10^8 for eBTC/BTC; 10^18 for other tokens
       const rateDecimals =
         selectedAssetOption?.name === "USDC" ||
@@ -842,13 +843,19 @@ const DepositView: React.FC<DepositViewProps> = ({
           ? 8
           : 18;
       const rateNumber = parseFloat(formatUnits(rateInQuote, rateDecimals));
-      // For BTC, shares are in 8 decimals, so adjust calculation accordingly
-      const usdValueCalculated =
-        selectedAssetOption?.name === "eBTC" || selectedAsset === "BTC"
-          ? (sharesForUsd / Math.pow(10, shareDecimals)) * rateNumber * Math.pow(10, shareDecimals)
-          : (sharesForUsd / Math.pow(10, 18)) * rateNumber * Math.pow(10, 18);
-      // For BTC, show 7 decimals; for others, show 2 decimals
+      // rateNumber represents: how many wBTC (or USDC) per 1 syBTC share
+      // For syBTC: shares (syBTC) * rateNumber (wBTC per syBTC) * wbtcPrice (USD per wBTC) = USD value
+      // For syUSD: shares (syUSD) * rateNumber (USDC per syUSD) = USD value (since USDC ≈ 1 USD)
       const isBtc = selectedAssetOption?.name === "eBTC" || selectedAsset === "BTC";
+      let usdValueCalculated: number;
+      if (isBtc && wbtcPrice > 0) {
+        // For syBTC: multiply shares by exchange rate (syBTC to wBTC) and then by wBTC price (wBTC to USD)
+        usdValueCalculated = sharesForUsd * rateNumber * wbtcPrice;
+      } else {
+        // For syUSD: rateNumber is already in USD terms (USDC per syUSD ≈ USD per syUSD)
+        usdValueCalculated = sharesForUsd * rateNumber;
+      }
+      // For BTC, show 7 decimals; for others, show 2 decimals
       const formattedUsdValue = isBtc 
         ? usdValueCalculated.toFixed(7)
         : usdValueCalculated.toFixed(2);
@@ -869,6 +876,54 @@ const DepositView: React.FC<DepositViewProps> = ({
     }
   };
 
+  // Fetch wBTC price when BTC strategy is selected
+  useEffect(() => {
+    const fetchWbtcPrice = async () => {
+      if (selectedAsset === "BTC") {
+        try {
+          const wbtcPriceUrl = (BTC_STRATEGIES.PERPETUAL_DURATION.STABLE as any).wbtcPrice;
+          
+          if (!wbtcPriceUrl || typeof wbtcPriceUrl !== "string" || !wbtcPriceUrl.startsWith("http")) {
+            console.warn("wBTC price URL not available");
+            setWbtcPrice(0);
+            return;
+          }
+
+          const response = await fetch(wbtcPriceUrl);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          // Handle both string and number formats: {"result":"91477.81"} or {"result":91477.81}
+          const price = data?.result || data?.price || data?.rate;
+          
+          if (typeof price === "number") {
+            setWbtcPrice(price);
+          } else if (typeof price === "string") {
+            const parsedPrice = parseFloat(price);
+            if (!isNaN(parsedPrice) && isFinite(parsedPrice)) {
+              setWbtcPrice(parsedPrice);
+            } else {
+              console.error(`Failed to parse wBTC price: ${price}`);
+              setWbtcPrice(0);
+            }
+          } else {
+            console.error('Unexpected wBTC price data structure:', data);
+            setWbtcPrice(0);
+          }
+        } catch (error) {
+          console.error('Error fetching wBTC price:', error);
+          setWbtcPrice(0);
+        }
+      } else {
+        setWbtcPrice(0);
+      }
+    };
+
+    fetchWbtcPrice();
+  }, [selectedAsset]);
+
   // Effect to recalculate shares when amount or selected asset changes
   useEffect(() => {
     if (amount && parseFloat(amount) > 0) {
@@ -877,7 +932,7 @@ const DepositView: React.FC<DepositViewProps> = ({
       setSharesToReceive("0");
       setUsdValue("0.00");
     }
-  }, [amount, selectedAssetIdx, targetChain, strategyConfig]);
+  }, [amount, selectedAssetIdx, targetChain, strategyConfig, wbtcPrice]);
 
   // Calculate deposit cap values from env config
   const showDepositCap = strategyConfig.show_cap;
