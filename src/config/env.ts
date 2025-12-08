@@ -201,6 +201,84 @@ export const USD_STRATEGIES = {
         "https://api.lucidly.finance/services/queueData?vaultAddress=0x279CAD277447965AF3d24a78197aad1B02a2c589&userAddress=",
       rpc: "https://base.llamarpc.com",
     },
+    syHLP: {
+      name: "syHLP",
+      displayName: "Stable Yield HLP",
+      type: "usd",
+      network: "hyperliquid",
+      contract: "0xabbA9E382f9b14441E60B9E68559e3a22762dFb6",
+      boringVaultAddress: "0x592B45AeaeaaA75D58FD097a7254bA3F56125904",
+      solverAddress: "0x9B299494Cd9bb88ecdFeA2a43C4b91391fB02275",
+      shareAddress: "0x592B45AeaeaaA75D58FD097a7254bA3F56125904",
+      shareAddress_token_decimal: 6,
+      rateProvider: "0x98C0B9042C6142F3cBc5bed58a7BF412752737b5",
+      image: "/images/icons/syHLP.svg",
+
+      hyperEVM: {
+        image: "/images/networks/hyperEVM.svg",
+        rpc: "https://rpc.hypurrscan.io",
+        chainId: 999,
+        chainObject: {
+          id: 999,
+          name: "HyperLiquid",
+          network: "hyperliquid",
+          nativeCurrency: { decimals: 18, name: "Ether", symbol: "ETH" },
+          rpcUrls: {
+            default: { http: ["https://rpc.hypurrscan.io", "https://hyperliquid.drpc.org"] },
+            public: { http: ["https://rpc.hypurrscan.io", "https://hyperliquid.drpc.org"] },
+          },
+          blockExplorers: {
+            default: { name: "HyperEVMScan", url: "https://hyperevmscan.io" },
+          },
+        },
+        tokens: [
+          {
+            name: "USDT0",
+            contract: "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb",
+            decimal: 6,
+            image: "/images/icons/usdt0.png",
+          },
+        ],
+      },
+
+      katana: {
+        image: "/images/logo/katana.svg",
+        rpc: "",
+        chainId: 0,
+        chainObject: {
+          id: 0,
+          name: "",
+          network: "",
+          nativeCurrency: { decimals: 18, name: "", symbol: "" },
+          rpcUrls: {
+            default: { http: [] },
+            public: { http: [] },
+          },
+        },
+        tokens: [
+          {
+            name: "USDT0",
+            contract: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+            decimal: 6,
+            image: "/images/icons/usdt0.png",
+          },
+        ],
+      },
+
+      incentives: {
+        enabled: false,
+        points: [],
+      },
+
+      description: "",
+      apy: "",
+      cap_limit: "",
+      filled_cap: "",
+      show_cap: false,
+      tvl: "",
+      withdraw_request: "",
+      rpc: "",
+    },
     INCENTIVE: {
       network: "",
       comingSoon: true,

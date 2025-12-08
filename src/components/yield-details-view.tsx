@@ -35,7 +35,7 @@ interface YieldDetailsViewProps {
   contractAddress?: string;
   network?: string;
   data: MarketItem[];
-  onOpenDepositView: () => void;
+  onOpenDepositView: (strategyKey?: string) => void; // Pass strategyKey to parent
 }
 
 // Helper components
@@ -130,18 +130,57 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   // Get connected wallet address
   const { address, isConnected } = useAccount();
 
-  // Determine which strategy we're viewing based on contract address
-  const usdVaultAddress = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.toLowerCase();
+  // Determine which strategy we're viewing based on contract address or name
+  const currentVaultAddress = contractAddress?.toLowerCase() || "";
+  
+  // Find the matching strategy by checking all USD strategies
+  let strategy: any = null;
+  let strategyKey: string = "STABLE";
+  let isBtcStrategy = false;
+  
+  // First check BTC strategies
   const btcVaultAddress = BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.toLowerCase();
-  const currentVaultAddress = contractAddress?.toLowerCase() || usdVaultAddress;
-  const isBtcStrategy = currentVaultAddress === btcVaultAddress;
-  const strategy = isBtcStrategy 
-    ? BTC_STRATEGIES.PERPETUAL_DURATION.STABLE 
-    : USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
-  const strategyIcon = isBtcStrategy ? "/images/icons/syBTC.svg" : "/images/icons/syUSD.svg";
+  if (currentVaultAddress === btcVaultAddress) {
+    strategy = BTC_STRATEGIES.PERPETUAL_DURATION.STABLE;
+    isBtcStrategy = true;
+  } else {
+    // Check all USD strategies in PERPETUAL_DURATION
+    const usdStrategies = USD_STRATEGIES.PERPETUAL_DURATION;
+    for (const [key, config] of Object.entries(usdStrategies)) {
+      if (key === "INCENTIVE") continue; // Skip INCENTIVE section
+      const configVaultAddress = (config as any)?.boringVaultAddress?.toLowerCase();
+      if (configVaultAddress && currentVaultAddress === configVaultAddress) {
+        strategy = config;
+        strategyKey = key;
+        break;
+      }
+    }
+    
+    // If no match found by address, try matching by name
+    if (!strategy) {
+      for (const [key, config] of Object.entries(usdStrategies)) {
+        if (key === "INCENTIVE") continue;
+        if ((config as any)?.name === name || (config as any)?.displayName === name) {
+          strategy = config;
+          strategyKey = key;
+          break;
+        }
+      }
+    }
+    
+    // Fallback to STABLE if still no match
+    if (!strategy) {
+      strategy = USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
+      strategyKey = "STABLE";
+    }
+  }
+  
+  const strategyIcon = isBtcStrategy 
+    ? "/images/icons/syBTC.svg" 
+    : (strategy as any)?.image || "/images/icons/syUSD.svg";
   const strategyDescription = isBtcStrategy 
     ? "syBTC is a synthetic BTC strategy that provides yield through various DeFi strategies"
-    : "syUSD is a synthetic USD stablecoin that provides yield through various DeFi strategies";
+    : (strategy as any)?.description || "syUSD is a synthetic USD stablecoin that provides yield through various DeFi strategies";
 
   // Function to check balance for a specific network
   const checkNetworkBalance = async (
@@ -219,19 +258,46 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
     try {
       // Determine which strategy we're viewing based on contract address
-      const usdVaultAddress = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.toLowerCase();
-      const btcVaultAddress = BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.toLowerCase();
-      const currentVaultAddress = contractAddress?.toLowerCase() || usdVaultAddress;
-
-      let strategy;
-      let strategyName;
+      const currentVaultAddress = contractAddress?.toLowerCase() || "";
       
+      let strategy: any = null;
+      let strategyName: string = "syUSD";
+      
+      // First check BTC strategies
+      const btcVaultAddress = BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.toLowerCase();
       if (currentVaultAddress === btcVaultAddress) {
         strategy = BTC_STRATEGIES.PERPETUAL_DURATION.STABLE;
         strategyName = "syBTC";
       } else {
-        strategy = USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
-        strategyName = "syUSD";
+        // Check all USD strategies in PERPETUAL_DURATION
+        const usdStrategies = USD_STRATEGIES.PERPETUAL_DURATION;
+        for (const [key, config] of Object.entries(usdStrategies)) {
+          if (key === "INCENTIVE") continue; // Skip INCENTIVE section
+          const configVaultAddress = (config as any)?.boringVaultAddress?.toLowerCase();
+          if (configVaultAddress && currentVaultAddress === configVaultAddress) {
+            strategy = config;
+            strategyName = (config as any)?.name || "syUSD";
+            break;
+          }
+        }
+        
+        // If no match found by address, try matching by name
+        if (!strategy) {
+          for (const [key, config] of Object.entries(usdStrategies)) {
+            if (key === "INCENTIVE") continue;
+            if ((config as any)?.name === name || (config as any)?.displayName === name) {
+              strategy = config;
+              strategyName = (config as any)?.name || "syUSD";
+              break;
+            }
+          }
+        }
+        
+        // Fallback to STABLE if still no match
+        if (!strategy) {
+          strategy = USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
+          strategyName = "syUSD";
+        }
       }
 
       // Build networks array based on strategy type
@@ -595,7 +661,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
               </button>
               <button
                 className="bg-[#B88AF8] hover:bg-[#9F6EE9] text-[#080B17] flex items-center gap-[8px] px-[16px] py-[6px] rounded-[4px] transition-colors text-[14px] font-normal leading-normal"
-                onClick={onOpenDepositView}
+                onClick={() => onOpenDepositView(strategyKey)}
               >
                 Deposit
               </button>

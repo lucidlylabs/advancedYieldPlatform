@@ -58,6 +58,9 @@ interface ChainConfig {
 }
 
 interface StrategyConfig {
+  name?: string; // Strategy name (e.g., "syUSD", "syHLP")
+  displayName?: string; // Display name (e.g., "Stable Yield USD", "Stable Yield HLP")
+  type?: string; // Asset type (e.g., "usd", "btc", "eth")
   network: string;
   contract: string;
   base: ChainConfig;
@@ -83,6 +86,7 @@ interface StrategyConfig {
   boringVaultAddress?: string;
   rateProvider: string;
   shareAddress: string;
+  image?: string; // Strategy icon/image
 }
 
 // ERC20 ABI for token operations
@@ -224,7 +228,8 @@ const VAULT_ABI = [
 interface DepositViewProps {
   selectedAsset: string;
   duration: DurationType;
-  strategy: "stable" | "incentive";
+  strategy: "stable" | "incentive" | "syHLP"; // Allow syHLP as a strategy type
+  strategyKey?: string; // Optional key to identify specific strategy (e.g., "STABLE", "syHLP", "INCENTIVE")
   apy: string;
   onBack: () => void;
   onReset: () => void;
@@ -286,6 +291,8 @@ const ExchangeRate: React.FC<ExchangeRateProps> = ({
               return strategyConfig.ethereum;
             case "katana":
               return strategyConfig.katana;
+            case "hyperliquid":
+              return (strategyConfig as any).hyperEVM;
             case "base":
             default:
               return strategyConfig.base;
@@ -435,7 +442,7 @@ const ExchangeRate: React.FC<ExchangeRateProps> = ({
             Exchange rate
           </span>
           <Tooltip
-            content={`Current exchange rate between ${selectedAssetOption.name} and syUSD vault shares`}
+            content={`Current exchange rate between ${selectedAssetOption.name} and ${(strategyConfig as any)?.name || (strategyConfig as any)?.displayName || "syUSD"} vault shares`}
             side="bottom"
           >
             <div className="w-4 h-4 rounded-full flex items-center justify-center">
@@ -482,9 +489,9 @@ const ExchangeRate: React.FC<ExchangeRateProps> = ({
                   (strategyConfig as any).image || 
                   (selectedAssetOption?.name === "eBTC" || (strategyConfig as any).type === "btc"
                     ? "/images/icons/btc-stable.svg" 
-                    : "/images/icons/syUSD.svg")
+                    : (strategyConfig as any).image || "/images/icons/syUSD.svg")
                 }
-                alt={(strategyConfig as any).name || "syUSD"}
+                alt={(strategyConfig as any).name || (strategyConfig as any).displayName || "syUSD"}
                 width={20}
                 height={20}
                 className="object-contain"
@@ -501,6 +508,7 @@ const DepositView: React.FC<DepositViewProps> = ({
   selectedAsset,
   duration,
   strategy,
+  strategyKey,
   apy,
   onBack,
   onReset,
@@ -554,9 +562,39 @@ const DepositView: React.FC<DepositViewProps> = ({
   };
   const assetStrategies =
     strategyConfigs[selectedAsset as keyof typeof strategyConfigs];
+  
+  // Determine which strategy config to use
+  // If strategyKey is provided, use it directly (e.g., "STABLE", "syHLP")
+  // Otherwise, fall back to old logic (stable -> STABLE, incentive -> INCENTIVE)
+  let strategyConfigKey: string;
+  if (strategyKey) {
+    strategyConfigKey = strategyKey;
+  } else if (strategy === "stable") {
+    strategyConfigKey = "STABLE";
+  } else if (strategy === "syHLP") {
+    strategyConfigKey = "syHLP";
+  } else {
+    strategyConfigKey = "INCENTIVE";
+  }
+  
   const tempStrategyConfig = (assetStrategies as any)?.[duration]?.[
-    strategy === "stable" ? "STABLE" : "INCENTIVE"
+    strategyConfigKey
   ] as StrategyConfig;
+  
+  // Debug logging to verify strategy config is loaded correctly
+  console.log("DepositView Strategy Config Debug:", {
+    strategyKey,
+    strategy,
+    strategyConfigKey,
+    selectedAsset,
+    duration,
+    hasConfig: !!tempStrategyConfig,
+    configName: (tempStrategyConfig as any)?.name,
+    configDisplayName: (tempStrategyConfig as any)?.displayName,
+    configImage: (tempStrategyConfig as any)?.image,
+    assetStrategiesKeys: assetStrategies ? Object.keys(assetStrategies) : null,
+    durationKeys: assetStrategies?.[duration] ? Object.keys(assetStrategies[duration]) : null,
+  });
   
   // Determine default chain based on strategy - BTC only has arbitrum
   const getDefaultChain = () => {
@@ -564,9 +602,12 @@ const DepositView: React.FC<DepositViewProps> = ({
       return "arbitrum";
     }
     // For USD, check which networks are available
+    // Priority: hyperEVM (for syHLP), then base, then others
+    if ((tempStrategyConfig as any)?.hyperEVM) return "hyperliquid";
     if (tempStrategyConfig?.base) return "base";
     if (tempStrategyConfig?.arbitrum) return "arbitrum";
     if (tempStrategyConfig?.ethereum) return "ethereum";
+    if (tempStrategyConfig?.katana) return "katana";
     return chain?.name.toLowerCase() || "base";
   };
   
@@ -632,6 +673,13 @@ const DepositView: React.FC<DepositViewProps> = ({
           image: strategyConfig.katana.image,
         });
       }
+      if ((strategyConfig as any).hyperEVM && (strategyConfig as any).hyperEVM.image) {
+        uniqueChains.set("hyperliquid", {
+          name: "HyperEVM",
+          network: "hyperliquid",
+          image: (strategyConfig as any).hyperEVM.image,
+        });
+      }
     }
 
     return Array.from(uniqueChains.values());
@@ -646,12 +694,15 @@ const DepositView: React.FC<DepositViewProps> = ({
       (targetChain === "arbitrum" && strategyConfig.arbitrum) ||
       (targetChain === "ethereum" && strategyConfig.ethereum) ||
       (targetChain === "katana" && strategyConfig.katana) ||
-      (targetChain === "base" && strategyConfig.base);
+      (targetChain === "base" && strategyConfig.base) ||
+      (targetChain === "hyperliquid" && (strategyConfig as any).hyperEVM);
     
     // If current chain is not valid, switch to a valid one
     if (!isValidChain) {
       if (selectedAsset === "BTC" && strategyConfig.arbitrum) {
         setTargetChain("arbitrum");
+      } else if ((strategyConfig as any).hyperEVM) {
+        setTargetChain("hyperliquid");
       } else if (strategyConfig.base) {
         setTargetChain("base");
       } else if (strategyConfig.arbitrum) {
@@ -677,6 +728,8 @@ const DepositView: React.FC<DepositViewProps> = ({
         return strategyConfig.ethereum?.tokens || [];
       case "katana":
         return strategyConfig.katana?.tokens || [];
+      case "hyperliquid":
+        return (strategyConfig as any).hyperEVM?.tokens || [];
       case "base":
       default:
         return strategyConfig.base?.tokens || [];
@@ -1503,6 +1556,9 @@ const DepositView: React.FC<DepositViewProps> = ({
       case "katana":
         chainData = strategyConfig.katana;
         break;
+      case "hyperliquid":
+        chainData = (strategyConfig as any).hyperEVM;
+        break;
       case "base":
       default:
         chainData = strategyConfig.base;
@@ -1549,6 +1605,9 @@ const DepositView: React.FC<DepositViewProps> = ({
         return `https://arbiscan.io/tx/${txHash}`;
       case "katana":
         return `https://explorer.katanarpc.com//tx/${txHash}`;
+      case "hyperliquid":
+      case "hyperevm":
+        return `https://hyperevmscan.io/tx/${txHash}`;
       case "base":
       default:
         return `https://basescan.org/tx/${txHash}`;
@@ -1987,7 +2046,9 @@ const DepositView: React.FC<DepositViewProps> = ({
                                 />
                               )}
                               <span className="capitalize text-[12px]">
-                                {targetChain}
+                                {getUniqueChainConfigs.find(
+                                  (c) => c.network === targetChain
+                                )?.name || targetChain}
                               </span>
                             </div>
                             <div className="w-[10px]"></div>
@@ -2112,7 +2173,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                         <label className="text-[#9C9DA2] font-inter text-[12px] whitespace-nowrap flex items-center gap-1">
                           Destination Network
                           <Tooltip
-                            content="This is the network where you'll receive your syUSD vault tokens"
+                            content={`This is the network where you'll receive your ${(strategyConfig as any)?.name || (strategyConfig as any)?.displayName || "syUSD"} vault tokens`}
                             side="bottom"
                           >
                             <div>
@@ -2137,6 +2198,8 @@ const DepositView: React.FC<DepositViewProps> = ({
                                   (networkName === "base" && (strategyConfig as any).base?.image) ||
                                   (networkName === "ethereum" && (strategyConfig as any).ethereum?.image) ||
                                   (networkName === "katana" && (strategyConfig as any).katana?.image) ||
+                                  (networkName === "hyperevm" && (strategyConfig as any).hyperEVM?.image) ||
+                                  (networkName === "hyperliquid" && (strategyConfig as any).hyperEVM?.image) ||
                                   "";
                                 
                                 return (
@@ -2159,8 +2222,8 @@ const DepositView: React.FC<DepositViewProps> = ({
                     <div className="w-full max-w-[280px] h-[270px] bg-[#0D101C] border-l border-r border-b border-[rgba(255,255,255,0.05)] px-6 pt-6 pb-4 relative flex flex-col">
                       <div className="flex flex-col items-center text-center h-full">
                         <img
-                          src={`/images/icons/${selectedAsset.toLowerCase()}-${strategy}.svg`}
-                          alt={strategy}
+                          src={(strategyConfig as any)?.image || `/images/icons/${selectedAsset.toLowerCase()}-${strategy}.svg`}
+                          alt={(strategyConfig as any)?.name || strategy}
                           className="w-[56px] h-[56px] cursor-pointer hover:opacity-80 transition-all duration-200 mb-3"
                           onClick={onReset}
                         />
@@ -2168,9 +2231,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                           <div className="flex flex-col items-center">
                             <div className="flex items-center justify-center">
                               <div className="text-white font-semibold capitalize flex items-center gap-[10px]">
-                                {selectedAsset === "BTC" 
-                                  ? (strategyConfig as any).displayName || "Stable BTC"
-                                  : `${strategy} ${selectedAsset}`}
+                                {(strategyConfig as any)?.displayName || (strategyConfig as any)?.name || (selectedAsset === "BTC" ? "Stable BTC" : `${strategy} ${selectedAsset}`)}
                                 <button
                                   onClick={onBack}
                                   className="text-[#9C9DA2] hover:text-[#B88AF8] transition-all duration-200 cursor-pointer"

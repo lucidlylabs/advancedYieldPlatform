@@ -396,6 +396,9 @@ const PortfolioSubpage: React.FC = () => {
         return `https://arbiscan.io/tx/${txHash}`;
       case "katana":
         return `https://explorer.katanarpc.com/tx/${txHash}`;
+      case "hyperliquid":
+      case "hyperevm":
+        return `https://hyperevmscan.io/tx/${txHash}`;
       case "base":
       default:
         return `https://basescan.org/tx/${txHash}`;
