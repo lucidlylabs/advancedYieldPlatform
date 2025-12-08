@@ -373,8 +373,8 @@ export default function AllocationReturnsChart({ strategyType = "USD" }: Allocat
   // Show empty state for syBTC when no data
   if (strategyType === "BTC" && data.length === 0) {
     return (
-      <div className="rounded-xl text-white w-full max-h-[600px] [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
-        <div className="w-full h-[300px] px-6 flex items-center justify-center">
+      <div className="pt-2 pl-6 pb-6 rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 mb-12 [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
+        <div className="w-full h-[300px] flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <p className="text-gray-400 text-sm">Allocation returns data not available for syBTC</p>
           </div>

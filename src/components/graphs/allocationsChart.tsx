@@ -508,17 +508,17 @@ export default function AllocationChart({ strategyType = "USD" }: AllocationChar
               })}
                       </AreaChart>
           ) : (
-            <div className="flex items-center justify-center h-full text-gray-400">
+            <div className="w-full h-[300px] flex items-center justify-center">
               {strategyType === "BTC" ? (
-                <div className="text-center">
-                  <div className="text-sm">Allocation data not available for syBTC</div>
+                <div className="flex flex-col items-center gap-4">
+                  <p className="text-gray-400 text-sm">Allocation data not available for syBTC</p>
                 </div>
               ) : (
-                <>
-                  <div>Chart data loading...</div>
-                  <div className="text-xs mt-2">Filtered data length: {filteredData.length}</div>
-                  <div className="text-xs">Selected keys: {Array.from(selectedKeys).join(', ')}</div>
-                </>
+                <div className="flex flex-col items-center gap-4">
+                  <div className="text-gray-400 text-sm">Chart data loading...</div>
+                  <div className="text-xs text-gray-500">Filtered data length: {filteredData.length}</div>
+                  <div className="text-xs text-gray-500">Selected keys: {Array.from(selectedKeys).join(', ')}</div>
+                </div>
               )}
             </div>
           )}
