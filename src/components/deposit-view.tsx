@@ -21,6 +21,7 @@ import {
   createPublicClient,
   http,
   parseUnits,
+  getAddress,
 } from "viem";
 import { RATE_PROVIDER_ABI } from "../config/abi/rateProvider";
 import { useRouter } from "next/router";
@@ -370,6 +371,8 @@ const ExchangeRate: React.FC<ExchangeRateProps> = ({
           rateProviderAddress,
           rawRate: rate.toString(),
           rateLength: rate.toString().length,
+          targetChain,
+          strategyType: (strategyConfig as any).type,
         });
 
         // Based on Basescan results:
@@ -387,6 +390,10 @@ const ExchangeRate: React.FC<ExchangeRateProps> = ({
         // So exchange rate = 1 / rate
         const exchangeRateNumber = rateNumber > 0 ? 1 / rateNumber : 0;
 
+        // For BTC, show 7 decimals; for others, show 2 decimals
+        const isBtc = selectedAssetOption?.name === "eBTC" || 
+                     (strategyConfig as any).type === "btc";
+
         console.log("Rate conversion:", {
           token: selectedAssetOption.name,
           tokenDecimals: selectedAssetOption.decimal,
@@ -394,12 +401,13 @@ const ExchangeRate: React.FC<ExchangeRateProps> = ({
           rateFormatted,
           rateNumber,
           exchangeRate: exchangeRateNumber,
-          final: exchangeRateNumber.toFixed(2),
+          final: isBtc ? exchangeRateNumber.toFixed(7) : exchangeRateNumber.toFixed(2),
         });
 
-        setExchangeRate(
-          exchangeRateNumber > 0 ? exchangeRateNumber.toFixed(2) : "1.00"
-        );
+        const exchangeRateFormatted = exchangeRateNumber > 0
+          ? (isBtc ? exchangeRateNumber.toFixed(7) : exchangeRateNumber.toFixed(2))
+          : (isBtc ? "1.0000000" : "1.00");
+        setExchangeRate(exchangeRateFormatted);
       } catch (error) {
         console.error(
           `Error fetching rate for ${selectedAssetOption.name}:`,
@@ -470,8 +478,13 @@ const ExchangeRate: React.FC<ExchangeRateProps> = ({
             </span>
             <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center bg-[#1A1B1E]">
               <Image
-                src="/images/icons/syUSD.svg"
-                alt="syUSD"
+                src={
+                  (strategyConfig as any).image || 
+                  (selectedAssetOption?.name === "eBTC" || (strategyConfig as any).type === "btc"
+                    ? "/images/icons/btc-stable.svg" 
+                    : "/images/icons/syUSD.svg")
+                }
+                alt={(strategyConfig as any).name || "syUSD"}
                 width={20}
                 height={20}
                 className="object-contain"
@@ -528,12 +541,36 @@ const DepositView: React.FC<DepositViewProps> = ({
   const [rawBalance, setRawBalance] = useState<string>("0"); // New state for unformatted balance
   const [sharesToReceive, setSharesToReceive] = useState<string>("0");
   const [usdValue, setUsdValue] = useState<string>("0.00"); // New state for shares calculation
+  const [wbtcPrice, setWbtcPrice] = useState<number>(0); // wBTC price in USD
 
   // Add state for custom dropdown
   const [isChainDropdownOpen, setIsChainDropdownOpen] = useState(false);
-  const [targetChain, setTargetChain] = useState<string>(
-    chain?.name.toLowerCase() || "base"
-  ); // Initialize targetChain based on connected chain
+  
+  // Get strategy config first to determine default chain
+  const strategyConfigs = {
+    USD: USD_STRATEGIES,
+    BTC: BTC_STRATEGIES,
+    ETH: ETH_STRATEGIES,
+  };
+  const assetStrategies =
+    strategyConfigs[selectedAsset as keyof typeof strategyConfigs];
+  const tempStrategyConfig = (assetStrategies as any)?.[duration]?.[
+    strategy === "stable" ? "STABLE" : "INCENTIVE"
+  ] as StrategyConfig;
+  
+  // Determine default chain based on strategy - BTC only has arbitrum
+  const getDefaultChain = () => {
+    if (selectedAsset === "BTC") {
+      return "arbitrum";
+    }
+    // For USD, check which networks are available
+    if (tempStrategyConfig?.base) return "base";
+    if (tempStrategyConfig?.arbitrum) return "arbitrum";
+    if (tempStrategyConfig?.ethereum) return "ethereum";
+    return chain?.name.toLowerCase() || "base";
+  };
+  
+  const [targetChain, setTargetChain] = useState<string>(getDefaultChain());
 
   // Add state for asset selection popup
   const [isAssetPopupOpen, setIsAssetPopupOpen] = useState(false);
@@ -546,101 +583,104 @@ const DepositView: React.FC<DepositViewProps> = ({
   // receiveChain will mirror targetChain
   const router = useRouter();
 
-  // Get strategy config based on asset type
-  const strategyConfigs = {
-    USD: USD_STRATEGIES,
-    BTC: BTC_STRATEGIES,
-    ETH: ETH_STRATEGIES,
-  };
-
-  // Explicitly access the strategies for the selected asset first
-  const assetStrategies =
-    strategyConfigs[selectedAsset as keyof typeof strategyConfigs];
-
-  // Now access the specific duration and strategy type
-  const strategyConfig = (assetStrategies as any)[duration][
-    strategy === "stable" ? "STABLE" : "INCENTIVE"
-  ] as StrategyConfig;
+  // Now access the specific duration and strategy type (using tempStrategyConfig from above)
+  const strategyConfig = tempStrategyConfig;
 
   // Get the actual APY from prop and extract numeric value
   const actualApy = apy ? apy.replace("%", "") : "0";
 
-  // Helper to extract unique chain configurations
+  // Helper to extract unique chain configurations based on current strategy
   const getUniqueChainConfigs = useMemo(() => {
     const uniqueChains = new Map<
       string,
       { name: string; network: string; image: string }
     >();
 
-    // Directly access the STABLE strategy within PERPETUAL_DURATION
-    const stablePerpetualConfig = USD_STRATEGIES.PERPETUAL_DURATION
-      .STABLE as StrategyConfig;
-
-    if (stablePerpetualConfig) {
-      if (stablePerpetualConfig.base && stablePerpetualConfig.base.image) {
+    // Use the current strategy config instead of hardcoded USD
+    if (strategyConfig) {
+      if (strategyConfig.base && strategyConfig.base.image) {
         uniqueChains.set("base", {
           name: "Base",
           network: "base",
-          image: stablePerpetualConfig.base.image,
+          image: strategyConfig.base.image,
         });
       }
       if (
-        stablePerpetualConfig.ethereum &&
-        stablePerpetualConfig.ethereum.image
+        strategyConfig.ethereum &&
+        strategyConfig.ethereum.image
       ) {
         uniqueChains.set("ethereum", {
           name: "Ethereum",
           network: "ethereum",
-          image: stablePerpetualConfig.ethereum.image,
+          image: strategyConfig.ethereum.image,
         });
       }
       if (
-        stablePerpetualConfig.arbitrum &&
-        stablePerpetualConfig.arbitrum.image
+        strategyConfig.arbitrum &&
+        strategyConfig.arbitrum.image
       ) {
         uniqueChains.set("arbitrum", {
           name: "Arbitrum",
           network: "arbitrum",
-          image: stablePerpetualConfig.arbitrum.image,
+          image: strategyConfig.arbitrum.image,
         });
       }
-      if (stablePerpetualConfig.katana && stablePerpetualConfig.katana.image) {
+      if (strategyConfig.katana && strategyConfig.katana.image) {
         uniqueChains.set("katana", {
           name: "Katana",
           network: "katana",
-          image: stablePerpetualConfig.katana.image,
+          image: strategyConfig.katana.image,
         });
       }
     }
 
-    // Optionally, you can add other durations if they also define chain images
-    // For example:
-    // const stable30DaysConfig = USD_STRATEGIES["30_DAYS"].STABLE as StrategyConfig;
-    // if (stable30DaysConfig && stable30DaysConfig.base && stable30DaysConfig.base.image) {
-    //   uniqueChains.set("base", { name: "Base", network: "base", image: stable30DaysConfig.base.image });
-    // }
-
     return Array.from(uniqueChains.values());
-  }, [USD_STRATEGIES]);
+  }, [strategyConfig]);
 
-  // Get the appropriate network tokens based on the selected target chain
-  const getNetworkTokens = () => {
-    switch (targetChain) {
-      case "arbitrum":
-        return strategyConfig.arbitrum.tokens;
-      case "ethereum":
-        return strategyConfig.ethereum.tokens;
-      case "katana":
-        return strategyConfig.katana.tokens;
-      case "base":
-      default:
-        return strategyConfig.base.tokens;
+  // Update targetChain when asset or strategy changes to ensure it's valid
+  useEffect(() => {
+    if (!strategyConfig) return;
+    
+    // Check if current targetChain is valid for this strategy
+    const isValidChain = 
+      (targetChain === "arbitrum" && strategyConfig.arbitrum) ||
+      (targetChain === "ethereum" && strategyConfig.ethereum) ||
+      (targetChain === "katana" && strategyConfig.katana) ||
+      (targetChain === "base" && strategyConfig.base);
+    
+    // If current chain is not valid, switch to a valid one
+    if (!isValidChain) {
+      if (selectedAsset === "BTC" && strategyConfig.arbitrum) {
+        setTargetChain("arbitrum");
+      } else if (strategyConfig.base) {
+        setTargetChain("base");
+      } else if (strategyConfig.arbitrum) {
+        setTargetChain("arbitrum");
+      } else if (strategyConfig.ethereum) {
+        setTargetChain("ethereum");
+      } else if (strategyConfig.katana) {
+        setTargetChain("katana");
+      }
     }
-  };
+  }, [selectedAsset, strategyConfig, targetChain]);
 
   // Parse all available deposit assets from strategyConfig, filtered by targetChain
   const assetOptions = useMemo(() => {
-    return getNetworkTokens();
+    if (!strategyConfig) {
+      return [];
+    }
+    
+    switch (targetChain) {
+      case "arbitrum":
+        return strategyConfig.arbitrum?.tokens || [];
+      case "ethereum":
+        return strategyConfig.ethereum?.tokens || [];
+      case "katana":
+        return strategyConfig.katana?.tokens || [];
+      case "base":
+      default:
+        return strategyConfig.base?.tokens || [];
+    }
   }, [strategyConfig, targetChain]);
 
   const selectedAssetOption =
@@ -750,11 +790,17 @@ const DepositView: React.FC<DepositViewProps> = ({
 
       // Calculate shares: user input / (rate / 10^depositTokenDecimals)
       // The rate is in 18 decimals, so we need to account for deposit token decimals
-      // For USDC use 10^6, for others (USDS, sUSDS) use 10^18
+      // For USDC use 10^6, for eBTC use 10^8, for others (USDS, sUSDS) use 10^18
+      const shareDecimals = (strategyConfig as any).shareAddress_token_decimal || 18;
       let shares;
       if (selectedAssetOption.name === "USDC") {
         // For USDC, use 10^6
         const scaleMultiplier = BigInt(10 ** 6);
+        shares =
+          (amountInWei * scaleMultiplier) / BigInt(rateInQuote.toString());
+      } else if (selectedAssetOption.name === "eBTC" || selectedAsset === "BTC") {
+        // For eBTC, use 10^8 (eBTC has 8 decimals, and syBTC shares also have 8 decimals)
+        const scaleMultiplier = BigInt(10 ** 8);
         shares =
           (amountInWei * scaleMultiplier) / BigInt(rateInQuote.toString());
       } else {
@@ -764,11 +810,13 @@ const DepositView: React.FC<DepositViewProps> = ({
           (amountInWei * scaleMultiplier) / BigInt(rateInQuote.toString());
       }
 
-      // Convert shares back to human readable format based on token decimals
-      // For USDC use 6 decimals, for others (USDS, sUSDS) use 18 decimals
+      // Convert shares back to human readable format based on share token decimals
+      // For USDC use 6 decimals, for eBTC/BTC use 8 decimals, for others use 18 decimals
       let sharesFormatted;
       if (selectedAssetOption.name === "USDC") {
         sharesFormatted = formatUnits(shares, 6);
+      } else if (selectedAssetOption.name === "eBTC" || selectedAsset === "BTC") {
+        sharesFormatted = formatUnits(shares, shareDecimals);
       } else {
         sharesFormatted = formatUnits(shares, 18);
       }
@@ -776,26 +824,41 @@ const DepositView: React.FC<DepositViewProps> = ({
       // Format shares to be more readable with proper number formatting
       const sharesNumber = parseFloat(sharesFormatted);
       const formattedShares = sharesNumber.toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 6,
+        minimumFractionDigits: selectedAsset === "BTC" ? 7 : 2,
+        maximumFractionDigits: selectedAsset === "BTC" ? 7 : 6,
       });
 
       setSharesToReceive(sharesFormatted);
 
-      // Calculate USD value: (shares/10^18) * rateNumber
-      const sharesForUsd = parseFloat(sharesFormatted);
-      // Use 10^6 for USDC, USDT, vbUSDC, and vbUSDT; 10^18 for other tokens
+      // Calculate USD value
+      const sharesForUsd = parseFloat(sharesFormatted); // This is already in human-readable format (e.g., 0.0002154 syBTC)
+      // Use 10^6 for USDC, USDT, vbUSDC, and vbUSDT; 10^8 for eBTC/BTC; 10^18 for other tokens
       const rateDecimals =
         selectedAssetOption?.name === "USDC" ||
         selectedAssetOption?.name === "USDT" ||
         selectedAssetOption?.name === "vbUSDC" ||
         selectedAssetOption?.name === "vbUSDT"
           ? 6
+          : selectedAssetOption?.name === "eBTC" || selectedAsset === "BTC"
+          ? 8
           : 18;
       const rateNumber = parseFloat(formatUnits(rateInQuote, rateDecimals));
-      const usdValueCalculated =
-        (sharesForUsd / Math.pow(10, 18)) * rateNumber * Math.pow(10, 18);
-      const formattedUsdValue = usdValueCalculated.toFixed(2);
+      // rateNumber represents: how many wBTC (or USDC) per 1 syBTC share
+      // For syBTC: shares (syBTC) * rateNumber (wBTC per syBTC) * wbtcPrice (USD per wBTC) = USD value
+      // For syUSD: shares (syUSD) * rateNumber (USDC per syUSD) = USD value (since USDC ≈ 1 USD)
+      const isBtc = selectedAssetOption?.name === "eBTC" || selectedAsset === "BTC";
+      let usdValueCalculated: number;
+      if (isBtc && wbtcPrice > 0) {
+        // For syBTC: multiply shares by exchange rate (syBTC to wBTC) and then by wBTC price (wBTC to USD)
+        usdValueCalculated = sharesForUsd * rateNumber * wbtcPrice;
+      } else {
+        // For syUSD: rateNumber is already in USD terms (USDC per syUSD ≈ USD per syUSD)
+        usdValueCalculated = sharesForUsd * rateNumber;
+      }
+      // For BTC, show 7 decimals; for others, show 2 decimals
+      const formattedUsdValue = isBtc 
+        ? usdValueCalculated.toFixed(7)
+        : usdValueCalculated.toFixed(2);
       setUsdValue(formattedUsdValue);
 
       console.log("Shares calculation:", {
@@ -813,6 +876,54 @@ const DepositView: React.FC<DepositViewProps> = ({
     }
   };
 
+  // Fetch wBTC price when BTC strategy is selected
+  useEffect(() => {
+    const fetchWbtcPrice = async () => {
+      if (selectedAsset === "BTC") {
+        try {
+          const wbtcPriceUrl = (BTC_STRATEGIES.PERPETUAL_DURATION.STABLE as any).wbtcPrice;
+          
+          if (!wbtcPriceUrl || typeof wbtcPriceUrl !== "string" || !wbtcPriceUrl.startsWith("http")) {
+            console.warn("wBTC price URL not available");
+            setWbtcPrice(0);
+            return;
+          }
+
+          const response = await fetch(wbtcPriceUrl);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          // Handle both string and number formats: {"result":"91477.81"} or {"result":91477.81}
+          const price = data?.result || data?.price || data?.rate;
+          
+          if (typeof price === "number") {
+            setWbtcPrice(price);
+          } else if (typeof price === "string") {
+            const parsedPrice = parseFloat(price);
+            if (!isNaN(parsedPrice) && isFinite(parsedPrice)) {
+              setWbtcPrice(parsedPrice);
+            } else {
+              console.error(`Failed to parse wBTC price: ${price}`);
+              setWbtcPrice(0);
+            }
+          } else {
+            console.error('Unexpected wBTC price data structure:', data);
+            setWbtcPrice(0);
+          }
+        } catch (error) {
+          console.error('Error fetching wBTC price:', error);
+          setWbtcPrice(0);
+        }
+      } else {
+        setWbtcPrice(0);
+      }
+    };
+
+    fetchWbtcPrice();
+  }, [selectedAsset]);
+
   // Effect to recalculate shares when amount or selected asset changes
   useEffect(() => {
     if (amount && parseFloat(amount) > 0) {
@@ -821,7 +932,7 @@ const DepositView: React.FC<DepositViewProps> = ({
       setSharesToReceive("0");
       setUsdValue("0.00");
     }
-  }, [amount, selectedAssetIdx, targetChain, strategyConfig]);
+  }, [amount, selectedAssetIdx, targetChain, strategyConfig, wbtcPrice]);
 
   // Calculate deposit cap values from env config
   const showDepositCap = strategyConfig.show_cap;
@@ -1142,7 +1253,9 @@ const DepositView: React.FC<DepositViewProps> = ({
       const targetChainConfig = getChainConfig(targetChain);
       const depositChainId = targetChainConfig.chainId;
 
-      const receiveChainId = getChainConfig(strategyConfig.network).chainId;
+      // Normalize network name to lowercase for getChainConfig
+      const receiveChainName = (strategyConfig.network || "").toLowerCase();
+      const receiveChainId = getChainConfig(receiveChainName).chainId;
 
       // Calculate isMultiChain as a local variable to avoid stale state issues
       const isMultiChainCalculated = depositChainId !== receiveChainId;
@@ -1447,9 +1560,20 @@ const DepositView: React.FC<DepositViewProps> = ({
 
     setIsLoadingBalance(true);
     try {
-      const tokenContractAddress = selectedAssetOption.contract as Address;
+      // Ensure address is properly checksummed
+      const tokenContractAddress = getAddress(selectedAssetOption.contract);
+      const walletAddress = getAddress(address);
       const decimals = Number(selectedAssetOption.decimal);
       const { rpcUrl, chain } = getChainConfig(targetChain);
+
+      console.log("Fetching balance:", {
+        token: selectedAssetOption?.name || "Unknown",
+        contract: tokenContractAddress,
+        wallet: walletAddress,
+        network: targetChain,
+        rpcUrl,
+        decimals,
+      });
 
       const client = createPublicClient({
         transport: http(rpcUrl),
@@ -1460,28 +1584,41 @@ const DepositView: React.FC<DepositViewProps> = ({
         address: tokenContractAddress,
         abi: ERC20_ABI,
         functionName: "balanceOf",
-        args: [address as Address],
+        args: [walletAddress],
       });
 
       const unformattedBalance = formatUnits(balanceResult as bigint, decimals);
       setRawBalance(unformattedBalance); // Set rawBalance here
 
+      // For BTC, show 7 decimals; for others, show 2 decimals
+      const isBtc = selectedAssetOption?.name === "eBTC" || selectedAsset === "BTC";
       const formattedBalance = Number(unformattedBalance).toLocaleString(
         undefined,
         {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
+          minimumFractionDigits: isBtc ? 7 : 2,
+          maximumFractionDigits: isBtc ? 7 : 2,
         }
       );
       setBalance(formattedBalance);
-      console.log("Fetching balance for", {
+      console.log("Balance fetched successfully:", {
         token: selectedAssetOption?.name || "Unknown",
         contract: tokenContractAddress,
-        wallet: address,
+        wallet: walletAddress,
+        rawBalance: balanceResult.toString(),
+        formattedBalance: unformattedBalance,
+        displayBalance: formattedBalance,
       });
-    } catch (error) {
-      console.error("Error fetching balance:", error);
-      setBalance("0.00");
+    } catch (error: any) {
+      console.error("Error fetching balance:", {
+        error: error.message,
+        token: selectedAssetOption?.name || "Unknown",
+        contract: selectedAssetOption?.contract,
+        wallet: address,
+        network: targetChain,
+        stack: error.stack,
+      });
+      const isBtc = selectedAssetOption?.name === "eBTC" || selectedAsset === "BTC";
+      setBalance(isBtc ? "0.0000000" : "0.00");
       setRawBalance("0"); // Also reset rawBalance on error
     } finally {
       setIsLoadingBalance(false);
@@ -1502,32 +1639,56 @@ const DepositView: React.FC<DepositViewProps> = ({
 
       const balancePromises = assetOptions.map(async (asset) => {
         try {
+          // Ensure addresses are properly checksummed
+          const tokenContractAddress = getAddress(asset.contract);
+          const walletAddress = getAddress(address);
+
+          console.log(`Fetching balance for ${asset.name}:`, {
+            contract: tokenContractAddress,
+            wallet: walletAddress,
+            network: targetChain,
+          });
+
           const balanceResult = await client.readContract({
-            address: asset.contract as Address,
+            address: tokenContractAddress,
             abi: ERC20_ABI,
             functionName: "balanceOf",
-            args: [address as Address],
+            args: [walletAddress],
           });
 
           const unformattedBalance = formatUnits(
             balanceResult as bigint,
             asset.decimal
           );
+          // For eBTC, show 6 decimals in asset selection modal; for others, show 2 decimals
+          const isBtc = asset.name === "eBTC";
           const formattedBalance = Number(unformattedBalance).toLocaleString(
             undefined,
             {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
+              minimumFractionDigits: isBtc ? 6 : 2,
+              maximumFractionDigits: isBtc ? 6 : 2,
             }
           );
+
+          console.log(`Balance fetched for ${asset.name}:`, {
+            rawBalance: balanceResult.toString(),
+            formattedBalance: unformattedBalance,
+            displayBalance: formattedBalance,
+          });
 
           return {
             name: asset.name,
             balance: formattedBalance,
             rawBalance: unformattedBalance,
           };
-        } catch (error) {
-          console.error(`Error fetching balance for ${asset.name}:`, error);
+        } catch (error: any) {
+          console.error(`Error fetching balance for ${asset.name}:`, {
+            error: error.message,
+            contract: asset.contract,
+            wallet: address,
+            network: targetChain,
+            stack: error.stack,
+          });
           return {
             name: asset.name,
             balance: "0.00",
@@ -1962,17 +2123,30 @@ const DepositView: React.FC<DepositViewProps> = ({
                         <div className="relative w-fit">
                           <div className="flex items-center justify-between w-fit bg-[#1e202c] text-[#EDF2F8] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] pr-2">
                             <div className="flex items-center gap-2">
-                              {strategyConfig.network && (
-                                <img
-                                  src={
-                                    getUniqueChainConfigs.find(
-                                      (c) => c.network === "base"
-                                    )?.image || ""
-                                  }
-                                  alt={targetChain} // Use network name for alt text
-                                  className="w-5 h-5 rounded-full"
-                                />
-                              )}
+                              {strategyConfig.network && (() => {
+                                // Get the network name in lowercase to match the chain config
+                                const networkName = strategyConfig.network.toLowerCase();
+                                // Find the matching chain config
+                                const chainConfig = getUniqueChainConfigs.find(
+                                  (c) => c.network === networkName || 
+                                         c.name.toLowerCase() === networkName
+                                );
+                                // Fallback to getting image from strategy config directly
+                                const networkImage = chainConfig?.image || 
+                                  (networkName === "arbitrum" && (strategyConfig as any).arbitrum?.image) ||
+                                  (networkName === "base" && (strategyConfig as any).base?.image) ||
+                                  (networkName === "ethereum" && (strategyConfig as any).ethereum?.image) ||
+                                  (networkName === "katana" && (strategyConfig as any).katana?.image) ||
+                                  "";
+                                
+                                return (
+                                  <img
+                                    src={networkImage}
+                                    alt={strategyConfig.network}
+                                    className="w-5 h-5 rounded-full"
+                                  />
+                                );
+                              })()}
                               <span className="capitalize text-[12px]">
                                 {strategyConfig.network}
                               </span>
@@ -1994,7 +2168,9 @@ const DepositView: React.FC<DepositViewProps> = ({
                           <div className="flex flex-col items-center">
                             <div className="flex items-center justify-center">
                               <div className="text-white font-semibold capitalize flex items-center gap-[10px]">
-                                {strategy} {selectedAsset}
+                                {selectedAsset === "BTC" 
+                                  ? (strategyConfig as any).displayName || "Stable BTC"
+                                  : `${strategy} ${selectedAsset}`}
                                 <button
                                   onClick={onBack}
                                   className="text-[#9C9DA2] hover:text-[#B88AF8] transition-all duration-200 cursor-pointer"
@@ -2045,7 +2221,11 @@ const DepositView: React.FC<DepositViewProps> = ({
                           <div className="mt-8">
                             <div className="text-[#D7E3EF] text-[24px] font-bold leading-normal">
                               {sharesToReceive
-                                ? Number(sharesToReceive).toFixed(2)
+                                ? selectedAsset === "BTC"
+                                  ? Number(sharesToReceive).toFixed(7)
+                                  : Number(sharesToReceive).toFixed(2)
+                                : selectedAsset === "BTC"
+                                ? "0.0000000"
                                 : "0.00"}
                             </div>
                             <div className="text-[#9C9DA2] text-[12px] font-normal leading-normal">
@@ -2317,7 +2497,10 @@ const DepositView: React.FC<DepositViewProps> = ({
                             <span>Loading...</span>
                           </div>
                         ) : (
-                          `$${assetBalances[asset.name] || "0.00"}`
+                          // For BTC assets, show balance without $ prefix; for others, show USD value
+                          asset.name === "eBTC" || asset.name === "wBTC"
+                            ? `${assetBalances[asset.name] || "0.000000"}`
+                            : `$${assetBalances[asset.name] || "0.00"}`
                         )}
                       </div>
                     </div>

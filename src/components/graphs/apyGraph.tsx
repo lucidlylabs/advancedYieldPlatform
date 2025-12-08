@@ -15,11 +15,14 @@ interface ChartDataPoint {
   annualizedAPY: number;
 }
 
+import { USD_STRATEGIES, BTC_STRATEGIES } from "../../config/env";
+
 interface BaseApyGraphProps {
   vaultAddress?: string;
+  strategyType?: "USD" | "BTC" | "ETH";
 }
 
-export default function BaseApyGraph({ vaultAddress = "0x279CAD277447965AF3d24a78197aad1B02a2c589" }: BaseApyGraphProps) {
+export default function BaseApyGraph({ vaultAddress = "0x279CAD277447965AF3d24a78197aad1B02a2c589", strategyType = "USD" }: BaseApyGraphProps) {
   const [data, setData] = useState<ChartDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("weekly");
@@ -28,7 +31,20 @@ export default function BaseApyGraph({ vaultAddress = "0x279CAD277447965AF3d24a7
     const fetchData = async () => {
       try {
         setLoading(true);
-        console.log(`Fetching base APY data for vault: ${vaultAddress}, period: ${period}`);
+        
+        // Check if APY endpoint is available for this strategy
+        const strategy = strategyType === "BTC" 
+          ? BTC_STRATEGIES.PERPETUAL_DURATION.STABLE 
+          : USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
+        
+        if (!strategy.apy || strategy.apy === "") {
+          console.log(`APY data not available for ${strategyType}`);
+          setData([]);
+          setLoading(false);
+          return;
+        }
+
+        console.log(`Fetching base APY data for vault: ${vaultAddress}, period: ${period}, strategy: ${strategyType}`);
 
         const response = await fetch(`https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/base-apy?period=${period}`);
 
@@ -157,7 +173,7 @@ export default function BaseApyGraph({ vaultAddress = "0x279CAD277447965AF3d24a7
     };
 
     fetchData();
-  }, [period, vaultAddress]);
+  }, [period, vaultAddress, strategyType]);
 
   // Custom tooltip content component
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -200,6 +216,19 @@ export default function BaseApyGraph({ vaultAddress = "0x279CAD277447965AF3d24a7
             <p className="text-gray-400 text-sm">
               Loading base APY data...
             </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show empty state for syBTC when no data
+  if (strategyType === "BTC" && data.length === 0) {
+    return (
+      <div className="pt-2 pl-6 pb-6 rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 mb-12 chart-container">
+        <div className="w-full h-[300px] flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <p className="text-gray-400 text-sm">APY data not available for syBTC</p>
           </div>
         </div>
       </div>

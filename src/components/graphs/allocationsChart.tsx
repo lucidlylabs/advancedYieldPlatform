@@ -123,10 +123,10 @@ interface ChartDataPoint {
 }
 
 interface AllocationChartProps {
-  // Add any props if needed, e.g., for filtering
+  strategyType?: "USD" | "BTC" | "ETH";
 }
 
-export default function AllocationChart({}: AllocationChartProps) {
+export default function AllocationChart({ strategyType = "USD" }: AllocationChartProps) {
   const [data, setData] = useState<ChartDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -140,6 +140,17 @@ export default function AllocationChart({}: AllocationChartProps) {
         // Only show loading on initial load
         if (initialLoading) {
           setLoading(true);
+        }
+
+        // For syBTC, if no endpoint is available, return empty data
+        if (strategyType === "BTC") {
+          console.log("syBTC allocation data not available");
+          setData([]);
+          setKeys([]);
+          setSelectedKeys(new Set());
+          setLoading(false);
+          setInitialLoading(false);
+          return;
         }
 
         console.log("Fetching allocation data...");
@@ -183,7 +194,7 @@ export default function AllocationChart({}: AllocationChartProps) {
         setData(filteredData);
 
         // Extract strategy addresses from ALL dates, not just the first one
-        if (filteredData.length > 0) {
+        if (filteredData.length > 0 && strategyType === "USD") {
           const allStrategyAddresses = new Set<string>();
           
           // Collect all unique strategy addresses from all data points
@@ -252,7 +263,7 @@ export default function AllocationChart({}: AllocationChartProps) {
     };
 
     fetchData();
-  }, [initialLoading]);
+  }, [initialLoading, strategyType]);
 
   const handleLegendClick = (key: string) => {
     setSelectedKeys((prev) => {
@@ -497,10 +508,18 @@ export default function AllocationChart({}: AllocationChartProps) {
               })}
                       </AreaChart>
           ) : (
-            <div className="flex items-center justify-center h-full text-gray-400">
-              <div>Chart data loading...</div>
-              <div className="text-xs mt-2">Filtered data length: {filteredData.length}</div>
-              <div className="text-xs">Selected keys: {Array.from(selectedKeys).join(', ')}</div>
+            <div className="w-full h-[300px] flex items-center justify-center">
+              {strategyType === "BTC" ? (
+                <div className="flex flex-col items-center gap-4">
+                  <p className="text-gray-400 text-sm">Allocation data not available for syBTC</p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-4">
+                  <div className="text-gray-400 text-sm">Chart data loading...</div>
+                  <div className="text-xs text-gray-500">Filtered data length: {filteredData.length}</div>
+                  <div className="text-xs text-gray-500">Selected keys: {Array.from(selectedKeys).join(', ')}</div>
+                </div>
+              )}
             </div>
           )}
         </ResponsiveContainer>

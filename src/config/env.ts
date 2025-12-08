@@ -224,15 +224,13 @@ export const BTC_STRATEGIES = {
       displayName: "Stable Yield BTC",
       type: "btc",
       network: "Arbitrum",
-      contract: "0x692A1752542259BCdE867bb17a06307FE78374c4", // drone-0
+      contract: "0xdE4FD4DD35F78389CDaCF111D7Ba31A31A61b2a7", // drone-0
       boringVaultAddress: "0xC0D48269f8d6E427B0637F5e0695De11C8E75F6c", // vault_address
-      solverAddress: "0xD2e11B3E6f88bF1712cEAAE558D030da0c970F79", // QueueSolver
+      solverAddress: "0x2f2e71bdd62f87FCF8d19d234CA3bd903848D3a5", // QueueSolver
       shareAddress: "0xC0D48269f8d6E427B0637F5e0695De11C8E75F6c", // vault_address (same as boringVaultAddress)
       shareAddress_token_decimal: 8, // decimals
       rateProvider: "0xDda6274D69F464172CC7F52194d16FF27ec0D5A6", // accountant_address
-      image: "/images/icons/syBTC.svg",
-
-      // Arbitrum Network Configuration
+      image: "/images/icons/btc-stable.svg", // Using btc-stable.svg since syBTC.svg doesn't exist      // Arbitrum Network Configuration
       arbitrum: {
         image: "/images/logo/arb.svg",
         rpc: "https://arb1.arbitrum.io/rpc", // Arbitrum mainnet RPC
@@ -249,10 +247,10 @@ export const BTC_STRATEGIES = {
         },
         tokens: [
           {
-            name: "WBTC",
-            contract: "0x2f2aA3C9B9Fc96B0e4C4e4F4C4e4F4C4e4F4C4e4F", // WBTC on Arbitrum - REPLACE WITH ACTUAL ADDRESS
+            name: "wBTC",
+            contract: "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f", // eBTC on Arbitrum One
             decimal: 8,
-            image: "/images/icons/wbtc.svg",
+            image: "/images/icons/wbtc.png", // Using wbtc icon for eBTC (or update to ebtc icon if available)
             isWithdrawable: true,
           },
         ],
@@ -265,12 +263,14 @@ export const BTC_STRATEGIES = {
       },
 
       description: "Perpetual syBTC strategy on Arbitrum network",
-      apy: "https://api.example.com/sybtc/apy", // REPLACE WITH ACTUAL APY ENDPOINT
+      apy: "", // Graph data not available for syBTC
       cap_limit: "0", // No cap limit
       filled_cap: "0",
       show_cap: false,
-      tvl: "https://api.example.com/sybtc/tvl", // REPLACE WITH ACTUAL TVL ENDPOINT
-      withdraw_request: "https://api.example.com/sybtc/withdrawals", // REPLACE WITH ACTUAL WITHDRAWAL ENDPOINT
+      tvl: "https://api.lucidly.finance/services/aum_data?vaultName=syBTC",
+      wbtcPrice:
+        "https://api.lucidly.finance/services/currency_rates?assetName=BTC",
+      withdraw_request: "", // Graph data not available for syBTC
       rpc: "https://arb1.arbitrum.io/rpc",
     },
     INCENTIVE: {

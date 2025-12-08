@@ -101,6 +101,8 @@ const MarketsSubpage: React.FC = () => {
   const [showDepositView, setShowDepositView] = useState(false);
   const [usdTvl, setUsdTvl] = useState<string>("Loading...");
   const [usdApy, setUsdApy] = useState<string>("Loading...");
+  const [btcTvl, setBtcTvl] = useState<string>("Loading...");
+  const [btcApy, setBtcApy] = useState<string>("Loading...");
   const [showColumnsDropdown, setShowColumnsDropdown] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState({
     availableYields: true,
@@ -150,12 +152,55 @@ const MarketsSubpage: React.FC = () => {
 
   const router = useRouter();
 
-  // Update market data when usdApy or usdTvl changes
+  // Update market data when usdApy, usdTvl, btcApy, or btcTvl changes
   useEffect(() => {
     const newMarketData: Record<AssetType, MarketItem[]> = {
       All: [],
       ETH: [], // Empty for now - no ETH strategies available yet
-      BTC: [], // Empty for now - no BTC strategies available yet
+      BTC: [
+        {
+          id: 6,
+          name: BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.displayName,
+          ticker: BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.name, // syBTC
+          type: BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.type,
+          baseYield: btcApy,
+          incentives: (() => {
+            const incentives =
+              BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.incentives;
+            console.log("Raw BTC incentives config:", incentives);
+
+            if (
+              !incentives?.enabled ||
+              !incentives.points ||
+              incentives.points.length === 0
+            ) {
+              console.log("No BTC incentives enabled or no points");
+              return [];
+            }
+
+            // Return objects with image, name, and link for tooltips and navigation
+            const incentiveData = (incentives.points as Array<{
+              name: string;
+              image: string;
+              multiplier: number;
+              description: string;
+              link?: string;
+            }>).map((point) => ({
+              image: point.image,
+              name: point.name,
+              link: point.link || "#", // Use link from config or fallback to "#"
+            }));
+            console.log("BTC Incentive data:", incentiveData);
+            return incentiveData;
+          })(),
+          tvl: btcTvl,
+          description: BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.description,
+          riskLevel: "Very Low",
+          network: BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.network,
+          contractAddress:
+            BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress,
+        },
+      ],
       USD: [
         {
           id: 5,
@@ -204,7 +249,7 @@ const MarketsSubpage: React.FC = () => {
     ];
 
     setMarketData(newMarketData);
-  }, [usdApy, usdTvl]);
+  }, [usdApy, usdTvl, btcApy, btcTvl]);
 
   // Fetch TVL for USD strategy if it's a URL
   useEffect(() => {
@@ -274,6 +319,165 @@ const MarketsSubpage: React.FC = () => {
     }
   }, []);
 
+  // Fetch TVL for BTC strategy if it's a URL
+  useEffect(() => {
+    const tvlUrl = BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.tvl;
+    const wbtcPriceUrl = (BTC_STRATEGIES.PERPETUAL_DURATION.STABLE as any).wbtcPrice;
+    
+    console.log(`🔍 BTC TVL URL: ${tvlUrl}`);
+    console.log(`🔍 BTC wBTC Price URL: ${wbtcPriceUrl}`);
+    
+    if (typeof tvlUrl === "string" && tvlUrl.startsWith("http")) {
+      // Fetch TVL (in BTC terms)
+      fetch(tvlUrl)
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          return res.json();
+        })
+        .then(async (data) => {
+          let tvlValue: number;
+          
+          // Handle both string and number formats, including scientific notation
+          if (typeof data.result === "number") {
+            tvlValue = data.result;
+          } else if (typeof data.result === "string") {
+            // Parse string, handling scientific notation (e.g., "3.536e-05")
+            tvlValue = parseFloat(data.result);
+            if (isNaN(tvlValue)) {
+              console.warn("Failed to parse BTC TVL value:", data.result);
+              setBtcTvl("N/A");
+              return;
+            }
+          } else {
+            console.warn("Unexpected BTC TVL data structure:", data);
+            setBtcTvl("N/A");
+            return;
+          }
+          
+          console.log(`🔍 Raw BTC TVL value from API: ${tvlValue} BTC (original: ${data.result})`);
+          
+          // Multiply by wBTC price to convert from BTC to USD
+          if (wbtcPriceUrl && typeof wbtcPriceUrl === "string" && wbtcPriceUrl.startsWith("http")) {
+            console.log(`🔍 Fetching wBTC price from: ${wbtcPriceUrl}`);
+            try {
+              const priceResponse = await fetch(wbtcPriceUrl);
+              console.log(`🔍 Price response status: ${priceResponse.status}`);
+              
+              if (priceResponse.ok) {
+                const priceData = await priceResponse.json();
+                console.log(`🔍 Price API response:`, priceData);
+                
+                // Handle both string and number formats: {"result":"91477.81"} or {"result":91477.81}
+                let wbtcPrice = priceData?.result || priceData?.price || priceData?.rate;
+                console.log(`🔍 Extracted price value: ${wbtcPrice} (type: ${typeof wbtcPrice})`);
+                
+                // Convert string to number if needed
+                if (typeof wbtcPrice === "string") {
+                  wbtcPrice = parseFloat(wbtcPrice);
+                  console.log(`🔍 Parsed price string to number: ${wbtcPrice}`);
+                }
+                
+                console.log(`✅ Fetched wBTC price: ${wbtcPrice} USD`);
+                
+                if (typeof wbtcPrice === "number" && wbtcPrice > 0 && !isNaN(wbtcPrice) && isFinite(wbtcPrice)) {
+                  const originalTvl = tvlValue;
+                  tvlValue = tvlValue * wbtcPrice;
+                  console.log(`✅ BTC TVL conversion: ${originalTvl} BTC * ${wbtcPrice} USD/BTC = ${tvlValue} USD`);
+                  
+                  // Validate the result
+                  if (tvlValue <= 0 || isNaN(tvlValue) || !isFinite(tvlValue)) {
+                    console.error(`❌ Invalid TVL after conversion: ${tvlValue}`);
+                    setBtcTvl("N/A");
+                    return;
+                  }
+                } else {
+                  console.error(`❌ Invalid wBTC price: ${wbtcPrice} (type: ${typeof wbtcPrice}, isNaN: ${isNaN(wbtcPrice)}, isFinite: ${isFinite(wbtcPrice)})`);
+                }
+              } else {
+                console.error(`❌ Price API response not OK: ${priceResponse.status}`);
+              }
+            } catch (priceError) {
+              console.error("❌ Error fetching wBTC price:", priceError);
+            }
+          } else {
+            console.error(`❌ wbtcPriceUrl is invalid: ${wbtcPriceUrl} (type: ${typeof wbtcPriceUrl})`);
+          }
+          
+          console.log(`Final BTC TVL value to format: ${tvlValue} USD`);
+          
+          // Format with appropriate decimal places based on value size
+          let formattedTvl: string;
+          if (tvlValue < 1 && tvlValue > 0) {
+            // For values less than $1, show with 2 decimal places
+            formattedTvl = `$${tvlValue.toFixed(2)}`;
+          } else {
+            // For larger values, format with commas and round to nearest dollar
+            formattedTvl = tvlValue.toLocaleString("en-US", {
+              style: "currency",
+              currency: "USD",
+              maximumFractionDigits: 0,
+              minimumFractionDigits: 0,
+            });
+          }
+          
+          setBtcTvl(formattedTvl);
+        })
+        .catch((error) => {
+          console.error("Error fetching BTC TVL:", error);
+          setBtcTvl("N/A");
+        });
+    } else if (typeof tvlUrl === "string" && !tvlUrl.startsWith("http")) {
+      // If tvlUrl is not a URL, use it directly (fallback value)
+      setBtcTvl(tvlUrl);
+    } else {
+      // If no TVL URL is available, set to N/A
+      setBtcTvl("N/A");
+    }
+  }, []);
+
+  // Fetch APY for BTC strategy if it's a URL
+  useEffect(() => {
+    const apyUrl = BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.apy;
+    
+    // Check if apyUrl is empty or just whitespace
+    if (!apyUrl || (typeof apyUrl === "string" && apyUrl.trim() === "")) {
+      setBtcApy("---");
+      return;
+    }
+    
+    if (typeof apyUrl === "string" && apyUrl.startsWith("http")) {
+      fetch(apyUrl)
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          return res.json();
+        })
+        .then((data) => {
+          const trailingApy = data?.result?.trailing_total_APY;
+          if (typeof trailingApy === "number") {
+            setBtcApy(`${trailingApy.toFixed(2)}%`);
+          } else {
+            console.warn("Unexpected BTC APY data structure:", data);
+            setBtcApy("---");
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching BTC APY:", error);
+          setBtcApy("---");
+        });
+    } else if (typeof apyUrl === "string" && !apyUrl.startsWith("http")) {
+      // If apyUrl is not a URL, use it directly (fallback value)
+      // If it's empty, show "---"
+      setBtcApy(apyUrl && apyUrl.trim() !== "" ? apyUrl : "---");
+    } else {
+      // If no APY URL is available, set to ---
+      setBtcApy("---");
+    }
+  }, []);
+
   // Handler for sorting
   const handleSort = (column: string) => {
     if (sortColumn === column) {
@@ -315,11 +519,11 @@ const MarketsSubpage: React.FC = () => {
       let valueA, valueB;
 
       if (sortColumn === "baseYield") {
-        // Handle cases where baseYield might be "N/A" or fallback values
+        // Handle cases where baseYield might be "---" or fallback values
         const aValue =
-          a.baseYield === "N/A" ? 0 : parseFloat(a.baseYield.replace("%", ""));
+          a.baseYield === "---" || a.baseYield === "N/A" ? 0 : parseFloat(a.baseYield.replace("%", ""));
         const bValue =
-          b.baseYield === "N/A" ? 0 : parseFloat(b.baseYield.replace("%", ""));
+          b.baseYield === "---" || b.baseYield === "N/A" ? 0 : parseFloat(b.baseYield.replace("%", ""));
         valueA = isNaN(aValue) ? 0 : aValue;
         valueB = isNaN(bValue) ? 0 : bValue;
       } else if (sortColumn === "tvl") {
@@ -379,10 +583,14 @@ const MarketsSubpage: React.FC = () => {
         <>
           {showDepositView ? (
             <DepositView
-              selectedAsset="USD"
+              selectedAsset={selectedItem?.type === "btc" ? "BTC" : "USD"}
               duration="PERPETUAL_DURATION"
               strategy="stable"
-              apy={usdApy === "Loading..." ? "N/A" : usdApy}
+              apy={
+                selectedItem?.type === "btc"
+                  ? btcApy === "Loading..." ? "N/A" : btcApy
+                  : usdApy === "Loading..." ? "N/A" : usdApy
+              }
               onBack={() => setShowDepositView(false)}
               onReset={() => setShowDepositView(false)}
             />
@@ -462,7 +670,6 @@ const MarketsSubpage: React.FC = () => {
                         asset="BTC"
                         activeAsset={selectedAsset}
                         onClick={setSelectedAsset}
-                        disabled
                       />
                     </div>
 

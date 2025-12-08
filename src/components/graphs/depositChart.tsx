@@ -38,11 +38,19 @@ type CumulativeDataItem = {
 };
 
 async function fetchData(
-  period: "daily" | "weekly" | "monthly"
+  period: "daily" | "weekly" | "monthly",
+  strategyType: "USD" | "BTC" | "ETH" = "USD"
 ): Promise<ChartDataItem[]> {
   try {
-    console.log(`Fetching deposit data for period: ${period}`);
-    const apiUrl = `https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/syUSD/deposits?period=${period}`;
+    // For syBTC, if no endpoint is available, return empty data
+    if (strategyType === "BTC") {
+      console.log("syBTC deposit data not available");
+      return [];
+    }
+
+    console.log(`Fetching deposit data for period: ${period}, strategy: ${strategyType}`);
+    const strategyName = strategyType === "USD" ? "syUSD" : strategyType === "BTC" ? "syBTC" : "syETH";
+    const apiUrl = `https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/${strategyName}/deposits?period=${period}`;
     console.log(`API URL: ${apiUrl}`);
 
     const res = await fetch(apiUrl);
@@ -92,10 +100,10 @@ async function fetchData(
 }
 
 interface DepositBarChartProps {
-  // No props needed
+  strategyType?: "USD" | "BTC" | "ETH";
 }
 
-export default function TotalDepositsChart({}: DepositBarChartProps) {
+export default function TotalDepositsChart({ strategyType = "USD" }: DepositBarChartProps) {
   const [data, setData] = useState<ChartDataItem[]>([]);
   const [cumulativeData, setCumulativeData] = useState<CumulativeDataItem[]>(
     []
@@ -112,7 +120,7 @@ export default function TotalDepositsChart({}: DepositBarChartProps) {
         if (initialLoading) {
           setLoading(true);
         }
-        const rawData = await fetchData(period);
+        const rawData = await fetchData(period, strategyType);
         setData(rawData);
 
         // Calculate cumulative data for all assets combined
@@ -179,7 +187,7 @@ export default function TotalDepositsChart({}: DepositBarChartProps) {
     };
 
     loadData();
-  }, [period, initialLoading]); // refetch when period changes
+  }, [period, initialLoading, strategyType]); // refetch when period or strategy changes
 
   if (initialLoading && loading) {
     return (
@@ -188,6 +196,19 @@ export default function TotalDepositsChart({}: DepositBarChartProps) {
           <div className="flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
             <p className="text-gray-400 text-sm">Loading deposit data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show empty state for syBTC
+  if (strategyType === "BTC" && (data.length === 0 || cumulativeData.length === 0)) {
+    return (
+      <div className="pt-2 pl-6 pb-6 rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 mb-12 [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
+        <div className="w-full h-[300px] flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <p className="text-gray-400 text-sm">Deposit data not available for syBTC</p>
           </div>
         </div>
       </div>

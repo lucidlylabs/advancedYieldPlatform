@@ -74,21 +74,18 @@ const IncentiveRewards: React.FC<IncentiveRewardsProps> = ({
   if (!incentives || !incentives.points || incentives.points.length === 0) {
     return (
       <div className={`w-full ${className}`}>
-        <div className="flex justify-between items-center mb-3 mt-5">
+        <div className="flex justify-between items-center mb-3 mt-4">
           <h2 className="text-[rgba(255,255,255,0.70)] text-[16px] font-extrabold">
             Incentive Rewards
           </h2>
         </div>
 
-        <div className="h-[800px] overflow-y-auto pb-2">
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <h3 className="text-lg text-gray-400 mb-2">
-                No Incentives Available
-              </h3>
-              <p className="text-sm text-gray-500">
-                This strategy doesn't have any active incentive programs at the
-                moment.
+        <div className="pt-2 pl-6 pb-6 rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 mb-12">
+          <div className="w-full h-[300px] flex items-center justify-center">
+            <div className="flex flex-col items-center gap-4">
+              <p className="text-gray-400 text-sm">No Incentives Available</p>
+              <p className="text-xs text-gray-500">
+                This strategy doesn't have any active incentive programs at the moment.
               </p>
             </div>
           </div>

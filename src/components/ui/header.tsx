@@ -51,7 +51,7 @@ export function Header({
       {...props}
     >
       {isBannerVisible && (
-        <div className="w-full min-h-[64px] sm:h-[40px] flex-shrink-0 bg-[#0E0C1E] text-white px-3 sm:px-4 py-3 sm:py-0 relative flex items-center justify-center z-[60] pr-10 sm:pr-4">
+        <div className="w-full min-h-[36px] sm:h-[40px] flex-shrink-0 bg-[#0E0C1E] text-white px-3 sm:px-4 py-1 sm:py-0 relative flex items-center justify-center z-[60] pr-10 sm:pr-4">
           <div className="flex flex-row items-center justify-center gap-2 sm:gap-2 w-full max-w-full">
             <img
               src="/images/icons/usd-stable.svg"
