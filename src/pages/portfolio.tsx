@@ -515,6 +515,10 @@ const PortfolioSubpage: React.FC = () => {
   // const [isLoadingPnl, setIsLoadingPnl] = useState(false);
   const [exchangeRate, setExchangeRate] = useState<number>(1.0);
   const [isLoadingExchangeRate, setIsLoadingExchangeRate] = useState(false);
+  // Store exchange rates per strategy (keyed by contract address)
+  const [exchangeRatesPerStrategy, setExchangeRatesPerStrategy] = useState<Record<string, number>>({});
+  const [wbtcPrice, setWbtcPrice] = useState<number>(0);
+  const [isLoadingWbtcPrice, setIsLoadingWbtcPrice] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const chainId = useChainId();
@@ -592,29 +596,23 @@ const PortfolioSubpage: React.FC = () => {
       hash: transactionHash || undefined,
     });
 
-  // Fetch exchange rate for strategy to underlying asset conversion
-  const fetchExchangeRate = async (strategy?: StrategyWithBalance | null) => {
-    setIsLoadingExchangeRate(true);
+  // Fetch exchange rate for a specific strategy (returns the rate)
+  const fetchExchangeRateForStrategy = async (strategy: StrategyWithBalance): Promise<number> => {
     try {
-      // Use the selected strategy or default to first strategy with balance
-      const strategyToUse = strategy || strategiesWithBalance[0];
-      
-      if (!strategyToUse || !strategyToUse.rateProvider) {
-        console.log("No strategy or rate provider available, using fallback rate 1.0");
-        setExchangeRate(1.0);
-        setIsLoadingExchangeRate(false);
-        return;
+      if (!strategy || !strategy.rateProvider) {
+        console.log(`No rate provider for strategy ${strategy.contract}, using fallback rate 1.0`);
+        return 1.0;
       }
 
       // Get quote token based on strategy asset type
       let quoteTokenContract: string;
       let quoteTokenDecimals: number;
       
-      if (strategyToUse.asset === "USD") {
+      if (strategy.asset === "USD") {
         // For USD strategies, use USDC on Base
         quoteTokenContract = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
         quoteTokenDecimals = 6;
-      } else if (strategyToUse.asset === "BTC") {
+      } else if (strategy.asset === "BTC") {
         // For BTC strategies, use wBTC on Arbitrum
         quoteTokenContract = "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f";
         quoteTokenDecimals = 8;
@@ -624,21 +622,21 @@ const PortfolioSubpage: React.FC = () => {
         quoteTokenDecimals = 6;
       }
 
-      const rateProviderAddress = strategyToUse.rateProvider;
+      const rateProviderAddress = strategy.rateProvider;
 
       // Get RPC URL based on strategy network
       let rpcUrl: string;
       let chainId: number;
       let chainName: string;
       
-      if (strategyToUse.asset === "BTC") {
+      if (strategy.asset === "BTC") {
         // syBTC is on Arbitrum
-        rpcUrl = (strategyToUse.arbitrum as any)?.rpc || "https://arb1.arbitrum.io/rpc";
+        rpcUrl = (strategy.arbitrum as any)?.rpc || "https://arb1.arbitrum.io/rpc";
         chainId = 42161;
         chainName = "Arbitrum One";
       } else {
         // syUSD is on Base (default)
-        rpcUrl = (strategyToUse.base as any)?.rpc || "https://base.llamarpc.com";
+        rpcUrl = (strategy.base as any)?.rpc || "https://base.llamarpc.com";
         chainId = 8453;
         chainName = "Base";
       }
@@ -646,7 +644,7 @@ const PortfolioSubpage: React.FC = () => {
       // RPC URLs with fallbacks
       const rpcUrls = [
         rpcUrl,
-        ...(strategyToUse.asset === "BTC" 
+        ...(strategy.asset === "BTC" 
           ? ["https://arb1.arbitrum.io/rpc"]
           : [
               "https://base.llamarpc.com",
@@ -667,7 +665,7 @@ const PortfolioSubpage: React.FC = () => {
             chain: {
               id: chainId,
               name: chainName,
-              network: strategyToUse.asset === "BTC" ? "arbitrum" : "base",
+              network: strategy.asset === "BTC" ? "arbitrum" : "base",
               nativeCurrency: {
                 decimals: 18,
                 name: "Ether",
@@ -720,19 +718,67 @@ const PortfolioSubpage: React.FC = () => {
 
       // Since 1 syUSD = rateNumber USDC, and 1 USDC ≈ 1 USD
       // The exchange rate for syUSD to USD is approximately the same
-      setExchangeRate(rateNumber);
       console.log(
         "🔥 EXCHANGE RATE FETCHED SUCCESSFULLY:",
         rateNumber,
-        `${strategyToUse.asset === "BTC" ? "wBTC" : "USD"} per ${strategyToUse.asset === "USD" ? "syUSD" : "syBTC"}`
+        `${strategy.asset === "BTC" ? "wBTC" : "USD"} per ${strategy.asset === "USD" ? "syUSD" : "syBTC"}`,
+        `for strategy ${strategy.contract}`
       );
       console.log("🔥 Raw rate from contract:", rate.toString());
       console.log("🔥 Formatted rate:", rateFormatted);
+      return rateNumber;
     } catch (error) {
-      console.error("🔥 ERROR FETCHING EXCHANGE RATE:", error);
+      console.error(`🔥 ERROR FETCHING EXCHANGE RATE for ${strategy.contract}:`, error);
       // Fallback to 1.0 if exchange rate fetch fails
-      setExchangeRate(1.0);
       console.log("🔥 USING FALLBACK EXCHANGE RATE: 1.0");
+      return 1.0;
+    }
+  };
+
+  // Fetch exchange rate for strategy to underlying asset conversion (for selected strategy)
+  const fetchExchangeRate = async (strategy?: StrategyWithBalance | null) => {
+    setIsLoadingExchangeRate(true);
+    try {
+      // Use the selected strategy or default to first strategy with balance
+      const strategyToUse = strategy || strategiesWithBalance[0];
+      
+      if (!strategyToUse || !strategyToUse.rateProvider) {
+        console.log("No strategy or rate provider available, using fallback rate 1.0");
+        setExchangeRate(1.0);
+        setIsLoadingExchangeRate(false);
+        return;
+      }
+
+      const rateNumber = await fetchExchangeRateForStrategy(strategyToUse);
+      setExchangeRate(rateNumber);
+    } catch (error) {
+      console.error("🔥 ERROR in fetchExchangeRate:", error);
+      setExchangeRate(1.0);
+    } finally {
+      setIsLoadingExchangeRate(false);
+    }
+  };
+
+  // Fetch exchange rates for all strategies
+  const fetchAllExchangeRates = async () => {
+    if (strategiesWithBalance.length === 0) return;
+    
+    setIsLoadingExchangeRate(true);
+    try {
+      const rates: Record<string, number> = {};
+      
+      // Fetch rates for all strategies in parallel
+      await Promise.all(
+        strategiesWithBalance.map(async (strategy) => {
+          const rate = await fetchExchangeRateForStrategy(strategy);
+          rates[strategy.contract] = rate;
+        })
+      );
+      
+      setExchangeRatesPerStrategy(rates);
+      console.log("🔥 All exchange rates fetched:", rates);
+    } catch (error) {
+      console.error("🔥 ERROR fetching all exchange rates:", error);
     } finally {
       setIsLoadingExchangeRate(false);
     }
@@ -806,12 +852,67 @@ const PortfolioSubpage: React.FC = () => {
     }
   }, []);
 
+  // Function to fetch wBTC price
+  const fetchWbtcPrice = async () => {
+    setIsLoadingWbtcPrice(true);
+    try {
+      const wbtcPriceUrl = (BTC_STRATEGIES.PERPETUAL_DURATION.STABLE as any).wbtcPrice;
+      
+      if (!wbtcPriceUrl || typeof wbtcPriceUrl !== "string" || !wbtcPriceUrl.startsWith("http")) {
+        console.warn("wBTC price URL not available");
+        setWbtcPrice(0);
+        setIsLoadingWbtcPrice(false);
+        return;
+      }
+
+      const response = await fetch(wbtcPriceUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      // Handle both string and number formats: {"result":"91477.81"} or {"result":91477.81}
+      const price = data?.result || data?.price || data?.rate;
+      
+      if (typeof price === "number") {
+        setWbtcPrice(price);
+      } else if (typeof price === "string") {
+        const parsedPrice = parseFloat(price);
+        if (!isNaN(parsedPrice) && isFinite(parsedPrice)) {
+          setWbtcPrice(parsedPrice);
+        } else {
+          console.error(`Failed to parse wBTC price: ${price}`);
+          setWbtcPrice(0);
+        }
+      } else {
+        console.error('Unexpected wBTC price data structure:', data);
+        setWbtcPrice(0);
+      }
+    } catch (error) {
+      console.error('Error fetching wBTC price:', error);
+      setWbtcPrice(0);
+    } finally {
+      setIsLoadingWbtcPrice(false);
+    }
+  };
+
   // Fetch exchange rate when strategies with balance change or selected strategy changes
   useEffect(() => {
     if (strategiesWithBalance.length > 0 || selectedStrategy) {
       fetchExchangeRate(selectedStrategy);
     }
   }, [strategiesWithBalance, selectedStrategy]);
+
+  // Fetch wBTC price when strategies with balance change (always fetch if any BTC strategy exists)
+  useEffect(() => {
+    // Always fetch wBTC price if there are any BTC strategies, regardless of selection
+    const hasBtcStrategy = strategiesWithBalance.some(s => s.asset === "BTC");
+    if (hasBtcStrategy) {
+      fetchWbtcPrice();
+    } else {
+      setWbtcPrice(0);
+    }
+  }, [strategiesWithBalance]);
 
   // PNL temporarily commented out
   // // Fetch PnL when address changes
@@ -1252,7 +1353,17 @@ const PortfolioSubpage: React.FC = () => {
         balances.push({ ...strategy, balance } as StrategyWithBalance);
       }
       
-      setStrategiesWithBalance(balances.filter((s) => s.balance > 0));
+      // Always include syBTC even if balance is 0, otherwise filter to only show strategies with balance
+      const filteredBalances = balances.filter((s) => {
+        // Always show syBTC (BTC asset, stable type)
+        if (s.asset === "BTC" && s.type === "stable") {
+          return true;
+        }
+        // For other strategies, only show if balance > 0
+        return s.balance > 0;
+      });
+      
+      setStrategiesWithBalance(filteredBalances);
       setDepositedChainsPerStrategy(depositedChainsMap);
     } catch (error) {
       // console.error("Error checking all balances:", error);
@@ -2137,15 +2248,45 @@ const PortfolioSubpage: React.FC = () => {
                     (() => {
                       const totalBalance = strategiesWithBalance.reduce(
                         (sum, s) => {
-                          console.log(
-                            "🔥 Portfolio Balance Calc (All Networks):",
-                            s.balance,
-                            "* exchange rate:",
-                            exchangeRate,
-                            "=",
-                            s.balance * exchangeRate
-                          );
-                          return sum + s.balance * exchangeRate;
+                          // Get the exchange rate for this specific strategy
+                          const strategyRate = exchangeRatesPerStrategy[s.contract] || 1.0;
+                          
+                          // For syBTC: multiply by exchangeRate (syBTC to wBTC) and then by wBTC price (wBTC to USD)
+                          // For syUSD: exchangeRate is already in USD terms
+                          let usdValue: number;
+                          if (s.asset === "BTC") {
+                            // Always try to convert syBTC to USD, even if wBTC price is 0 (will show 0 but still include in calculation)
+                            if (wbtcPrice > 0) {
+                              usdValue = s.balance * strategyRate * wbtcPrice;
+                              console.log(
+                                "🔥 Portfolio Balance Calc (syBTC):",
+                                s.balance,
+                                "syBTC *",
+                                strategyRate,
+                                "wBTC *",
+                                wbtcPrice,
+                                "USD =",
+                                usdValue
+                              );
+                            } else {
+                              // If wBTC price not loaded, use 0 for now (will update when price loads)
+                              usdValue = 0;
+                              console.log(
+                                "🔥 Portfolio Balance Calc (syBTC): wBTC price not loaded yet, using 0"
+                              );
+                            }
+                          } else {
+                            usdValue = s.balance * strategyRate;
+                            console.log(
+                              "🔥 Portfolio Balance Calc (syUSD):",
+                              s.balance,
+                              "syUSD *",
+                              strategyRate,
+                              "USD =",
+                              usdValue
+                            );
+                          }
+                          return sum + usdValue;
                         },
                         0
                       );
@@ -2219,18 +2360,48 @@ const PortfolioSubpage: React.FC = () => {
                     (() => {
                       const totalBalance =
                         strategiesWithWithdrawableBalance.reduce((sum, s) => {
-                          console.log(
-                            "🔥 Withdrawable Balance Calc (Ethereum Only):",
-                            s.balance,
-                            "* exchange rate:",
-                            exchangeRate,
-                            "=",
-                            s.balance * exchangeRate
-                          );
-                          return sum + s.balance * exchangeRate;
+                          // Get the exchange rate for this specific strategy
+                          const strategyRate = exchangeRatesPerStrategy[s.contract] || 1.0;
+                          
+                          // For syBTC: multiply by exchangeRate (syBTC to wBTC) and then by wBTC price (wBTC to USD)
+                          // For syUSD: exchangeRate is already in USD terms
+                          let usdValue: number;
+                          if (s.asset === "BTC") {
+                            // Always try to convert syBTC to USD, even if wBTC price is 0 (will show 0 but still include in calculation)
+                            if (wbtcPrice > 0) {
+                              usdValue = s.balance * strategyRate * wbtcPrice;
+                              console.log(
+                                "🔥 Withdrawable Balance Calc (syBTC):",
+                                s.balance,
+                                "syBTC *",
+                                strategyRate,
+                                "wBTC *",
+                                wbtcPrice,
+                                "USD =",
+                                usdValue
+                              );
+                            } else {
+                              // If wBTC price not loaded, use 0 for now (will update when price loads)
+                              usdValue = 0;
+                              console.log(
+                                "🔥 Withdrawable Balance Calc (syBTC): wBTC price not loaded yet, using 0"
+                              );
+                            }
+                          } else {
+                            usdValue = s.balance * strategyRate;
+                            console.log(
+                              "🔥 Withdrawable Balance Calc (syUSD):",
+                              s.balance,
+                              "syUSD *",
+                              strategyRate,
+                              "USD =",
+                              usdValue
+                            );
+                          }
+                          return sum + usdValue;
                         }, 0);
                       console.log(
-                        "🔥 Total Withdrawable USD Value (Ethereum Only):",
+                        "🔥 Total Withdrawable USD Value:",
                         totalBalance
                       );
                       return `$${totalBalance.toFixed(2)}`;
@@ -2561,10 +2732,11 @@ const PortfolioSubpage: React.FC = () => {
                           strategy.asset === "USD" &&
                           strategy.type === "stable"
                         ) {
-                          return usdApy || "N/A";
+                          return usdApy || "---";
                         }
                         // For other strategies, use the strategy APY or fallback
-                        return strategy.apy || "N/A";
+                        // If apy is empty string, show "---"
+                        return strategy.apy && strategy.apy.trim() !== "" ? strategy.apy : "---";
                       })()}
                     </div>
 
@@ -2572,9 +2744,22 @@ const PortfolioSubpage: React.FC = () => {
                     <div className="flex justify-end text-[#EDF2F8] text-[12px] font-normal">
                       {isClient
                         ? (() => {
-                            // For syBTC, show 6 decimal places; for syUSD, show 2
-                            const decimalPlaces = strategy.asset === "BTC" ? 6 : 2;
-                            return `$${(strategy.balance * exchangeRate).toFixed(decimalPlaces)}`;
+                            // Get the exchange rate for this specific strategy
+                            const strategyRate = exchangeRatesPerStrategy[strategy.contract] || 1.0;
+                            
+                            // For syBTC: multiply by exchangeRate (syBTC to wBTC) and then by wBTC price (wBTC to USD) to show USD value
+                            // For syUSD: exchangeRate is already in USD terms
+                            if (strategy.asset === "BTC" && wbtcPrice > 0) {
+                              const usdValue = strategy.balance * strategyRate * wbtcPrice;
+                              return `$${usdValue.toFixed(2)}`;
+                            } else if (strategy.asset === "BTC") {
+                              // If wBTC price not loaded yet, show wBTC amount with 6 decimals (without "wBTC" text)
+                              const wbtcAmount = strategy.balance * strategyRate;
+                              return `${wbtcAmount.toFixed(6)}`;
+                            } else {
+                              // For syUSD, show USD value with 2 decimals
+                              return `$${(strategy.balance * strategyRate).toFixed(2)}`;
+                            }
                           })()
                         : "$0.00"}
                     </div>
@@ -2807,7 +2992,7 @@ const PortfolioSubpage: React.FC = () => {
                           <div className="text-[#9C9DA2] text-right   text-[12px] font-normal leading-normal">
                             Balance ({targetChain === "ethereum" ? "Ethereum" : targetChain === "arbitrum" ? "Arbitrum" : "Base"}):{" "}
                             <span className="text-[#D7E3EF] text-[12px] font-semibold leading-normal">
-                              {isLoadingNetworkBalance ? (
+                              {isLoadingNetworkBalance || (selectedStrategy?.asset === "BTC" && isLoadingWbtcPrice) ? (
                                 <span className="inline-flex items-center gap-1">
                                   <svg
                                     className="animate-spin h-3 w-3 text-[#9C9DA2]"
@@ -2834,9 +3019,18 @@ const PortfolioSubpage: React.FC = () => {
                               ) : (
                                 <>
                                   $
-                                  {(
-                                    selectedStrategyEthereumBalance * exchangeRate
-                                  ).toFixed(selectedStrategy?.asset === "BTC" ? 6 : 2)}{" "}
+                                  {(() => {
+                                    // For syBTC: multiply by exchangeRate (syBTC to wBTC) and then by wBTC price (wBTC to USD)
+                                    // For syUSD: exchangeRate is already in USD terms
+                                    if (selectedStrategy?.asset === "BTC" && wbtcPrice > 0) {
+                                      const usdValue = selectedStrategyEthereumBalance * exchangeRate * wbtcPrice;
+                                      return usdValue.toFixed(2);
+                                    } else {
+                                      return (selectedStrategyEthereumBalance * exchangeRate).toFixed(
+                                        selectedStrategy?.asset === "BTC" ? 6 : 2
+                                      );
+                                    }
+                                  })()}{" "}
                                   ({selectedStrategyEthereumBalance.toFixed(
                                     selectedStrategy?.asset === "BTC" ? 6 : 2
                                   )}{" "}

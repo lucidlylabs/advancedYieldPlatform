@@ -111,12 +111,54 @@ interface YieldSubpageProps {
 
 // Utility function to format currency values
 const formatTVL = (value: number): string => {
+  // Handle very small values that might round to 0
+  if (value < 1 && value > 0) {
+    // For values less than $1, show with 2 decimal places
+    return `$${value.toFixed(2)}`;
+  }
   // Show exact value with commas, rounded to nearest dollar
   return `$${Math.round(value).toLocaleString()}`;
 };
 
+// Function to fetch wBTC price
+const fetchWbtcPrice = async (priceUrl: string): Promise<number> => {
+  try {
+    console.log(`🔍 Fetching wBTC price from URL: ${priceUrl}`);
+    const response = await fetch(priceUrl);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log(`🔍 wBTC price API response:`, data);
+    
+    // Handle both string and number formats: {"result":"91477.81"} or {"result":91477.81}
+    const price = data?.result || data?.price || data?.rate;
+    console.log(`🔍 Extracted price value: ${price} (type: ${typeof price})`);
+    
+    if (typeof price === "number") {
+      console.log(`✅ Returning numeric price: ${price}`);
+      return price;
+    } else if (typeof price === "string") {
+      const parsedPrice = parseFloat(price);
+      if (!isNaN(parsedPrice) && isFinite(parsedPrice)) {
+        console.log(`✅ Parsed string price: ${parsedPrice}`);
+        return parsedPrice;
+      } else {
+        console.error(`❌ Failed to parse price string: ${price}`);
+      }
+    }
+    
+    console.error('❌ Unexpected wBTC price data structure:', data);
+    return 0;
+  } catch (error) {
+    console.error('❌ Error fetching wBTC price:', error);
+    return 0;
+  }
+};
+
 // Function to fetch TVL data
-const fetchTVLData = async (tvlUrl: string): Promise<string> => {
+const fetchTVLData = async (tvlUrl: string, wbtcPriceUrl?: string): Promise<string> => {
   try {
     if (!tvlUrl || tvlUrl === "") {
       return "--";
@@ -128,14 +170,53 @@ const fetchTVLData = async (tvlUrl: string): Promise<string> => {
     }
     
     const data = await response.json();
-    const tvlValue = data?.result;
+    let tvlValue: number;
     
-    if (typeof tvlValue === "number") {
-      return formatTVL(tvlValue);
+    // Handle both string and number formats, including scientific notation
+    if (typeof data?.result === "number") {
+      tvlValue = data.result;
+    } else if (typeof data?.result === "string") {
+      // Parse string, handling scientific notation (e.g., "3.536e-05")
+      tvlValue = parseFloat(data.result);
+      if (isNaN(tvlValue)) {
+        console.warn('Failed to parse TVL value:', data.result);
+        return "--";
+      }
     } else {
       console.warn('Unexpected TVL data structure:', data);
       return "--";
     }
+    
+    console.log(`🔍 Raw TVL value from API: ${tvlValue} BTC (original: ${data?.result}, type: ${typeof data?.result})`);
+    
+    // If wbtcPriceUrl is provided, multiply TVL (in BTC) by wBTC price (in USD) to get USD value
+    if (wbtcPriceUrl) {
+      console.log(`🔍 Fetching wBTC price from: ${wbtcPriceUrl}`);
+      const wbtcPrice = await fetchWbtcPrice(wbtcPriceUrl);
+      console.log(`🔍 Fetched wBTC price: ${wbtcPrice} USD (type: ${typeof wbtcPrice})`);
+      
+      if (wbtcPrice > 0 && !isNaN(wbtcPrice)) {
+        const originalTvl = tvlValue;
+        tvlValue = tvlValue * wbtcPrice;
+        console.log(`✅ TVL conversion: ${originalTvl} BTC * ${wbtcPrice} USD/BTC = ${tvlValue} USD`);
+        
+        // Validate the result
+        if (tvlValue <= 0 || isNaN(tvlValue) || !isFinite(tvlValue)) {
+          console.error(`❌ Invalid TVL after conversion: ${tvlValue}`);
+          return "--";
+        }
+      } else {
+        console.error(`❌ Failed to fetch wBTC price or price is invalid: ${wbtcPrice}`);
+        console.error(`❌ wbtcPriceUrl was: ${wbtcPriceUrl}`);
+        return "--";
+      }
+    } else {
+      console.warn('⚠️ No wbtcPriceUrl provided, TVL will be in BTC terms');
+    }
+    // For syUSD, tvlValue is already in USD, so no multiplication needed
+    
+    console.log(`💰 Final TVL value to format: ${tvlValue} USD`);
+    return formatTVL(tvlValue);
   } catch (error) {
     console.error('Error fetching TVL:', error);
     return "--";
@@ -364,10 +445,18 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
         setUsdTvl(usdTvlValue);
       }
 
-      // Fetch BTC TVL
+      // Fetch BTC TVL (needs to be multiplied by wBTC price since TVL is in BTC terms)
       const btcTvlUrl = BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.tvl;
+      const btcWbtcPriceUrl = (BTC_STRATEGIES.PERPETUAL_DURATION.STABLE as any).wbtcPrice;
+      
+      console.log(`🔍 BTC TVL URL: ${btcTvlUrl}`);
+      console.log(`🔍 BTC wBTC Price URL: ${btcWbtcPriceUrl}`);
+      
       if (btcTvlUrl && typeof btcTvlUrl === "string" && btcTvlUrl.startsWith("http")) {
-        const btcTvlValue = await fetchTVLData(btcTvlUrl);
+        if (!btcWbtcPriceUrl) {
+          console.error('❌ wbtcPrice URL is missing from BTC_STRATEGIES config!');
+        }
+        const btcTvlValue = await fetchTVLData(btcTvlUrl, btcWbtcPriceUrl);
         setBtcTvl(btcTvlValue);
       } else {
         setBtcTvl("--");

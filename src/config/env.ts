@@ -230,9 +230,7 @@ export const BTC_STRATEGIES = {
       shareAddress: "0xC0D48269f8d6E427B0637F5e0695De11C8E75F6c", // vault_address (same as boringVaultAddress)
       shareAddress_token_decimal: 8, // decimals
       rateProvider: "0xDda6274D69F464172CC7F52194d16FF27ec0D5A6", // accountant_address
-      image: "/images/icons/btc-stable.svg", // Using btc-stable.svg since syBTC.svg doesn't exist
-
-      // Arbitrum Network Configuration
+      image: "/images/icons/btc-stable.svg", // Using btc-stable.svg since syBTC.svg doesn't exist      // Arbitrum Network Configuration
       arbitrum: {
         image: "/images/logo/arb.svg",
         rpc: "https://arb1.arbitrum.io/rpc", // Arbitrum mainnet RPC
@@ -269,7 +267,9 @@ export const BTC_STRATEGIES = {
       cap_limit: "0", // No cap limit
       filled_cap: "0",
       show_cap: false,
-      tvl: "", // Graph data not available for syBTC
+      tvl: "https://api.lucidly.finance/services/aum_data?vaultName=syBTC",
+      wbtcPrice:
+        "https://api.lucidly.finance/services/currency_rates?assetName=BTC",
       withdraw_request: "", // Graph data not available for syBTC
       rpc: "https://arb1.arbitrum.io/rpc",
     },
