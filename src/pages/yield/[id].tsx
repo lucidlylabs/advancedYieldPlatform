@@ -18,40 +18,20 @@ interface MarketItem {
     riskLevel?: string;
     network?: string;
     contractAddress?: string;
-    strategyKey?: string; // Key to identify the strategy in config (e.g., "STABLE", "syHLP")
 }
 
 const YieldDetailPage = () => {
   const router = useRouter();
   const headerHeight = useHeaderHeight();
-  const { name, tvl, baseApy, contractAddress, network, data, strategyKey } = router.query;
+  const { name, tvl, baseApy, contractAddress, network, data } = router.query;
   const [showDepositView, setShowDepositView] = useState(false);
   const [parsedData, setParsedData] = useState<MarketItem[]>([]);
-  const [selectedItem, setSelectedItem] = useState<MarketItem | null>(null);
 
   console.log("YieldDetailPage data:", data ,name , tvl, baseApy, contractAddress, network);
 
   if (!name) return <div className="text-white p-4">Loading...</div>;
 
-  function handleOpenDepositView(strategyKey?: string) {
-    // Store the strategyKey for use in DepositView
-    if (strategyKey) {
-      const item = parsedData.find((item: MarketItem) => 
-        item.name === name || item.contractAddress?.toLowerCase() === contractAddress?.toString().toLowerCase()
-      );
-      if (item) {
-        (item as any).strategyKey = strategyKey;
-        setSelectedItem(item);
-      }
-    } else if (parsedData.length > 0) {
-      // Try to find item from parsedData
-      const item = parsedData.find((item: MarketItem) => 
-        item.name === name || item.contractAddress?.toLowerCase() === contractAddress?.toString().toLowerCase()
-      );
-      if (item) {
-        setSelectedItem(item);
-      }
-    }
+  function handleOpenDepositView() {
     setShowDepositView(true);
   }
 
@@ -65,18 +45,11 @@ const YieldDetailPage = () => {
         const decoded = decodeURIComponent(data);
         const parsed = JSON.parse(decoded);
         setParsedData(parsed);
-        // Find the selected item by name or contract address
-        const item = parsed.find((item: MarketItem) => 
-          item.name === name || item.contractAddress?.toLowerCase() === contractAddress?.toString().toLowerCase()
-        );
-        if (item) {
-          setSelectedItem(item);
-        }
       } catch (err) {
         console.error("Failed to decode data:", err);
       }
     }
-  }, [data, name, contractAddress]);
+  }, [data]);
 
   return (
     <div className="min-h-screen flex flex-col" style={{ paddingTop: `${headerHeight}px` }}>
@@ -86,10 +59,9 @@ const YieldDetailPage = () => {
       <main className="flex-1 overflow-y-auto">
         {showDepositView ? (
           <DepositView
-            selectedAsset={selectedItem?.type === "btc" ? "BTC" : "USD"}
+            selectedAsset="USD"
             duration="PERPETUAL_DURATION"
-            strategy={selectedItem?.strategyKey === "syHLP" ? "syHLP" : selectedItem?.strategyKey === "STABLE" ? "stable" : "stable"}
-            strategyKey={selectedItem?.strategyKey || (strategyKey as string) || "STABLE"}
+            strategy="stable"
             apy={baseApy as string}
             onBack={handleCloseDepositView}
             onReset={() => {

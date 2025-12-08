@@ -11,7 +11,6 @@ interface MarketItem {
   baseYield: string;
   incentives: Array<{ image: string; name: string; link: string }>;
   tvl: string;
-  image?: string; // Strategy icon/image
 }
 
 interface MarketsTableProps {
@@ -289,19 +288,7 @@ const MarketsTable: React.FC<MarketsTableProps> = ({
               >
                 {visibleColumns.availableYields && (
                   <div className="flex items-center">
-                    {item.image ? (
-                      <div className="w-8 h-8 flex items-center justify-center mr-3">
-                        <Image
-                          src={item.image}
-                          alt={item.name}
-                          width={32}
-                          height={32}
-                          className="object-contain"
-                        />
-                      </div>
-                    ) : (
-                      getAssetIcon(item.type)
-                    )}
+                    {getAssetIcon(item.type)}
                     <div className="flex flex-col">
                       <span className="text-white font-inter text-xs font-normal leading-4">
                         {item.name}

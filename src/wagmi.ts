@@ -52,35 +52,14 @@ export const katana = {
   iconUrl: "/images/logo/katana.svg",
 } as const as any; // <-- Add this cast
 
-// HyperLiquid (HyperEVM) custom chain definition
-export const hyperliquid = {
-  id: 999,
-  name: "HyperLiquid",
-  nativeCurrency: {
-    decimals: 18,
-    name: "Ether",
-    symbol: "ETH",
-  },
-  rpcUrls: {
-    default: { http: ["https://rpc.hypurrscan.io", "https://hyperliquid.drpc.org"] },
-    public: { http: ["https://rpc.hypurrscan.io", "https://hyperliquid.drpc.org"] },
-  },
-  blockExplorers: {
-    default: { name: "HypurrScan", url: "https://hypurrscan.io" },
-  },
-  testnet: false,
-  iconUrl: "/images/networks/hyperEVM.svg",
-} as const as any;
-
 export const config = createConfig({
   connectors,
-  chains: [mainnet, base, arbitrum, katana, hyperliquid],
+  chains: [mainnet, base, arbitrum, katana],
   transports: {
     [mainnet.id]: http(),
     [base.id]: http(),
     [arbitrum.id]: http(),
     [katana.id]: http("https://rpc.katana.network"),
-    [hyperliquid.id]: http("https://rpc.hypurrscan.io"),
   },
   ssr: true,
 });
