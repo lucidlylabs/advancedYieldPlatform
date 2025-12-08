@@ -28,6 +28,8 @@ interface MarketItem {
   riskLevel?: string;
   network?: string;
   contractAddress?: string;
+  image?: string; // Strategy icon/image
+  strategyKey?: string; // Key to identify the strategy in config (e.g., "STABLE", "syHLP")
 }
 
 // Custom Asset Button Component
@@ -201,44 +203,58 @@ const MarketsSubpage: React.FC = () => {
             BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress,
         },
       ],
-      USD: [
-        {
-          id: 5,
-          name: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.displayName,
-          ticker: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.name, // syUSD
-          type: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.type,
-          baseYield: usdApy,
-          incentives: (() => {
-            const incentives =
-              USD_STRATEGIES.PERPETUAL_DURATION.STABLE.incentives;
-            console.log("Raw incentives config:", incentives);
+      USD: (() => {
+        const usdStrategies: MarketItem[] = [];
+        let idCounter = 5;
+        
+        // Iterate through all strategies in PERPETUAL_DURATION
+        Object.entries(USD_STRATEGIES.PERPETUAL_DURATION).forEach(([key, strategy]) => {
+          // Skip INCENTIVE as it's not a full strategy config
+          if (key === "INCENTIVE") return;
+          
+          // Include strategies that have name and displayName (even if empty, they should show)
+          if (!strategy || !strategy.name) return;
+          
+          usdStrategies.push({
+            id: idCounter++,
+            name: strategy.displayName || strategy.name || key,
+            ticker: strategy.name,
+            type: strategy.type || "usd",
+            baseYield: key === "STABLE" ? usdApy : (strategy.apy && strategy.apy.trim() !== "" ? strategy.apy : "---"),
+            incentives: (() => {
+              const incentives = strategy.incentives;
+              console.log(`Raw incentives config for ${key}:`, incentives);
 
-            if (
-              !incentives?.enabled ||
-              !incentives.points ||
-              incentives.points.length === 0
-            ) {
-              console.log("No incentives enabled or no points");
-              return [];
-            }
+              if (
+                !incentives?.enabled ||
+                !incentives.points ||
+                incentives.points.length === 0
+              ) {
+                console.log(`No incentives enabled or no points for ${key}`);
+                return [];
+              }
 
-            // Return objects with image, name, and link for tooltips and navigation
-            const incentiveData = incentives.points.map((point) => ({
-              image: point.image,
-              name: point.name,
-              link: point.link || "#", // Use link from config or fallback to "#"
-            }));
-            console.log("Incentive data:", incentiveData);
-            return incentiveData;
-          })(),
-          tvl: usdTvl,
-          description: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.description,
-          riskLevel: "Very Low",
-          network: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.network,
-          contractAddress:
-            USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress,
-        },
-      ],
+              // Return objects with image, name, and link for tooltips and navigation
+              const incentiveData = incentives.points.map((point) => ({
+                image: point.image,
+                name: point.name,
+                link: point.link || "#", // Use link from config or fallback to "#"
+              }));
+              console.log(`Incentive data for ${key}:`, incentiveData);
+              return incentiveData;
+            })(),
+            tvl: key === "STABLE" ? usdTvl : (strategy.tvl && strategy.tvl.trim() !== "" ? strategy.tvl : "$0"),
+            description: strategy.description || "",
+            riskLevel: "Very Low",
+            network: strategy.network || "",
+            contractAddress: strategy.boringVaultAddress || "",
+            image: strategy.image || `/images/icons/${strategy.name.toLowerCase()}-stable.svg`, // Use strategy image from config
+            strategyKey: key, // Store the strategy key (STABLE, syHLP, etc.) to identify which config to use
+          });
+        });
+        
+        return usdStrategies;
+      })(),
     };
 
     // Fill the "ALL" category
@@ -501,6 +517,7 @@ const MarketsSubpage: React.FC = () => {
           baseApy: item.baseYield,
           contractAddress: item.contractAddress || "",
           network: item.network || "",
+          strategyKey: item.strategyKey || "",
           data: encodeURIComponent(JSON.stringify(sortedData)),
         },
       });
@@ -585,11 +602,14 @@ const MarketsSubpage: React.FC = () => {
             <DepositView
               selectedAsset={selectedItem?.type === "btc" ? "BTC" : "USD"}
               duration="PERPETUAL_DURATION"
-              strategy="stable"
+              strategy={selectedItem?.strategyKey === "syHLP" ? "syHLP" : selectedItem?.strategyKey === "STABLE" ? "stable" : "stable"}
+              strategyKey={selectedItem?.strategyKey || "STABLE"} // Pass the strategy key to identify which config to use
               apy={
                 selectedItem?.type === "btc"
                   ? btcApy === "Loading..." ? "N/A" : btcApy
-                  : usdApy === "Loading..." ? "N/A" : usdApy
+                  : selectedItem?.strategyKey === "STABLE" 
+                    ? (usdApy === "Loading..." ? "N/A" : usdApy)
+                    : (selectedItem?.baseYield || "---")
               }
               onBack={() => setShowDepositView(false)}
               onReset={() => setShowDepositView(false)}
