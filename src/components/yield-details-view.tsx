@@ -133,10 +133,14 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   // Determine which strategy we're viewing based on contract address
   const usdVaultAddress = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.toLowerCase();
   const btcVaultAddress = BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.toLowerCase();
+  const syHLPVaultAddress = USD_STRATEGIES.PERPETUAL_DURATION.syHLP.boringVaultAddress.toLowerCase();
   const currentVaultAddress = contractAddress?.toLowerCase() || usdVaultAddress;
   const isBtcStrategy = currentVaultAddress === btcVaultAddress;
+  const isSyHLPStrategy = currentVaultAddress === syHLPVaultAddress || name?.toLowerCase().includes("hlp");
   const strategy = isBtcStrategy 
     ? BTC_STRATEGIES.PERPETUAL_DURATION.STABLE 
+    : isSyHLPStrategy
+    ? USD_STRATEGIES.PERPETUAL_DURATION.syHLP
     : USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
   const strategyIcon = isBtcStrategy ? "/images/icons/syBTC.svg" : "/images/icons/syUSD.svg";
   const strategyDescription = isBtcStrategy 
@@ -443,13 +447,13 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
       {activeDepositTab === "deposits" && (
         <div className="h-[800px] overflow-y-auto pb-2">
-          <DepositBarChart strategyType={isBtcStrategy ? "BTC" : "USD"} />
+          <DepositBarChart strategyType={isBtcStrategy ? "BTC" : isSyHLPStrategy ? "HLP" : "USD"} />
         </div>
       )}
 
       {activeDepositTab === "allocation" && (
         <div className="overflow-y-auto pb-2">
-          <AllocationChart strategyType={isBtcStrategy ? "BTC" : "USD"} />
+          <AllocationChart strategyType={isBtcStrategy ? "BTC" : isSyHLPStrategy ? "HLP" : "USD"} />
         </div>
       )}
     </div>
@@ -495,7 +499,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
       {activeBaseApyTab === "allocation" && (
         <div className="h-[800px] overflow-y-auto pb-2">
-          <AllocationReturnsChart strategyType={isBtcStrategy ? "BTC" : "USD"} />
+          <AllocationReturnsChart strategyType={isBtcStrategy ? "BTC" : isSyHLPStrategy ? "HLP" : "USD"} />
         </div>
       )}
     </div>

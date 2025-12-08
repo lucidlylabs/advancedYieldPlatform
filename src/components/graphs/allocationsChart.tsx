@@ -123,7 +123,7 @@ interface ChartDataPoint {
 }
 
 interface AllocationChartProps {
-  strategyType?: "USD" | "BTC" | "ETH";
+  strategyType?: "USD" | "BTC" | "ETH" | "HLP";
 }
 
 export default function AllocationChart({ strategyType = "USD" }: AllocationChartProps) {
@@ -142,9 +142,10 @@ export default function AllocationChart({ strategyType = "USD" }: AllocationChar
           setLoading(true);
         }
 
-        // For syBTC, if no endpoint is available, return empty data
-        if (strategyType === "BTC") {
-          console.log("syBTC allocation data not available");
+        // For syBTC and syHLP, if no endpoint is available, return empty data
+        if (strategyType === "BTC" || strategyType === "HLP") {
+          const strategyName = strategyType === "BTC" ? "syBTC" : "syHLP";
+          console.log(`${strategyName} allocation data not available`);
           setData([]);
           setKeys([]);
           setSelectedKeys(new Set());
@@ -509,9 +510,9 @@ export default function AllocationChart({ strategyType = "USD" }: AllocationChar
                       </AreaChart>
           ) : (
             <div className="w-full h-[300px] flex items-center justify-center">
-              {strategyType === "BTC" ? (
+              {strategyType === "BTC" || strategyType === "HLP" ? (
                 <div className="flex flex-col items-center gap-4">
-                  <p className="text-gray-400 text-sm">Allocation data not available for syBTC</p>
+                  <p className="text-gray-400 text-sm">Allocation data not available for {strategyType === "BTC" ? "syBTC" : "syHLP"}</p>
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-4">
