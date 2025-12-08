@@ -49,7 +49,8 @@ async function fetchData(
     }
 
     console.log(`Fetching deposit data for period: ${period}, strategy: ${strategyType}`);
-    const strategyName = strategyType === "USD" ? "syUSD" : strategyType === "BTC" ? "syBTC" : "syETH";
+    // Since BTC case is already handled above, we only need to check USD vs ETH
+    const strategyName = strategyType === "USD" ? "syUSD" : "syETH";
     const apiUrl = `https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/${strategyName}/deposits?period=${period}`;
     console.log(`API URL: ${apiUrl}`);
 
