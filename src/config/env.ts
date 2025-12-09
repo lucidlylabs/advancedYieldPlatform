@@ -192,7 +192,7 @@ export const USD_STRATEGIES = {
       },
 
       description: "Perpetual syUSD strategy on base network",
-      apy: "https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/base-apy/today-7d-ma",
+      apy: "https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/base-apy/today-1d",
       cap_limit: "1,000,000",
       filled_cap: "800,000",
       show_cap: true,
