@@ -1019,71 +1019,168 @@ const PortfolioSubpage: React.FC = () => {
     // Error will be shown from the catch block in handleApprove
   }, [approvalHash, isApprovalSuccess]);
 
+  // Helper function to add delay between requests
+  const delay = (ms: number) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
+
   // Function to check balance for a strategy across all networks
   const checkStrategyBalance = async (strategy: any) => {
-    if (!address || !strategy.boringVaultAddress) return 0;
+    // Use shareAddress if available, otherwise fallback to boringVaultAddress
+    const vaultAddress = strategy.shareAddress || strategy.boringVaultAddress;
+    
+    if (!address || !vaultAddress) {
+      console.warn("Missing address or vault address:", { 
+        address, 
+        vaultAddress, 
+        strategy: (strategy as any).name,
+        shareAddress: strategy.shareAddress,
+        boringVaultAddress: strategy.boringVaultAddress,
+      });
+      return 0;
+    }
 
     try {
-      // Validate boring vault address
+      // Validate vault address
       if (
-        !strategy.boringVaultAddress ||
-        strategy.boringVaultAddress ===
-          "0x0000000000000000000000000000000000000000"
+        !vaultAddress ||
+        vaultAddress === "0x0000000000000000000000000000000000000000"
       ) {
-        console.warn("Invalid boring vault address for strategy:", strategy);
+        console.warn("Invalid vault address for strategy:", { 
+          strategy: (strategy as any).name, 
+          vaultAddress 
+        });
         return 0;
       }
 
       let totalBalance = 0;
-      // Check all networks (Base, Ethereum, Arbitrum)
-      const networks = ["base", "ethereum", "arbitrum"];
+      // Determine which networks to check based on strategy
+      let networks: string[];
+      if (strategy.asset === "BTC") {
+        networks = ["arbitrum"];
+      } else if ((strategy as any).name === "syHLP" || (strategy as any).hyperEVM) {
+        networks = ["hyperliquid"]; // syHLP is only on HyperEVM
+      } else {
+        networks = ["base", "ethereum", "arbitrum"]; // syUSD and other USD strategies check Base, Ethereum, and Arbitrum
+      }
+
+      console.log(`🔍 Checking balance for ${(strategy as any).name || strategy.contract} on networks:`, networks, {
+        vaultAddress,
+        shareAddress: strategy.shareAddress,
+        boringVaultAddress: strategy.boringVaultAddress,
+        userAddress: address,
+        asset: strategy.asset,
+        type: strategy.type,
+      });
 
       for (const networkKey of networks) {
-        const networkConfig = strategy[networkKey];
+        // Handle hyperliquid -> hyperEVM mapping
+        const configKey = networkKey === "hyperliquid" ? "hyperEVM" : networkKey;
+        const networkConfig = (strategy as any)[configKey];
 
         // Skip if network config doesn't exist
         if (!networkConfig || !networkConfig.rpc || !networkConfig.chainId) {
-          console.log(`Skipping ${networkKey} - no config`);
+          console.log(`⏭️ Skipping ${networkKey} - no config`);
           continue;
         }
 
         try {
-          const client = createPublicClient({
-            transport: http(networkConfig.rpc),
-            chain: {
-              id: networkConfig.chainId,
-              name: networkConfig.chainObject.name,
-              network: networkConfig.chainObject.network,
-              nativeCurrency: networkConfig.chainObject.nativeCurrency,
-              rpcUrls: networkConfig.chainObject.rpcUrls,
-            },
-          });
+          // Use RPC URLs from chainObject if available, otherwise use single RPC
+          const rpcUrls = networkConfig.chainObject?.rpcUrls?.default?.http || 
+                         networkConfig.chainObject?.rpcUrls?.public?.http || 
+                         [networkConfig.rpc];
+          
+          let lastError: Error | null = null;
+          let balance: bigint | null = null;
+          let decimals: number | null = null;
+          
+          // Try each RPC URL until one works
+          for (const rpcUrl of rpcUrls) {
+            try {
+              const client = createPublicClient({
+                transport: http(rpcUrl),
+                chain: {
+                  id: networkConfig.chainId,
+                  name: networkConfig.chainObject.name,
+                  network: networkConfig.chainObject.network,
+                  nativeCurrency: networkConfig.chainObject.nativeCurrency,
+                  rpcUrls: {
+                    default: { http: rpcUrls },
+                    public: { http: rpcUrls },
+                  },
+                },
+              });
 
-          // Add small delay between contract calls to prevent rate limiting
-          await delay(100);
+              // Add small delay between contract calls to prevent rate limiting
+              await delay(100);
 
-          const [balance, decimals] = await Promise.all([
-            client.readContract({
-              address: strategy.boringVaultAddress as Address,
-              abi: ERC20_ABI,
-              functionName: "balanceOf",
-              args: [address as Address],
-            }),
-            client.readContract({
-              address: strategy.boringVaultAddress as Address,
-              abi: ERC20_ABI,
-              functionName: "decimals",
-            }),
-          ]);
+              // Use shareAddress_token_decimal if available, otherwise fetch decimals
+              if (strategy.shareAddress_token_decimal) {
+                decimals = strategy.shareAddress_token_decimal;
+                console.log(`Using shareAddress_token_decimal: ${decimals} for ${networkKey}`);
+              } else {
+                decimals = await client.readContract({
+                  address: vaultAddress as Address,
+                  abi: ERC20_ABI,
+                  functionName: "decimals",
+                }) as number;
+              }
+
+              balance = await client.readContract({
+                address: vaultAddress as Address,
+                abi: ERC20_ABI,
+                functionName: "balanceOf",
+                args: [address as Address],
+              }) as bigint;
+              
+              // Success! Break out of RPC loop
+              break;
+            } catch (rpcError) {
+              lastError = rpcError instanceof Error ? rpcError : new Error(String(rpcError));
+              console.warn(`RPC ${rpcUrl} failed for ${networkKey}, trying next...`, rpcError);
+              // Continue to next RPC URL
+            }
+          }
+          
+          // If all RPCs failed, throw the last error
+          if (balance === null || decimals === null) {
+            throw lastError || new Error(`All RPC endpoints failed for ${networkKey}`);
+          }
 
           const formattedBalance = parseFloat(
-            formatUnits(balance as bigint, decimals as number)
+            formatUnits(balance as bigint, decimals)
           );
 
-          console.log(`${networkKey} balance: ${formattedBalance}`);
-          totalBalance += formattedBalance;
+          // Ensure we handle very small balances correctly (not rounded to 0)
+          const balanceToAdd = isNaN(formattedBalance) ? 0 : formattedBalance;
+
+          console.log(`✅ ${networkKey} balance for ${(strategy as any).name || strategy.asset}: ${balanceToAdd}`, {
+            network: networkKey,
+            strategy: (strategy as any).name || strategy.contract,
+            rawBalance: balance.toString(),
+            rawBalanceBigInt: balance,
+            decimals,
+            formattedBalance: balanceToAdd,
+            vaultAddress,
+            shareAddress: strategy.shareAddress,
+            boringVaultAddress: strategy.boringVaultAddress,
+            userAddress: address,
+            isNaN: isNaN(formattedBalance),
+            rpc: networkConfig.rpc,
+          });
+          totalBalance += balanceToAdd;
         } catch (error) {
-          console.error(`Error checking ${networkKey} balance:`, error);
+          console.error(`❌ Error checking ${networkKey} balance for ${(strategy as any).name || strategy.asset}:`, {
+            network: networkKey,
+            strategy: (strategy as any).name || strategy.contract,
+            vaultAddress,
+            shareAddress: strategy.shareAddress,
+            boringVaultAddress: strategy.boringVaultAddress,
+            userAddress: address,
+            rpc: networkConfig?.rpc,
+            chainId: networkConfig?.chainId,
+            error: error instanceof Error ? error.message : String(error),
+            errorStack: error instanceof Error ? error.stack : undefined,
+          });
           // Check if it's a rate limit error
           if (error instanceof Error && error.message.includes("429")) {
             console.warn(
@@ -1095,18 +1192,27 @@ const PortfolioSubpage: React.FC = () => {
         }
       }
 
-      console.log(`Total portfolio balance: ${totalBalance}`);
+      console.log(`📊 Total portfolio balance for ${(strategy as any).name || strategy.asset}: ${totalBalance}`, {
+        strategy: (strategy as any).name || strategy.contract,
+        asset: strategy.asset,
+        type: strategy.type,
+        totalBalance,
+        networksChecked: networks,
+        vaultAddress,
+        userAddress: address,
+        isGreaterThanZero: totalBalance > 0,
+      });
+      
       return totalBalance;
     } catch (error) {
-      console.error("Error checking strategy balance:", strategy, error);
+      console.error("Error checking strategy balance:", { 
+        strategy: (strategy as any).name || strategy.contract,
+        error: error instanceof Error ? error.message : String(error),
+      });
       setErrorMessage("Failed to check strategy balance.");
       return 0;
     }
   };
-
-  // Helper function to add delay between requests
-  const delay = (ms: number) =>
-    new Promise((resolve) => setTimeout(resolve, ms));
 
   // Function to check balance for a strategy across all networks (withdrawable balance)
   const checkWithdrawableBalance = async (
