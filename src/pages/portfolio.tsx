@@ -1353,13 +1353,8 @@ const PortfolioSubpage: React.FC = () => {
         balances.push({ ...strategy, balance } as StrategyWithBalance);
       }
       
-      // Always include syBTC even if balance is 0, otherwise filter to only show strategies with balance
+      // Filter to only show strategies with balance > 0 (including syBTC)
       const filteredBalances = balances.filter((s) => {
-        // Always show syBTC (BTC asset, stable type)
-        if (s.asset === "BTC" && s.type === "stable") {
-          return true;
-        }
-        // For other strategies, only show if balance > 0
         return s.balance > 0;
       });
       
