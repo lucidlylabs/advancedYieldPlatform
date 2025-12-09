@@ -307,6 +307,19 @@ const findAssetByAddress = (address: string) => {
 const getChainConfigs = (strategy: StrategyWithBalance | null): Record<string, any> => {
   if (!strategy) return {};
   
+  // ALWAYS check for syHLP FIRST - it's a special case
+  const isSyHLP = (strategy as any).name === "syHLP" || (strategy as any).hyperEVM;
+  
+  // For syHLP, ONLY return hyperEVM config, don't check other chains
+  if (isSyHLP) {
+    if ((strategy as any).hyperEVM) {
+      return {
+        hyperliquid: (strategy as any).hyperEVM,
+      };
+    }
+    return {};
+  }
+  
   const configs: Record<string, any> = {};
   
   if (strategy.base) {
@@ -392,11 +405,20 @@ const PortfolioSubpage: React.FC = () => {
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
   const [usdApy, setUsdApy] = useState<string | null>(null);
   const [isChainDropdownOpen, setIsChainDropdownOpen] = useState(false);
-  // Initialize targetChain based on selectedStrategy if available
-  const [targetChain, setTargetChain] = useState<string>(() => {
-    // This will be set by useEffect when selectedStrategy changes
-    return "base";
-  });
+  // Initialize targetChain - will be set when strategy is selected
+  // Don't default to "base" to avoid unnecessary chain switches, especially for syHLP
+  const [targetChain, setTargetChain] = useState<string>("");
+  
+  // Helper function to safely set targetChain - prevents syHLP from going to wrong chain
+  const setTargetChainSafe = (chain: string, strategy: any) => {
+    const isSyHLP = (strategy as any)?.name === "syHLP" || (strategy as any)?.hyperEVM;
+    if (isSyHLP && chain !== "hyperliquid") {
+      console.warn("⚠️ Attempted to set wrong chain for syHLP. Forcing hyperliquid.");
+      setTargetChain("hyperliquid");
+    } else {
+      setTargetChain(chain);
+    }
+  };
   const [selectedStrategyNetworkBalance, setSelectedStrategyNetworkBalance] = useState<number>(0);
   const [isLoadingNetworkBalance, setIsLoadingNetworkBalance] = useState(false);
   
@@ -431,24 +453,29 @@ const PortfolioSubpage: React.FC = () => {
   );
 
   // Reset selected asset index and withdraw amount when chain changes
+  // Only reset approval when strategy changes, not when targetChain changes
+  // This prevents resetting approval when user manually switches chains for the same strategy
   useEffect(() => {
     setSelectedAssetIdx(0);
     setWithdrawAmount(""); // Reset withdrawal amount when changing networks
-    setIsApproved(false); // Reset approval state when changing networks
-    setApprovalHash(null); // Reset approval hash when changing networks
-  }, [targetChain]);
+    setIsApproved(false); // Reset approval state when strategy changes
+    setApprovalHash(null); // Reset approval hash when strategy changes
+  }, [selectedStrategy]);
   
   // Set default target chain based on strategy when strategy changes
   useEffect(() => {
     if (selectedStrategy) {
-      // Check if it's syHLP by name or hyperEVM config
+      // ALWAYS check for syHLP FIRST - it's a special case even though it's USD asset
       const isSyHLP = (selectedStrategy as any).name === "syHLP" || (selectedStrategy as any).hyperEVM;
       
       if (isSyHLP) {
-        setTargetChain("hyperliquid"); // syHLP is only on HyperLiquid
+        console.log("🔵 useEffect: syHLP detected - setting targetChain to hyperliquid");
+        setTargetChain("hyperliquid"); // syHLP is only on HyperLiquid - NEVER use Base
       } else if (selectedStrategy.asset === "BTC") {
         setTargetChain("arbitrum");
       } else if (selectedStrategy.asset === "USD") {
+        // This is syUSD (not syHLP)
+        console.log("🔵 useEffect: syUSD detected - setting targetChain to base");
         setTargetChain("base"); // Default to base for USD (syUSD)
       }
     }
@@ -609,17 +636,18 @@ const PortfolioSubpage: React.FC = () => {
     const filteredChains = Array.from(uniqueChains.values());
     
     if (selectedStrategy) {
-      // Check if it's syHLP by name or hyperEVM config
+      // ALWAYS check for syHLP FIRST - it's a special case even though it's USD asset
       const isSyHLP = (selectedStrategy as any).name === "syHLP" || (selectedStrategy as any).hyperEVM;
       
       if (isSyHLP) {
         return filteredChains.filter((chain) => chain.network === "hyperliquid");
+      } else if (selectedStrategy.asset === "BTC") {
+        return filteredChains.filter((chain) => chain.network === "arbitrum");
       } else if (selectedStrategy.asset === "USD") {
+        // This is syUSD (not syHLP)
         return filteredChains.filter(
           (chain) => chain.network === "base" || chain.network === "ethereum"
         );
-      } else if (selectedStrategy.asset === "BTC") {
-        return filteredChains.filter((chain) => chain.network === "arbitrum");
       }
     }
     
@@ -644,8 +672,28 @@ const PortfolioSubpage: React.FC = () => {
       let quoteTokenContract: string;
       let quoteTokenDecimals: number;
       
-      if (strategy.asset === "USD") {
-        // For USD strategies, use USDC on Base
+      // Check if it's syHLP - it uses USDT0 on HyperLiquid, not USDC on Base
+      if ((strategy as any).name === "syHLP" || (strategy as any).hyperEVM) {
+        // syHLP uses USDT0 on HyperLiquid
+        const hyperEVMConfig = (strategy as any).hyperEVM;
+        if (hyperEVMConfig?.tokens && hyperEVMConfig.tokens.length > 0) {
+          // Get the first withdrawable token (USDT0)
+          const withdrawableToken = hyperEVMConfig.tokens.find((t: any) => t.isWithdrawable) || hyperEVMConfig.tokens[0];
+          quoteTokenContract = withdrawableToken.contract;
+          quoteTokenDecimals = withdrawableToken.decimal || 6;
+          console.log("🔥 syHLP: Using USDT0 as quote token:", {
+            contract: quoteTokenContract,
+            decimals: quoteTokenDecimals,
+            tokenName: withdrawableToken.name,
+          });
+        } else {
+          // Fallback to USDT0 address if tokens not found
+          quoteTokenContract = "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb";
+          quoteTokenDecimals = 6;
+          console.log("🔥 syHLP: Using fallback USDT0 address:", quoteTokenContract);
+        }
+      } else if (strategy.asset === "USD") {
+        // For syUSD and other USD strategies, use USDC on Base
         quoteTokenContract = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
         quoteTokenDecimals = 6;
       } else if (strategy.asset === "BTC") {
@@ -687,6 +735,8 @@ const PortfolioSubpage: React.FC = () => {
         rpcUrl,
         ...(strategy.asset === "BTC" 
           ? ["https://arb1.arbitrum.io/rpc"]
+          : (strategy as any).name === "syHLP" || (strategy as any).hyperEVM
+          ? ["https://hyperliquid.drpc.org"] // HyperLiquid fallback
           : [
               "https://base.llamarpc.com",
               "https://base.blockpi.network/v1/rpc/public",
@@ -701,22 +751,56 @@ const PortfolioSubpage: React.FC = () => {
       // Try each RPC URL until one works
       for (const rpc of rpcUrls) {
         try {
-          const client = createPublicClient({
-            transport: http(rpc),
-            chain: {
-              id: chainId,
-              name: chainName,
-              network: strategy.asset === "BTC" ? "arbitrum" : "base",
-              nativeCurrency: {
-                decimals: 18,
-                name: "Ether",
-                symbol: "ETH",
-              },
+          // Get chain object based on strategy
+          let chainObject: any;
+          if ((strategy as any).name === "syHLP" || (strategy as any).hyperEVM) {
+            chainObject = ((strategy as any).hyperEVM as any)?.chainObject || {
+              id: 999,
+              name: "HyperLiquid",
+              network: "hyperliquid",
+              nativeCurrency: { decimals: 18, name: "Ether", symbol: "ETH" },
               rpcUrls: {
                 default: { http: [rpc] },
                 public: { http: [rpc] },
               },
-            },
+            };
+          } else if (strategy.asset === "BTC") {
+            chainObject = (strategy.arbitrum as any)?.chainObject || {
+              id: 42161,
+              name: "Arbitrum One",
+              network: "arbitrum",
+              nativeCurrency: { decimals: 18, name: "Ether", symbol: "ETH" },
+              rpcUrls: {
+                default: { http: [rpc] },
+                public: { http: [rpc] },
+              },
+            };
+          } else {
+            chainObject = (strategy.base as any)?.chainObject || {
+              id: 8453,
+              name: "Base",
+              network: "base",
+              nativeCurrency: { decimals: 18, name: "Ether", symbol: "ETH" },
+              rpcUrls: {
+                default: { http: [rpc] },
+                public: { http: [rpc] },
+              },
+            };
+          }
+
+          const client = createPublicClient({
+            transport: http(rpc),
+            chain: chainObject,
+          });
+
+          console.log("🔥 Calling getRateInQuoteSafe with:", {
+            rateProviderAddress,
+            quoteTokenContract,
+            chainId,
+            chainName,
+            rpc,
+            strategyName: (strategy as any).name,
+            strategyAsset: strategy.asset,
           });
 
           rate = await client.readContract({
@@ -727,7 +811,8 @@ const PortfolioSubpage: React.FC = () => {
           });
 
           console.log(
-            `Successfully fetched exchange rate using RPC: ${rpc}`
+            `✅ Successfully fetched exchange rate using RPC: ${rpc}`,
+            `Rate: ${rate.toString()}`
           );
           break;
         } catch (error) {
@@ -1004,6 +1089,14 @@ const PortfolioSubpage: React.FC = () => {
     arbitrum: {
       src: "/images/logo/arb.svg",
       label: "Arbitrum",
+    },
+    hyperliquid: {
+      src: "/images/networks/hyperEVM.svg",
+      label: "HyperEVM",
+    },
+    hyperEVM: {
+      src: "/images/networks/hyperEVM.svg",
+      label: "HyperEVM",
     },
   };
 
@@ -1455,6 +1548,8 @@ const PortfolioSubpage: React.FC = () => {
 
   // Use wagmi's useWriteContract hook
   const { writeContractAsync: writeContract } = useWriteContract();
+  const { switchChain: switchChainHook } = useSwitchChain();
+  const currentChainId = useChainId();
 
   const handleApprove = async () => {
     if (!selectedStrategy || !withdrawAmount || !address) return;
@@ -1468,18 +1563,21 @@ const PortfolioSubpage: React.FC = () => {
       const vaultAddress = selectedStrategy.boringVaultAddress as Address;
 
       // Get chain configuration based on target chain
-      // For syHLP on hyperliquid, ensure we get the correct chainId (999)
-      let chainId: number;
+      // ALWAYS check for syHLP FIRST - it's a special case
+      const isSyHLP = (selectedStrategy as any).name === "syHLP" || (selectedStrategy as any).hyperEVM;
+      let targetChainId: number;
       let rpcUrl: string;
       let chainObject: any;
       
-      if (targetChain === "hyperliquid" && (selectedStrategy as any).hyperEVM) {
-        chainId = (selectedStrategy as any).hyperEVM.chainId || 999;
+      if (isSyHLP || (targetChain === "hyperliquid" && (selectedStrategy as any).hyperEVM)) {
+        // syHLP always uses HyperEVM
+        targetChainId = (selectedStrategy as any).hyperEVM.chainId || 999;
         rpcUrl = (selectedStrategy as any).hyperEVM.rpc || "https://rpc.hypurrscan.io";
         chainObject = (selectedStrategy as any).hyperEVM.chainObject;
+        console.log("🔵 syHLP detected - using HyperEVM config:", { targetChainId, rpcUrl });
       } else {
         const chainConfig = chainConfigs[targetChain as keyof typeof chainConfigs];
-        chainId = chainConfig?.chainId || (targetChain === "arbitrum" ? 42161 : targetChain === "ethereum" ? 1 : 8453);
+        targetChainId = chainConfig?.chainId || (targetChain === "arbitrum" ? 42161 : targetChain === "ethereum" ? 1 : 8453);
         rpcUrl = chainConfig?.rpc || selectedStrategy.rpc;
         chainObject = chainConfig?.chainObject;
       }
@@ -1488,15 +1586,40 @@ const PortfolioSubpage: React.FC = () => {
         solverAddress,
         vaultAddress,
         address,
-        chainId,
+        targetChainId,
+        currentChainId: currentChainId,
         targetChain,
         rpcUrl,
       });
 
+      // Check if user is on the correct chain, if not, switch
+      if (currentChainId !== targetChainId) {
+        console.log(`⚠️ Chain mismatch detected. Current: ${currentChainId}, Required: ${targetChainId}`);
+        console.log(`Switching from chain ${currentChainId} to chain ${targetChainId} for approval`);
+        try {
+          await switchChainHook({ chainId: targetChainId });
+          // Wait longer for the chain switch to complete and propagate
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          console.log(`✅ Chain switch initiated. Please wait for wallet confirmation.`);
+        } catch (switchError: any) {
+          console.error("Failed to switch chain:", switchError);
+          if (switchError.code === 4001) {
+            setErrorMessage("Chain switch cancelled by user.");
+          } else {
+            const chainName = targetChain === "hyperliquid" ? "HyperLiquid" : targetChain === "arbitrum" ? "Arbitrum" : targetChain === "ethereum" ? "Ethereum" : "Base";
+            setErrorMessage(`Please switch to ${chainName} network (Chain ID: ${targetChainId}) in your wallet manually and try again.`);
+          }
+          setIsApproving(false);
+          return;
+        }
+      } else {
+        console.log(`✅ Already on correct chain: ${targetChainId}`);
+      }
+
       const client = createPublicClient({
         transport: http(rpcUrl),
         chain: chainObject || {
-          id: chainId,
+          id: targetChainId,
           name: targetChain === "hyperliquid" ? "HyperLiquid" : targetChain === "arbitrum" ? "Arbitrum One" : targetChain === "ethereum" ? "Ethereum" : "Base",
           network: targetChain === "hyperliquid" ? "hyperliquid" : targetChain,
           nativeCurrency: {
@@ -1520,7 +1643,12 @@ const PortfolioSubpage: React.FC = () => {
 
       const sharesAmount = parseUnits(withdrawAmount, decimals);
 
-      console.log("Requesting approval for amount:", sharesAmount.toString());
+      console.log("Requesting approval for amount:", {
+        amount: sharesAmount.toString(),
+        amountFormatted: formatUnits(sharesAmount, decimals),
+        decimals,
+        withdrawAmount,
+      });
 
       // Approve the solver to spend the vault tokens
       const approveTx = await writeContract({
@@ -1528,7 +1656,7 @@ const PortfolioSubpage: React.FC = () => {
         abi: ERC20_ABI,
         functionName: "approve",
         args: [solverAddress, sharesAmount],
-        chainId: chainId,
+        chainId: targetChainId,
         account: address,
       });
 
@@ -1572,29 +1700,57 @@ const PortfolioSubpage: React.FC = () => {
       console.log("selectedAssetIdx:", selectedAssetIdx);
 
       // Get chain configuration based on target chain
-      // For syHLP on hyperliquid, ensure we get the correct chainId (999)
-      let chainId: number;
+      // ALWAYS check for syHLP FIRST - it's a special case
+      const isSyHLP = (selectedStrategy as any).name === "syHLP" || (selectedStrategy as any).hyperEVM;
+      let targetChainId: number;
       let rpcUrl: string;
       let chainObject: any;
       
-      if (targetChain === "hyperliquid" && (selectedStrategy as any).hyperEVM) {
-        chainId = (selectedStrategy as any).hyperEVM.chainId || 999;
+      if (isSyHLP || (targetChain === "hyperliquid" && (selectedStrategy as any).hyperEVM)) {
+        // syHLP always uses HyperEVM
+        targetChainId = (selectedStrategy as any).hyperEVM.chainId || 999;
         rpcUrl = (selectedStrategy as any).hyperEVM.rpc || "https://rpc.hypurrscan.io";
         chainObject = (selectedStrategy as any).hyperEVM.chainObject;
+        console.log("🔵 syHLP detected - using HyperEVM config:", { targetChainId, rpcUrl });
       } else {
         const chainConfig = chainConfigs[targetChain as keyof typeof chainConfigs];
-        chainId = chainConfig?.chainId || (targetChain === "arbitrum" ? 42161 : targetChain === "ethereum" ? 1 : 8453);
+        targetChainId = chainConfig?.chainId || (targetChain === "arbitrum" ? 42161 : targetChain === "ethereum" ? 1 : 8453);
         rpcUrl = chainConfig?.rpc || selectedStrategy.rpc;
         chainObject = chainConfig?.chainObject;
       }
 
-      console.log("Withdraw chainId:", chainId);
+      console.log("Withdraw targetChainId:", targetChainId);
+      console.log("Withdraw currentChainId:", currentChainId);
       console.log("Withdraw rpcUrl:", rpcUrl);
+
+      // Check if user is on the correct chain, if not, switch
+      if (currentChainId !== targetChainId) {
+        console.log(`⚠️ Chain mismatch detected. Current: ${currentChainId}, Required: ${targetChainId}`);
+        console.log(`Switching from chain ${currentChainId} to chain ${targetChainId} for withdrawal`);
+        try {
+          await switchChainHook({ chainId: targetChainId });
+          // Wait longer for the chain switch to complete and propagate
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          console.log(`✅ Chain switch initiated. Please wait for wallet confirmation.`);
+        } catch (switchError: any) {
+          console.error("Failed to switch chain:", switchError);
+          if (switchError.code === 4001) {
+            setErrorMessage("Chain switch cancelled by user.");
+          } else {
+            const chainName = targetChain === "hyperliquid" ? "HyperLiquid" : targetChain === "arbitrum" ? "Arbitrum" : targetChain === "ethereum" ? "Ethereum" : "Base";
+            setErrorMessage(`Please switch to ${chainName} network (Chain ID: ${targetChainId}) in your wallet manually and try again.`);
+          }
+          setIsWithdrawing(false);
+          return;
+        }
+      } else {
+        console.log(`✅ Already on correct chain: ${targetChainId}`);
+      }
 
       const client = createPublicClient({
         transport: http(rpcUrl),
         chain: chainObject || {
-          id: chainId,
+          id: targetChainId,
           name: targetChain === "hyperliquid" ? "HyperLiquid" : targetChain === "arbitrum" ? "Arbitrum One" : targetChain === "ethereum" ? "Ethereum" : "Base",
           network: targetChain === "hyperliquid" ? "hyperliquid" : targetChain,
           nativeCurrency: {
@@ -1621,12 +1777,206 @@ const PortfolioSubpage: React.FC = () => {
       const amountOfShares = BigInt(sharesAmount.toString());
       const discount = 0; // uint16 - hardcoded
       const secondsToDeadline = 432000; // uint24 - hardcoded (5 days)
+      
+      console.log("🔍 Withdrawal amount calculation:", {
+        withdrawAmount,
+        decimals,
+        sharesAmount: sharesAmount.toString(),
+        amountOfShares: amountOfShares.toString(),
+        amountOfSharesFormatted: formatUnits(amountOfShares, decimals),
+      });
+
+      // Check if the solver contract is paused
+      console.log("🔍 Checking if solver contract is paused...");
+      try {
+        const isPaused = await client.readContract({
+          address: solverAddress,
+          abi: SOLVER_ABI,
+          functionName: "isPaused",
+        }) as boolean;
+        
+        if (isPaused) {
+          const errorMsg = "Withdrawals are currently paused. Please try again later.";
+          console.error(errorMsg);
+          setErrorMessage(errorMsg);
+          setIsWithdrawing(false);
+          return;
+        }
+        console.log("✅ Solver contract is not paused");
+      } catch (error) {
+        console.warn("Could not check paused state (function might not exist):", error);
+        // Continue if we can't check paused state
+      }
+
+      // Verify approval before attempting withdrawal
+      console.log("🔍 Verifying approval before withdrawal...");
+      console.log("Checking allowance on:", {
+        vaultAddress,
+        userAddress: address,
+        solverAddress,
+        chainId: targetChainId,
+        network: targetChain,
+      });
+      
+      const allowance = await client.readContract({
+        address: vaultAddress,
+        abi: ERC20_ABI,
+        functionName: "allowance",
+        args: [address as Address, solverAddress],
+      }) as bigint;
+
+      console.log("Approval check:", {
+        allowance: allowance.toString(),
+        required: amountOfShares.toString(),
+        allowanceFormatted: formatUnits(allowance, decimals),
+        requiredFormatted: withdrawAmount,
+        isSufficient: allowance >= amountOfShares,
+        difference: (allowance - amountOfShares).toString(),
+        differenceFormatted: formatUnits(allowance - amountOfShares, decimals),
+      });
+
+      if (allowance < amountOfShares) {
+        const errorMsg = `Insufficient approval. Approved: ${formatUnits(allowance, decimals)}, Required: ${withdrawAmount}. Please approve again. Make sure you're on the correct network (${targetChain === "hyperliquid" ? "HyperEVM" : targetChain === "arbitrum" ? "Arbitrum" : targetChain === "ethereum" ? "Ethereum" : "Base"}).`;
+        console.error(errorMsg);
+        setErrorMessage(errorMsg);
+        setIsApproved(false); // Reset approval state
+        setIsWithdrawing(false);
+        return;
+      }
+      
+      // Double-check: Verify the approval is actually sufficient with a small buffer
+      // Some contracts require exact amounts, but we want to be safe
+      if (allowance === BigInt(0)) {
+        const errorMsg = `No approval found. Please approve the withdrawal first. Make sure you're on the correct network (${targetChain === "hyperliquid" ? "HyperEVM" : targetChain === "arbitrum" ? "Arbitrum" : targetChain === "ethereum" ? "Ethereum" : "Base"}).`;
+        console.error(errorMsg);
+        setErrorMessage(errorMsg);
+        setIsApproved(false);
+        setIsWithdrawing(false);
+        return;
+      }
+
+      console.log("✅ Approval verified. Proceeding with withdrawal...");
+
+      // Check user's balance before attempting withdrawal
+      const userBalance = await client.readContract({
+        address: vaultAddress,
+        abi: ERC20_ABI,
+        functionName: "balanceOf",
+        args: [address as Address],
+      }) as bigint;
+
+      console.log("Balance check:", {
+        userBalance: userBalance.toString(),
+        required: amountOfShares.toString(),
+        userBalanceFormatted: formatUnits(userBalance, decimals),
+        requiredFormatted: withdrawAmount,
+        isSufficient: userBalance >= amountOfShares,
+      });
+
+      if (userBalance < amountOfShares) {
+        const errorMsg = `Insufficient balance. You have: ${formatUnits(userBalance, decimals)}, Required: ${withdrawAmount}.`;
+        console.error(errorMsg);
+        setErrorMessage(errorMsg);
+        setIsWithdrawing(false);
+        return;
+      }
+
+      // Final verification: Re-check allowance right before transaction
+      console.log("🔍 Final approval verification before transaction...");
+      console.log("Verification details:", {
+        vaultAddress,
+        userAddress: address,
+        solverAddress,
+        chainId: targetChainId,
+        network: targetChain,
+        amountOfShares: amountOfShares.toString(),
+        amountOfSharesFormatted: formatUnits(amountOfShares, decimals),
+      });
+      
+      const finalAllowance = await client.readContract({
+        address: vaultAddress,
+        abi: ERC20_ABI,
+        functionName: "allowance",
+        args: [address as Address, solverAddress],
+      }) as bigint;
+      
+      console.log("Final allowance check:", {
+        allowance: finalAllowance.toString(),
+        required: amountOfShares.toString(),
+        allowanceFormatted: formatUnits(finalAllowance, decimals),
+        requiredFormatted: formatUnits(amountOfShares, decimals),
+        isSufficient: finalAllowance >= amountOfShares,
+        exactMatch: finalAllowance === amountOfShares,
+        difference: finalAllowance >= amountOfShares ? (finalAllowance - amountOfShares).toString() : "INSUFFICIENT",
+      });
+      
+      if (finalAllowance < amountOfShares) {
+        const errorMsg = `Approval insufficient at transaction time. Approved: ${formatUnits(finalAllowance, decimals)}, Required: ${formatUnits(amountOfShares, decimals)}. Please approve again and wait for confirmation.`;
+        console.error(errorMsg);
+        setErrorMessage(errorMsg);
+        setIsApproved(false);
+        setIsWithdrawing(false);
+        return;
+      }
+      
+      // If allowance is exactly equal, that should be fine
+      // If allowance is greater, that's also fine
+      // The issue might be elsewhere
+      if (finalAllowance === amountOfShares) {
+        console.log("✅ Approval amount exactly matches withdrawal amount");
+      } else {
+        console.log(`✅ Approval amount (${formatUnits(finalAllowance, decimals)}) is greater than withdrawal amount (${formatUnits(amountOfShares, decimals)})`);
+      }
+
+      // Simulate the transaction first to catch any revert reasons
+      try {
+        console.log("🔍 Simulating transaction to check for revert reasons...");
+        await client.simulateContract({
+          address: solverAddress,
+          abi: SOLVER_ABI,
+          functionName: "requestOnChainWithdraw",
+          args: [assetOutAddress, amountOfShares, discount, secondsToDeadline],
+          account: address as Address,
+        });
+        console.log("✅ Transaction simulation successful");
+      } catch (simulateError: any) {
+        console.error("❌ Transaction simulation failed:", simulateError);
+        let errorMessage = "Transaction would fail. ";
+        
+        // Check for TRANSFER_FROM_FAILED specifically
+        if (simulateError?.shortMessage?.includes("TRANSFER_FROM_FAILED") || 
+            simulateError?.message?.includes("TRANSFER_FROM_FAILED") ||
+            simulateError?.cause?.reason === "TRANSFER_FROM_FAILED") {
+          errorMessage = "Transfer failed - the contract cannot transfer tokens from your address. ";
+          errorMessage += `\n\nCurrent allowance: ${formatUnits(finalAllowance, decimals)} ${(selectedStrategy as any)?.name === "syHLP" ? "syHLP" : "syUSD"}`;
+          errorMessage += `\nRequired amount: ${withdrawAmount} ${(selectedStrategy as any)?.name === "syHLP" ? "syHLP" : "syUSD"}`;
+          errorMessage += `\nNetwork: ${targetChain === "hyperliquid" ? "HyperEVM" : targetChain === "arbitrum" ? "Arbitrum" : targetChain === "ethereum" ? "Ethereum" : "Base"}`;
+          errorMessage += `\n\nPossible causes:`;
+          errorMessage += `\n1. Approval was set on a different network - make sure you approved on ${targetChain === "hyperliquid" ? "HyperEVM (Chain ID: 999)" : targetChain === "arbitrum" ? "Arbitrum (Chain ID: 42161)" : targetChain === "ethereum" ? "Ethereum (Chain ID: 1)" : "Base (Chain ID: 8453)"}`;
+          errorMessage += `\n2. Approval amount doesn't match - you approved ${formatUnits(finalAllowance, decimals)}, but trying to withdraw ${withdrawAmount}`;
+          errorMessage += `\n3. Approval transaction not confirmed yet - wait for approval to be confirmed before withdrawing`;
+          errorMessage += `\n\nPlease check the approval transaction and ensure it was confirmed on the correct network.`;
+        } else if (simulateError?.cause?.data) {
+          errorMessage += `Reason: ${simulateError.cause.data}`;
+        } else if (simulateError?.message) {
+          errorMessage += simulateError.message;
+        } else if (simulateError?.shortMessage) {
+          errorMessage += simulateError.shortMessage;
+        } else {
+          errorMessage += "Unknown error. Please check your balance and approval.";
+        }
+        
+        setErrorMessage(errorMessage);
+        setIsWithdrawing(false);
+        return;
+      }
 
       console.log("Debug - Contract call parameters:", {
         functionName: "requestOnChainWithdraw",
         contractAddress: solverAddress,
-        chainId: chainId,
+        chainId: targetChainId,
         targetChain: targetChain,
+        currentChainId: currentChainId,
         args: {
           assetOut: assetOutAddress,
           amountOfShares: amountOfShares.toString(),
@@ -1639,6 +1989,14 @@ const PortfolioSubpage: React.FC = () => {
           discount: typeof discount,
           secondsToDeadline: typeof secondsToDeadline,
         },
+        approval: {
+          allowance: allowance.toString(),
+          required: amountOfShares.toString(),
+        },
+        balance: {
+          userBalance: userBalance.toString(),
+          required: amountOfShares.toString(),
+        },
       });
 
       const tx = await writeContract({
@@ -1646,7 +2004,7 @@ const PortfolioSubpage: React.FC = () => {
         abi: SOLVER_ABI,
         functionName: "requestOnChainWithdraw",
         args: [assetOutAddress, amountOfShares, discount, secondsToDeadline],
-        chainId: chainId,
+        chainId: targetChainId,
         account: address,
       });
 
@@ -1659,12 +2017,42 @@ const PortfolioSubpage: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Withdrawal failed:", error);
+      console.error("Error details:", {
+        message: error.message,
+        shortMessage: error.shortMessage,
+        cause: error.cause,
+        data: error.data,
+        code: error.code,
+        name: error.name,
+      });
+      
       if (error.code === 4001) {
         setErrorMessage("Withdrawal cancelled by user.");
       } else {
-        setErrorMessage(
-          error.message || "Withdrawal failed. Please try again."
-        );
+        // Try to extract a more detailed error message
+        let errorMessage = "Withdrawal failed. ";
+        
+        // Check for revert reason in various error formats
+        if (error?.shortMessage) {
+          errorMessage += error.shortMessage;
+        } else if (error?.cause?.data) {
+          // Try to decode the revert reason
+          const revertData = error.cause.data;
+          if (typeof revertData === 'string' && revertData.startsWith('0x')) {
+            // Try to extract readable error from hex data
+            errorMessage += `Contract reverted: ${revertData.substring(0, 20)}...`;
+          } else {
+            errorMessage += String(revertData);
+          }
+        } else if (error?.cause?.message) {
+          errorMessage += error.cause.message;
+        } else if (error?.message) {
+          errorMessage += error.message;
+        } else {
+          errorMessage += "Unknown error. Please check your balance, approval, and try again.";
+        }
+        
+        setErrorMessage(errorMessage);
       }
       setIsWithdrawing(false); // Only set to false on actual error
     }
@@ -1683,27 +2071,51 @@ const PortfolioSubpage: React.FC = () => {
       const solverAddress = selectedStrategy.solverAddress as Address;
 
       // Get chain configuration based on target chain
-      // For syHLP on hyperliquid, ensure we get the correct chainId (999)
-      let chainId: number;
+      // ALWAYS check for syHLP FIRST - it's a special case
+      const isSyHLP = (selectedStrategy as any).name === "syHLP" || (selectedStrategy as any).hyperEVM;
+      let targetChainId: number;
       let rpcUrl: string;
       let chainObject: any;
       
-      if (targetChain === "hyperliquid" && (selectedStrategy as any).hyperEVM) {
-        chainId = (selectedStrategy as any).hyperEVM.chainId || 999;
+      if (isSyHLP || (targetChain === "hyperliquid" && (selectedStrategy as any).hyperEVM)) {
+        // syHLP always uses HyperEVM
+        targetChainId = (selectedStrategy as any).hyperEVM.chainId || 999;
         rpcUrl = (selectedStrategy as any).hyperEVM.rpc || "https://rpc.hypurrscan.io";
         chainObject = (selectedStrategy as any).hyperEVM.chainObject;
+        console.log("🔵 syHLP detected - using HyperEVM config:", { targetChainId, rpcUrl });
       } else {
         const chainConfig = chainConfigs[targetChain as keyof typeof chainConfigs];
-        chainId = chainConfig?.chainId || (targetChain === "arbitrum" ? 42161 : targetChain === "ethereum" ? 1 : 8453);
+        targetChainId = chainConfig?.chainId || (targetChain === "arbitrum" ? 42161 : targetChain === "ethereum" ? 1 : 8453);
         rpcUrl = chainConfig?.rpc || selectedStrategy.rpc;
         chainObject = chainConfig?.chainObject;
+      }
+
+      // Check if user is on the correct chain, if not, switch
+      if (currentChainId !== targetChainId) {
+        console.log(`Switching from chain ${currentChainId} to chain ${targetChainId} for cancel`);
+        try {
+          await switchChainHook({ chainId: targetChainId });
+          // Wait a bit for the chain switch to complete
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } catch (switchError: any) {
+          console.error("Failed to switch chain:", switchError);
+          if (switchError.code === 4001) {
+            setErrorMessage("Chain switch cancelled by user.");
+          } else {
+            const chainName = targetChain === "hyperliquid" ? "HyperLiquid" : targetChain === "arbitrum" ? "Arbitrum" : targetChain === "ethereum" ? "Ethereum" : "Base";
+            setErrorMessage(`Please switch to ${chainName} network (Chain ID: ${targetChainId}) in your wallet`);
+          }
+          setIsCancelling(false);
+          return;
+        }
       }
 
       console.log("Cancel details:", {
         solverAddress,
         requestId,
         address,
-        chainId,
+        targetChainId,
+        currentChainId,
         targetChain,
         rpcUrl,
       });
@@ -1711,7 +2123,7 @@ const PortfolioSubpage: React.FC = () => {
       const client = createPublicClient({
         transport: http(rpcUrl),
         chain: chainObject || {
-          id: chainId,
+          id: targetChainId,
           name: targetChain === "hyperliquid" ? "HyperLiquid" : targetChain === "arbitrum" ? "Arbitrum One" : targetChain === "ethereum" ? "Ethereum" : "Base",
           network: targetChain === "hyperliquid" ? "hyperliquid" : targetChain,
           nativeCurrency: {
@@ -1784,7 +2196,7 @@ const PortfolioSubpage: React.FC = () => {
         abi: SOLVER_ABI,
         functionName: "cancelOnChainWithdraw",
         args: [request],
-        chainId: chainId,
+        chainId: targetChainId,
         account: address,
       });
 
@@ -1843,6 +2255,19 @@ const PortfolioSubpage: React.FC = () => {
       setActiveTab("withdraw");
       // Reset withdrawal amount when selecting a new strategy
       setWithdrawAmount("");
+      
+      // ALWAYS check for syHLP FIRST - it's a special case even though it's USD asset
+      const isSyHLP = (strategy as any).name === "syHLP" || (strategy as any).hyperEVM;
+      if (isSyHLP) {
+        console.log("🔵 Setting targetChain to hyperliquid for syHLP");
+        setTargetChain("hyperliquid"); // syHLP is only on HyperLiquid
+      } else if (strategy.asset === "BTC") {
+        setTargetChain("arbitrum"); // syBTC is only on Arbitrum
+      } else if (strategy.asset === "USD") {
+        // This is syUSD (not syHLP)
+        console.log("🔵 Setting targetChain to base for syUSD");
+        setTargetChain("base"); // syUSD defaults to Base
+      }
     }
   };
 
@@ -1854,22 +2279,45 @@ const PortfolioSubpage: React.FC = () => {
         selectedStrategy
       );
 
-      // Set target chain based on strategy type
+      // ALWAYS check for syHLP FIRST - it's a special case even though it's USD asset
       const isSyHLP = (selectedStrategy as any).name === "syHLP" || (selectedStrategy as any).hyperEVM;
+      let expectedChain: string;
       
       if (isSyHLP) {
-        setTargetChain("hyperliquid"); // syHLP is only on HyperLiquid
+        expectedChain = "hyperliquid";
       } else if (selectedStrategy.asset === "BTC") {
-        setTargetChain("arbitrum"); // syBTC is only on Arbitrum
+        expectedChain = "arbitrum";
       } else if (selectedStrategy.asset === "USD") {
-        setTargetChain("base"); // syUSD defaults to Base
+        // This is syUSD (not syHLP)
+        expectedChain = "base";
+      } else {
+        expectedChain = "base"; // fallback
+      }
+      
+      // Always set targetChain when strategy changes to prevent defaulting to wrong chain
+      // This ensures syHLP immediately goes to hyperliquid without going through base
+      if (targetChain !== expectedChain || !targetChain) {
+        setTargetChain(expectedChain);
+        console.log(
+          "🔵 Setting targetChain to:",
+          expectedChain,
+          "for strategy:",
+          (selectedStrategy as any).name || selectedStrategy.asset,
+          "isSyHLP:",
+          isSyHLP,
+          "(previous targetChain was:",
+          targetChain,
+          ")"
+        );
       }
       
       console.log(
         "Selected strategy network:",
         selectedStrategy.network,
-        "targetChain set to:",
-        isSyHLP ? "hyperliquid" : selectedStrategy.asset === "BTC" ? "arbitrum" : "base"
+        "targetChain:",
+        targetChain,
+        "expectedChain:",
+        expectedChain
       );
 
       // Find the corresponding asset in withdrawableAssets
@@ -1889,7 +2337,7 @@ const PortfolioSubpage: React.FC = () => {
         );
       }
     }
-  }, [selectedStrategy, withdrawableAssets, targetChain, isMobileDevice]);
+  }, [selectedStrategy, withdrawableAssets, isMobileDevice]); // Removed targetChain from deps to prevent loops
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -2390,11 +2838,13 @@ const PortfolioSubpage: React.FC = () => {
                               );
                             }
                           } else {
+                            // For syUSD/syHLP: exchangeRate is already in USD terms
+                            const strategyName = (s as any).name === "syHLP" || (s as any).hyperEVM ? "syHLP" : "syUSD";
                             usdValue = s.balance * strategyRate;
                             console.log(
-                              "🔥 Portfolio Balance Calc (syUSD):",
+                              `🔥 Portfolio Balance Calc (${strategyName}):`,
                               s.balance,
-                              "syUSD *",
+                              `${strategyName} *`,
                               strategyRate,
                               "USD =",
                               usdValue
@@ -2502,11 +2952,13 @@ const PortfolioSubpage: React.FC = () => {
                               );
                             }
                           } else {
+                            // For syUSD/syHLP: exchangeRate is already in USD terms
+                            const strategyName = (s as any).name === "syHLP" || (s as any).hyperEVM ? "syHLP" : "syUSD";
                             usdValue = s.balance * strategyRate;
                             console.log(
-                              "🔥 Withdrawable Balance Calc (syUSD):",
+                              `🔥 Withdrawable Balance Calc (${strategyName}):`,
                               s.balance,
-                              "syUSD *",
+                              `${strategyName} *`,
                               strategyRate,
                               "USD =",
                               usdValue
@@ -2809,21 +3261,28 @@ const PortfolioSubpage: React.FC = () => {
                         });
                         return strategyDepositedChains.length > 0 ? (
                           <div className="flex items-center gap-1">
-                            {strategyDepositedChains.map((chain, idx) => (
-                              <div key={chain} className="flex items-center">
-                                <img
-                                  src={
-                                    chainIconMap[chain]?.src ||
-                                    "/images/logo/base.svg"
-                                  }
-                                  alt={chain}
-                                  className="w-4 h-4 rounded-full"
-                                />
-                                {idx < strategyDepositedChains.length - 1 && (
-                                  <span className="mx-1">,</span>
-                                )}
-                              </div>
-                            ))}
+                            {strategyDepositedChains.map((chain, idx) => {
+                              // Normalize chain key - handle both "hyperliquid" and "hyperEVM"
+                              const normalizedChain = chain === "hyperliquid" || chain === "hyperEVM" ? "hyperliquid" : chain;
+                              const chainInfo = chainIconMap[normalizedChain] || chainIconMap[chain] || { src: "/images/logo/base.svg", label: chain };
+                              
+                              return (
+                                <div key={chain} className="flex items-center gap-1">
+                                  <img
+                                    src={chainInfo.src}
+                                    alt={chainInfo.label}
+                                    className="w-4 h-4 rounded-full"
+                                    onError={(e) => {
+                                      console.warn(`Failed to load icon for chain: ${chain}, normalized: ${normalizedChain}`);
+                                      e.currentTarget.src = "/images/logo/base.svg";
+                                    }}
+                                  />
+                                  {idx < strategyDepositedChains.length - 1 && (
+                                    <span className="mx-1">,</span>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         ) : (
                           "-"
@@ -3165,7 +3624,17 @@ const PortfolioSubpage: React.FC = () => {
                                   ({selectedStrategyEthereumBalance.toFixed(
                                     selectedStrategy?.asset === "BTC" ? 6 : 2
                                   )}{" "}
-                                  {selectedStrategy?.asset === "BTC" ? "syBTC" : "syUSD"})
+                                  {(() => {
+                                    // Check if it's syHLP
+                                    const isSyHLP = (selectedStrategy as any)?.name === "syHLP" || (selectedStrategy as any)?.hyperEVM;
+                                    if (selectedStrategy?.asset === "BTC") {
+                                      return "syBTC";
+                                    } else if (isSyHLP) {
+                                      return "syHLP";
+                                    } else {
+                                      return "syUSD";
+                                    }
+                                  })()})
                                 </>
                               )}
                             </span>
