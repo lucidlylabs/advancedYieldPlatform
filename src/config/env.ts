@@ -241,6 +241,52 @@ export const USD_STRATEGIES = {
           },
         ],
       },
+      katana: {
+        image: "/images/logo/katana.svg",
+        rpc: "https://rpc.katana.network",
+        chainId: 747474,
+        chainObject: {
+          id: 747474,
+          name: "Katana",
+          network: "katana",
+          nativeCurrency: { decimals: 18, name: "ETH", symbol: "ETH" },
+          rpcUrls: {
+            default: { http: ["https://rpc.katana.network"] },
+            public: { http: ["https://rpc.katana.network"] },
+          },
+        },
+        tokens: [
+          {
+            name: "vbUSDC",
+            contract: "0x203A662b0BD271A6ed5a60EdFbd04bFce608FD36", // TODO: Replace with real address
+            decimal: 6,
+            image: "/images/icons/usdc.svg",
+          },
+        ],
+      },
+      arbitrum: {
+        image: "/images/logo/arb.svg",
+        rpc: "https://arb1.arbitrum.io/rpc",
+        chainId: 42161,
+        chainObject: {
+          id: 42161,
+          name: "Arbitrum",
+          network: "arbitrum",
+          nativeCurrency: { decimals: 18, name: "Ether", symbol: "ETH" },
+          rpcUrls: {
+            default: { http: ["https://arb1.arbitrum.io/rpc"] },
+            public: { http: ["https://arb1.arbitrum.io/rpc"] },
+          },
+        },
+        tokens: [
+          {
+            name: "USDC",
+            contract: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+            decimal: 6,
+            image: "/images/icons/usdc.svg",
+          },
+        ],
+      },
 
       incentives: {
         enabled: false,
@@ -270,7 +316,76 @@ export const USD_STRATEGIES = {
   },
 };
 
-export const ETH_STRATEGIES = {};
+export const ETH_STRATEGIES = {
+  PERPETUAL_DURATION: {
+    STABLE: {
+      name: "syETH",
+      displayName: "Stable Yield ETH",
+      type: "eth",
+      network: "Base",
+      contract: "", // TODO: Add contract address
+      boringVaultAddress: "", // TODO: Add vault address
+      solverAddress: "", // TODO: Add solver address
+      shareAddress: "", // TODO: Add share address
+      shareAddress_token_decimal: 18,
+      rateProvider: "", // TODO: Add rate provider address
+      image: "/images/icons/syETH.svg",
+
+      // Base Network Configuration
+      base: {
+        image: "/images/logo/base.svg",
+        rpc: "https://base.llamarpc.com",
+        chainId: 8453,
+        chainObject: {
+          id: 8453,
+          name: "Base",
+          network: "base",
+          nativeCurrency: { decimals: 18, name: "Ethereum", symbol: "ETH" },
+          rpcUrls: {
+            default: { http: ["https://base.llamarpc.com"] },
+            public: { http: ["https://base.llamarpc.com"] },
+          },
+        },
+        tokens: [
+          {
+            name: "WETH",
+            contract: "", // TODO: Add WETH contract address
+            decimal: 18,
+            image: "/images/icons/weth.svg",
+            isWithdrawable: true,
+          },
+        ],
+      },
+
+      // No incentives for syETH (can be configured later)
+      incentives: {
+        enabled: false,
+        points: [],
+      },
+
+      description: "Perpetual syETH strategy on Base network",
+      apy: "", // TODO: Add APY endpoint
+      cap_limit: "0",
+      filled_cap: "0",
+      show_cap: false,
+      tvl: "https://api.lucidly.finance/services/aum_data?vaultName=syETH",
+      ethPrice: "https://api.lucidly.finance/services/currency_rates?assetName=ETH",
+      withdraw_request: "", // TODO: Add withdraw request endpoint
+      rpc: "https://base.llamarpc.com",
+    },
+    INCENTIVE: {
+      network: "",
+      comingSoon: true,
+      contract: "",
+      deposit_token: "",
+      deposit_token_contract: "",
+      tvl: "",
+      rpc: "",
+      description: "",
+      apy: "",
+    },
+  },
+};
 
 export const BTC_STRATEGIES = {
   PERPETUAL_DURATION: {
