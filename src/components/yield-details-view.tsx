@@ -147,6 +147,25 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
     ? "syBTC is a synthetic BTC strategy that provides yield through various DeFi strategies"
     : "syUSD is a synthetic USD stablecoin that provides yield through various DeFi strategies";
 
+  // Helper function to get explorer URL based on strategy network
+  const getExplorerUrl = (networkName: string): string => {
+    const network = (networkName || "").toLowerCase();
+    switch (network) {
+      case "hyperliquid":
+      case "hyperevm":
+        return "https://hyperevmscan.io";
+      case "arbitrum":
+        return "https://arbiscan.io";
+      case "ethereum":
+        return "https://etherscan.io";
+      case "katana":
+        return "https://explorer.katanarpc.com";
+      case "base":
+      default:
+        return "https://basescan.org";
+    }
+  };
+
   // Function to check balance for a specific network
   const checkNetworkBalance = async (
     networkConfig: any,
@@ -647,7 +666,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                   )}`
                 : "N/A"}
               <a
-                href={`https://${isBtcStrategy ? 'arbiscan.io' : 'basescan.org'}/address/${contractAddress || strategy.boringVaultAddress}`}
+                href={`${getExplorerUrl(strategy.network)}/address/${contractAddress || strategy.boringVaultAddress}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[#9C9DA2] hover:text-white transition-colors"
