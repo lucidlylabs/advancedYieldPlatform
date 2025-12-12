@@ -142,9 +142,16 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
     : isSyHLPStrategy
     ? USD_STRATEGIES.PERPETUAL_DURATION.syHLP
     : USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
-  const strategyIcon = isBtcStrategy ? "/images/icons/syBTC.svg" : "/images/icons/syUSD.svg";
+  // Use strategy's image property if available, otherwise fallback to default
+  const strategyIcon = (strategy as any).image || (isBtcStrategy 
+    ? "/images/icons/syBTC.svg" 
+    : isSyHLPStrategy 
+    ? "/images/icons/syHLP.svg"
+    : "/images/icons/syUSD.svg");
   const strategyDescription = isBtcStrategy 
     ? "syBTC is a synthetic BTC strategy that provides yield through various DeFi strategies"
+    : isSyHLPStrategy
+    ? "syHLP is a stable yield strategy for HLP tokens"
     : "syUSD is a synthetic USD stablecoin that provides yield through various DeFi strategies";
 
   // Helper function to get explorer URL based on strategy network
@@ -244,6 +251,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
       // Determine which strategy we're viewing based on contract address
       const usdVaultAddress = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.toLowerCase();
       const btcVaultAddress = BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.toLowerCase();
+      const syHLPVaultAddress = USD_STRATEGIES.PERPETUAL_DURATION.syHLP.boringVaultAddress.toLowerCase();
       const currentVaultAddress = contractAddress?.toLowerCase() || usdVaultAddress;
 
       let strategy;
@@ -252,6 +260,9 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
       if (currentVaultAddress === btcVaultAddress) {
         strategy = BTC_STRATEGIES.PERPETUAL_DURATION.STABLE;
         strategyName = "syBTC";
+      } else if (currentVaultAddress === syHLPVaultAddress || name?.toLowerCase().includes("hlp")) {
+        strategy = USD_STRATEGIES.PERPETUAL_DURATION.syHLP;
+        strategyName = "syHLP";
       } else {
         strategy = USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
         strategyName = "syUSD";
@@ -292,6 +303,23 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
           networks.push({
             config: usdStrategy.katana,
             address: usdStrategy.boringVaultAddress,
+            name: "Katana",
+          });
+        }
+      } else if (strategyName === "syHLP") {
+        // syHLP vault exists on hyperEVM and katana
+        const syHLPStrategy = strategy as typeof USD_STRATEGIES.PERPETUAL_DURATION.syHLP;
+        if ((syHLPStrategy as any).hyperEVM) {
+          networks.push({
+            config: (syHLPStrategy as any).hyperEVM,
+            address: syHLPStrategy.boringVaultAddress,
+            name: "HyperEVM",
+          });
+        }
+        if (syHLPStrategy.katana) {
+          networks.push({
+            config: syHLPStrategy.katana,
+            address: syHLPStrategy.boringVaultAddress,
             name: "Katana",
           });
         }
@@ -596,7 +624,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                   <div className="w-4 h-4 rounded-full overflow-hidden flex items-center justify-center">
                     <Image
                       src={strategyIcon}
-                      alt={isBtcStrategy ? "syBTC" : "syUSD"}
+                      alt={isBtcStrategy ? "syBTC" : isSyHLPStrategy ? "syHLP" : "syUSD"}
                       width={16}
                       height={16}
                       className="object-contain"
@@ -683,6 +711,11 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
               {(
                 isBtcStrategy
                   ? [(strategy as typeof BTC_STRATEGIES.PERPETUAL_DURATION.STABLE).arbitrum].filter(Boolean)
+                  : isSyHLPStrategy
+                  ? [
+                      (strategy as typeof USD_STRATEGIES.PERPETUAL_DURATION.syHLP as any).hyperEVM,
+                      (strategy as typeof USD_STRATEGIES.PERPETUAL_DURATION.syHLP).katana,
+                    ].filter(Boolean)
                   : [
                       (strategy as typeof USD_STRATEGIES.PERPETUAL_DURATION.STABLE).base,
                       (strategy as typeof USD_STRATEGIES.PERPETUAL_DURATION.STABLE).ethereum,
@@ -703,10 +736,11 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                       )}
                     >
                       <Image
-                        src={networkConfig.image}
+                        src={networkConfig.image || "/images/icons/default_assest.svg"}
                         alt={networkConfig.chainObject.name}
                         width={24}
                         height={24}
+                        className="rounded-full"
                       />
                     </div>
                   </Tooltip>
