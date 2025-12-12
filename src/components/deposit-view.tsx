@@ -224,10 +224,11 @@ const VAULT_ABI = [
 interface DepositViewProps {
   selectedAsset: string;
   duration: DurationType;
-  strategy: "stable" | "incentive";
+  strategy: "stable" | "incentive" | "syHLP";
   apy: string;
   onBack: () => void;
   onReset: () => void;
+  strategyKey?: string; // Optional strategy key (e.g., "STABLE", "syHLP", "INCENTIVE")
 }
 
 const InfoIcon = () => (
@@ -1202,8 +1203,8 @@ const DepositView: React.FC<DepositViewProps> = ({
         chain: clientChain,
       });
 
-      // Get bridge wildcard based on target chain
-      const bridgeWildCard = getBridgeWildCard(targetChain);
+      // Get bridge wildcard based on destination chain (where vault tokens will be received)
+      const bridgeWildCard = getBridgeWildCard();
 
       // Convert amount to uint96 for previewFee
       const shareAmount = amount as unknown as bigint;
@@ -1230,9 +1231,35 @@ const DepositView: React.FC<DepositViewProps> = ({
     }
   };
 
-  // Helper function to get bridge wildcard
-  const getBridgeWildCard = (chain: string): `0x${string}` => {
-    return "0x00000000000000000000000000000000000000000000000000000000000075e8";
+  // Helper function to get bridge wildcard based on destination chain
+  // LayerZero endpoint IDs:
+  // - hyperEVM: 30367 (0x769f)
+  // - katana: 30375 (0x76a7)
+  // - base: 30184 (0x75e8)
+  // - arbitrum: 30110 (0x759e)
+  // - ethereum: 30101 (0x7595)
+  const getBridgeWildCard = (): `0x${string}` => {
+    // Get the destination chain (where vault tokens will be received)
+    const destinationChain = (strategyConfig.network || "").toLowerCase();
+    
+    // LayerZero endpoint ID mapping (in hex format, padded to 32 bytes)
+    const endpointIds: { [key: string]: string } = {
+      hyperliquid: "0x000000000000000000000000000000000000000000000000000000000000769f", // hyperEVM: 30367
+      hyperevm: "0x000000000000000000000000000000000000000000000000000000000000769f", // hyperEVM: 30367
+      katana: "0x00000000000000000000000000000000000000000000000000000000000076a7", // katana: 30375
+      base: "0x00000000000000000000000000000000000000000000000000000000000075e8", // base: 30184
+      arbitrum: "0x000000000000000000000000000000000000000000000000000000000000759e", // arbitrum: 30110
+      ethereum: "0x0000000000000000000000000000000000000000000000000000000000007595", // ethereum: 30101
+    };
+    
+    const endpointId = endpointIds[destinationChain];
+    if (!endpointId) {
+      console.warn(`Unknown destination chain: ${destinationChain}, using default (base)`);
+      return "0x00000000000000000000000000000000000000000000000000000000000075e8";
+    }
+    
+    console.log(`Bridge wildcard for destination chain ${destinationChain}: ${endpointId}`);
+    return endpointId as `0x${string}`;
   };
 
   // Modify handleDeposit function
@@ -1398,8 +1425,8 @@ const DepositView: React.FC<DepositViewProps> = ({
 
           console.log("Preview Fee:", formatUnits(calculatedBridgeFee, 18));
 
-          // Get bridge wildcard
-          const bridgeWildCard = getBridgeWildCard(targetChain);
+          // Get bridge wildcard based on destination chain (where vault tokens will be received)
+          const bridgeWildCard = getBridgeWildCard();
 
           // Convert bridge fee to wei
           const bridgeFeeWei = calculatedBridgeFee;
@@ -1676,7 +1703,7 @@ const DepositView: React.FC<DepositViewProps> = ({
         chain,
       });
 
-      const balancePromises = assetOptions.map(async (asset) => {
+      const balancePromises = assetOptions.map(async (asset: TokenConfig) => {
         try {
           // Ensure addresses are properly checksummed
           const tokenContractAddress = getAddress(asset.contract);
@@ -2488,7 +2515,7 @@ const DepositView: React.FC<DepositViewProps> = ({
               </div>
 
               <div className="space-y-2">
-                {assetOptions.map((asset, idx) => (
+                {assetOptions.map((asset: TokenConfig, idx: number) => (
                   <button
                     key={asset.contract}
                     onClick={() => {
