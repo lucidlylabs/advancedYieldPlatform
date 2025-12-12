@@ -310,14 +310,16 @@ const getChainConfigs = (strategy: StrategyWithBalance | null): Record<string, a
   // ALWAYS check for syHLP FIRST - it's a special case
   const isSyHLP = (strategy as any).name === "syHLP" || (strategy as any).hyperEVM;
   
-  // For syHLP, ONLY return hyperEVM config, don't check other chains
+  // For syHLP, return both hyperEVM and katana configs
   if (isSyHLP) {
+    const configs: Record<string, any> = {};
     if ((strategy as any).hyperEVM) {
-      return {
-        hyperliquid: (strategy as any).hyperEVM,
-      };
+      configs.hyperliquid = (strategy as any).hyperEVM;
     }
-    return {};
+    if (strategy.katana) {
+      configs.katana = strategy.katana;
+    }
+    return configs;
   }
   
   const configs: Record<string, any> = {};
@@ -3216,9 +3218,13 @@ const PortfolioSubpage: React.FC = () => {
                         width={32}
                         height={32}
                       />
-                      <div>
-                        <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal">
+                      <div className="min-w-[140px]">
+                        <div className="text-[#EDF2F8]   text-[12px] font-normal leading-normal whitespace-nowrap">
                           {(strategy as any).displayName || (strategy as any).name || 
+                            (strategy.type === "stable" ? "Stable Yield " : "Incentive Maxi ") + strategy.asset}
+                        </div>
+                        <div className="text-[#9C9DA2]   text-[12px] font-normal leading-normal">
+                          {(strategy as any).name || 
                             (strategy.type === "stable" ? "sy" : "Incentive Maxi") + strategy.asset}
                         </div>
                         <div className="text-[#00D1A0]   text-[12px] font-normal">
