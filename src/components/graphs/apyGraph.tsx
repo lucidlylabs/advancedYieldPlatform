@@ -19,7 +19,7 @@ import { USD_STRATEGIES, BTC_STRATEGIES } from "../../config/env";
 
 interface BaseApyGraphProps {
   vaultAddress?: string;
-  strategyType?: "USD" | "BTC" | "ETH";
+  strategyType?: "USD" | "BTC" | "ETH" | "HLP";
 }
 
 export default function BaseApyGraph({ vaultAddress = "0x279CAD277447965AF3d24a78197aad1B02a2c589", strategyType = "USD" }: BaseApyGraphProps) {
@@ -33,6 +33,14 @@ export default function BaseApyGraph({ vaultAddress = "0x279CAD277447965AF3d24a7
         setLoading(true);
         
         // Check if APY endpoint is available for this strategy
+        // For syHLP, treat like syBTC (no data available)
+        if (strategyType === "HLP") {
+          console.log("syHLP APY data not available");
+          setData([]);
+          setLoading(false);
+          return;
+        }
+        
         const strategy = strategyType === "BTC" 
           ? BTC_STRATEGIES.PERPETUAL_DURATION.STABLE 
           : USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
@@ -222,13 +230,14 @@ export default function BaseApyGraph({ vaultAddress = "0x279CAD277447965AF3d24a7
     );
   }
 
-  // Show empty state for syBTC when no data
-  if (strategyType === "BTC" && data.length === 0) {
+  // Show empty state for syBTC and syHLP when no data
+  if ((strategyType === "BTC" || strategyType === "HLP") && data.length === 0) {
+    const strategyName = strategyType === "BTC" ? "syBTC" : "syHLP";
     return (
       <div className="pt-2 pl-6 pb-6 rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 mb-12 chart-container">
         <div className="w-full h-[300px] flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
-            <p className="text-gray-400 text-sm">APY data not available for syBTC</p>
+            <p className="text-gray-400 text-sm">APY data not available for {strategyName}</p>
           </div>
         </div>
       </div>

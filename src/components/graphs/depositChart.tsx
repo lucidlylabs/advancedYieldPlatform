@@ -39,12 +39,12 @@ type CumulativeDataItem = {
 
 async function fetchData(
   period: "daily" | "weekly" | "monthly",
-  strategyType: "USD" | "BTC" | "ETH" = "USD"
+  strategyType: "USD" | "BTC" | "ETH" | "HLP" = "USD"
 ): Promise<ChartDataItem[]> {
   try {
-    // For syBTC, if no endpoint is available, return empty data
-    if (strategyType === "BTC") {
-      console.log("syBTC deposit data not available");
+    // For syBTC and syHLP, if no endpoint is available, return empty data
+    if (strategyType === "BTC" || strategyType === "HLP") {
+      console.log(`sy${strategyType === "BTC" ? "BTC" : "HLP"} deposit data not available`);
       return [];
     }
 
@@ -101,7 +101,7 @@ async function fetchData(
 }
 
 interface DepositBarChartProps {
-  strategyType?: "USD" | "BTC" | "ETH";
+  strategyType?: "USD" | "BTC" | "ETH" | "HLP";
 }
 
 export default function TotalDepositsChart({ strategyType = "USD" }: DepositBarChartProps) {
@@ -203,13 +203,14 @@ export default function TotalDepositsChart({ strategyType = "USD" }: DepositBarC
     );
   }
 
-  // Show empty state for syBTC
-  if (strategyType === "BTC" && (data.length === 0 || cumulativeData.length === 0)) {
+  // Show empty state for syBTC and syHLP
+  if ((strategyType === "BTC" || strategyType === "HLP") && (data.length === 0 || cumulativeData.length === 0)) {
+    const strategyName = strategyType === "BTC" ? "syBTC" : "syHLP";
     return (
       <div className="pt-2 pl-6 pb-6 rounded-xl text-white w-full max-h-[600px] scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 mb-12 [&_svg]:outline-none [&_svg]:border-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-0">
         <div className="w-full h-[300px] flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
-            <p className="text-gray-400 text-sm">Deposit data not available for syBTC</p>
+            <p className="text-gray-400 text-sm">Deposit data not available for {strategyName}</p>
           </div>
         </div>
       </div>

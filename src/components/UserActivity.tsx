@@ -277,6 +277,8 @@ const UserActivity: React.FC = () => {
       ethereum: "https://etherscan.io/tx/",
       arbitrum: "https://arbiscan.io/tx/",
       katana: "https://explorer.katanarpc.com/tx/",
+      hyperliquid: "https://hyperevmscan.io/tx/",
+      hyperevm: "https://hyperevmscan.io/tx/",
       "chain-null": "https://basescan.org/tx/", // Default to base scan for chain-null
     };
     return baseUrls[network] + hash;

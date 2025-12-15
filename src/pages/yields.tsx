@@ -28,6 +28,8 @@ interface MarketItem {
   riskLevel?: string;
   network?: string;
   contractAddress?: string;
+  image?: string; // Strategy icon/image
+  strategyKey?: string; // Key to identify the strategy in config (e.g., "STABLE", "syHLP")
 }
 
 // Custom Asset Button Component
@@ -103,6 +105,8 @@ const MarketsSubpage: React.FC = () => {
   const [usdApy, setUsdApy] = useState<string>("Loading...");
   const [btcTvl, setBtcTvl] = useState<string>("Loading...");
   const [btcApy, setBtcApy] = useState<string>("Loading...");
+  // Store TVL for each strategy by key (e.g., "syHLP" -> "$5.00")
+  const [strategyTvls, setStrategyTvls] = useState<Record<string, string>>({});
   const [showColumnsDropdown, setShowColumnsDropdown] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState({
     availableYields: true,
@@ -201,44 +205,58 @@ const MarketsSubpage: React.FC = () => {
             BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress,
         },
       ],
-      USD: [
-        {
-          id: 5,
-          name: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.displayName,
-          ticker: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.name, // syUSD
-          type: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.type,
-          baseYield: usdApy,
-          incentives: (() => {
-            const incentives =
-              USD_STRATEGIES.PERPETUAL_DURATION.STABLE.incentives;
-            console.log("Raw incentives config:", incentives);
+      USD: (() => {
+        const usdStrategies: MarketItem[] = [];
+        let idCounter = 7; // Start at 7 to avoid conflict with BTC (id: 6) and ensure unique IDs
+        
+        // Iterate through all strategies in PERPETUAL_DURATION
+        Object.entries(USD_STRATEGIES.PERPETUAL_DURATION).forEach(([key, strategy]) => {
+          // Skip INCENTIVE as it's not a full strategy config
+          if (key === "INCENTIVE") return;
+          
+          // Include strategies that have name and displayName (even if empty, they should show)
+          if (!strategy || !strategy.name) return;
+          
+          usdStrategies.push({
+            id: idCounter++,
+            name: strategy.displayName || strategy.name || key,
+            ticker: strategy.name,
+            type: strategy.type || "usd",
+            baseYield: key === "STABLE" ? usdApy : (strategy.apy && strategy.apy.trim() !== "" ? strategy.apy : "---"),
+            incentives: (() => {
+              const incentives = strategy.incentives;
+              console.log(`Raw incentives config for ${key}:`, incentives);
 
-            if (
-              !incentives?.enabled ||
-              !incentives.points ||
-              incentives.points.length === 0
-            ) {
-              console.log("No incentives enabled or no points");
-              return [];
-            }
+              if (
+                !incentives?.enabled ||
+                !incentives.points ||
+                incentives.points.length === 0
+              ) {
+                console.log(`No incentives enabled or no points for ${key}`);
+                return [];
+              }
 
-            // Return objects with image, name, and link for tooltips and navigation
-            const incentiveData = incentives.points.map((point) => ({
-              image: point.image,
-              name: point.name,
-              link: point.link || "#", // Use link from config or fallback to "#"
-            }));
-            console.log("Incentive data:", incentiveData);
-            return incentiveData;
-          })(),
-          tvl: usdTvl,
-          description: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.description,
-          riskLevel: "Very Low",
-          network: USD_STRATEGIES.PERPETUAL_DURATION.STABLE.network,
-          contractAddress:
-            USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress,
-        },
-      ],
+              // Return objects with image, name, and link for tooltips and navigation
+              const incentiveData = incentives.points.map((point) => ({
+                image: point.image,
+                name: point.name,
+                link: point.link || "#", // Use link from config or fallback to "#"
+              }));
+              console.log(`Incentive data for ${key}:`, incentiveData);
+              return incentiveData;
+            })(),
+            tvl: key === "STABLE" ? usdTvl : (strategyTvls[key] || (strategy.tvl && strategy.tvl.trim() !== "" && !strategy.tvl.startsWith("http") ? strategy.tvl : "$0")),
+            description: strategy.description || "",
+            riskLevel: "Very Low",
+            network: strategy.network || "",
+            contractAddress: strategy.boringVaultAddress || "",
+            image: strategy.image || `/images/icons/${strategy.name.toLowerCase()}-stable.svg`, // Use strategy image from config
+            strategyKey: key, // Store the strategy key (STABLE, syHLP, etc.) to identify which config to use
+          });
+        });
+        
+        return usdStrategies;
+      })(),
     };
 
     // Fill the "ALL" category
@@ -249,7 +267,7 @@ const MarketsSubpage: React.FC = () => {
     ];
 
     setMarketData(newMarketData);
-  }, [usdApy, usdTvl, btcApy, btcTvl]);
+  }, [usdApy, usdTvl, btcApy, btcTvl, strategyTvls]);
 
   // Fetch TVL for USD strategy if it's a URL
   useEffect(() => {
@@ -288,6 +306,67 @@ const MarketsSubpage: React.FC = () => {
       // If no TVL URL is available, set to N/A
       setUsdTvl("N/A");
     }
+  }, []);
+
+  // Fetch TVL for all USD strategies (not just STABLE)
+  useEffect(() => {
+    const fetchStrategyTVLs = async () => {
+      const tvlPromises: Array<Promise<{ key: string; tvl: string }>> = [];
+      
+      Object.entries(USD_STRATEGIES.PERPETUAL_DURATION).forEach(([key, strategy]) => {
+        // Skip INCENTIVE and STABLE (STABLE is handled separately)
+        if (key === "INCENTIVE" || key === "STABLE") return;
+        
+        const tvlUrl = strategy.tvl;
+        if (typeof tvlUrl === "string" && tvlUrl.startsWith("http")) {
+          tvlPromises.push(
+            fetch(tvlUrl)
+              .then((res) => {
+                if (!res.ok) {
+                  throw new Error(`HTTP error! status: ${res.status}`);
+                }
+                return res.json();
+              })
+              .then((data) => {
+                let tvlValue = "$0";
+                if (typeof data.result === "number") {
+                  tvlValue = data.result.toLocaleString("en-US", {
+                    style: "currency",
+                    currency: "USD",
+                    maximumFractionDigits: 0,
+                    minimumFractionDigits: 0,
+                  });
+                } else if (typeof data.result === "string") {
+                  // Handle string numbers
+                  const numValue = parseFloat(data.result);
+                  if (!isNaN(numValue)) {
+                    tvlValue = numValue.toLocaleString("en-US", {
+                      style: "currency",
+                      currency: "USD",
+                      maximumFractionDigits: 0,
+                      minimumFractionDigits: 0,
+                    });
+                  }
+                }
+                return { key, tvl: tvlValue };
+              })
+              .catch((error) => {
+                console.error(`Error fetching TVL for ${key}:`, error);
+                return { key, tvl: "N/A" };
+              })
+          );
+        }
+      });
+      
+      const results = await Promise.all(tvlPromises);
+      const tvlMap: Record<string, string> = {};
+      results.forEach(({ key, tvl }) => {
+        tvlMap[key] = tvl;
+      });
+      setStrategyTvls(tvlMap);
+    };
+    
+    fetchStrategyTVLs();
   }, []);
 
   useEffect(() => {
@@ -501,6 +580,7 @@ const MarketsSubpage: React.FC = () => {
           baseApy: item.baseYield,
           contractAddress: item.contractAddress || "",
           network: item.network || "",
+          strategyKey: item.strategyKey || "",
           data: encodeURIComponent(JSON.stringify(sortedData)),
         },
       });
@@ -585,11 +665,14 @@ const MarketsSubpage: React.FC = () => {
             <DepositView
               selectedAsset={selectedItem?.type === "btc" ? "BTC" : "USD"}
               duration="PERPETUAL_DURATION"
-              strategy="stable"
+              strategy={selectedItem?.strategyKey === "syHLP" ? "syHLP" : selectedItem?.strategyKey === "STABLE" ? "stable" : "stable"}
+              strategyKey={selectedItem?.strategyKey || "STABLE"} // Pass the strategy key to identify which config to use
               apy={
                 selectedItem?.type === "btc"
                   ? btcApy === "Loading..." ? "N/A" : btcApy
-                  : usdApy === "Loading..." ? "N/A" : usdApy
+                  : selectedItem?.strategyKey === "STABLE" 
+                    ? (usdApy === "Loading..." ? "N/A" : usdApy)
+                    : (selectedItem?.baseYield || "---")
               }
               onBack={() => setShowDepositView(false)}
               onReset={() => setShowDepositView(false)}

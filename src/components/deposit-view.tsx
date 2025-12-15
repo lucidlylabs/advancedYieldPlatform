@@ -224,10 +224,11 @@ const VAULT_ABI = [
 interface DepositViewProps {
   selectedAsset: string;
   duration: DurationType;
-  strategy: "stable" | "incentive";
+  strategy: "stable" | "incentive" | "syHLP";
   apy: string;
   onBack: () => void;
   onReset: () => void;
+  strategyKey?: string; // Optional strategy key (e.g., "STABLE", "syHLP", "INCENTIVE")
 }
 
 const InfoIcon = () => (
@@ -279,13 +280,16 @@ const ExchangeRate: React.FC<ExchangeRateProps> = ({
 
         // Helper function to get chain config based on target chain
         const getChainConfig = (chainName: string) => {
-          switch (chainName) {
+          const normalizedChainName = chainName.toLowerCase();
+          switch (normalizedChainName) {
             case "arbitrum":
               return strategyConfig.arbitrum;
             case "ethereum":
               return strategyConfig.ethereum;
             case "katana":
               return strategyConfig.katana;
+            case "hyperevm":
+              return (strategyConfig as any).hyperEVM;
             case "base":
             default:
               return strategyConfig.base;
@@ -435,7 +439,7 @@ const ExchangeRate: React.FC<ExchangeRateProps> = ({
             Exchange rate
           </span>
           <Tooltip
-            content={`Current exchange rate between ${selectedAssetOption.name} and syUSD vault shares`}
+            content={`Current exchange rate between ${selectedAssetOption.name} and ${(strategyConfig as any)?.name || (strategyConfig as any)?.displayName || "syUSD"} vault shares`}
             side="bottom"
           >
             <div className="w-4 h-4 rounded-full flex items-center justify-center">
@@ -482,9 +486,9 @@ const ExchangeRate: React.FC<ExchangeRateProps> = ({
                   (strategyConfig as any).image || 
                   (selectedAssetOption?.name === "eBTC" || (strategyConfig as any).type === "btc"
                     ? "/images/icons/btc-stable.svg" 
-                    : "/images/icons/syUSD.svg")
+                    : (strategyConfig as any).image || "/images/icons/syUSD.svg")
                 }
-                alt={(strategyConfig as any).name || "syUSD"}
+                alt={(strategyConfig as any).name || (strategyConfig as any).displayName || "syUSD"}
                 width={20}
                 height={20}
                 className="object-contain"
@@ -501,6 +505,7 @@ const DepositView: React.FC<DepositViewProps> = ({
   selectedAsset,
   duration,
   strategy,
+  strategyKey,
   apy,
   onBack,
   onReset,
@@ -554,8 +559,23 @@ const DepositView: React.FC<DepositViewProps> = ({
   };
   const assetStrategies =
     strategyConfigs[selectedAsset as keyof typeof strategyConfigs];
+  
+  // Determine which strategy config to use
+  // If strategyKey is provided, use it directly (e.g., "STABLE", "syHLP")
+  // Otherwise, fall back to old logic (stable -> STABLE, incentive -> INCENTIVE)
+  let strategyConfigKey: string;
+  if (strategyKey) {
+    strategyConfigKey = strategyKey;
+  } else if (strategy === "stable") {
+    strategyConfigKey = "STABLE";
+  } else if (strategy === "syHLP") {
+    strategyConfigKey = "syHLP";
+  } else {
+    strategyConfigKey = "INCENTIVE";
+  }
+  
   const tempStrategyConfig = (assetStrategies as any)?.[duration]?.[
-    strategy === "stable" ? "STABLE" : "INCENTIVE"
+    strategyConfigKey
   ] as StrategyConfig;
   
   // Determine default chain based on strategy - BTC only has arbitrum
@@ -564,9 +584,12 @@ const DepositView: React.FC<DepositViewProps> = ({
       return "arbitrum";
     }
     // For USD, check which networks are available
+    // Priority: hyperEVM (for syHLP), then base, then others
+    if ((tempStrategyConfig as any)?.hyperEVM) return "hyperEVM";
     if (tempStrategyConfig?.base) return "base";
     if (tempStrategyConfig?.arbitrum) return "arbitrum";
     if (tempStrategyConfig?.ethereum) return "ethereum";
+    if (tempStrategyConfig?.katana) return "katana";
     return chain?.name.toLowerCase() || "base";
   };
   
@@ -632,6 +655,13 @@ const DepositView: React.FC<DepositViewProps> = ({
           image: strategyConfig.katana.image,
         });
       }
+      if ((strategyConfig as any).hyperEVM && (strategyConfig as any).hyperEVM.image) {
+        uniqueChains.set("hyperEVM", {
+          name: "HyperEVM",
+          network: "hyperEVM",
+          image: (strategyConfig as any).hyperEVM.image,
+        });
+      }
     }
 
     return Array.from(uniqueChains.values());
@@ -646,12 +676,15 @@ const DepositView: React.FC<DepositViewProps> = ({
       (targetChain === "arbitrum" && strategyConfig.arbitrum) ||
       (targetChain === "ethereum" && strategyConfig.ethereum) ||
       (targetChain === "katana" && strategyConfig.katana) ||
-      (targetChain === "base" && strategyConfig.base);
+      (targetChain === "base" && strategyConfig.base) ||
+      (targetChain === "hyperEVM" && (strategyConfig as any).hyperEVM);
     
     // If current chain is not valid, switch to a valid one
     if (!isValidChain) {
       if (selectedAsset === "BTC" && strategyConfig.arbitrum) {
         setTargetChain("arbitrum");
+      } else if ((strategyConfig as any).hyperEVM) {
+        setTargetChain("hyperEVM");
       } else if (strategyConfig.base) {
         setTargetChain("base");
       } else if (strategyConfig.arbitrum) {
@@ -662,6 +695,9 @@ const DepositView: React.FC<DepositViewProps> = ({
         setTargetChain("katana");
       }
     }
+
+    // Reset isMultiChain when targetChain changes - it will be properly calculated in handleDeposit
+    setIsMultiChain(false);
   }, [selectedAsset, strategyConfig, targetChain]);
 
   // Parse all available deposit assets from strategyConfig, filtered by targetChain
@@ -677,6 +713,8 @@ const DepositView: React.FC<DepositViewProps> = ({
         return strategyConfig.ethereum?.tokens || [];
       case "katana":
         return strategyConfig.katana?.tokens || [];
+      case "hyperEVM":
+        return (strategyConfig as any).hyperEVM?.tokens || [];
       case "base":
       default:
         return strategyConfig.base?.tokens || [];
@@ -976,12 +1014,39 @@ const DepositView: React.FC<DepositViewProps> = ({
     isPending: approveIsPending,
   } = useWriteContract();
 
-  // Check allowance against vault contract
+  // Get chain ID for the target chain based on strategy config
+  const targetChainId = useMemo(() => {
+    if (!strategyConfig) return undefined;
+    const normalizedChain = targetChain.toLowerCase();
+    let chainData;
+    switch (normalizedChain) {
+      case "arbitrum":
+        chainData = strategyConfig.arbitrum;
+        break;
+      case "ethereum":
+        chainData = strategyConfig.ethereum;
+        break;
+      case "katana":
+        chainData = strategyConfig.katana;
+        break;
+      case "hyperevm":
+        chainData = (strategyConfig as any).hyperEVM;
+        break;
+      case "base":
+      default:
+        chainData = strategyConfig.base;
+        break;
+    }
+    return chainData?.chainId;
+  }, [targetChain, strategyConfig]);
+
+  // Check allowance against the BoringVault contract (which actually pulls the tokens)
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
     address: tokenContractAddress as Address,
     abi: ERC20_ABI,
     functionName: "allowance",
     args: [address as Address, strategyConfig.boringVaultAddress as Address],
+    chainId: targetChainId,
   });
 
   console.log("Allowance check details:", {
@@ -1102,6 +1167,8 @@ const DepositView: React.FC<DepositViewProps> = ({
       // Only fetch balance after transaction completes (success or failure)
       // Don't reset approval state or form immediately
       fetchBalance();
+      // Also refresh asset balances for the popup
+      fetchAllAssetBalances();
     }
     // Keep form state until user manually resets
   }, [isWaitingForDeposit, transactionHash]);
@@ -1163,19 +1230,30 @@ const DepositView: React.FC<DepositViewProps> = ({
 
     setIsLoadingFee(true);
     try {
+      // For previewFee, we call the Teller contract on the SOURCE chain (where the deposit originates)
+      // to get the fee for bridging TO the destination chain
       const { rpcUrl, chain: clientChain } = getChainConfig(targetChain);
       const client = createPublicClient({
         transport: http(rpcUrl),
         chain: clientChain,
       });
 
-      // Get bridge wildcard based on target chain
-      const bridgeWildCard = getBridgeWildCard(targetChain);
+      // Get bridge wildcard for DESTINATION chain (where vault tokens will be received)
+      // This tells LayerZero which chain to bridge the tokens TO
+      const bridgeWildCard = getBridgeWildCard();
 
       // Convert amount to uint96 for previewFee
       const shareAmount = amount as unknown as bigint;
 
-      // Call previewFee function with exact parameters from your example
+      console.log("Previewing bridge fee:", {
+        sourceChain: targetChain,
+        destinationChain: strategyConfig.network,
+        bridgeWildCard,
+        amount: shareAmount.toString(),
+        contract: vaultContractAddress,
+      });
+
+      // Call previewFee function on the source chain's Teller contract
       const fee = await client.readContract({
         address: vaultContractAddress as Address,
         abi: VAULT_ABI,
@@ -1183,11 +1261,12 @@ const DepositView: React.FC<DepositViewProps> = ({
         args: [
           shareAmount, // shareAmount (uint96)
           address as Address, // to address
-          bridgeWildCard, // bridgeWildCard bytes
+          bridgeWildCard, // bridgeWildCard bytes - DESTINATION chain endpoint ID
           "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" as Address, // feeToken (ETH address)
         ],
       });
 
+      console.log("Bridge fee preview result:", fee.toString());
       return fee as bigint; // Return the fee directly
     } catch (error) {
       console.error("Error previewing bridge fee:", error);
@@ -1197,9 +1276,48 @@ const DepositView: React.FC<DepositViewProps> = ({
     }
   };
 
-  // Helper function to get bridge wildcard
-  const getBridgeWildCard = (chain: string): `0x${string}` => {
-    return "0x00000000000000000000000000000000000000000000000000000000000075e8";
+  // LayerZero endpoint ID mapping (in hex format, padded to 32 bytes)
+  const LAYER_ZERO_ENDPOINT_IDS: { [key: string]: string } = {
+    hyperevm: "0x000000000000000000000000000000000000000000000000000000000000769f", // hyperEVM: 30367
+    katana: "0x00000000000000000000000000000000000000000000000000000000000076a7", // katana: 30375
+    base: "0x00000000000000000000000000000000000000000000000000000000000075e8", // base: 30184
+    arbitrum: "0x000000000000000000000000000000000000000000000000000000000000759e", // arbitrum: 30110
+    ethereum: "0x0000000000000000000000000000000000000000000000000000000000007595", // ethereum: 30101
+  };
+
+  // Helper function to get bridge wildcard based on destination chain
+  // LayerZero endpoint IDs:
+  // - hyperEVM: 30367 (0x769f)
+  // - katana: 30375 (0x76a7)
+  // - base: 30184 (0x75e8)
+  // - arbitrum: 30110 (0x759e)
+  // - ethereum: 30101 (0x7595)
+  const getBridgeWildCard = (): `0x${string}` => {
+    // Get the destination chain (where vault tokens will be received)
+    const destinationChain = (strategyConfig.network || "").toLowerCase();
+    
+    const endpointId = LAYER_ZERO_ENDPOINT_IDS[destinationChain];
+    if (!endpointId) {
+      console.warn(`Unknown destination chain: ${destinationChain}, using default (base)`);
+      return "0x00000000000000000000000000000000000000000000000000000000000075e8";
+    }
+    
+    console.log(`Bridge wildcard for destination chain ${destinationChain}: ${endpointId}`);
+    return endpointId as `0x${string}`;
+  };
+
+  // Helper function to get bridge wildcard for source chain (used in previewFee)
+  const getBridgeWildCardForSourceChain = (sourceChain: string): `0x${string}` => {
+    const normalizedChain = sourceChain.toLowerCase();
+    
+    const endpointId = LAYER_ZERO_ENDPOINT_IDS[normalizedChain];
+    if (!endpointId) {
+      console.warn(`Unknown source chain: ${normalizedChain}, using default (base)`);
+      return "0x00000000000000000000000000000000000000000000000000000000000075e8";
+    }
+    
+    console.log(`Bridge wildcard for source chain ${normalizedChain}: ${endpointId}`);
+    return endpointId as `0x${string}`;
   };
 
   // Modify handleDeposit function
@@ -1297,7 +1415,7 @@ const DepositView: React.FC<DepositViewProps> = ({
         minimumMintLength: minimumMintIn6Decimals.toString().length,
       });
 
-      // First approve USDS for the boring vault
+      // Approve tokens for the BoringVault contract (which actually pulls the tokens)
       const boringVaultAddress = strategyConfig.boringVaultAddress;
       if (!boringVaultAddress) {
         throw new Error("Boring vault address not configured");
@@ -1317,7 +1435,7 @@ const DepositView: React.FC<DepositViewProps> = ({
         return;
       }
 
-      // Step 1: Approve USDS for boring vault if needed
+      // Step 1: Approve tokens for BoringVault contract if needed
       if (needsApproval && !isApproved && !approveIsPending) {
         console.log("Calling approve function...");
         try {
@@ -1365,8 +1483,8 @@ const DepositView: React.FC<DepositViewProps> = ({
 
           console.log("Preview Fee:", formatUnits(calculatedBridgeFee, 18));
 
-          // Get bridge wildcard
-          const bridgeWildCard = getBridgeWildCard(targetChain);
+          // Get bridge wildcard based on destination chain (where vault tokens will be received)
+          const bridgeWildCard = getBridgeWildCard();
 
           // Convert bridge fee to wei
           const bridgeFeeWei = calculatedBridgeFee;
@@ -1482,18 +1600,25 @@ const DepositView: React.FC<DepositViewProps> = ({
     }
   };
 
-  // Add effect to preview fee when amount changes
+  // Add effect to preview fee when amount changes (only for cross-chain deposits)
   useEffect(() => {
-    if (isMultiChain && amount) {
+    // Only preview fee if it's actually a cross-chain deposit
+    // Compare targetChain (source) with strategyConfig.network (destination)
+    const sourceChain = targetChain.toLowerCase();
+    const destinationChain = (strategyConfig?.network || "").toLowerCase();
+    const isActuallyMultiChain = sourceChain !== destinationChain;
+    
+    if (isActuallyMultiChain && amount && parseFloat(amount) > 0) {
       const amountInWei = parseUnits(amount, depositTokenDecimals || 18);
       previewBridgeFee(amountInWei);
     }
-  }, [amount, isMultiChain, targetChain]);
+  }, [amount, targetChain, strategyConfig?.network]);
 
   // Helper to get correct RPC and chain config for each chain
   const getChainConfig = (chainName: string) => {
     let chainData;
-    switch (chainName) {
+    const normalizedChainName = chainName.toLowerCase();
+    switch (normalizedChainName) {
       case "arbitrum":
         chainData = strategyConfig.arbitrum;
         break;
@@ -1502,6 +1627,9 @@ const DepositView: React.FC<DepositViewProps> = ({
         break;
       case "katana":
         chainData = strategyConfig.katana;
+        break;
+      case "hyperevm":
+        chainData = (strategyConfig as any).hyperEVM;
         break;
       case "base":
       default:
@@ -1549,6 +1677,8 @@ const DepositView: React.FC<DepositViewProps> = ({
         return `https://arbiscan.io/tx/${txHash}`;
       case "katana":
         return `https://explorer.katanarpc.com//tx/${txHash}`;
+      case "hyperevm":
+        return `https://hyperevmscan.io/tx/${txHash}`;
       case "base":
       default:
         return `https://basescan.org/tx/${txHash}`;
@@ -1637,7 +1767,7 @@ const DepositView: React.FC<DepositViewProps> = ({
         chain,
       });
 
-      const balancePromises = assetOptions.map(async (asset) => {
+      const balancePromises = assetOptions.map(async (asset: TokenConfig) => {
         try {
           // Ensure addresses are properly checksummed
           const tokenContractAddress = getAddress(asset.contract);
@@ -1987,7 +2117,9 @@ const DepositView: React.FC<DepositViewProps> = ({
                                 />
                               )}
                               <span className="capitalize text-[12px]">
-                                {targetChain}
+                                {getUniqueChainConfigs.find(
+                                  (c) => c.network === targetChain
+                                )?.name || targetChain}
                               </span>
                             </div>
                             <div className="w-[10px]"></div>
@@ -2112,7 +2244,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                         <label className="text-[#9C9DA2] font-inter text-[12px] whitespace-nowrap flex items-center gap-1">
                           Destination Network
                           <Tooltip
-                            content="This is the network where you'll receive your syUSD vault tokens"
+                            content={`This is the network where you'll receive your ${(strategyConfig as any)?.name || (strategyConfig as any)?.displayName || "syUSD"} vault tokens`}
                             side="bottom"
                           >
                             <div>
@@ -2137,6 +2269,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                                   (networkName === "base" && (strategyConfig as any).base?.image) ||
                                   (networkName === "ethereum" && (strategyConfig as any).ethereum?.image) ||
                                   (networkName === "katana" && (strategyConfig as any).katana?.image) ||
+                                  (networkName === "hyperEVM" && (strategyConfig as any).hyperEVM?.image) ||
                                   "";
                                 
                                 return (
@@ -2159,8 +2292,8 @@ const DepositView: React.FC<DepositViewProps> = ({
                     <div className="w-full max-w-[280px] h-[270px] bg-[#0D101C] border-l border-r border-b border-[rgba(255,255,255,0.05)] px-6 pt-6 pb-4 relative flex flex-col">
                       <div className="flex flex-col items-center text-center h-full">
                         <img
-                          src={`/images/icons/${selectedAsset.toLowerCase()}-${strategy}.svg`}
-                          alt={strategy}
+                          src={(strategyConfig as any)?.image || `/images/icons/${selectedAsset.toLowerCase()}-${strategy}.svg`}
+                          alt={(strategyConfig as any)?.name || strategy}
                           className="w-[56px] h-[56px] cursor-pointer hover:opacity-80 transition-all duration-200 mb-3"
                           onClick={onReset}
                         />
@@ -2168,9 +2301,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                           <div className="flex flex-col items-center">
                             <div className="flex items-center justify-center">
                               <div className="text-white font-semibold capitalize flex items-center gap-[10px]">
-                                {selectedAsset === "BTC" 
-                                  ? (strategyConfig as any).displayName || "Stable BTC"
-                                  : `${strategy} ${selectedAsset}`}
+                                {(strategyConfig as any)?.displayName || (strategyConfig as any)?.name || (selectedAsset === "BTC" ? "Stable BTC" : `${strategy} ${selectedAsset}`)}
                                 <button
                                   onClick={onBack}
                                   className="text-[#9C9DA2] hover:text-[#B88AF8] transition-all duration-200 cursor-pointer"
@@ -2241,7 +2372,9 @@ const DepositView: React.FC<DepositViewProps> = ({
                 {/* Button Section - Below the cards */}
                 <div className="w-full flex flex-col gap-4">
                   {/* Dynamic Connect/Deposit Button */}
-                  {targetChain !== strategyConfig.network.toLowerCase() && (
+                  {/* Check if targetChain matches the strategy's native network */}
+                  {targetChain !== strategyConfig.network.toLowerCase() && 
+                   targetChain.toLowerCase() !== strategyConfig.network.toLowerCase() && (
                     <div className="w-full mt-4 mb-2 p-4 rounded bg-[#2B2320] border border-[#B88AF8]/20 text-[#FFD580] text-sm">
                       <b>Note: </b>
                       In the Portfolio section, deposits from non-
@@ -2447,7 +2580,7 @@ const DepositView: React.FC<DepositViewProps> = ({
               </div>
 
               <div className="space-y-2">
-                {assetOptions.map((asset, idx) => (
+                {assetOptions.map((asset: TokenConfig, idx: number) => (
                   <button
                     key={asset.contract}
                     onClick={() => {

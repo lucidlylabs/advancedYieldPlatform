@@ -133,15 +133,44 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   // Determine which strategy we're viewing based on contract address
   const usdVaultAddress = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.toLowerCase();
   const btcVaultAddress = BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.toLowerCase();
+  const syHLPVaultAddress = USD_STRATEGIES.PERPETUAL_DURATION.syHLP.boringVaultAddress.toLowerCase();
   const currentVaultAddress = contractAddress?.toLowerCase() || usdVaultAddress;
   const isBtcStrategy = currentVaultAddress === btcVaultAddress;
+  const isSyHLPStrategy = currentVaultAddress === syHLPVaultAddress || name?.toLowerCase().includes("hlp");
   const strategy = isBtcStrategy 
     ? BTC_STRATEGIES.PERPETUAL_DURATION.STABLE 
+    : isSyHLPStrategy
+    ? USD_STRATEGIES.PERPETUAL_DURATION.syHLP
     : USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
-  const strategyIcon = isBtcStrategy ? "/images/icons/syBTC.svg" : "/images/icons/syUSD.svg";
+  // Use strategy's image property if available, otherwise fallback to default
+  const strategyIcon = (strategy as any).image || (isBtcStrategy 
+    ? "/images/icons/syBTC.svg" 
+    : isSyHLPStrategy 
+    ? "/images/icons/syHLP.svg"
+    : "/images/icons/syUSD.svg");
   const strategyDescription = isBtcStrategy 
     ? "syBTC is a synthetic BTC strategy that provides yield through various DeFi strategies"
+    : isSyHLPStrategy
+    ? "syHLP is a stable yield strategy for HLP tokens"
     : "syUSD is a synthetic USD stablecoin that provides yield through various DeFi strategies";
+
+  // Helper function to get explorer URL based on strategy network
+  const getExplorerUrl = (networkName: string): string => {
+    const network = (networkName || "").toLowerCase();
+    switch (network) {
+      case "hyperevm":
+        return "https://hyperevmscan.io";
+      case "arbitrum":
+        return "https://arbiscan.io";
+      case "ethereum":
+        return "https://etherscan.io";
+      case "katana":
+        return "https://explorer.katanarpc.com";
+      case "base":
+      default:
+        return "https://basescan.org";
+    }
+  };
 
   // Function to check balance for a specific network
   const checkNetworkBalance = async (
@@ -221,6 +250,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
       // Determine which strategy we're viewing based on contract address
       const usdVaultAddress = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.toLowerCase();
       const btcVaultAddress = BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.toLowerCase();
+      const syHLPVaultAddress = USD_STRATEGIES.PERPETUAL_DURATION.syHLP.boringVaultAddress.toLowerCase();
       const currentVaultAddress = contractAddress?.toLowerCase() || usdVaultAddress;
 
       let strategy;
@@ -229,6 +259,9 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
       if (currentVaultAddress === btcVaultAddress) {
         strategy = BTC_STRATEGIES.PERPETUAL_DURATION.STABLE;
         strategyName = "syBTC";
+      } else if (currentVaultAddress === syHLPVaultAddress || name?.toLowerCase().includes("hlp")) {
+        strategy = USD_STRATEGIES.PERPETUAL_DURATION.syHLP;
+        strategyName = "syHLP";
       } else {
         strategy = USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
         strategyName = "syUSD";
@@ -269,6 +302,23 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
           networks.push({
             config: usdStrategy.katana,
             address: usdStrategy.boringVaultAddress,
+            name: "Katana",
+          });
+        }
+      } else if (strategyName === "syHLP") {
+        // syHLP vault exists on hyperEVM and katana
+        const syHLPStrategy = strategy as typeof USD_STRATEGIES.PERPETUAL_DURATION.syHLP;
+        if ((syHLPStrategy as any).hyperEVM) {
+          networks.push({
+            config: (syHLPStrategy as any).hyperEVM,
+            address: syHLPStrategy.boringVaultAddress,
+            name: "HyperEVM",
+          });
+        }
+        if (syHLPStrategy.katana) {
+          networks.push({
+            config: syHLPStrategy.katana,
+            address: syHLPStrategy.boringVaultAddress,
             name: "Katana",
           });
         }
@@ -443,13 +493,13 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
       {activeDepositTab === "deposits" && (
         <div className="h-[800px] overflow-y-auto pb-2">
-          <DepositBarChart strategyType={isBtcStrategy ? "BTC" : "USD"} />
+          <DepositBarChart strategyType={isBtcStrategy ? "BTC" : isSyHLPStrategy ? "HLP" : "USD"} />
         </div>
       )}
 
       {activeDepositTab === "allocation" && (
         <div className="overflow-y-auto pb-2">
-          <AllocationChart strategyType={isBtcStrategy ? "BTC" : "USD"} />
+          <AllocationChart strategyType={isBtcStrategy ? "BTC" : isSyHLPStrategy ? "HLP" : "USD"} />
         </div>
       )}
     </div>
@@ -495,7 +545,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
       {activeBaseApyTab === "allocation" && (
         <div className="h-[800px] overflow-y-auto pb-2">
-          <AllocationReturnsChart strategyType={isBtcStrategy ? "BTC" : "USD"} />
+          <AllocationReturnsChart strategyType={isBtcStrategy ? "BTC" : isSyHLPStrategy ? "HLP" : "USD"} />
         </div>
       )}
     </div>
@@ -559,6 +609,20 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                     height={7.5}
                   />
                 </a>
+                {/* Stablewatch link - only for syUSD */}
+                {!isBtcStrategy && !isSyHLPStrategy && (
+                  <>
+                    <span className="text-[#9C9DA2] text-[12px] mx-1">|</span>
+                    <a
+                      href="https://www.stablewatch.io/analytics/assets/syUSD-Lucidly"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#9C9DA2] text-[12px] hover:text-white transition-colors"
+                    >
+                      Stablewatch
+                    </a>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -573,7 +637,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                   <div className="w-4 h-4 rounded-full overflow-hidden flex items-center justify-center">
                     <Image
                       src={strategyIcon}
-                      alt={isBtcStrategy ? "syBTC" : "syUSD"}
+                      alt={isBtcStrategy ? "syBTC" : isSyHLPStrategy ? "syHLP" : "syUSD"}
                       width={16}
                       height={16}
                       className="object-contain"
@@ -643,7 +707,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                   )}`
                 : "N/A"}
               <a
-                href={`https://${isBtcStrategy ? 'arbiscan.io' : 'basescan.org'}/address/${contractAddress || strategy.boringVaultAddress}`}
+                href={`${getExplorerUrl(strategy.network)}/address/${contractAddress || strategy.boringVaultAddress}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[#9C9DA2] hover:text-white transition-colors"
@@ -660,6 +724,11 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
               {(
                 isBtcStrategy
                   ? [(strategy as typeof BTC_STRATEGIES.PERPETUAL_DURATION.STABLE).arbitrum].filter(Boolean)
+                  : isSyHLPStrategy
+                  ? [
+                      (strategy as typeof USD_STRATEGIES.PERPETUAL_DURATION.syHLP as any).hyperEVM,
+                      (strategy as typeof USD_STRATEGIES.PERPETUAL_DURATION.syHLP).katana,
+                    ].filter(Boolean)
                   : [
                       (strategy as typeof USD_STRATEGIES.PERPETUAL_DURATION.STABLE).base,
                       (strategy as typeof USD_STRATEGIES.PERPETUAL_DURATION.STABLE).ethereum,
@@ -680,10 +749,11 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                       )}
                     >
                       <Image
-                        src={networkConfig.image}
+                        src={networkConfig.image || "/images/icons/default_assest.svg"}
                         alt={networkConfig.chainObject.name}
                         width={24}
                         height={24}
+                        className="rounded-full"
                       />
                     </div>
                   </Tooltip>

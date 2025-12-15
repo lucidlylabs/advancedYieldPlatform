@@ -192,14 +192,92 @@ export const USD_STRATEGIES = {
       },
 
       description: "Perpetual syUSD strategy on base network",
-      apy: "https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/base-apy/today-1d",
-      cap_limit: "1,000,000",
-      filled_cap: "800,000",
+      apy: "https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/base-apy/today-7d-ma",
+      cap_limit: "",
+      filled_cap: "",
       show_cap: true,
       tvl: "https://api.lucidly.finance/services/aum_data?vaultName=syUSD",
       withdraw_request:
         "https://api.lucidly.finance/services/queueData?vaultAddress=0x279CAD277447965AF3d24a78197aad1B02a2c589&userAddress=",
       rpc: "https://base.llamarpc.com",
+    },
+    syHLP: {
+      name: "syHLP",
+      displayName: "Stable Yield HLP",
+      type: "usd",
+      network: "HyperEVM",
+      contract: "0xabbA9E382f9b14441E60B9E68559e3a22762dFb6",
+      boringVaultAddress: "0x592B45AeaeaaA75D58FD097a7254bA3F56125904",
+      solverAddress: "0x9B299494Cd9bb88ecdFeA2a43C4b91391fB02275",
+      shareAddress: "0x592B45AeaeaaA75D58FD097a7254bA3F56125904",
+      shareAddress_token_decimal: 6,
+      rateProvider: "0x98C0B9042C6142F3cBc5bed58a7BF412752737b5",
+      image: "/images/icons/syHLP.svg",
+
+      hyperEVM: {
+        image: "/images/networks/hyperEVM.svg",
+        rpc: "https://rpc.hypurrscan.io",
+        chainId: 999,
+        chainObject: {
+          id: 999,
+          name: "HyperEVM",
+          network: "hyperEVM",
+          nativeCurrency: { decimals: 18, name: "Ether", symbol: "ETH" },
+          rpcUrls: {
+            default: { http: ["https://rpc.hypurrscan.io", "https://hyperliquid.drpc.org"] },
+            public: { http: ["https://rpc.hypurrscan.io", "https://hyperliquid.drpc.org"] },
+          },
+          blockExplorers: {
+            default: { name: "HyperEVMScan", url: "https://hyperevmscan.io" },
+          },
+        },
+        tokens: [
+          {
+            name: "USDT0",
+            contract: "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb",
+            decimal: 6,
+            image: "/images/icons/usdt0.png",
+            isWithdrawable: true,
+          },
+        ],
+      },
+      katana: {
+        image: "/images/logo/katana.svg",
+        rpc: "https://rpc.katana.network",
+        chainId: 747474,
+        chainObject: {
+          id: 747474,
+          name: "Katana",
+          network: "katana",
+          nativeCurrency: { decimals: 18, name: "ETH", symbol: "ETH" },
+          rpcUrls: {
+            default: { http: ["https://rpc.katana.network"] },
+            public: { http: ["https://rpc.katana.network"] },
+          },
+        },
+        tokens: [
+          {
+            name: "vbUSDC",
+            contract: "0x203A662b0BD271A6ed5a60EdFbd04bFce608FD36", // TODO: Replace with real address
+            decimal: 6,
+            image: "/images/icons/usdc.svg",
+          },
+        ],
+      },
+
+      incentives: {
+        enabled: false,
+        points: [],
+      },
+
+      description: "",
+      apy: "",
+      cap_limit: "",
+      filled_cap: "",
+      show_cap: false,
+      tvl: "https://api.lucidly.finance/services/aum_data?vaultName=syHLP",
+      withdraw_request: "",
+      rpc: "",
     },
     INCENTIVE: {
       network: "",
@@ -215,7 +293,76 @@ export const USD_STRATEGIES = {
   },
 };
 
-export const ETH_STRATEGIES = {};
+export const ETH_STRATEGIES = {
+  PERPETUAL_DURATION: {
+    STABLE: {
+      name: "syETH",
+      displayName: "Stable Yield ETH",
+      type: "eth",
+      network: "Base",
+      contract: "", // TODO: Add contract address
+      boringVaultAddress: "", // TODO: Add vault address
+      solverAddress: "", // TODO: Add solver address
+      shareAddress: "", // TODO: Add share address
+      shareAddress_token_decimal: 18,
+      rateProvider: "", // TODO: Add rate provider address
+      image: "/images/icons/syETH.svg",
+
+      // Base Network Configuration
+      base: {
+        image: "/images/logo/base.svg",
+        rpc: "https://base.llamarpc.com",
+        chainId: 8453,
+        chainObject: {
+          id: 8453,
+          name: "Base",
+          network: "base",
+          nativeCurrency: { decimals: 18, name: "Ethereum", symbol: "ETH" },
+          rpcUrls: {
+            default: { http: ["https://base.llamarpc.com"] },
+            public: { http: ["https://base.llamarpc.com"] },
+          },
+        },
+        tokens: [
+          {
+            name: "WETH",
+            contract: "", // TODO: Add WETH contract address
+            decimal: 18,
+            image: "/images/icons/weth.svg",
+            isWithdrawable: true,
+          },
+        ],
+      },
+
+      // No incentives for syETH (can be configured later)
+      incentives: {
+        enabled: false,
+        points: [],
+      },
+
+      description: "Perpetual syETH strategy on Base network",
+      apy: "", // TODO: Add APY endpoint
+      cap_limit: "0",
+      filled_cap: "0",
+      show_cap: false,
+      tvl: "https://api.lucidly.finance/services/aum_data?vaultName=syETH",
+      ethPrice: "https://api.lucidly.finance/services/currency_rates?assetName=ETH",
+      withdraw_request: "", // TODO: Add withdraw request endpoint
+      rpc: "https://base.llamarpc.com",
+    },
+    INCENTIVE: {
+      network: "",
+      comingSoon: true,
+      contract: "",
+      deposit_token: "",
+      deposit_token_contract: "",
+      tvl: "",
+      rpc: "",
+      description: "",
+      apy: "",
+    },
+  },
+};
 
 export const BTC_STRATEGIES = {
   PERPETUAL_DURATION: {
