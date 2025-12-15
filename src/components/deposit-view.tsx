@@ -695,6 +695,9 @@ const DepositView: React.FC<DepositViewProps> = ({
         setTargetChain("katana");
       }
     }
+
+    // Reset isMultiChain when targetChain changes - it will be properly calculated in handleDeposit
+    setIsMultiChain(false);
   }, [selectedAsset, strategyConfig, targetChain]);
 
   // Parse all available deposit assets from strategyConfig, filtered by targetChain
@@ -1011,12 +1014,39 @@ const DepositView: React.FC<DepositViewProps> = ({
     isPending: approveIsPending,
   } = useWriteContract();
 
-  // Check allowance against vault contract
+  // Get chain ID for the target chain based on strategy config
+  const targetChainId = useMemo(() => {
+    if (!strategyConfig) return undefined;
+    const normalizedChain = targetChain.toLowerCase();
+    let chainData;
+    switch (normalizedChain) {
+      case "arbitrum":
+        chainData = strategyConfig.arbitrum;
+        break;
+      case "ethereum":
+        chainData = strategyConfig.ethereum;
+        break;
+      case "katana":
+        chainData = strategyConfig.katana;
+        break;
+      case "hyperevm":
+        chainData = (strategyConfig as any).hyperEVM;
+        break;
+      case "base":
+      default:
+        chainData = strategyConfig.base;
+        break;
+    }
+    return chainData?.chainId;
+  }, [targetChain, strategyConfig]);
+
+  // Check allowance against the BoringVault contract (which actually pulls the tokens)
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
     address: tokenContractAddress as Address,
     abi: ERC20_ABI,
     functionName: "allowance",
     args: [address as Address, strategyConfig.boringVaultAddress as Address],
+    chainId: targetChainId,
   });
 
   console.log("Allowance check details:", {
@@ -1137,6 +1167,8 @@ const DepositView: React.FC<DepositViewProps> = ({
       // Only fetch balance after transaction completes (success or failure)
       // Don't reset approval state or form immediately
       fetchBalance();
+      // Also refresh asset balances for the popup
+      fetchAllAssetBalances();
     }
     // Keep form state until user manually resets
   }, [isWaitingForDeposit, transactionHash]);
@@ -1198,19 +1230,30 @@ const DepositView: React.FC<DepositViewProps> = ({
 
     setIsLoadingFee(true);
     try {
+      // For previewFee, we call the Teller contract on the SOURCE chain (where the deposit originates)
+      // to get the fee for bridging TO the destination chain
       const { rpcUrl, chain: clientChain } = getChainConfig(targetChain);
       const client = createPublicClient({
         transport: http(rpcUrl),
         chain: clientChain,
       });
 
-      // Get bridge wildcard based on destination chain (where vault tokens will be received)
+      // Get bridge wildcard for DESTINATION chain (where vault tokens will be received)
+      // This tells LayerZero which chain to bridge the tokens TO
       const bridgeWildCard = getBridgeWildCard();
 
       // Convert amount to uint96 for previewFee
       const shareAmount = amount as unknown as bigint;
 
-      // Call previewFee function with exact parameters from your example
+      console.log("Previewing bridge fee:", {
+        sourceChain: targetChain,
+        destinationChain: strategyConfig.network,
+        bridgeWildCard,
+        amount: shareAmount.toString(),
+        contract: vaultContractAddress,
+      });
+
+      // Call previewFee function on the source chain's Teller contract
       const fee = await client.readContract({
         address: vaultContractAddress as Address,
         abi: VAULT_ABI,
@@ -1218,11 +1261,12 @@ const DepositView: React.FC<DepositViewProps> = ({
         args: [
           shareAmount, // shareAmount (uint96)
           address as Address, // to address
-          bridgeWildCard, // bridgeWildCard bytes
+          bridgeWildCard, // bridgeWildCard bytes - DESTINATION chain endpoint ID
           "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" as Address, // feeToken (ETH address)
         ],
       });
 
+      console.log("Bridge fee preview result:", fee.toString());
       return fee as bigint; // Return the fee directly
     } catch (error) {
       console.error("Error previewing bridge fee:", error);
@@ -1230,6 +1274,15 @@ const DepositView: React.FC<DepositViewProps> = ({
     } finally {
       setIsLoadingFee(false);
     }
+  };
+
+  // LayerZero endpoint ID mapping (in hex format, padded to 32 bytes)
+  const LAYER_ZERO_ENDPOINT_IDS: { [key: string]: string } = {
+    hyperevm: "0x000000000000000000000000000000000000000000000000000000000000769f", // hyperEVM: 30367
+    katana: "0x00000000000000000000000000000000000000000000000000000000000076a7", // katana: 30375
+    base: "0x00000000000000000000000000000000000000000000000000000000000075e8", // base: 30184
+    arbitrum: "0x000000000000000000000000000000000000000000000000000000000000759e", // arbitrum: 30110
+    ethereum: "0x0000000000000000000000000000000000000000000000000000000000007595", // ethereum: 30101
   };
 
   // Helper function to get bridge wildcard based on destination chain
@@ -1243,23 +1296,27 @@ const DepositView: React.FC<DepositViewProps> = ({
     // Get the destination chain (where vault tokens will be received)
     const destinationChain = (strategyConfig.network || "").toLowerCase();
     
-    // LayerZero endpoint ID mapping (in hex format, padded to 32 bytes)
-    const endpointIds: { [key: string]: string } = {
-      hyperliquid: "0x000000000000000000000000000000000000000000000000000000000000769f", // hyperEVM: 30367
-      hyperevm: "0x000000000000000000000000000000000000000000000000000000000000769f", // hyperEVM: 30367
-      katana: "0x00000000000000000000000000000000000000000000000000000000000076a7", // katana: 30375
-      base: "0x00000000000000000000000000000000000000000000000000000000000075e8", // base: 30184
-      arbitrum: "0x000000000000000000000000000000000000000000000000000000000000759e", // arbitrum: 30110
-      ethereum: "0x0000000000000000000000000000000000000000000000000000000000007595", // ethereum: 30101
-    };
-    
-    const endpointId = endpointIds[destinationChain];
+    const endpointId = LAYER_ZERO_ENDPOINT_IDS[destinationChain];
     if (!endpointId) {
       console.warn(`Unknown destination chain: ${destinationChain}, using default (base)`);
       return "0x00000000000000000000000000000000000000000000000000000000000075e8";
     }
     
     console.log(`Bridge wildcard for destination chain ${destinationChain}: ${endpointId}`);
+    return endpointId as `0x${string}`;
+  };
+
+  // Helper function to get bridge wildcard for source chain (used in previewFee)
+  const getBridgeWildCardForSourceChain = (sourceChain: string): `0x${string}` => {
+    const normalizedChain = sourceChain.toLowerCase();
+    
+    const endpointId = LAYER_ZERO_ENDPOINT_IDS[normalizedChain];
+    if (!endpointId) {
+      console.warn(`Unknown source chain: ${normalizedChain}, using default (base)`);
+      return "0x00000000000000000000000000000000000000000000000000000000000075e8";
+    }
+    
+    console.log(`Bridge wildcard for source chain ${normalizedChain}: ${endpointId}`);
     return endpointId as `0x${string}`;
   };
 
@@ -1358,7 +1415,7 @@ const DepositView: React.FC<DepositViewProps> = ({
         minimumMintLength: minimumMintIn6Decimals.toString().length,
       });
 
-      // First approve USDS for the boring vault
+      // Approve tokens for the BoringVault contract (which actually pulls the tokens)
       const boringVaultAddress = strategyConfig.boringVaultAddress;
       if (!boringVaultAddress) {
         throw new Error("Boring vault address not configured");
@@ -1378,7 +1435,7 @@ const DepositView: React.FC<DepositViewProps> = ({
         return;
       }
 
-      // Step 1: Approve USDS for boring vault if needed
+      // Step 1: Approve tokens for BoringVault contract if needed
       if (needsApproval && !isApproved && !approveIsPending) {
         console.log("Calling approve function...");
         try {
@@ -1543,13 +1600,19 @@ const DepositView: React.FC<DepositViewProps> = ({
     }
   };
 
-  // Add effect to preview fee when amount changes
+  // Add effect to preview fee when amount changes (only for cross-chain deposits)
   useEffect(() => {
-    if (isMultiChain && amount) {
+    // Only preview fee if it's actually a cross-chain deposit
+    // Compare targetChain (source) with strategyConfig.network (destination)
+    const sourceChain = targetChain.toLowerCase();
+    const destinationChain = (strategyConfig?.network || "").toLowerCase();
+    const isActuallyMultiChain = sourceChain !== destinationChain;
+    
+    if (isActuallyMultiChain && amount && parseFloat(amount) > 0) {
       const amountInWei = parseUnits(amount, depositTokenDecimals || 18);
       previewBridgeFee(amountInWei);
     }
-  }, [amount, isMultiChain, targetChain]);
+  }, [amount, targetChain, strategyConfig?.network]);
 
   // Helper to get correct RPC and chain config for each chain
   const getChainConfig = (chainName: string) => {
