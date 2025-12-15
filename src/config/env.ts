@@ -15,7 +15,7 @@ export const USD_STRATEGIES = {
 
       base: {
         image: "/images/logo/base.svg",
-        rpc: "https://base.llamarpc.com",
+        rpc: "https://mainnet.base.org",
         chainId: 8453,
         chainObject: {
           id: 8453,
@@ -23,8 +23,8 @@ export const USD_STRATEGIES = {
           network: "base",
           nativeCurrency: { decimals: 18, name: "Ethereum", symbol: "ETH" },
           rpcUrls: {
-            default: { http: ["https://base.llamarpc.com"] },
-            public: { http: ["https://base.llamarpc.com"] },
+            default: { http: ["https://mainnet.base.org", "https://base.llamarpc.com", "https://base-rpc.publicnode.com"] },
+            public: { http: ["https://mainnet.base.org", "https://base.llamarpc.com", "https://base-rpc.publicnode.com"] },
           },
         },
         tokens: [
