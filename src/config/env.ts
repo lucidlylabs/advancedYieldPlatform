@@ -264,29 +264,6 @@ export const USD_STRATEGIES = {
           },
         ],
       },
-      arbitrum: {
-        image: "/images/logo/arb.svg",
-        rpc: "https://arb1.arbitrum.io/rpc",
-        chainId: 42161,
-        chainObject: {
-          id: 42161,
-          name: "Arbitrum",
-          network: "arbitrum",
-          nativeCurrency: { decimals: 18, name: "Ether", symbol: "ETH" },
-          rpcUrls: {
-            default: { http: ["https://arb1.arbitrum.io/rpc"] },
-            public: { http: ["https://arb1.arbitrum.io/rpc"] },
-          },
-        },
-        tokens: [
-          {
-            name: "USDC",
-            contract: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
-            decimal: 6,
-            image: "/images/icons/usdc.svg",
-          },
-        ],
-      },
 
       incentives: {
         enabled: false,
