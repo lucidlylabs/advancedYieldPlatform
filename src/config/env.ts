@@ -193,8 +193,8 @@ export const USD_STRATEGIES = {
 
       description: "Perpetual syUSD strategy on base network",
       apy: "https://j3zbikckse.execute-api.ap-south-1.amazonaws.com/prod/api/base-apy/today-7d-ma",
-      cap_limit: "1,000,000",
-      filled_cap: "800,000",
+      cap_limit: "",
+      filled_cap: "",
       show_cap: true,
       tvl: "https://api.lucidly.finance/services/aum_data?vaultName=syUSD",
       withdraw_request:
