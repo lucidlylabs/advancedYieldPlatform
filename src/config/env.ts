@@ -205,7 +205,7 @@ export const USD_STRATEGIES = {
       name: "syHLP",
       displayName: "Stable Yield HLP",
       type: "usd",
-      network: "hyperliquid",
+      network: "HyperEVM",
       contract: "0xabbA9E382f9b14441E60B9E68559e3a22762dFb6",
       boringVaultAddress: "0x592B45AeaeaaA75D58FD097a7254bA3F56125904",
       solverAddress: "0x9B299494Cd9bb88ecdFeA2a43C4b91391fB02275",
@@ -220,7 +220,7 @@ export const USD_STRATEGIES = {
         chainId: 999,
         chainObject: {
           id: 999,
-          name: "HyperLiquid",
+          name: "HyperEVM",
           network: "hyperliquid",
           nativeCurrency: { decimals: 18, name: "Ether", symbol: "ETH" },
           rpcUrls: {

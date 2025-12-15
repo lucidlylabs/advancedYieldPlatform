@@ -2218,7 +2218,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                                 );
                               })()}
                               <span className="capitalize text-[12px]">
-                                {strategyConfig.network}
+                                {strategyConfig.network?.toLowerCase() === "hyperliquid" ? "HyperEVM" : strategyConfig.network}
                               </span>
                             </div>
                           </div>

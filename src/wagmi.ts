@@ -52,10 +52,10 @@ export const katana = {
   iconUrl: "/images/logo/katana.svg",
 } as const as any; // <-- Add this cast
 
-// HyperLiquid (HyperEVM) custom chain definition
+// HyperEVM custom chain definition
 export const hyperliquid = {
   id: 999,
-  name: "HyperLiquid",
+  name: "HyperEVM",
   nativeCurrency: {
     decimals: 18,
     name: "Ether",

@@ -472,7 +472,7 @@ const PortfolioSubpage: React.FC = () => {
       
       if (isSyHLP) {
         console.log("🔵 useEffect: syHLP detected - setting targetChain to hyperliquid");
-        setTargetChain("hyperliquid"); // syHLP is only on HyperLiquid - NEVER use Base
+        setTargetChain("hyperliquid"); // syHLP is only on HyperEVM - NEVER use Base
       } else if (selectedStrategy.asset === "BTC") {
         setTargetChain("arbitrum");
       } else if (selectedStrategy.asset === "USD") {
@@ -674,9 +674,9 @@ const PortfolioSubpage: React.FC = () => {
       let quoteTokenContract: string;
       let quoteTokenDecimals: number;
       
-      // Check if it's syHLP - it uses USDT0 on HyperLiquid, not USDC on Base
+      // Check if it's syHLP - it uses USDT0 on HyperEVM, not USDC on Base
       if ((strategy as any).name === "syHLP" || (strategy as any).hyperEVM) {
-        // syHLP uses USDT0 on HyperLiquid
+        // syHLP uses USDT0 on HyperEVM
         const hyperEVMConfig = (strategy as any).hyperEVM;
         if (hyperEVMConfig?.tokens && hyperEVMConfig.tokens.length > 0) {
           // Get the first withdrawable token (USDT0)
@@ -724,7 +724,7 @@ const PortfolioSubpage: React.FC = () => {
         // syHLP is on HyperEVM
         rpcUrl = ((strategy as any).hyperEVM as any)?.rpc || "https://rpc.hypurrscan.io";
         chainId = 999;
-        chainName = "HyperLiquid";
+        chainName = "HyperEVM";
       } else {
         // syUSD is on Base (default)
         rpcUrl = (strategy.base as any)?.rpc || "https://base.llamarpc.com";
@@ -738,7 +738,7 @@ const PortfolioSubpage: React.FC = () => {
         ...(strategy.asset === "BTC" 
           ? ["https://arb1.arbitrum.io/rpc"]
           : (strategy as any).name === "syHLP" || (strategy as any).hyperEVM
-          ? ["https://hyperliquid.drpc.org"] // HyperLiquid fallback
+          ? ["https://hyperliquid.drpc.org"] // HyperEVM fallback
           : [
               "https://base.llamarpc.com",
               "https://base.blockpi.network/v1/rpc/public",
@@ -758,8 +758,8 @@ const PortfolioSubpage: React.FC = () => {
           if ((strategy as any).name === "syHLP" || (strategy as any).hyperEVM) {
             chainObject = ((strategy as any).hyperEVM as any)?.chainObject || {
               id: 999,
-              name: "HyperLiquid",
-              network: "hyperliquid",
+          name: "HyperEVM",
+          network: "hyperliquid",
               nativeCurrency: { decimals: 18, name: "Ether", symbol: "ETH" },
               rpcUrls: {
                 default: { http: [rpc] },
@@ -1608,7 +1608,7 @@ const PortfolioSubpage: React.FC = () => {
           if (switchError.code === 4001) {
             setErrorMessage("Chain switch cancelled by user.");
           } else {
-            const chainName = targetChain === "hyperliquid" ? "HyperLiquid" : targetChain === "arbitrum" ? "Arbitrum" : targetChain === "ethereum" ? "Ethereum" : "Base";
+            const chainName = targetChain === "hyperliquid" ? "HyperEVM" : targetChain === "arbitrum" ? "Arbitrum" : targetChain === "ethereum" ? "Ethereum" : "Base";
             setErrorMessage(`Please switch to ${chainName} network (Chain ID: ${targetChainId}) in your wallet manually and try again.`);
           }
           setIsApproving(false);
@@ -1622,7 +1622,7 @@ const PortfolioSubpage: React.FC = () => {
         transport: http(rpcUrl),
         chain: chainObject || {
           id: targetChainId,
-          name: targetChain === "hyperliquid" ? "HyperLiquid" : targetChain === "arbitrum" ? "Arbitrum One" : targetChain === "ethereum" ? "Ethereum" : "Base",
+          name: targetChain === "hyperliquid" ? "HyperEVM" : targetChain === "arbitrum" ? "Arbitrum One" : targetChain === "ethereum" ? "Ethereum" : "Base",
           network: targetChain === "hyperliquid" ? "hyperliquid" : targetChain,
           nativeCurrency: {
             decimals: 18,
@@ -1739,7 +1739,7 @@ const PortfolioSubpage: React.FC = () => {
           if (switchError.code === 4001) {
             setErrorMessage("Chain switch cancelled by user.");
           } else {
-            const chainName = targetChain === "hyperliquid" ? "HyperLiquid" : targetChain === "arbitrum" ? "Arbitrum" : targetChain === "ethereum" ? "Ethereum" : "Base";
+            const chainName = targetChain === "hyperliquid" ? "HyperEVM" : targetChain === "arbitrum" ? "Arbitrum" : targetChain === "ethereum" ? "Ethereum" : "Base";
             setErrorMessage(`Please switch to ${chainName} network (Chain ID: ${targetChainId}) in your wallet manually and try again.`);
           }
           setIsWithdrawing(false);
@@ -1753,7 +1753,7 @@ const PortfolioSubpage: React.FC = () => {
         transport: http(rpcUrl),
         chain: chainObject || {
           id: targetChainId,
-          name: targetChain === "hyperliquid" ? "HyperLiquid" : targetChain === "arbitrum" ? "Arbitrum One" : targetChain === "ethereum" ? "Ethereum" : "Base",
+          name: targetChain === "hyperliquid" ? "HyperEVM" : targetChain === "arbitrum" ? "Arbitrum One" : targetChain === "ethereum" ? "Ethereum" : "Base",
           network: targetChain === "hyperliquid" ? "hyperliquid" : targetChain,
           nativeCurrency: {
             decimals: 18,
@@ -2104,7 +2104,7 @@ const PortfolioSubpage: React.FC = () => {
           if (switchError.code === 4001) {
             setErrorMessage("Chain switch cancelled by user.");
           } else {
-            const chainName = targetChain === "hyperliquid" ? "HyperLiquid" : targetChain === "arbitrum" ? "Arbitrum" : targetChain === "ethereum" ? "Ethereum" : "Base";
+            const chainName = targetChain === "hyperliquid" ? "HyperEVM" : targetChain === "arbitrum" ? "Arbitrum" : targetChain === "ethereum" ? "Ethereum" : "Base";
             setErrorMessage(`Please switch to ${chainName} network (Chain ID: ${targetChainId}) in your wallet`);
           }
           setIsCancelling(false);
@@ -2126,7 +2126,7 @@ const PortfolioSubpage: React.FC = () => {
         transport: http(rpcUrl),
         chain: chainObject || {
           id: targetChainId,
-          name: targetChain === "hyperliquid" ? "HyperLiquid" : targetChain === "arbitrum" ? "Arbitrum One" : targetChain === "ethereum" ? "Ethereum" : "Base",
+          name: targetChain === "hyperliquid" ? "HyperEVM" : targetChain === "arbitrum" ? "Arbitrum One" : targetChain === "ethereum" ? "Ethereum" : "Base",
           network: targetChain === "hyperliquid" ? "hyperliquid" : targetChain,
           nativeCurrency: {
             decimals: 18,
@@ -2262,7 +2262,7 @@ const PortfolioSubpage: React.FC = () => {
       const isSyHLP = (strategy as any).name === "syHLP" || (strategy as any).hyperEVM;
       if (isSyHLP) {
         console.log("🔵 Setting targetChain to hyperliquid for syHLP");
-        setTargetChain("hyperliquid"); // syHLP is only on HyperLiquid
+        setTargetChain("hyperliquid"); // syHLP is only on HyperEVM
       } else if (strategy.asset === "BTC") {
         setTargetChain("arbitrum"); // syBTC is only on Arbitrum
       } else if (strategy.asset === "USD") {
@@ -2564,7 +2564,7 @@ const PortfolioSubpage: React.FC = () => {
           id: chainId,
           name: targetChain === "arbitrum" ? "Arbitrum One" : 
                 targetChain === "ethereum" ? "Ethereum" : 
-                targetChain === "hyperliquid" ? "HyperLiquid" : "Base",
+                targetChain === "hyperliquid" ? "HyperEVM" : "Base",
           network: targetChain === "hyperliquid" ? "hyperliquid" : targetChain,
           nativeCurrency: {
             decimals: 18,
