@@ -610,6 +610,20 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                     height={7.5}
                   />
                 </a>
+                {/* Stablewatch link - only for syUSD */}
+                {!isBtcStrategy && !isSyHLPStrategy && (
+                  <>
+                    <span className="text-[#9C9DA2] text-[12px] mx-1">|</span>
+                    <a
+                      href="https://www.stablewatch.io/analytics/assets/syUSD-Lucidly"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#9C9DA2] text-[12px] hover:text-white transition-colors"
+                    >
+                      Stablewatch
+                    </a>
+                  </>
+                )}
               </div>
             </div>
           </div>
