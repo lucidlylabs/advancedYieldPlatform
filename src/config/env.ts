@@ -221,7 +221,7 @@ export const USD_STRATEGIES = {
         chainObject: {
           id: 999,
           name: "HyperEVM",
-          network: "hyperliquid",
+          network: "hyperEVM",
           nativeCurrency: { decimals: 18, name: "Ether", symbol: "ETH" },
           rpcUrls: {
             default: { http: ["https://rpc.hypurrscan.io", "https://hyperliquid.drpc.org"] },

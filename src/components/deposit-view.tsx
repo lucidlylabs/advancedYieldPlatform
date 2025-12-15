@@ -280,14 +280,15 @@ const ExchangeRate: React.FC<ExchangeRateProps> = ({
 
         // Helper function to get chain config based on target chain
         const getChainConfig = (chainName: string) => {
-          switch (chainName) {
+          const normalizedChainName = chainName.toLowerCase();
+          switch (normalizedChainName) {
             case "arbitrum":
               return strategyConfig.arbitrum;
             case "ethereum":
               return strategyConfig.ethereum;
             case "katana":
               return strategyConfig.katana;
-            case "hyperliquid":
+            case "hyperevm":
               return (strategyConfig as any).hyperEVM;
             case "base":
             default:
@@ -584,7 +585,7 @@ const DepositView: React.FC<DepositViewProps> = ({
     }
     // For USD, check which networks are available
     // Priority: hyperEVM (for syHLP), then base, then others
-    if ((tempStrategyConfig as any)?.hyperEVM) return "hyperliquid";
+    if ((tempStrategyConfig as any)?.hyperEVM) return "hyperEVM";
     if (tempStrategyConfig?.base) return "base";
     if (tempStrategyConfig?.arbitrum) return "arbitrum";
     if (tempStrategyConfig?.ethereum) return "ethereum";
@@ -655,9 +656,9 @@ const DepositView: React.FC<DepositViewProps> = ({
         });
       }
       if ((strategyConfig as any).hyperEVM && (strategyConfig as any).hyperEVM.image) {
-        uniqueChains.set("hyperliquid", {
+        uniqueChains.set("hyperEVM", {
           name: "HyperEVM",
-          network: "hyperliquid",
+          network: "hyperEVM",
           image: (strategyConfig as any).hyperEVM.image,
         });
       }
@@ -676,14 +677,14 @@ const DepositView: React.FC<DepositViewProps> = ({
       (targetChain === "ethereum" && strategyConfig.ethereum) ||
       (targetChain === "katana" && strategyConfig.katana) ||
       (targetChain === "base" && strategyConfig.base) ||
-      (targetChain === "hyperliquid" && (strategyConfig as any).hyperEVM);
+      (targetChain === "hyperEVM" && (strategyConfig as any).hyperEVM);
     
     // If current chain is not valid, switch to a valid one
     if (!isValidChain) {
       if (selectedAsset === "BTC" && strategyConfig.arbitrum) {
         setTargetChain("arbitrum");
       } else if ((strategyConfig as any).hyperEVM) {
-        setTargetChain("hyperliquid");
+        setTargetChain("hyperEVM");
       } else if (strategyConfig.base) {
         setTargetChain("base");
       } else if (strategyConfig.arbitrum) {
@@ -709,7 +710,7 @@ const DepositView: React.FC<DepositViewProps> = ({
         return strategyConfig.ethereum?.tokens || [];
       case "katana":
         return strategyConfig.katana?.tokens || [];
-      case "hyperliquid":
+      case "hyperEVM":
         return (strategyConfig as any).hyperEVM?.tokens || [];
       case "base":
       default:
@@ -1553,7 +1554,8 @@ const DepositView: React.FC<DepositViewProps> = ({
   // Helper to get correct RPC and chain config for each chain
   const getChainConfig = (chainName: string) => {
     let chainData;
-    switch (chainName) {
+    const normalizedChainName = chainName.toLowerCase();
+    switch (normalizedChainName) {
       case "arbitrum":
         chainData = strategyConfig.arbitrum;
         break;
@@ -1563,7 +1565,7 @@ const DepositView: React.FC<DepositViewProps> = ({
       case "katana":
         chainData = strategyConfig.katana;
         break;
-      case "hyperliquid":
+      case "hyperevm":
         chainData = (strategyConfig as any).hyperEVM;
         break;
       case "base":
@@ -1612,7 +1614,6 @@ const DepositView: React.FC<DepositViewProps> = ({
         return `https://arbiscan.io/tx/${txHash}`;
       case "katana":
         return `https://explorer.katanarpc.com//tx/${txHash}`;
-      case "hyperliquid":
       case "hyperevm":
         return `https://hyperevmscan.io/tx/${txHash}`;
       case "base":
@@ -2205,8 +2206,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                                   (networkName === "base" && (strategyConfig as any).base?.image) ||
                                   (networkName === "ethereum" && (strategyConfig as any).ethereum?.image) ||
                                   (networkName === "katana" && (strategyConfig as any).katana?.image) ||
-                                  (networkName === "hyperevm" && (strategyConfig as any).hyperEVM?.image) ||
-                                  (networkName === "hyperliquid" && (strategyConfig as any).hyperEVM?.image) ||
+                                  (networkName === "hyperEVM" && (strategyConfig as any).hyperEVM?.image) ||
                                   "";
                                 
                                 return (
@@ -2218,7 +2218,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                                 );
                               })()}
                               <span className="capitalize text-[12px]">
-                                {strategyConfig.network?.toLowerCase() === "hyperliquid" ? "HyperEVM" : strategyConfig.network}
+                                {strategyConfig.network}
                               </span>
                             </div>
                           </div>
@@ -2309,7 +2309,9 @@ const DepositView: React.FC<DepositViewProps> = ({
                 {/* Button Section - Below the cards */}
                 <div className="w-full flex flex-col gap-4">
                   {/* Dynamic Connect/Deposit Button */}
-                  {targetChain !== strategyConfig.network.toLowerCase() && (
+                  {/* Check if targetChain matches the strategy's native network */}
+                  {targetChain !== strategyConfig.network.toLowerCase() && 
+                   targetChain.toLowerCase() !== strategyConfig.network.toLowerCase() && (
                     <div className="w-full mt-4 mb-2 p-4 rounded bg-[#2B2320] border border-[#B88AF8]/20 text-[#FFD580] text-sm">
                       <b>Note: </b>
                       In the Portfolio section, deposits from non-

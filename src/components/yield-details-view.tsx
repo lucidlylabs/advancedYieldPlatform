@@ -158,7 +158,6 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   const getExplorerUrl = (networkName: string): string => {
     const network = (networkName || "").toLowerCase();
     switch (network) {
-      case "hyperliquid":
       case "hyperevm":
         return "https://hyperevmscan.io";
       case "arbitrum":
