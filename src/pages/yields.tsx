@@ -215,7 +215,7 @@ const MarketsSubpage: React.FC = () => {
           if (key === "INCENTIVE") return;
           
           // Include strategies that have name and displayName (even if empty, they should show)
-          if (!strategy || !strategy.name) return;
+          if (!strategy || !("name" in strategy) || !strategy.name) return;
           
           usdStrategies.push({
             id: idCounter++,
