@@ -505,55 +505,85 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
     </div>
   );
 
-  const renderBaseApyTab = () => (
-    <div className="w-full">
-      <div className="flex justify-between items-center mb-3 mt-4">
-        <h2 className="text-[rgba(255,255,255,0.70)] text-[16px] font-extrabold ">
-          Base APY History
-        </h2>
-
-        {/* Toggle buttons */}
-        <div className="flex overflow-hidden border border-[rgba(184,138,248,0.2)] rounded-md">
-          <button
-            className={`px-3 py-1.5 w-28 text-xs transition-colors duration-150 ${
-              activeBaseApyTab === "totalApy"
-                ? "bg-[rgba(184,138,248,0.1)] text-white"
-                : "bg-transparent text-gray-400 hover:text-gray-300"
-            }`}
-            onClick={() => setActiveBaseApyTab("totalApy")}
-          >
-            Total APY
-          </button>
-          <button
-            className={`px-3 py-1.5 w-36 text-xs transition-colors duration-150 ${
-              activeBaseApyTab === "allocation"
-                ? "bg-[rgba(184,138,248,0.1)] text-white"
-                : "bg-transparent text-gray-400 hover:text-gray-300"
-            }`}
-            onClick={() => setActiveBaseApyTab("allocation")}
-          >
-            Returns Attribution
-          </button>
+  const renderBaseApyTab = () => {
+    // Show "Data collecting" message for syHLP strategy
+    if (isSyHLPStrategy) {
+      return (
+        <div className="w-full flex flex-col items-center justify-center py-20">
+          <div className="text-[rgba(255,255,255,0.70)] text-[16px] font-medium mb-2">
+            Data Collecting
+          </div>
+          <div className="text-[#9C9DA2] text-[14px]">
+            APY data for syHLP will be available soon
+          </div>
         </div>
+      );
+    }
+
+    return (
+      <div className="w-full">
+        <div className="flex justify-between items-center mb-3 mt-4">
+          <h2 className="text-[rgba(255,255,255,0.70)] text-[16px] font-extrabold ">
+            Base APY History
+          </h2>
+
+          {/* Toggle buttons */}
+          <div className="flex overflow-hidden border border-[rgba(184,138,248,0.2)] rounded-md">
+            <button
+              className={`px-3 py-1.5 w-28 text-xs transition-colors duration-150 ${
+                activeBaseApyTab === "totalApy"
+                  ? "bg-[rgba(184,138,248,0.1)] text-white"
+                  : "bg-transparent text-gray-400 hover:text-gray-300"
+              }`}
+              onClick={() => setActiveBaseApyTab("totalApy")}
+            >
+              Total APY
+            </button>
+            <button
+              className={`px-3 py-1.5 w-36 text-xs transition-colors duration-150 ${
+                activeBaseApyTab === "allocation"
+                  ? "bg-[rgba(184,138,248,0.1)] text-white"
+                  : "bg-transparent text-gray-400 hover:text-gray-300"
+              }`}
+              onClick={() => setActiveBaseApyTab("allocation")}
+            >
+              Returns Attribution
+            </button>
+          </div>
+        </div>
+
+        {activeBaseApyTab === "totalApy" && (
+          <div className="h-[800px] overflow-y-auto pb-2">
+            <BaseApyGraph vaultAddress={contractAddress} strategyType={isBtcStrategy ? "BTC" : "USD"} />
+          </div>
+        )}
+
+        {activeBaseApyTab === "allocation" && (
+          <div className="h-[800px] overflow-y-auto pb-2">
+            <AllocationReturnsChart strategyType={isBtcStrategy ? "BTC" : "USD"} />
+          </div>
+        )}
       </div>
+    );
+  };
 
-      {activeBaseApyTab === "totalApy" && (
-        <div className="h-[800px] overflow-y-auto pb-2">
-          <BaseApyGraph vaultAddress={contractAddress} strategyType={isBtcStrategy ? "BTC" : "USD"} />
+  const renderIncentivesTab = () => {
+    // Show "Data collecting" message for syHLP strategy
+    if (isSyHLPStrategy) {
+      return (
+        <div className="w-full flex flex-col items-center justify-center py-20">
+          <div className="text-[rgba(255,255,255,0.70)] text-[16px] font-medium mb-2">
+            Data Collecting
+          </div>
+          <div className="text-[#9C9DA2] text-[14px]">
+            Incentives data for syHLP will be available soon
+          </div>
         </div>
-      )}
+      );
+    }
 
-      {activeBaseApyTab === "allocation" && (
-        <div className="h-[800px] overflow-y-auto pb-2">
-          <AllocationReturnsChart strategyType={isBtcStrategy ? "BTC" : isSyHLPStrategy ? "HLP" : "USD"} />
-        </div>
-      )}
-    </div>
-  );
-
-  const renderIncentivesTab = () => (
-    <IncentiveRewards strategyName={name} className="w-full" />
-  );
+    return <IncentiveRewards strategyName={name} className="w-full" />;
+  };
 
   const renderFAQsTab = () => (
     <div className="w-full mt-6">
