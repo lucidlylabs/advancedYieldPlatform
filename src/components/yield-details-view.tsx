@@ -138,7 +138,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   const currentVaultAddress = contractAddress?.toLowerCase() || usdVaultAddress;
   const isBtcStrategy = currentVaultAddress === btcVaultAddress;
   const isSyHLPStrategy = currentVaultAddress === syHLPVaultAddress || name?.toLowerCase().includes("hlp");
-  const isSyETHStrategy = currentVaultAddress === ethVaultAddress || name?.toLowerCase().includes("syeth") || name?.toLowerCase() === "stable yield eth";
+  const isSyETHStrategy = currentVaultAddress === ethVaultAddress || name?.toLowerCase().includes("syeth") || name?.toLowerCase().includes("stable yield eth") || name?.toLowerCase().includes("yield eth");
   const strategy = isBtcStrategy 
     ? BTC_STRATEGIES.PERPETUAL_DURATION.STABLE 
     : isSyHLPStrategy
@@ -271,7 +271,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
       } else if (currentVaultAddress === syHLPVaultAddress || name?.toLowerCase().includes("hlp")) {
         strategy = USD_STRATEGIES.PERPETUAL_DURATION.syHLP;
         strategyName = "syHLP";
-      } else if (currentVaultAddress === ethVaultAddress || name?.toLowerCase().includes("syeth") || name?.toLowerCase() === "stable yield eth") {
+      } else if (currentVaultAddress === ethVaultAddress || name?.toLowerCase().includes("syeth") || name?.toLowerCase().includes("stable yield eth") || name?.toLowerCase().includes("yield eth")) {
         strategy = ETH_STRATEGIES.PERPETUAL_DURATION.STABLE;
         strategyName = "syETH";
       } else {
@@ -395,10 +395,10 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
     }
   };
 
-  // Check balances across all networks when address or connection changes
+  // Check balances across all networks when address, connection, or strategy changes
   useEffect(() => {
     checkAllNetworkBalances();
-  }, [address, isConnected, contractAddress]);
+  }, [address, isConnected, contractAddress, name]);
 
   // Format tooltip content for network balances
   const formatNetworkBalancesTooltip = () => {
