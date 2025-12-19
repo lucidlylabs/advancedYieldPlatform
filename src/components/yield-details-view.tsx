@@ -705,7 +705,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                   <div className="w-4 h-4 rounded-full overflow-hidden flex items-center justify-center">
                     <Image
                       src={strategyIcon}
-                      alt={isBtcStrategy ? "syBTC" : isSyHLPStrategy ? "syHLP" : "syUSD"}
+                      alt={isBtcStrategy ? "syBTC" : isSyHLPStrategy ? "syHLP" : isSyETHStrategy ? "syETH" : "syUSD"}
                       width={16}
                       height={16}
                       className="object-contain"
