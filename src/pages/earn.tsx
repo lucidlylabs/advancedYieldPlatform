@@ -462,8 +462,22 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
         setBtcTvl("--");
       }
 
-      // ETH is coming soon, so no TVL data for now
-      setEthTvl("--");
+      // Fetch ETH TVL (needs to be multiplied by ETH price since TVL is in ETH terms)
+      const ethTvlUrl = (ETH_STRATEGIES.PERPETUAL_DURATION.STABLE as any).tvl;
+      const ethPriceUrl = (ETH_STRATEGIES.PERPETUAL_DURATION.STABLE as any).ethPrice;
+      
+      console.log(`🔍 ETH TVL URL: ${ethTvlUrl}`);
+      console.log(`🔍 ETH Price URL: ${ethPriceUrl}`);
+      
+      if (ethTvlUrl && typeof ethTvlUrl === "string" && ethTvlUrl.startsWith("http")) {
+        if (!ethPriceUrl) {
+          console.error('❌ ethPrice URL is missing from ETH_STRATEGIES config!');
+        }
+        const ethTvlValue = await fetchTVLData(ethTvlUrl, ethPriceUrl);
+        setEthTvl(ethTvlValue);
+      } else {
+        setEthTvl("--");
+      }
     };
 
     fetchAllTVL();
@@ -717,7 +731,7 @@ const YieldSubpage: React.FC<YieldSubpageProps> = ({ depositParams }) => {
               onDurationSelect={(duration: DurationType) =>
                 handleDurationSelect("ETH", duration)
               }
-              isComingSoon={true}
+              availableDurations={["PERPETUAL_DURATION"]}
               className="w-[300px] h-[311px]"
               showRadialGradient={true}
               tvl={ethTvl}

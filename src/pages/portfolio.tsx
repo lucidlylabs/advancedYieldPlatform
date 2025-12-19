@@ -474,6 +474,9 @@ const PortfolioSubpage: React.FC = () => {
         setTargetChain("hyperEVM"); // syHLP is only on HyperEVM - NEVER use Base
       } else if (selectedStrategy.asset === "BTC") {
         setTargetChain("arbitrum");
+      } else if (selectedStrategy.asset === "ETH") {
+        console.log("🔵 useEffect: syETH detected - setting targetChain to arbitrum");
+        setTargetChain("arbitrum"); // syETH is only on Arbitrum
       } else if (selectedStrategy.asset === "USD") {
         // This is syUSD (not syHLP)
         console.log("🔵 useEffect: syUSD detected - setting targetChain to base");
@@ -569,6 +572,7 @@ const PortfolioSubpage: React.FC = () => {
   // Store exchange rates per strategy (keyed by contract address)
   const [exchangeRatesPerStrategy, setExchangeRatesPerStrategy] = useState<Record<string, number>>({});
   const [wbtcPrice, setWbtcPrice] = useState<number>(0);
+  const [ethPrice, setEthPrice] = useState<number>(0);
   const [isLoadingWbtcPrice, setIsLoadingWbtcPrice] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -644,6 +648,8 @@ const PortfolioSubpage: React.FC = () => {
         return filteredChains.filter((chain) => chain.network === "hyperEVM");
       } else if (selectedStrategy.asset === "BTC") {
         return filteredChains.filter((chain) => chain.network === "arbitrum");
+      } else if (selectedStrategy.asset === "ETH") {
+        return filteredChains.filter((chain) => chain.network === "arbitrum");
       } else if (selectedStrategy.asset === "USD") {
         // This is syUSD (not syHLP)
         return filteredChains.filter(
@@ -701,6 +707,10 @@ const PortfolioSubpage: React.FC = () => {
         // For BTC strategies, use wBTC on Arbitrum
         quoteTokenContract = "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f";
         quoteTokenDecimals = 8;
+      } else if (strategy.asset === "ETH") {
+        // For ETH strategies, use WETH on Arbitrum
+        quoteTokenContract = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1";
+        quoteTokenDecimals = 18;
       } else {
         // Fallback
         quoteTokenContract = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
@@ -719,6 +729,11 @@ const PortfolioSubpage: React.FC = () => {
         rpcUrl = (strategy.arbitrum as any)?.rpc || "https://arb1.arbitrum.io/rpc";
         chainId = 42161;
         chainName = "Arbitrum One";
+      } else if (strategy.asset === "ETH") {
+        // syETH is on Arbitrum
+        rpcUrl = (strategy.arbitrum as any)?.rpc || "https://arb1.arbitrum.io/rpc";
+        chainId = 42161;
+        chainName = "Arbitrum One";
       } else if ((strategy as any).name === "syHLP" || (strategy as any).hyperEVM) {
         // syHLP is on HyperEVM
         rpcUrl = ((strategy as any).hyperEVM as any)?.rpc || "https://rpc.hypurrscan.io";
@@ -734,7 +749,7 @@ const PortfolioSubpage: React.FC = () => {
       // RPC URLs with fallbacks
       const rpcUrls = [
         rpcUrl,
-        ...(strategy.asset === "BTC" 
+        ...(strategy.asset === "BTC" || strategy.asset === "ETH"
           ? ["https://arb1.arbitrum.io/rpc"]
           : (strategy as any).name === "syHLP" || (strategy as any).hyperEVM
           ? ["https://hyperliquid.drpc.org"] // HyperEVM fallback
@@ -765,7 +780,7 @@ const PortfolioSubpage: React.FC = () => {
                 public: { http: [rpc] },
               },
             };
-          } else if (strategy.asset === "BTC") {
+          } else if (strategy.asset === "BTC" || strategy.asset === "ETH") {
             chainObject = (strategy.arbitrum as any)?.chainObject || {
               id: 42161,
               name: "Arbitrum One",
@@ -848,7 +863,7 @@ const PortfolioSubpage: React.FC = () => {
       console.log(
         "🔥 EXCHANGE RATE FETCHED SUCCESSFULLY:",
         rateNumber,
-        `${strategy.asset === "BTC" ? "wBTC" : "USD"} per ${strategy.asset === "USD" ? "syUSD" : "syBTC"}`,
+        `${strategy.asset === "BTC" ? "wBTC" : strategy.asset === "ETH" ? "WETH" : "USD"} per ${strategy.asset === "USD" ? "syUSD" : strategy.asset === "ETH" ? "syETH" : "syBTC"}`,
         `for strategy ${strategy.contract}`
       );
       console.log("🔥 Raw rate from contract:", rate.toString());
@@ -1041,6 +1056,57 @@ const PortfolioSubpage: React.FC = () => {
     }
   }, [strategiesWithBalance]);
 
+  // Function to fetch ETH price
+  const fetchEthPrice = async () => {
+    try {
+      const ethPriceUrl = (ETH_STRATEGIES.PERPETUAL_DURATION.STABLE as any).ethPrice;
+      
+      if (!ethPriceUrl || typeof ethPriceUrl !== "string" || !ethPriceUrl.startsWith("http")) {
+        console.warn("ETH price URL not available");
+        setEthPrice(0);
+        return;
+      }
+
+      const response = await fetch(ethPriceUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      // Handle both string and number formats: {"result":"3500.00"} or {"result":3500.00}
+      const price = data?.result || data?.price || data?.rate;
+      
+      if (typeof price === "number") {
+        setEthPrice(price);
+      } else if (typeof price === "string") {
+        const parsedPrice = parseFloat(price);
+        if (!isNaN(parsedPrice) && isFinite(parsedPrice)) {
+          setEthPrice(parsedPrice);
+        } else {
+          console.error(`Failed to parse ETH price: ${price}`);
+          setEthPrice(0);
+        }
+      } else {
+        console.error('Unexpected ETH price data structure:', data);
+        setEthPrice(0);
+      }
+    } catch (error) {
+      console.error('Error fetching ETH price:', error);
+      setEthPrice(0);
+    }
+  };
+
+  // Fetch ETH price when strategies with balance change (always fetch if any ETH strategy exists)
+  useEffect(() => {
+    // Always fetch ETH price if there are any ETH strategies, regardless of selection
+    const hasEthStrategy = strategiesWithBalance.some(s => s.asset === "ETH");
+    if (hasEthStrategy) {
+      fetchEthPrice();
+    } else {
+      setEthPrice(0);
+    }
+  }, [strategiesWithBalance]);
+
   // PNL temporarily commented out
   // // Fetch PnL when address changes
   // useEffect(() => {
@@ -1154,6 +1220,66 @@ const PortfolioSubpage: React.FC = () => {
     // Error will be shown from the catch block in handleApprove
   }, [approvalHash, isApprovalSuccess]);
 
+  // Additional check: verify on-chain allowance when approval hash exists but isApproved is false
+  // This handles cases where the transaction succeeded but the hook didn't detect it
+  useEffect(() => {
+    const verifyAllowanceOnChain = async () => {
+      if (!approvalHash || isApproved || !selectedStrategy || !withdrawAmount || !address) return;
+      
+      try {
+        const shareTokenAddress = (selectedStrategy.shareAddress || selectedStrategy.boringVaultAddress) as Address;
+        const solverAddress = selectedStrategy.solverAddress as Address;
+        
+        // Determine chain config
+        const isSyHLP = (selectedStrategy as any).name === "syHLP" || (selectedStrategy as any).hyperEVM;
+        let rpcUrl: string;
+        let targetChainId: number;
+        
+        if (isSyHLP) {
+          rpcUrl = (selectedStrategy as any).hyperEVM?.rpc || "https://rpc.hypurrscan.io";
+          targetChainId = (selectedStrategy as any).hyperEVM?.chainId || 999;
+        } else {
+          const chainConfig = chainConfigs[targetChain as keyof typeof chainConfigs];
+          rpcUrl = chainConfig?.rpc || selectedStrategy.rpc;
+          targetChainId = chainConfig?.chainId || 8453;
+        }
+        
+        const client = createPublicClient({
+          transport: http(rpcUrl),
+          chain: { id: targetChainId, name: "Chain", network: "chain", nativeCurrency: { decimals: 18, name: "ETH", symbol: "ETH" }, rpcUrls: { default: { http: [rpcUrl] }, public: { http: [rpcUrl] } } },
+        });
+        
+        const decimals = selectedStrategy.shareAddress_token_decimal || 18;
+        const sharesAmount = parseUnits(withdrawAmount, decimals);
+        
+        const allowance = await client.readContract({
+          address: shareTokenAddress,
+          abi: ERC20_ABI,
+          functionName: "allowance",
+          args: [address as Address, solverAddress],
+        }) as bigint;
+        
+        console.log("🔍 On-chain allowance verification:", {
+          allowance: allowance.toString(),
+          required: sharesAmount.toString(),
+          isSufficient: allowance >= sharesAmount,
+        });
+        
+        if (allowance >= sharesAmount) {
+          console.log("✅ On-chain allowance is sufficient, setting isApproved to true");
+          setIsApproved(true);
+          setIsApproving(false);
+        }
+      } catch (error) {
+        console.error("Error verifying on-chain allowance:", error);
+      }
+    };
+    
+    // Delay the check to give the transaction time to be indexed
+    const timeoutId = setTimeout(verifyAllowanceOnChain, 3000);
+    return () => clearTimeout(timeoutId);
+  }, [approvalHash, isApproved, selectedStrategy, withdrawAmount, address, targetChain]);
+
   // Helper function to add delay between requests
   const delay = (ms: number) =>
     new Promise((resolve) => setTimeout(resolve, ms));
@@ -1192,6 +1318,8 @@ const PortfolioSubpage: React.FC = () => {
       let networks: string[];
       if (strategy.asset === "BTC") {
         networks = ["arbitrum"];
+      } else if (strategy.asset === "ETH") {
+        networks = ["arbitrum"]; // syETH is only on Arbitrum
       } else if ((strategy as any).name === "syHLP" || (strategy as any).hyperEVM) {
         networks = ["hyperEVM"]; // syHLP is only on HyperEVM
       } else {
@@ -1366,6 +1494,9 @@ const PortfolioSubpage: React.FC = () => {
     let networks: string[];
     if (strategy.asset === "BTC") {
       // syBTC is only on Arbitrum
+      networks = ["arbitrum"];
+    } else if (strategy.asset === "ETH") {
+      // syETH is only on Arbitrum
       networks = ["arbitrum"];
     } else if ((strategy as any).name === "syHLP" || (strategy as any).hyperEVM) {
       // syHLP is only on HyperEVM
@@ -1657,7 +1788,8 @@ const PortfolioSubpage: React.FC = () => {
       setApprovalHash(null);
 
       const solverAddress = selectedStrategy.solverAddress as Address;
-      const vaultAddress = selectedStrategy.boringVaultAddress as Address;
+      // Use shareAddress for approval (the actual token being transferred), fallback to boringVaultAddress
+      const shareTokenAddress = (selectedStrategy.shareAddress || selectedStrategy.boringVaultAddress) as Address;
 
       // Get chain configuration based on target chain
       // ALWAYS check for syHLP FIRST - it's a special case
@@ -1681,7 +1813,7 @@ const PortfolioSubpage: React.FC = () => {
 
       console.log("Approval details:", {
         solverAddress,
-        vaultAddress,
+        shareTokenAddress,
         address,
         targetChainId,
         currentChainId: currentChainId,
@@ -1731,9 +1863,9 @@ const PortfolioSubpage: React.FC = () => {
         },
       });
 
-      // Get decimals from vault
+      // Get decimals from share token
       const decimals = (await client.readContract({
-        address: vaultAddress,
+        address: shareTokenAddress,
         abi: ERC20_ABI,
         functionName: "decimals",
       })) as number;
@@ -1747,9 +1879,9 @@ const PortfolioSubpage: React.FC = () => {
         withdrawAmount,
       });
 
-      // Approve the solver to spend the vault tokens
+      // Approve the solver to spend the share tokens
       const approveTx = await writeContract({
-        address: vaultAddress,
+        address: shareTokenAddress,
         abi: ERC20_ABI,
         functionName: "approve",
         args: [solverAddress, sharesAmount],
@@ -1787,6 +1919,8 @@ const PortfolioSubpage: React.FC = () => {
 
       const solverAddress = selectedStrategy.solverAddress as Address;
       const vaultAddress = selectedStrategy.boringVaultAddress as Address;
+      // Use shareAddress for token operations (the actual token being transferred), fallback to boringVaultAddress
+      const shareTokenAddress = (selectedStrategy.shareAddress || selectedStrategy.boringVaultAddress) as Address;
       const assetOutAddress = withdrawableAssets[selectedAssetIdx]
         .contract as Address;
 
@@ -1862,9 +1996,9 @@ const PortfolioSubpage: React.FC = () => {
         },
       });
 
-      // Get decimals from vault contract
+      // Get decimals from share token contract
       const decimals = (await client.readContract({
-        address: vaultAddress,
+        address: shareTokenAddress,
         abi: ERC20_ABI,
         functionName: "decimals",
       })) as number;
@@ -1881,6 +2015,7 @@ const PortfolioSubpage: React.FC = () => {
         sharesAmount: sharesAmount.toString(),
         amountOfShares: amountOfShares.toString(),
         amountOfSharesFormatted: formatUnits(amountOfShares, decimals),
+        shareTokenAddress,
       });
 
       // Check if the solver contract is paused
@@ -1908,7 +2043,7 @@ const PortfolioSubpage: React.FC = () => {
       // Verify approval before attempting withdrawal
       console.log("🔍 Verifying approval before withdrawal...");
       console.log("Checking allowance on:", {
-        vaultAddress,
+        shareTokenAddress,
         userAddress: address,
         solverAddress,
         chainId: targetChainId,
@@ -1916,7 +2051,7 @@ const PortfolioSubpage: React.FC = () => {
       });
       
       const allowance = await client.readContract({
-        address: vaultAddress,
+        address: shareTokenAddress,
         abi: ERC20_ABI,
         functionName: "allowance",
         args: [address as Address, solverAddress],
@@ -2360,6 +2495,9 @@ const PortfolioSubpage: React.FC = () => {
         setTargetChain("hyperEVM"); // syHLP is only on HyperEVM
       } else if (strategy.asset === "BTC") {
         setTargetChain("arbitrum"); // syBTC is only on Arbitrum
+      } else if (strategy.asset === "ETH") {
+        console.log("🔵 Setting targetChain to arbitrum for syETH");
+        setTargetChain("arbitrum"); // syETH is only on Arbitrum
       } else if (strategy.asset === "USD") {
         // This is syUSD (not syHLP)
         console.log("🔵 Setting targetChain to base for syUSD");
@@ -2384,6 +2522,8 @@ const PortfolioSubpage: React.FC = () => {
         expectedChain = "hyperEVM";
       } else if (selectedStrategy.asset === "BTC") {
         expectedChain = "arbitrum";
+      } else if (selectedStrategy.asset === "ETH") {
+        expectedChain = "arbitrum"; // syETH is only on Arbitrum
       } else if (selectedStrategy.asset === "USD") {
         // This is syUSD (not syHLP)
         expectedChain = "base";
@@ -2447,10 +2587,10 @@ const PortfolioSubpage: React.FC = () => {
     if (selectedStrategy) {
       const calculatedAmount = selectedStrategyEthereumBalance * percentage;
       
-      // For syBTC (8 decimals), preserve more decimal places
-      // For syUSD (6 decimals), 2 decimal places is usually enough
+      // For syBTC and syETH, use 6 decimal places for display
+      // For syUSD (6 decimals), 6 decimal places
       const decimals = selectedStrategy.shareAddress_token_decimal || 18;
-      const decimalPlaces = decimals === 8 ? 8 : decimals === 6 ? 6 : 2;
+      const decimalPlaces = selectedStrategy.asset === "BTC" || selectedStrategy.asset === "ETH" ? 6 : decimals === 6 ? 6 : 2;
       
       // Format with appropriate decimal places, but remove trailing zeros
       const amount = calculatedAmount.toFixed(decimalPlaces).replace(/\.?0+$/, '');
@@ -2469,7 +2609,8 @@ const PortfolioSubpage: React.FC = () => {
   const handleMaxClick = () => {
     if (selectedStrategy) {
       const decimals = selectedStrategy.shareAddress_token_decimal || 18;
-      const decimalPlaces = decimals === 8 ? 8 : decimals === 6 ? 6 : 2;
+      // Use 6 decimal places for display: BTC (8 decimals), ETH (18 decimals), USD (6 decimals)
+      const decimalPlaces = selectedStrategy.asset === "BTC" || selectedStrategy.asset === "ETH" ? 6 : decimals === 6 ? 6 : 2;
       const amount = selectedStrategyEthereumBalance.toFixed(decimalPlaces).replace(/\.?0+$/, '');
       setWithdrawAmount(amount);
       
@@ -2632,6 +2773,18 @@ const PortfolioSubpage: React.FC = () => {
           }
         }
         
+        // Validate asset matches strategy requirements for ETH
+        if (selectedStrategy.asset === "ETH" && targetChain === "arbitrum") {
+          // Ensure we're using WETH
+          const wethAsset = withdrawableAssets.find(asset => 
+            asset.name === "WETH" || 
+            asset.contract.toLowerCase() === "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1".toLowerCase()
+          );
+          if (wethAsset) {
+            selectedAsset = wethAsset;
+          }
+        }
+        
         const selectedAssetAddress = getAddress(selectedAsset.contract);
 
         // Get chain configuration based on target chain - use strategy's chain config directly
@@ -2726,6 +2879,11 @@ const PortfolioSubpage: React.FC = () => {
         // Minimum might be 0.00000001 (1 in smallest unit)
         if (selectedStrategy.asset === "BTC" && shares < BigInt(1)) {
           console.warn("Amount might be too small for syBTC. Minimum is 0.00000001 syBTC");
+        }
+        
+        // For syETH with 18 decimals, check if amount is reasonable
+        if (selectedStrategy.asset === "ETH" && shares < BigInt(1)) {
+          console.warn("Amount might be too small for syETH");
         }
 
         const discount = 0;
@@ -2911,6 +3069,7 @@ const PortfolioSubpage: React.FC = () => {
                           const strategyRate = exchangeRatesPerStrategy[s.contract] || 1.0;
                           
                           // For syBTC: multiply by exchangeRate (syBTC to wBTC) and then by wBTC price (wBTC to USD)
+                          // For syETH: multiply by exchangeRate (syETH to WETH) and then by ETH price (ETH to USD)
                           // For syUSD: exchangeRate is already in USD terms
                           let usdValue: number;
                           if (s.asset === "BTC") {
@@ -2932,6 +3091,27 @@ const PortfolioSubpage: React.FC = () => {
                               usdValue = 0;
                               console.log(
                                 "🔥 Portfolio Balance Calc (syBTC): wBTC price not loaded yet, using 0"
+                              );
+                            }
+                          } else if (s.asset === "ETH") {
+                            // Always try to convert syETH to USD
+                            if (ethPrice > 0) {
+                              usdValue = s.balance * strategyRate * ethPrice;
+                              console.log(
+                                "🔥 Portfolio Balance Calc (syETH):",
+                                s.balance,
+                                "syETH *",
+                                strategyRate,
+                                "WETH *",
+                                ethPrice,
+                                "USD =",
+                                usdValue
+                              );
+                            } else {
+                              // If ETH price not loaded, use 0 for now (will update when price loads)
+                              usdValue = 0;
+                              console.log(
+                                "🔥 Portfolio Balance Calc (syETH): ETH price not loaded yet, using 0"
                               );
                             }
                           } else {
@@ -3025,6 +3205,7 @@ const PortfolioSubpage: React.FC = () => {
                           const strategyRate = exchangeRatesPerStrategy[s.contract] || 1.0;
                           
                           // For syBTC: multiply by exchangeRate (syBTC to wBTC) and then by wBTC price (wBTC to USD)
+                          // For syETH: multiply by exchangeRate (syETH to WETH) and then by ETH price (ETH to USD)
                           // For syUSD: exchangeRate is already in USD terms
                           let usdValue: number;
                           if (s.asset === "BTC") {
@@ -3046,6 +3227,27 @@ const PortfolioSubpage: React.FC = () => {
                               usdValue = 0;
                               console.log(
                                 "🔥 Withdrawable Balance Calc (syBTC): wBTC price not loaded yet, using 0"
+                              );
+                            }
+                          } else if (s.asset === "ETH") {
+                            // Always try to convert syETH to USD
+                            if (ethPrice > 0) {
+                              usdValue = s.balance * strategyRate * ethPrice;
+                              console.log(
+                                "🔥 Withdrawable Balance Calc (syETH):",
+                                s.balance,
+                                "syETH *",
+                                strategyRate,
+                                "WETH *",
+                                ethPrice,
+                                "USD =",
+                                usdValue
+                              );
+                            } else {
+                              // If ETH price not loaded, use 0 for now (will update when price loads)
+                              usdValue = 0;
+                              console.log(
+                                "🔥 Withdrawable Balance Calc (syETH): ETH price not loaded yet, using 0"
                               );
                             }
                           } else {
@@ -3422,6 +3624,7 @@ const PortfolioSubpage: React.FC = () => {
                             const strategyRate = exchangeRatesPerStrategy[strategy.contract] || 1.0;
                             
                             // For syBTC: multiply by exchangeRate (syBTC to wBTC) and then by wBTC price (wBTC to USD) to show USD value
+                            // For syETH: multiply by exchangeRate (syETH to WETH) and then by ETH price (ETH to USD) to show USD value
                             // For syUSD: exchangeRate is already in USD terms
                             if (strategy.asset === "BTC" && wbtcPrice > 0) {
                               const usdValue = strategy.balance * strategyRate * wbtcPrice;
@@ -3430,6 +3633,13 @@ const PortfolioSubpage: React.FC = () => {
                               // If wBTC price not loaded yet, show wBTC amount with 6 decimals (without "wBTC" text)
                               const wbtcAmount = strategy.balance * strategyRate;
                               return `${wbtcAmount.toFixed(6)}`;
+                            } else if (strategy.asset === "ETH" && ethPrice > 0) {
+                              const usdValue = strategy.balance * strategyRate * ethPrice;
+                              return `$${usdValue.toFixed(2)}`;
+                            } else if (strategy.asset === "ETH") {
+                              // If ETH price not loaded yet, show ETH amount with 6 decimals
+                              const ethAmount = strategy.balance * strategyRate;
+                              return `${ethAmount.toFixed(6)}`;
                             } else {
                               // For syUSD, show USD value with 2 decimals
                               return `$${(strategy.balance * strategyRate).toFixed(2)}`;
@@ -3683,7 +3893,7 @@ const PortfolioSubpage: React.FC = () => {
                           <div className="text-[#9C9DA2] text-right   text-[12px] font-normal leading-normal">
                             Balance ({targetChain === "ethereum" ? "Ethereum" : targetChain === "arbitrum" ? "Arbitrum" : targetChain === "hyperEVM" ? "HyperEVM" : "Base"}):{" "}
                             <span className="text-[#D7E3EF] text-[12px] font-semibold leading-normal">
-                              {isLoadingNetworkBalance || (selectedStrategy?.asset === "BTC" && isLoadingWbtcPrice) ? (
+                              {isLoadingNetworkBalance || (selectedStrategy?.asset === "BTC" && isLoadingWbtcPrice) || (selectedStrategy?.asset === "ETH" && ethPrice === 0) ? (
                                 <span className="inline-flex items-center gap-1">
                                   <svg
                                     className="animate-spin h-3 w-3 text-[#9C9DA2]"
@@ -3712,24 +3922,30 @@ const PortfolioSubpage: React.FC = () => {
                                   $
                                   {(() => {
                                     // For syBTC: multiply by exchangeRate (syBTC to wBTC) and then by wBTC price (wBTC to USD)
+                                    // For syETH: multiply by exchangeRate (syETH to WETH) and then by ETH price (ETH to USD)
                                     // For syUSD: exchangeRate is already in USD terms
                                     if (selectedStrategy?.asset === "BTC" && wbtcPrice > 0) {
                                       const usdValue = selectedStrategyEthereumBalance * exchangeRate * wbtcPrice;
                                       return usdValue.toFixed(2);
+                                    } else if (selectedStrategy?.asset === "ETH" && ethPrice > 0) {
+                                      const usdValue = selectedStrategyEthereumBalance * exchangeRate * ethPrice;
+                                      return usdValue.toFixed(2);
                                     } else {
                                       return (selectedStrategyEthereumBalance * exchangeRate).toFixed(
-                                        selectedStrategy?.asset === "BTC" ? 6 : 2
+                                        selectedStrategy?.asset === "BTC" || selectedStrategy?.asset === "ETH" ? 6 : 2
                                       );
                                     }
                                   })()}{" "}
                                   ({selectedStrategyEthereumBalance.toFixed(
-                                    selectedStrategy?.asset === "BTC" ? 6 : 2
+                                    selectedStrategy?.asset === "BTC" || selectedStrategy?.asset === "ETH" ? 6 : 2
                                   )}{" "}
                                   {(() => {
                                     // Check if it's syHLP
                                     const isSyHLP = (selectedStrategy as any)?.name === "syHLP" || (selectedStrategy as any)?.hyperEVM;
                                     if (selectedStrategy?.asset === "BTC") {
                                       return "syBTC";
+                                    } else if (selectedStrategy?.asset === "ETH") {
+                                      return "syETH";
                                     } else if (isSyHLP) {
                                       return "syHLP";
                                     } else {
@@ -3824,9 +4040,10 @@ const PortfolioSubpage: React.FC = () => {
                               ) : withdrawAmount && amountOut ? (
                                 <>
                                   {(() => {
-                                    const assetName = withdrawableAssets[selectedAssetIdx]?.name || (selectedStrategy?.asset === "BTC" ? "wBTC" : "USDC");
+                                    const assetName = withdrawableAssets[selectedAssetIdx]?.name || (selectedStrategy?.asset === "BTC" ? "wBTC" : selectedStrategy?.asset === "ETH" ? "WETH" : "USDC");
                                     const isBTC = assetName === "wBTC" || selectedStrategy?.asset === "BTC";
-                                    const decimalPlaces = isBTC ? 6 : 2;
+                                    const isETH = assetName === "WETH" || selectedStrategy?.asset === "ETH";
+                                    const decimalPlaces = (isBTC || isETH) ? 6 : 2;
                                     return (
                                       <>
                                         {Number(
@@ -3843,9 +4060,10 @@ const PortfolioSubpage: React.FC = () => {
                               ) : withdrawAmount ? (
                                 <span className="text-[#9C9DA2]">
                                   {(() => {
-                                    const assetName = withdrawableAssets[selectedAssetIdx]?.name || (selectedStrategy?.asset === "BTC" ? "wBTC" : "USDC");
+                                    const assetName = withdrawableAssets[selectedAssetIdx]?.name || (selectedStrategy?.asset === "BTC" ? "wBTC" : selectedStrategy?.asset === "ETH" ? "WETH" : "USDC");
                                     const isBTC = assetName === "wBTC" || selectedStrategy?.asset === "BTC";
-                                    return isBTC ? `0.000000 ${assetName}` : `0.00 ${assetName}`;
+                                    const isETH = assetName === "WETH" || selectedStrategy?.asset === "ETH";
+                                    return (isBTC || isETH) ? `0.000000 ${assetName}` : `0.00 ${assetName}`;
                                   })()}
                                 </span>
                               ) : (

@@ -394,9 +394,12 @@ const ExchangeRate: React.FC<ExchangeRateProps> = ({
         // So exchange rate = 1 / rate
         const exchangeRateNumber = rateNumber > 0 ? 1 / rateNumber : 0;
 
-        // For BTC, show 7 decimals; for others, show 2 decimals
+        // For BTC and ETH, show 6 decimals; for others, show 2 decimals
         const isBtc = selectedAssetOption?.name === "eBTC" || 
                      (strategyConfig as any).type === "btc";
+        const isEth = selectedAssetOption?.name === "WETH" || 
+                     (strategyConfig as any).type === "eth";
+        const useHighPrecision = isBtc || isEth;
 
         console.log("Rate conversion:", {
           token: selectedAssetOption.name,
@@ -405,12 +408,12 @@ const ExchangeRate: React.FC<ExchangeRateProps> = ({
           rateFormatted,
           rateNumber,
           exchangeRate: exchangeRateNumber,
-          final: isBtc ? exchangeRateNumber.toFixed(7) : exchangeRateNumber.toFixed(2),
+          final: useHighPrecision ? exchangeRateNumber.toFixed(6) : exchangeRateNumber.toFixed(2),
         });
 
         const exchangeRateFormatted = exchangeRateNumber > 0
-          ? (isBtc ? exchangeRateNumber.toFixed(7) : exchangeRateNumber.toFixed(2))
-          : (isBtc ? "1.0000000" : "1.00");
+          ? (useHighPrecision ? exchangeRateNumber.toFixed(6) : exchangeRateNumber.toFixed(2))
+          : (useHighPrecision ? "1.000000" : "1.00");
         setExchangeRate(exchangeRateFormatted);
       } catch (error) {
         console.error(
@@ -547,6 +550,7 @@ const DepositView: React.FC<DepositViewProps> = ({
   const [sharesToReceive, setSharesToReceive] = useState<string>("0");
   const [usdValue, setUsdValue] = useState<string>("0.00"); // New state for shares calculation
   const [wbtcPrice, setWbtcPrice] = useState<number>(0); // wBTC price in USD
+  const [ethPrice, setEthPrice] = useState<number>(0); // ETH price in USD
 
   // Add state for custom dropdown
   const [isChainDropdownOpen, setIsChainDropdownOpen] = useState(false);
@@ -578,9 +582,12 @@ const DepositView: React.FC<DepositViewProps> = ({
     strategyConfigKey
   ] as StrategyConfig;
   
-  // Determine default chain based on strategy - BTC only has arbitrum
+  // Determine default chain based on strategy - BTC and ETH only have arbitrum
   const getDefaultChain = () => {
     if (selectedAsset === "BTC") {
+      return "arbitrum";
+    }
+    if (selectedAsset === "ETH") {
       return "arbitrum";
     }
     // For USD, check which networks are available
@@ -681,7 +688,7 @@ const DepositView: React.FC<DepositViewProps> = ({
     
     // If current chain is not valid, switch to a valid one
     if (!isValidChain) {
-      if (selectedAsset === "BTC" && strategyConfig.arbitrum) {
+      if ((selectedAsset === "BTC" || selectedAsset === "ETH") && strategyConfig.arbitrum) {
         setTargetChain("arbitrum");
       } else if ((strategyConfig as any).hyperEVM) {
         setTargetChain("hyperEVM");
@@ -881,21 +888,26 @@ const DepositView: React.FC<DepositViewProps> = ({
           ? 8
           : 18;
       const rateNumber = parseFloat(formatUnits(rateInQuote, rateDecimals));
-      // rateNumber represents: how many wBTC (or USDC) per 1 syBTC share
+      // rateNumber represents: how many wBTC/WETH (or USDC) per 1 syBTC/syETH share
       // For syBTC: shares (syBTC) * rateNumber (wBTC per syBTC) * wbtcPrice (USD per wBTC) = USD value
+      // For syETH: shares (syETH) * rateNumber (WETH per syETH) * ethPrice (USD per ETH) = USD value
       // For syUSD: shares (syUSD) * rateNumber (USDC per syUSD) = USD value (since USDC ≈ 1 USD)
       const isBtc = selectedAssetOption?.name === "eBTC" || selectedAsset === "BTC";
+      const isEth = selectedAssetOption?.name === "WETH" || selectedAsset === "ETH";
       let usdValueCalculated: number;
       if (isBtc && wbtcPrice > 0) {
         // For syBTC: multiply shares by exchange rate (syBTC to wBTC) and then by wBTC price (wBTC to USD)
         usdValueCalculated = sharesForUsd * rateNumber * wbtcPrice;
+      } else if (isEth && ethPrice > 0) {
+        // For syETH: multiply shares by exchange rate (syETH to WETH) and then by ETH price (ETH to USD)
+        usdValueCalculated = sharesForUsd * rateNumber * ethPrice;
       } else {
         // For syUSD: rateNumber is already in USD terms (USDC per syUSD ≈ USD per syUSD)
         usdValueCalculated = sharesForUsd * rateNumber;
       }
-      // For BTC, show 7 decimals; for others, show 2 decimals
-      const formattedUsdValue = isBtc 
-        ? usdValueCalculated.toFixed(7)
+      // For BTC and ETH, show 6 decimals; for others, show 2 decimals
+      const formattedUsdValue = (isBtc || isEth)
+        ? usdValueCalculated.toFixed(6)
         : usdValueCalculated.toFixed(2);
       setUsdValue(formattedUsdValue);
 
@@ -962,6 +974,54 @@ const DepositView: React.FC<DepositViewProps> = ({
     fetchWbtcPrice();
   }, [selectedAsset]);
 
+  // Fetch ETH price when ETH strategy is selected
+  useEffect(() => {
+    const fetchEthPrice = async () => {
+      if (selectedAsset === "ETH") {
+        try {
+          const ethPriceUrl = (ETH_STRATEGIES.PERPETUAL_DURATION.STABLE as any).ethPrice;
+          
+          if (!ethPriceUrl || typeof ethPriceUrl !== "string" || !ethPriceUrl.startsWith("http")) {
+            console.warn("ETH price URL not available");
+            setEthPrice(0);
+            return;
+          }
+
+          const response = await fetch(ethPriceUrl);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          // Handle both string and number formats: {"result":"3500.00"} or {"result":3500.00}
+          const price = data?.result || data?.price || data?.rate;
+          
+          if (typeof price === "number") {
+            setEthPrice(price);
+          } else if (typeof price === "string") {
+            const parsedPrice = parseFloat(price);
+            if (!isNaN(parsedPrice) && isFinite(parsedPrice)) {
+              setEthPrice(parsedPrice);
+            } else {
+              console.error(`Failed to parse ETH price: ${price}`);
+              setEthPrice(0);
+            }
+          } else {
+            console.error('Unexpected ETH price data structure:', data);
+            setEthPrice(0);
+          }
+        } catch (error) {
+          console.error('Error fetching ETH price:', error);
+          setEthPrice(0);
+        }
+      } else {
+        setEthPrice(0);
+      }
+    };
+
+    fetchEthPrice();
+  }, [selectedAsset]);
+
   // Effect to recalculate shares when amount or selected asset changes
   useEffect(() => {
     if (amount && parseFloat(amount) > 0) {
@@ -970,7 +1030,7 @@ const DepositView: React.FC<DepositViewProps> = ({
       setSharesToReceive("0");
       setUsdValue("0.00");
     }
-  }, [amount, selectedAssetIdx, targetChain, strategyConfig, wbtcPrice]);
+  }, [amount, selectedAssetIdx, targetChain, strategyConfig, wbtcPrice, ethPrice]);
 
   // Calculate deposit cap values from env config
   const showDepositCap = strategyConfig.show_cap;
@@ -2301,7 +2361,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                           <div className="flex flex-col items-center">
                             <div className="flex items-center justify-center">
                               <div className="text-white font-semibold capitalize flex items-center gap-[10px]">
-                                {(strategyConfig as any)?.displayName || (strategyConfig as any)?.name || (selectedAsset === "BTC" ? "Stable BTC" : `${strategy} ${selectedAsset}`)}
+                                {(strategyConfig as any)?.displayName || (strategyConfig as any)?.name || (selectedAsset === "BTC" ? "Stable BTC" : selectedAsset === "ETH" ? "Stable ETH" : `${strategy} ${selectedAsset}`)}
                                 <button
                                   onClick={onBack}
                                   className="text-[#9C9DA2] hover:text-[#B88AF8] transition-all duration-200 cursor-pointer"
@@ -2352,10 +2412,10 @@ const DepositView: React.FC<DepositViewProps> = ({
                           <div className="mt-8">
                             <div className="text-[#D7E3EF] text-[24px] font-bold leading-normal">
                               {sharesToReceive
-                                ? selectedAsset === "BTC"
+                                ? selectedAsset === "BTC" || selectedAsset === "ETH"
                                   ? Number(sharesToReceive).toFixed(7)
                                   : Number(sharesToReceive).toFixed(2)
-                                : selectedAsset === "BTC"
+                                : selectedAsset === "BTC" || selectedAsset === "ETH"
                                 ? "0.0000000"
                                 : "0.00"}
                             </div>

@@ -134,24 +134,32 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   const usdVaultAddress = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.toLowerCase();
   const btcVaultAddress = BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.toLowerCase();
   const syHLPVaultAddress = USD_STRATEGIES.PERPETUAL_DURATION.syHLP.boringVaultAddress.toLowerCase();
+  const ethVaultAddress = ETH_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.toLowerCase();
   const currentVaultAddress = contractAddress?.toLowerCase() || usdVaultAddress;
   const isBtcStrategy = currentVaultAddress === btcVaultAddress;
   const isSyHLPStrategy = currentVaultAddress === syHLPVaultAddress || name?.toLowerCase().includes("hlp");
+  const isSyETHStrategy = currentVaultAddress === ethVaultAddress || name?.toLowerCase().includes("syeth") || name?.toLowerCase().includes("stable yield eth") || name?.toLowerCase().includes("yield eth");
   const strategy = isBtcStrategy 
     ? BTC_STRATEGIES.PERPETUAL_DURATION.STABLE 
     : isSyHLPStrategy
     ? USD_STRATEGIES.PERPETUAL_DURATION.syHLP
+    : isSyETHStrategy
+    ? ETH_STRATEGIES.PERPETUAL_DURATION.STABLE
     : USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
   // Use strategy's image property if available, otherwise fallback to default
   const strategyIcon = (strategy as any).image || (isBtcStrategy 
     ? "/images/icons/syBTC.svg" 
     : isSyHLPStrategy 
     ? "/images/icons/syHLP.svg"
+    : isSyETHStrategy
+    ? "/images/icons/eth-stable.svg"
     : "/images/icons/syUSD.svg");
   const strategyDescription = isBtcStrategy 
     ? "syBTC is a synthetic BTC strategy that provides yield through various DeFi strategies"
     : isSyHLPStrategy
     ? "syHLP is a stable yield strategy for HLP tokens"
+    : isSyETHStrategy
+    ? "syETH is a stable yield strategy for ETH tokens on Base network"
     : "syUSD is a synthetic USD stablecoin that provides yield through various DeFi strategies";
 
   // Helper function to get explorer URL based on strategy network
@@ -251,6 +259,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
       const usdVaultAddress = USD_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.toLowerCase();
       const btcVaultAddress = BTC_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.toLowerCase();
       const syHLPVaultAddress = USD_STRATEGIES.PERPETUAL_DURATION.syHLP.boringVaultAddress.toLowerCase();
+      const ethVaultAddress = ETH_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress.toLowerCase();
       const currentVaultAddress = contractAddress?.toLowerCase() || usdVaultAddress;
 
       let strategy;
@@ -262,6 +271,9 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
       } else if (currentVaultAddress === syHLPVaultAddress || name?.toLowerCase().includes("hlp")) {
         strategy = USD_STRATEGIES.PERPETUAL_DURATION.syHLP;
         strategyName = "syHLP";
+      } else if (currentVaultAddress === ethVaultAddress || name?.toLowerCase().includes("syeth") || name?.toLowerCase().includes("stable yield eth") || name?.toLowerCase().includes("yield eth")) {
+        strategy = ETH_STRATEGIES.PERPETUAL_DURATION.STABLE;
+        strategyName = "syETH";
       } else {
         strategy = USD_STRATEGIES.PERPETUAL_DURATION.STABLE;
         strategyName = "syUSD";
@@ -332,6 +344,16 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
             name: "Arbitrum",
           });
         }
+      } else if (strategyName === "syETH") {
+        // syETH vault exists only on Arbitrum
+        const ethStrategy = strategy as typeof ETH_STRATEGIES.PERPETUAL_DURATION.STABLE;
+        if ((ethStrategy as any).arbitrum) {
+          networks.push({
+            config: (ethStrategy as any).arbitrum,
+            address: ethStrategy.boringVaultAddress,
+            name: "Arbitrum",
+          });
+        }
       }
 
       const validNetworks = networks.filter((network) => network.config && network.address);
@@ -373,10 +395,10 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
     }
   };
 
-  // Check balances across all networks when address or connection changes
+  // Check balances across all networks when address, connection, or strategy changes
   useEffect(() => {
     checkAllNetworkBalances();
-  }, [address, isConnected, contractAddress]);
+  }, [address, isConnected, contractAddress, name]);
 
   // Format tooltip content for network balances
   const formatNetworkBalancesTooltip = () => {
@@ -459,62 +481,78 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
 
   // Sub-components for each tab
 
-  const renderDepositsTab = () => (
-    <div className="w-full">
-      <div className="flex justify-between items-center mb-3 mt-4">
-        <h2 className="text-[rgba(255,255,255,0.70)] text-[16px] font-extrabold ">
-          Total deposits in {name}
-        </h2>
-
-        {/* Toggle buttons */}
-        <div className="flex overflow-hidden border border-[rgba(184,138,248,0.2)] rounded-md">
-          <button
-            className={`px-3 py-1.5 w-28 text-xs transition-colors duration-150 ${
-              activeDepositTab === "deposits"
-                ? "bg-[rgba(184,138,248,0.1)] text-white"
-                : "bg-transparent text-gray-400 hover:text-gray-300"
-            }`}
-            onClick={() => setActiveDepositTab("deposits")}
-          >
-            Total Deposits
-          </button>
-          <button
-            className={`px-3 py-1.5 w-28 text-xs transition-colors duration-150 ${
-              activeDepositTab === "allocation"
-                ? "bg-[rgba(184,138,248,0.1)] text-white"
-                : "bg-transparent text-gray-400 hover:text-gray-300"
-            }`}
-            onClick={() => setActiveDepositTab("allocation")}
-          >
-            Allocation
-          </button>
-        </div>
-      </div>
-
-      {activeDepositTab === "deposits" && (
-        <div className="h-[800px] overflow-y-auto pb-2">
-          <DepositBarChart strategyType={isBtcStrategy ? "BTC" : isSyHLPStrategy ? "HLP" : "USD"} />
-        </div>
-      )}
-
-      {activeDepositTab === "allocation" && (
-        <div className="overflow-y-auto pb-2">
-          <AllocationChart strategyType={isBtcStrategy ? "BTC" : isSyHLPStrategy ? "HLP" : "USD"} />
-        </div>
-      )}
-    </div>
-  );
-
-  const renderBaseApyTab = () => {
-    // Show "Data collecting" message for syHLP strategy
-    if (isSyHLPStrategy) {
+  const renderDepositsTab = () => {
+    // Show "Data collecting" message for syHLP and syETH strategies
+    if (isSyHLPStrategy || isSyETHStrategy) {
       return (
         <div className="w-full flex flex-col items-center justify-center py-20">
           <div className="text-[rgba(255,255,255,0.70)] text-[16px] font-medium mb-2">
             Data Collecting
           </div>
           <div className="text-[#9C9DA2] text-[14px]">
-            APY data for syHLP will be available soon
+            Deposit data for {isSyETHStrategy ? "syETH" : "syHLP"} will be available soon
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="w-full">
+        <div className="flex justify-between items-center mb-3 mt-4">
+          <h2 className="text-[rgba(255,255,255,0.70)] text-[16px] font-extrabold ">
+            Total deposits in {name}
+          </h2>
+
+          {/* Toggle buttons */}
+          <div className="flex overflow-hidden border border-[rgba(184,138,248,0.2)] rounded-md">
+            <button
+              className={`px-3 py-1.5 w-28 text-xs transition-colors duration-150 ${
+                activeDepositTab === "deposits"
+                  ? "bg-[rgba(184,138,248,0.1)] text-white"
+                  : "bg-transparent text-gray-400 hover:text-gray-300"
+              }`}
+              onClick={() => setActiveDepositTab("deposits")}
+            >
+              Total Deposits
+            </button>
+            <button
+              className={`px-3 py-1.5 w-28 text-xs transition-colors duration-150 ${
+                activeDepositTab === "allocation"
+                  ? "bg-[rgba(184,138,248,0.1)] text-white"
+                  : "bg-transparent text-gray-400 hover:text-gray-300"
+              }`}
+              onClick={() => setActiveDepositTab("allocation")}
+            >
+              Allocation
+            </button>
+          </div>
+        </div>
+
+        {activeDepositTab === "deposits" && (
+          <div className="h-[800px] overflow-y-auto pb-2">
+            <DepositBarChart strategyType={isBtcStrategy ? "BTC" : isSyHLPStrategy ? "HLP" : "USD"} />
+          </div>
+        )}
+
+        {activeDepositTab === "allocation" && (
+          <div className="overflow-y-auto pb-2">
+            <AllocationChart strategyType={isBtcStrategy ? "BTC" : isSyHLPStrategy ? "HLP" : "USD"} />
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderBaseApyTab = () => {
+    // Show "Data collecting" message for syHLP and syETH strategies
+    if (isSyHLPStrategy || isSyETHStrategy) {
+      return (
+        <div className="w-full flex flex-col items-center justify-center py-20">
+          <div className="text-[rgba(255,255,255,0.70)] text-[16px] font-medium mb-2">
+            Data Collecting
+          </div>
+          <div className="text-[#9C9DA2] text-[14px]">
+            APY data for {isSyETHStrategy ? "syETH" : "syHLP"} will be available soon
           </div>
         </div>
       );
@@ -568,15 +606,15 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
   };
 
   const renderIncentivesTab = () => {
-    // Show "Data collecting" message for syHLP strategy
-    if (isSyHLPStrategy) {
+    // Show "Data collecting" message for syHLP and syETH strategies
+    if (isSyHLPStrategy || isSyETHStrategy) {
       return (
         <div className="w-full flex flex-col items-center justify-center py-20">
           <div className="text-[rgba(255,255,255,0.70)] text-[16px] font-medium mb-2">
             Data Collecting
           </div>
           <div className="text-[#9C9DA2] text-[14px]">
-            Incentives data for syHLP will be available soon
+            Incentives data for {isSyETHStrategy ? "syETH" : "syHLP"} will be available soon
           </div>
         </div>
       );
@@ -640,7 +678,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                   />
                 </a>
                 {/* Stablewatch link - only for syUSD */}
-                {!isBtcStrategy && !isSyHLPStrategy && (
+                {!isBtcStrategy && !isSyHLPStrategy && !isSyETHStrategy && (
                   <>
                     <span className="text-[#9C9DA2] text-[12px] mx-1">|</span>
                     <a
@@ -667,7 +705,7 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
                   <div className="w-4 h-4 rounded-full overflow-hidden flex items-center justify-center">
                     <Image
                       src={strategyIcon}
-                      alt={isBtcStrategy ? "syBTC" : isSyHLPStrategy ? "syHLP" : "syUSD"}
+                      alt={isBtcStrategy ? "syBTC" : isSyHLPStrategy ? "syHLP" : isSyETHStrategy ? "syETH" : "syUSD"}
                       width={16}
                       height={16}
                       className="object-contain"
