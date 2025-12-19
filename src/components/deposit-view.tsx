@@ -578,9 +578,12 @@ const DepositView: React.FC<DepositViewProps> = ({
     strategyConfigKey
   ] as StrategyConfig;
   
-  // Determine default chain based on strategy - BTC only has arbitrum
+  // Determine default chain based on strategy - BTC and ETH only have arbitrum
   const getDefaultChain = () => {
     if (selectedAsset === "BTC") {
+      return "arbitrum";
+    }
+    if (selectedAsset === "ETH") {
       return "arbitrum";
     }
     // For USD, check which networks are available
@@ -681,7 +684,7 @@ const DepositView: React.FC<DepositViewProps> = ({
     
     // If current chain is not valid, switch to a valid one
     if (!isValidChain) {
-      if (selectedAsset === "BTC" && strategyConfig.arbitrum) {
+      if ((selectedAsset === "BTC" || selectedAsset === "ETH") && strategyConfig.arbitrum) {
         setTargetChain("arbitrum");
       } else if ((strategyConfig as any).hyperEVM) {
         setTargetChain("hyperEVM");
@@ -2301,7 +2304,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                           <div className="flex flex-col items-center">
                             <div className="flex items-center justify-center">
                               <div className="text-white font-semibold capitalize flex items-center gap-[10px]">
-                                {(strategyConfig as any)?.displayName || (strategyConfig as any)?.name || (selectedAsset === "BTC" ? "Stable BTC" : `${strategy} ${selectedAsset}`)}
+                                {(strategyConfig as any)?.displayName || (strategyConfig as any)?.name || (selectedAsset === "BTC" ? "Stable BTC" : selectedAsset === "ETH" ? "Stable ETH" : `${strategy} ${selectedAsset}`)}
                                 <button
                                   onClick={onBack}
                                   className="text-[#9C9DA2] hover:text-[#B88AF8] transition-all duration-200 cursor-pointer"
@@ -2352,10 +2355,10 @@ const DepositView: React.FC<DepositViewProps> = ({
                           <div className="mt-8">
                             <div className="text-[#D7E3EF] text-[24px] font-bold leading-normal">
                               {sharesToReceive
-                                ? selectedAsset === "BTC"
+                                ? selectedAsset === "BTC" || selectedAsset === "ETH"
                                   ? Number(sharesToReceive).toFixed(7)
                                   : Number(sharesToReceive).toFixed(2)
-                                : selectedAsset === "BTC"
+                                : selectedAsset === "BTC" || selectedAsset === "ETH"
                                 ? "0.0000000"
                                 : "0.00"}
                             </div>

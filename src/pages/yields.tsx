@@ -869,13 +869,15 @@ const MarketsSubpage: React.FC = () => {
         <>
           {showDepositView ? (
             <DepositView
-              selectedAsset={selectedItem?.type === "btc" ? "BTC" : "USD"}
+              selectedAsset={selectedItem?.type === "btc" ? "BTC" : selectedItem?.type === "eth" ? "ETH" : "USD"}
               duration="PERPETUAL_DURATION"
               strategy={selectedItem?.strategyKey === "syHLP" ? "syHLP" : selectedItem?.strategyKey === "STABLE" ? "stable" : "stable"}
               strategyKey={selectedItem?.strategyKey || "STABLE"} // Pass the strategy key to identify which config to use
               apy={
                 selectedItem?.type === "btc"
                   ? btcApy === "Loading..." ? "N/A" : btcApy
+                  : selectedItem?.type === "eth"
+                  ? ethApy === "Loading..." ? "N/A" : ethApy
                   : selectedItem?.strategyKey === "STABLE" 
                     ? (usdApy === "Loading..." ? "N/A" : usdApy)
                     : (selectedItem?.baseYield || "---")

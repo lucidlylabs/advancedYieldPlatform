@@ -15,7 +15,7 @@ export const USD_STRATEGIES = {
 
       base: {
         image: "/images/logo/base.svg",
-        rpc: "https://mainnet.base.org",
+        rpc: "https://base.llamarpc.com",
         chainId: 8453,
         chainObject: {
           id: 8453,
@@ -23,8 +23,8 @@ export const USD_STRATEGIES = {
           network: "base",
           nativeCurrency: { decimals: 18, name: "Ethereum", symbol: "ETH" },
           rpcUrls: {
-            default: { http: ["https://mainnet.base.org", "https://base.llamarpc.com", "https://base-rpc.publicnode.com"] },
-            public: { http: ["https://mainnet.base.org", "https://base.llamarpc.com", "https://base-rpc.publicnode.com"] },
+            default: { http: ["https://base.llamarpc.com", "https://base-rpc.publicnode.com", "https://mainnet.base.org"] },
+            public: { http: ["https://base.llamarpc.com", "https://base-rpc.publicnode.com", "https://mainnet.base.org"] },
           },
         },
         tokens: [
@@ -328,7 +328,7 @@ export const ETH_STRATEGIES = {
             name: "WETH",
             contract: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1", // TODO: Add WETH contract address on Arbitrum
             decimal: 18,
-            image: "/images/icons/weth.svg",
+            image: "/images/icons/wETH.png",
             isWithdrawable: true,
           },
         ],
