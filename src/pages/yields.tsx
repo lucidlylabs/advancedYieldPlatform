@@ -955,7 +955,6 @@ const MarketsSubpage: React.FC = () => {
                         asset="ETH"
                         activeAsset={selectedAsset}
                         onClick={setSelectedAsset}
-                        disabled
                       />
                       <AssetButton
                         asset="BTC"
