@@ -299,34 +299,34 @@ export const ETH_STRATEGIES = {
       name: "syETH",
       displayName: "Stable Yield ETH",
       type: "eth",
-      network: "Base",
-      contract: "", // TODO: Add contract address
-      boringVaultAddress: "", // TODO: Add vault address
-      solverAddress: "", // TODO: Add solver address
-      shareAddress: "", // TODO: Add share address
+      network: "Arbitrum",
+      contract: "0xF2b4af425556d1D35ED0889DF8415F58D3695D73", // TODO: Add contract address
+      boringVaultAddress: "0xEa96252EaBE2F2A0EA20ff42779CD985Ba596657", // TODO: Add vault address
+      solverAddress: "0x306695506D3E9FEe145A22E091667B95d0686a24", // TODO: Add solver address
+      shareAddress: "0xEa96252EaBE2F2A0EA20ff42779CD985Ba596657", // TODO: Add share address
       shareAddress_token_decimal: 18,
-      rateProvider: "", // TODO: Add rate provider address
-      image: "/images/icons/syETH.svg",
+      rateProvider: "0x63c9934E832823Be6A2b7e140877777C75eD3A99", // TODO: Add rate provider address
+      image: "/images/icons/eth-stable.svg",
 
-      // Base Network Configuration
-      base: {
-        image: "/images/logo/base.svg",
-        rpc: "https://base.llamarpc.com",
-        chainId: 8453,
+      // Arbitrum Network Configuration
+      arbitrum: {
+        image: "/images/logo/arb.svg",
+        rpc: "https://arb1.arbitrum.io/rpc",
+        chainId: 42161,
         chainObject: {
-          id: 8453,
-          name: "Base",
-          network: "base",
-          nativeCurrency: { decimals: 18, name: "Ethereum", symbol: "ETH" },
+          id: 42161,
+          name: "Arbitrum One",
+          network: "arbitrum",
+          nativeCurrency: { decimals: 18, name: "Ether", symbol: "ETH" },
           rpcUrls: {
-            default: { http: ["https://base.llamarpc.com"] },
-            public: { http: ["https://base.llamarpc.com"] },
+            default: { http: ["https://arb1.arbitrum.io/rpc"] },
+            public: { http: ["https://arb1.arbitrum.io/rpc"] },
           },
         },
         tokens: [
           {
             name: "WETH",
-            contract: "", // TODO: Add WETH contract address
+            contract: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1", // TODO: Add WETH contract address on Arbitrum
             decimal: 18,
             image: "/images/icons/weth.svg",
             isWithdrawable: true,
@@ -340,7 +340,7 @@ export const ETH_STRATEGIES = {
         points: [],
       },
 
-      description: "Perpetual syETH strategy on Base network",
+      description: "Perpetual syETH strategy on Arbitrum network",
       apy: "", // TODO: Add APY endpoint
       cap_limit: "0",
       filled_cap: "0",
@@ -348,7 +348,7 @@ export const ETH_STRATEGIES = {
       tvl: "https://api.lucidly.finance/services/aum_data?vaultName=syETH",
       ethPrice: "https://api.lucidly.finance/services/currency_rates?assetName=ETH",
       withdraw_request: "", // TODO: Add withdraw request endpoint
-      rpc: "https://base.llamarpc.com",
+      rpc: "https://arb1.arbitrum.io/rpc",
     },
     INCENTIVE: {
       network: "",

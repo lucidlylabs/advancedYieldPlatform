@@ -105,6 +105,8 @@ const MarketsSubpage: React.FC = () => {
   const [usdApy, setUsdApy] = useState<string>("Loading...");
   const [btcTvl, setBtcTvl] = useState<string>("Loading...");
   const [btcApy, setBtcApy] = useState<string>("Loading...");
+  const [ethTvl, setEthTvl] = useState<string>("Loading...");
+  const [ethApy, setEthApy] = useState<string>("Loading...");
   // Store TVL for each strategy by key (e.g., "syHLP" -> "$5.00")
   const [strategyTvls, setStrategyTvls] = useState<Record<string, string>>({});
   const [showColumnsDropdown, setShowColumnsDropdown] = useState(false);
@@ -156,11 +158,56 @@ const MarketsSubpage: React.FC = () => {
 
   const router = useRouter();
 
-  // Update market data when usdApy, usdTvl, btcApy, or btcTvl changes
+  // Update market data when usdApy, usdTvl, btcApy, btcTvl, ethApy, or ethTvl changes
   useEffect(() => {
     const newMarketData: Record<AssetType, MarketItem[]> = {
       All: [],
-      ETH: [], // Empty for now - no ETH strategies available yet
+      ETH: [
+        {
+          id: 5,
+          name: ETH_STRATEGIES.PERPETUAL_DURATION.STABLE.displayName,
+          ticker: ETH_STRATEGIES.PERPETUAL_DURATION.STABLE.name, // syETH
+          type: ETH_STRATEGIES.PERPETUAL_DURATION.STABLE.type,
+          baseYield: ethApy,
+          incentives: (() => {
+            const incentives =
+              ETH_STRATEGIES.PERPETUAL_DURATION.STABLE.incentives;
+            console.log("Raw ETH incentives config:", incentives);
+
+            if (
+              !incentives?.enabled ||
+              !incentives.points ||
+              incentives.points.length === 0
+            ) {
+              console.log("No ETH incentives enabled or no points");
+              return [];
+            }
+
+            // Return objects with image, name, and link for tooltips and navigation
+            const incentiveData = (incentives.points as Array<{
+              name: string;
+              image: string;
+              multiplier: number;
+              description: string;
+              link?: string;
+            }>).map((point) => ({
+              image: point.image,
+              name: point.name,
+              link: point.link || "#", // Use link from config or fallback to "#"
+            }));
+            console.log("ETH Incentive data:", incentiveData);
+            return incentiveData;
+          })(),
+          tvl: ethTvl,
+          description: ETH_STRATEGIES.PERPETUAL_DURATION.STABLE.description,
+          riskLevel: "Very Low",
+          network: ETH_STRATEGIES.PERPETUAL_DURATION.STABLE.network,
+          contractAddress:
+            ETH_STRATEGIES.PERPETUAL_DURATION.STABLE.boringVaultAddress,
+          image: ETH_STRATEGIES.PERPETUAL_DURATION.STABLE.image,
+          strategyKey: "STABLE",
+        },
+      ],
       BTC: [
         {
           id: 6,
@@ -267,7 +314,7 @@ const MarketsSubpage: React.FC = () => {
     ];
 
     setMarketData(newMarketData);
-  }, [usdApy, usdTvl, btcApy, btcTvl, strategyTvls]);
+  }, [usdApy, usdTvl, btcApy, btcTvl, ethApy, ethTvl, strategyTvls]);
 
   // Fetch TVL for USD strategy if it's a URL
   useEffect(() => {
@@ -554,6 +601,165 @@ const MarketsSubpage: React.FC = () => {
     } else {
       // If no APY URL is available, set to ---
       setBtcApy("---");
+    }
+  }, []);
+
+  // Fetch TVL for ETH strategy if it's a URL
+  useEffect(() => {
+    const tvlUrl = ETH_STRATEGIES.PERPETUAL_DURATION.STABLE.tvl;
+    const ethPriceUrl = (ETH_STRATEGIES.PERPETUAL_DURATION.STABLE as any).ethPrice;
+    
+    console.log(`🔍 ETH TVL URL: ${tvlUrl}`);
+    console.log(`🔍 ETH Price URL: ${ethPriceUrl}`);
+    
+    if (typeof tvlUrl === "string" && tvlUrl.startsWith("http")) {
+      // Fetch TVL (in ETH terms)
+      fetch(tvlUrl)
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          return res.json();
+        })
+        .then(async (data) => {
+          let tvlValue: number;
+          
+          // Handle both string and number formats, including scientific notation
+          if (typeof data.result === "number") {
+            tvlValue = data.result;
+          } else if (typeof data.result === "string") {
+            // Parse string, handling scientific notation (e.g., "3.536e-05")
+            tvlValue = parseFloat(data.result);
+            if (isNaN(tvlValue)) {
+              console.warn("Failed to parse ETH TVL value:", data.result);
+              setEthTvl("N/A");
+              return;
+            }
+          } else {
+            console.warn("Unexpected ETH TVL data structure:", data);
+            setEthTvl("N/A");
+            return;
+          }
+          
+          console.log(`🔍 Raw ETH TVL value from API: ${tvlValue} ETH (original: ${data.result})`);
+          
+          // Multiply by ETH price to convert from ETH to USD
+          if (ethPriceUrl && typeof ethPriceUrl === "string" && ethPriceUrl.startsWith("http")) {
+            console.log(`🔍 Fetching ETH price from: ${ethPriceUrl}`);
+            try {
+              const priceResponse = await fetch(ethPriceUrl);
+              console.log(`🔍 ETH Price response status: ${priceResponse.status}`);
+              
+              if (priceResponse.ok) {
+                const priceData = await priceResponse.json();
+                console.log(`🔍 ETH Price API response:`, priceData);
+                
+                // Handle both string and number formats
+                let ethPrice = priceData?.result || priceData?.price || priceData?.rate;
+                console.log(`🔍 Extracted ETH price value: ${ethPrice} (type: ${typeof ethPrice})`);
+                
+                // Convert string to number if needed
+                if (typeof ethPrice === "string") {
+                  ethPrice = parseFloat(ethPrice);
+                  console.log(`🔍 Parsed ETH price string to number: ${ethPrice}`);
+                }
+                
+                console.log(`✅ Fetched ETH price: ${ethPrice} USD`);
+                
+                if (typeof ethPrice === "number" && ethPrice > 0 && !isNaN(ethPrice) && isFinite(ethPrice)) {
+                  const originalTvl = tvlValue;
+                  tvlValue = tvlValue * ethPrice;
+                  console.log(`✅ ETH TVL conversion: ${originalTvl} ETH * ${ethPrice} USD/ETH = ${tvlValue} USD`);
+                  
+                  // Validate the result
+                  if (tvlValue <= 0 || isNaN(tvlValue) || !isFinite(tvlValue)) {
+                    console.error(`❌ Invalid TVL after conversion: ${tvlValue}`);
+                    setEthTvl("N/A");
+                    return;
+                  }
+                } else {
+                  console.error(`❌ Invalid ETH price: ${ethPrice}`);
+                }
+              } else {
+                console.error(`❌ ETH Price API response not OK: ${priceResponse.status}`);
+              }
+            } catch (priceError) {
+              console.error("❌ Error fetching ETH price:", priceError);
+            }
+          } else {
+            console.error(`❌ ethPriceUrl is invalid: ${ethPriceUrl}`);
+          }
+          
+          console.log(`Final ETH TVL value to format: ${tvlValue} USD`);
+          
+          // Format with appropriate decimal places based on value size
+          let formattedTvl: string;
+          if (tvlValue < 1 && tvlValue > 0) {
+            // For values less than $1, show with 2 decimal places
+            formattedTvl = `$${tvlValue.toFixed(2)}`;
+          } else {
+            // For larger values, format with commas and round to nearest dollar
+            formattedTvl = tvlValue.toLocaleString("en-US", {
+              style: "currency",
+              currency: "USD",
+              maximumFractionDigits: 0,
+              minimumFractionDigits: 0,
+            });
+          }
+          
+          setEthTvl(formattedTvl);
+        })
+        .catch((error) => {
+          console.error("Error fetching ETH TVL:", error);
+          setEthTvl("N/A");
+        });
+    } else if (typeof tvlUrl === "string" && !tvlUrl.startsWith("http")) {
+      // If tvlUrl is not a URL, use it directly (fallback value)
+      setEthTvl(tvlUrl);
+    } else {
+      // If no TVL URL is available, set to N/A
+      setEthTvl("N/A");
+    }
+  }, []);
+
+  // Fetch APY for ETH strategy if it's a URL
+  useEffect(() => {
+    const apyUrl = ETH_STRATEGIES.PERPETUAL_DURATION.STABLE.apy;
+    
+    // Check if apyUrl is empty or just whitespace
+    if (!apyUrl || (typeof apyUrl === "string" && apyUrl.trim() === "")) {
+      setEthApy("---");
+      return;
+    }
+    
+    if (typeof apyUrl === "string" && apyUrl.startsWith("http")) {
+      fetch(apyUrl)
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          return res.json();
+        })
+        .then((data) => {
+          const trailingApy = data?.result?.trailing_total_APY;
+          if (typeof trailingApy === "number") {
+            setEthApy(`${trailingApy.toFixed(2)}%`);
+          } else {
+            console.warn("Unexpected ETH APY data structure:", data);
+            setEthApy("---");
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching ETH APY:", error);
+          setEthApy("---");
+        });
+    } else if (typeof apyUrl === "string" && !apyUrl.startsWith("http")) {
+      // If apyUrl is not a URL, use it directly (fallback value)
+      // If it's empty, show "---"
+      setEthApy(apyUrl && apyUrl.trim() !== "" ? apyUrl : "---");
+    } else {
+      // If no APY URL is available, set to ---
+      setEthApy("---");
     }
   }, []);
 
