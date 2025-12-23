@@ -2690,8 +2690,8 @@ const DepositView: React.FC<DepositViewProps> = ({
                             <span>Loading...</span>
                           </div>
                         ) : (
-                          // For BTC assets, show balance without $ prefix; for others, show USD value
-                          asset.name === "eBTC" || asset.name === "wBTC"
+                          // For BTC and ETH assets, show balance without $ prefix; for others, show USD value
+                          asset.name === "eBTC" || asset.name === "wBTC" || asset.name === "WETH"
                             ? `${assetBalances[asset.name] || "0.000000"}`
                             : `$${assetBalances[asset.name] || "0.00"}`
                         )}
