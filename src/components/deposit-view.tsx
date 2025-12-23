@@ -2162,7 +2162,7 @@ const DepositView: React.FC<DepositViewProps> = ({
                             onClick={() =>
                               setIsChainDropdownOpen(!isChainDropdownOpen)
                             }
-                            className="flex items-center w-fit bg-[#1e202c] text-[#EDF2F8] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] pr-2 mr-[10px]"
+                            className="flex items-center w-fit bg-[#1e202c] text-[#EDF2F8] rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#B88AF8] pr-3 mr-[10px] gap-1"
                           >
                             <div className="flex items-center gap-2">
                               {targetChain && (
@@ -2176,13 +2176,13 @@ const DepositView: React.FC<DepositViewProps> = ({
                                   className="w-5 h-5 rounded-full"
                                 />
                               )}
-                              <span className="capitalize text-[12px]">
+                              <span className="capitalize text-[12px] whitespace-nowrap">
                                 {getUniqueChainConfigs.find(
                                   (c) => c.network === targetChain
                                 )?.name || targetChain}
                               </span>
                             </div>
-                            <div className="w-[10px]"></div>
+                            <div className="w-[12px] flex-shrink-0"></div>
                             <svg
                               className={`w-4 h-4 transform transition-transform duration-200 ${
                                 isChainDropdownOpen ? "rotate-180" : "rotate-0"
@@ -2690,8 +2690,8 @@ const DepositView: React.FC<DepositViewProps> = ({
                             <span>Loading...</span>
                           </div>
                         ) : (
-                          // For BTC assets, show balance without $ prefix; for others, show USD value
-                          asset.name === "eBTC" || asset.name === "wBTC"
+                          // For BTC and ETH assets, show balance without $ prefix; for others, show USD value
+                          asset.name === "eBTC" || asset.name === "wBTC" || asset.name === "WETH"
                             ? `${assetBalances[asset.name] || "0.000000"}`
                             : `$${assetBalances[asset.name] || "0.00"}`
                         )}
