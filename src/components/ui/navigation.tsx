@@ -5,15 +5,15 @@ import { CustomConnectButton } from "./ConnectButton/CustomConnectButton";
 import { useHeaderHeight } from "../../contexts/BannerContext";
 
 interface NavigationProps {
-  currentPage?: 'earn' | 'yields' | 'portfolio' | 'leaderboard' | 'bridge';
+  currentPage?: "earn" | "yields" | "portfolio" | "leaderboard" | "bridge";
   isMobileMenuOpen?: boolean;
   setIsMobileMenuOpen?: (open: boolean) => void;
 }
 
-export function Navigation({ 
-  currentPage, 
-  isMobileMenuOpen = false, 
-  setIsMobileMenuOpen 
+export function Navigation({
+  currentPage,
+  isMobileMenuOpen = false,
+  setIsMobileMenuOpen,
 }: NavigationProps) {
   const router = useRouter();
   const headerHeight = useHeaderHeight();
@@ -26,7 +26,7 @@ export function Navigation({
             <div
               className="cursor-pointer"
               onClick={() => {
-                router.push('/yields');
+                router.push("/yields");
               }}
             >
               <Image
@@ -59,16 +59,16 @@ export function Navigation({
 
               <button
                 className={`px-8 py-[18px] text-sm transition-colors relative ${
-                  currentPage === 'yields'
+                  currentPage === "yields"
                     ? "text-white"
                     : "text-[#9C9DA2] hover:text-gray-300"
                 }`}
                 onClick={() => {
-                  router.push('/yields');
+                  router.push("/yields");
                 }}
               >
                 Yields
-                {currentPage === 'yields' && (
+                {currentPage === "yields" && (
                   <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#B88AF8]"></div>
                 )}
               </button>
@@ -77,56 +77,56 @@ export function Navigation({
 
               <button
                 className={`px-8 py-[18px] text-sm transition-colors relative ${
-                  currentPage === 'portfolio'
+                  currentPage === "portfolio"
                     ? "text-white"
                     : "text-[#9C9DA2] hover:text-gray-300"
                 }`}
                 onClick={() => {
-                  router.push('/portfolio');
+                  router.push("/portfolio");
                 }}
               >
                 Portfolio
-                {currentPage === 'portfolio' && (
+                {currentPage === "portfolio" && (
                   <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#B88AF8]"></div>
                 )}
               </button>
-              
+
               <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
 
               <button
                 className={`px-8 py-[18px] text-sm transition-colors relative ${
-                  currentPage === 'leaderboard'
+                  currentPage === "leaderboard"
                     ? "text-white"
                     : "text-[#9C9DA2] hover:text-gray-300"
                 }`}
                 onClick={() => {
-                  router.push('/leaderboard');
+                  router.push("/leaderboard");
                 }}
               >
                 Leaderboard
-                {currentPage === 'leaderboard' && (
+                {currentPage === "leaderboard" && (
                   <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#B88AF8]"></div>
                 )}
               </button>
-              
+
               <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
 
               <button
                 className={`px-8 py-[18px] text-sm transition-colors relative ${
-                  currentPage === 'bridge'
+                  currentPage === "bridge"
                     ? "text-white"
                     : "text-[#9C9DA2] hover:text-gray-300"
                 }`}
                 onClick={() => {
-                  router.push('/bridge');
+                  router.push("/bridge");
                 }}
               >
                 Bridge
-                {currentPage === 'bridge' && (
+                {currentPage === "bridge" && (
                   <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#B88AF8]"></div>
                 )}
               </button>
-              
+
               <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
 
               <button
@@ -140,6 +140,19 @@ export function Navigation({
                 }}
               >
                 Docs
+              </button>
+              <div className="h-[20px] w-[1px] bg-[rgba(255,255,255,0.1)] self-center"></div>
+              <button
+                className={`px-8 py-[18px] text-sm transition-colors relative text-[#9C9DA2] hover:text-gray-300`}
+                onClick={() => {
+                  window.open(
+                    "https://manager.lucidly.finance/",
+                    "_blank",
+                    "noopener,noreferrer"
+                  );
+                }}
+              >
+                Manager Terminal
               </button>
             </div>
           </nav>
@@ -159,7 +172,12 @@ export function Navigation({
                   viewBox="0 0 24 24"
                   xmlns="http://www.w3.org/2000/svg"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               ) : (
                 <svg
@@ -169,7 +187,12 @@ export function Navigation({
                   viewBox="0 0 24 24"
                   xmlns="http://www.w3.org/2000/svg"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
                 </svg>
               )}
             </button>
@@ -179,15 +202,18 @@ export function Navigation({
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && setIsMobileMenuOpen && (
-        <div className="fixed left-0 right-0 z-[55] md:hidden bg-[rgba(13,16,28,0.95)] backdrop-blur-md py-4 flex flex-col items-center gap-4 border-b border-[rgba(255,255,255,0.1)] px-4" style={{ top: `${headerHeight}px` }}>
+        <div
+          className="fixed left-0 right-0 z-[55] md:hidden bg-[rgba(13,16,28,0.95)] backdrop-blur-md py-4 flex flex-col items-center gap-4 border-b border-[rgba(255,255,255,0.1)] px-4"
+          style={{ top: `${headerHeight}px` }}
+        >
           <button
             className={`text-lg w-full text-center py-2 rounded transition-colors ${
-              currentPage === 'yields'
+              currentPage === "yields"
                 ? "text-white bg-[rgba(184,138,248,0.1)]"
                 : "text-[#9C9DA2] hover:text-white"
             }`}
             onClick={() => {
-              router.push('/yields');
+              router.push("/yields");
               setIsMobileMenuOpen(false);
             }}
           >
@@ -195,12 +221,12 @@ export function Navigation({
           </button>
           <button
             className={`text-lg w-full text-center py-2 rounded transition-colors ${
-              currentPage === 'portfolio'
+              currentPage === "portfolio"
                 ? "text-white bg-[rgba(184,138,248,0.1)]"
                 : "text-[#9C9DA2] hover:text-white"
             }`}
             onClick={() => {
-              router.push('/portfolio');
+              router.push("/portfolio");
               setIsMobileMenuOpen(false);
             }}
           >
@@ -208,12 +234,12 @@ export function Navigation({
           </button>
           <button
             className={`text-lg w-full text-center py-2 rounded transition-colors ${
-              currentPage === 'leaderboard'
+              currentPage === "leaderboard"
                 ? "text-white bg-[rgba(184,138,248,0.1)]"
                 : "text-[#9C9DA2] hover:text-white"
             }`}
             onClick={() => {
-              router.push('/leaderboard');
+              router.push("/leaderboard");
               setIsMobileMenuOpen(false);
             }}
           >
@@ -221,12 +247,12 @@ export function Navigation({
           </button>
           <button
             className={`text-lg w-full text-center py-2 rounded transition-colors ${
-              currentPage === 'bridge'
+              currentPage === "bridge"
                 ? "text-white bg-[rgba(184,138,248,0.1)]"
                 : "text-[#9C9DA2] hover:text-white"
             }`}
             onClick={() => {
-              router.push('/bridge');
+              router.push("/bridge");
               setIsMobileMenuOpen(false);
             }}
           >
@@ -250,4 +276,3 @@ export function Navigation({
     </div>
   );
 }
-
