@@ -148,6 +148,12 @@ const PortfolioDetailedPage = () => {
   const chainId = useChainId();
   const isBase = chainId === 8453;
 
+  // Normalize router.query values (can be string | string[])
+  const normalizedBoringVaultAddress = Array.isArray(boringVaultAddress)
+    ? boringVaultAddress[0]
+    : (boringVaultAddress as string | undefined);
+  const normalizedRpc = Array.isArray(rpc) ? rpc[0] : (rpc as string | undefined);
+
   // Initialize `withdrawAmount` from query param and fetch current balance
   useEffect(() => {
     if (router.query.balance && typeof router.query.balance === "string") {
@@ -159,10 +165,10 @@ const PortfolioDetailedPage = () => {
 
   // Fetch current vault balance when component mounts or relevant params change
   useEffect(() => {
-    if (address && boringVaultAddress && rpc) {
+    if (address && normalizedBoringVaultAddress && normalizedRpc) {
       fetchCurrentVaultBalance();
     }
-  }, [address, boringVaultAddress, rpc]);
+  }, [address, normalizedBoringVaultAddress, normalizedRpc]);
 
   // Watch deposit transaction
   const { isLoading: isWaitingForDeposit, isSuccess: isDepositSuccess } =
@@ -252,12 +258,12 @@ const PortfolioDetailedPage = () => {
 
   // Function to fetch current vault balance
   const fetchCurrentVaultBalance = async () => {
-    if (!address || !boringVaultAddress || !rpc) return;
+    if (!address || !normalizedBoringVaultAddress || !normalizedRpc) return;
 
     try {
-      const normalizedRpc = Array.isArray(rpc) ? rpc[0] : (rpc as string || "https://base.llamarpc.com");
+      const rpcUrl = normalizedRpc || "https://base.llamarpc.com";
       const client = createPublicClient({
-        transport: http(normalizedRpc),
+        transport: http(rpcUrl),
         chain: {
           id: 8453,
           name: "Base",
@@ -268,14 +274,19 @@ const PortfolioDetailedPage = () => {
             symbol: "ETH",
           },
           rpcUrls: {
-            default: { http: [normalizedRpc] },
-            public: { http: [normalizedRpc] },
+            default: { http: [rpcUrl] },
+            public: { http: [rpcUrl] },
           },
         },
       });
 
       // Ensure addresses are properly checksummed
-      const checksummedVaultAddress = getAddress(boringVaultAddress);
+      if (!normalizedBoringVaultAddress) {
+        console.error("Invalid vault address");
+        return null;
+      }
+      
+      const checksummedVaultAddress = getAddress(normalizedBoringVaultAddress);
       const checksummedUserAddress = getAddress(address);
 
       const [balance, decimals] = await Promise.all([
@@ -429,12 +440,12 @@ const PortfolioDetailedPage = () => {
     
       console.log("Approval details:", {
         solverAddress,
-        boringVaultAddress,
+        boringVaultAddress: normalizedBoringVaultAddress,
         address
       });
   
       const client = createPublicClient({
-        transport: http(Array.isArray(rpc) ? rpc[0] : rpc || "https://base.llamarpc.com"),
+        transport: http(normalizedRpc || "https://base.llamarpc.com"),
         chain: {
           id: 8453,
           name: "Base",
@@ -452,8 +463,12 @@ const PortfolioDetailedPage = () => {
       });
   
       // Get decimals from vault
+      if (!normalizedBoringVaultAddress) {
+        throw new Error("Invalid vault address");
+      }
+      
       const decimals = (await client.readContract({
-        address: boringVaultAddress as Address,
+        address: normalizedBoringVaultAddress as Address,
         abi: ERC20_ABI,
         functionName: "decimals",
       })) as number;
@@ -464,7 +479,7 @@ const PortfolioDetailedPage = () => {
   
       // Approve the solver to spend the vault tokens
       const approveTx = await writeContract({
-        address: boringVaultAddress as Address,
+        address: normalizedBoringVaultAddress as Address,
         abi: ERC20_ABI,
         functionName: "approve",
         args: [solverAddress as `0x${string}`, sharesAmount],
@@ -529,8 +544,12 @@ const PortfolioDetailedPage = () => {
       });
 
       // Get decimals from vault contract
+      if (!normalizedBoringVaultAddress) {
+        throw new Error("Invalid vault address");
+      }
+      
       const decimals = (await client.readContract({
-        address: boringVaultAddress as Address,
+        address: normalizedBoringVaultAddress as Address,
         abi: ERC20_ABI,
         functionName: "decimals",
       })) as number;
@@ -731,18 +750,18 @@ const PortfolioDetailedPage = () => {
       if (!router.isReady || !contract || !withdrawAmount) return;
   
       try {
-        const normalizedRpc = Array.isArray(rpc) ? rpc[0] : (rpc as string || "https://base.llamarpc.com");
+        const rpcUrl = normalizedRpc || "https://base.llamarpc.com";
         console.log("🧪 Debug fetchAmountOut");
         console.log("contract:", contract);
         console.log("withdrawAmount:", withdrawAmount);
         console.log("solverAddress:", solverAddress);
-        console.log("boringVaultAddress:", boringVaultAddress);
-        console.log("rpc:", normalizedRpc);
+        console.log("boringVaultAddress:", normalizedBoringVaultAddress);
+        console.log("rpc:", rpcUrl);
 
         const selectedAssetAddress = getAddress(assetOptions[selectedAssetIdx].contract);
 
         const client = createPublicClient({
-          transport: http(normalizedRpc),
+          transport: http(rpcUrl),
           chain: {
             id: 8453,
             name: "Base",
@@ -760,8 +779,12 @@ const PortfolioDetailedPage = () => {
         });
 
         //Get decimals of the vault
+        if (!normalizedBoringVaultAddress) {
+          throw new Error("Invalid vault address");
+        }
+        
         const decimals = (await client.readContract({
-          address: boringVaultAddress as Address,
+          address: normalizedBoringVaultAddress as Address,
           abi: ERC20_ABI,
           functionName: "decimals",
         })) as number;
