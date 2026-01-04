@@ -755,6 +755,7 @@ const PortfolioSubpage: React.FC = () => {
           ? ["https://hyperliquid.drpc.org"] // HyperEVM fallback
           : [
               "https://base.llamarpc.com",
+              "https://base-rpc.publicnode.com",
               "https://base.blockpi.network/v1/rpc/public",
               "https://base-mainnet.g.alchemy.com/v2/demo",
               "https://base.meowrpc.com",
@@ -1313,6 +1314,10 @@ const PortfolioSubpage: React.FC = () => {
         return 0;
       }
 
+      // Ensure addresses are properly checksummed
+      const checksummedVaultAddress = getAddress(vaultAddress);
+      const checksummedUserAddress = getAddress(address);
+
       let totalBalance = 0;
       // Determine which networks to check based on strategy
       let networks: string[];
@@ -1323,7 +1328,7 @@ const PortfolioSubpage: React.FC = () => {
       } else if ((strategy as any).name === "syHLP" || (strategy as any).hyperEVM) {
         networks = ["hyperEVM"]; // syHLP is only on HyperEVM
       } else {
-        networks = ["base", "ethereum", "arbitrum"]; // syUSD and other USD strategies check Base, Ethereum, and Arbitrum
+        networks = ["base", "ethereum", "arbitrum", "katana"]; // syUSD and other USD strategies check Base, Ethereum, Arbitrum, and Katana
       }
 
       console.log(`🔍 Checking balance for ${(strategy as any).name || strategy.contract} on networks:`, networks, {
@@ -1382,17 +1387,17 @@ const PortfolioSubpage: React.FC = () => {
                 console.log(`Using shareAddress_token_decimal: ${decimals} for ${networkKey}`);
               } else {
                 decimals = await client.readContract({
-                  address: vaultAddress as Address,
+                  address: checksummedVaultAddress,
                   abi: ERC20_ABI,
                   functionName: "decimals",
                 }) as number;
               }
 
               balance = await client.readContract({
-                address: vaultAddress as Address,
+                address: checksummedVaultAddress,
                 abi: ERC20_ABI,
                 functionName: "balanceOf",
-                args: [address as Address],
+                args: [checksummedUserAddress],
               }) as bigint;
               
               // Success! Break out of RPC loop
@@ -1502,8 +1507,8 @@ const PortfolioSubpage: React.FC = () => {
       // syHLP is only on HyperEVM
       networks = ["hyperEVM"];
     } else if (strategy.asset === "USD") {
-      // syUSD is on Base and Ethereum
-      networks = ["base", "ethereum"];
+      // syUSD is on Base, Ethereum, Arbitrum, and Katana
+      networks = ["base", "ethereum", "arbitrum", "katana"];
     } else {
       // Default: check all available networks
       networks = ["base", "ethereum", "arbitrum"];

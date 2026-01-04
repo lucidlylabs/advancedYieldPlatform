@@ -12,6 +12,7 @@ import {
   http,
   Address,
   parseUnits,
+  getAddress,
 } from "viem";
 import { base, mainnet, arbitrum } from "wagmi/chains";
 import { Header } from "../components/ui/header";
@@ -154,6 +155,7 @@ const networkChainIds: { [key: string]: number } = {
 const networkRpcUrls: { [key: string]: string[] } = {
   base: [
     "https://base.llamarpc.com",
+    "https://base-rpc.publicnode.com",
     "https://base.blockpi.network/v1/rpc/public",
     "https://base-mainnet.g.alchemy.com/v2/demo",
     "https://base.meowrpc.com",
@@ -396,14 +398,15 @@ const BridgePage: React.FC = () => {
           chain: sourceChain,
         });
 
-        // Get network-specific contract address
-        const contractAddress = syUSDContractAddresses[sourceNetwork.id] || syUSDContractAddress;
+        // Get network-specific contract address and ensure addresses are checksummed
+        const contractAddress = getAddress(syUSDContractAddresses[sourceNetwork.id] || syUSDContractAddress);
+        const checksummedUserAddress = getAddress(address);
         
         const balance = await client.readContract({
           address: contractAddress,
           abi: ERC20_ABI,
           functionName: "balanceOf",
-          args: [address as Address],
+          args: [checksummedUserAddress],
         });
 
         const formattedBalance = Number(

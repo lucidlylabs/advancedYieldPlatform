@@ -274,15 +274,19 @@ const PortfolioDetailedPage = () => {
         },
       });
 
+      // Ensure addresses are properly checksummed
+      const checksummedVaultAddress = getAddress(boringVaultAddress);
+      const checksummedUserAddress = getAddress(address);
+
       const [balance, decimals] = await Promise.all([
         client.readContract({
-          address: boringVaultAddress as Address,
+          address: checksummedVaultAddress,
           abi: ERC20_ABI,
           functionName: "balanceOf",
-          args: [address as Address],
+          args: [checksummedUserAddress],
         }),
         client.readContract({
-          address: boringVaultAddress as Address,
+          address: checksummedVaultAddress,
           abi: ERC20_ABI,
           functionName: "decimals",
         }),

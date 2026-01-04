@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { Tooltip } from "@/components/ui/tooltip";
 import Image from "next/image";
 import { useAccount, useReadContract } from "wagmi";
-import { formatUnits, createPublicClient, http, type Address } from "viem";
+import { formatUnits, createPublicClient, http, type Address, getAddress } from "viem";
 import DepositView from "./deposit-view";
 import { USD_STRATEGIES, ETH_STRATEGIES, BTC_STRATEGIES } from "../config/env";
 import { IncentiveRewards } from "./ui/IncentiveRewards";
@@ -212,15 +212,19 @@ const YieldDetailsView: React.FC<YieldDetailsViewProps> = ({
         chain: networkConfig.chainObject,
       });
 
+      // Ensure addresses are properly checksummed
+      const checksummedVaultAddress = getAddress(vaultAddress);
+      const checksummedUserAddress = getAddress(address);
+
       const [balance, decimals] = await Promise.all([
         client.readContract({
-          address: vaultAddress as Address,
+          address: checksummedVaultAddress,
           abi: ERC20_ABI,
           functionName: "balanceOf",
-          args: [address as Address],
+          args: [checksummedUserAddress],
         }),
         client.readContract({
-          address: vaultAddress as Address,
+          address: checksummedVaultAddress,
           abi: ERC20_ABI,
           functionName: "decimals",
         }),
