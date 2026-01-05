@@ -754,11 +754,7 @@ const PortfolioSubpage: React.FC = () => {
           : (strategy as any).name === "syHLP" || (strategy as any).hyperEVM
           ? ["https://hyperliquid.drpc.org"] // HyperEVM fallback
           : [
-              "https://base.llamarpc.com",
               "https://base-rpc.publicnode.com",
-              "https://base.blockpi.network/v1/rpc/public",
-              "https://base-mainnet.g.alchemy.com/v2/demo",
-              "https://base.meowrpc.com",
             ]),
       ];
 
@@ -1321,14 +1317,26 @@ const PortfolioSubpage: React.FC = () => {
       let totalBalance = 0;
       // Determine which networks to check based on strategy
       let networks: string[];
+      const strategyName = (strategy as any).name || "";
+      
       if (strategy.asset === "BTC") {
         networks = ["arbitrum"];
       } else if (strategy.asset === "ETH") {
         networks = ["arbitrum"]; // syETH is only on Arbitrum
-      } else if ((strategy as any).name === "syHLP" || (strategy as any).hyperEVM) {
+      } else if (strategyName === "syHLP" || (strategy as any).hyperEVM) {
         networks = ["hyperEVM"]; // syHLP is only on HyperEVM
+      } else if (strategy.asset === "USD" || strategyName === "syUSD") {
+        // syUSD is on Base, Ethereum, Arbitrum, and Katana
+        networks = ["base", "ethereum", "arbitrum", "katana"];
+        console.log(`✅ Identified syUSD strategy - will check networks: ${networks.join(", ")}`);
       } else {
-        networks = ["base", "ethereum", "arbitrum", "katana"]; // syUSD and other USD strategies check Base, Ethereum, Arbitrum, and Katana
+        // Default fallback for other USD strategies
+        networks = ["base", "ethereum", "arbitrum", "katana"];
+        console.log(`⚠️ Unknown strategy type, defaulting to check networks: ${networks.join(", ")}`, {
+          strategyName,
+          asset: strategy.asset,
+          type: strategy.type,
+        });
       }
 
       console.log(`🔍 Checking balance for ${(strategy as any).name || strategy.contract} on networks:`, networks, {
@@ -1355,7 +1363,7 @@ const PortfolioSubpage: React.FC = () => {
 
         // Skip if network config doesn't exist
         if (!networkConfig || !networkConfig.rpc || !networkConfig.chainId) {
-          console.warn(`⏭️ Skipping ${networkKey} - no config`, {
+          console.error(`❌ SKIPPING ${networkKey.toUpperCase()} - MISSING CONFIG!`, {
             networkKey,
             configKey,
             hasConfig: !!networkConfig,
@@ -1363,9 +1371,18 @@ const PortfolioSubpage: React.FC = () => {
             hasChainId: !!networkConfig?.chainId,
             strategyName: (strategy as any).name,
             strategyKeys: Object.keys(strategy),
+            availableConfigs: Object.keys(strategy).filter(k => 
+              ['base', 'ethereum', 'arbitrum', 'katana', 'hyperEVM'].includes(k)
+            ),
           });
           continue;
         }
+        
+        console.log(`✅ ${networkKey.toUpperCase()} config found - proceeding with balance check`, {
+          networkKey,
+          rpc: networkConfig.rpc,
+          chainId: networkConfig.chainId,
+        });
 
         try {
           // Use RPC URLs from chainObject if available, otherwise use single RPC
@@ -1373,13 +1390,23 @@ const PortfolioSubpage: React.FC = () => {
                          networkConfig.chainObject?.rpcUrls?.public?.http || 
                          [networkConfig.rpc];
           
+          console.log(`🔎 Attempting to fetch balance from ${networkKey}`, {
+            networkKey,
+            rpcUrls,
+            vaultAddress: checksummedVaultAddress,
+            userAddress: checksummedUserAddress,
+            strategyName: (strategy as any).name,
+          });
+          
           let lastError: Error | null = null;
           let balance: bigint | null = null;
           let decimals: number | null = null;
           
-          // Try each RPC URL until one works
+          // Try each RPC URL until one works AND returns a valid result
+          // IMPORTANT: If first RPC returns 0, try other RPCs as they might have correct data
           for (const rpcUrl of rpcUrls) {
             try {
+              console.log(`  Trying RPC: ${rpcUrl} for ${networkKey}`);
               const client = createPublicClient({
                 transport: http(rpcUrl),
                 chain: {
@@ -1400,29 +1427,64 @@ const PortfolioSubpage: React.FC = () => {
               // Use shareAddress_token_decimal if available, otherwise fetch decimals
               if (strategy.shareAddress_token_decimal) {
                 decimals = strategy.shareAddress_token_decimal;
-                console.log(`Using shareAddress_token_decimal: ${decimals} for ${networkKey}`);
+                console.log(`  Using shareAddress_token_decimal: ${decimals} for ${networkKey}`);
               } else {
+                console.log(`  Fetching decimals from contract for ${networkKey}`);
                 decimals = await client.readContract({
                   address: checksummedVaultAddress,
                   abi: ERC20_ABI,
                   functionName: "decimals",
                 }) as number;
+                console.log(`  Decimals fetched: ${decimals} for ${networkKey}`);
               }
 
-              balance = await client.readContract({
+              console.log(`  Fetching balanceOf for ${networkKey}`, {
+                contract: checksummedVaultAddress,
+                user: checksummedUserAddress,
+              });
+              
+              const fetchedBalance = await client.readContract({
                 address: checksummedVaultAddress,
                 abi: ERC20_ABI,
                 functionName: "balanceOf",
                 args: [checksummedUserAddress],
               }) as bigint;
               
-              // Success! Break out of RPC loop
-              break;
+              console.log(`  ✅ Fetched balance from ${rpcUrl}: ${fetchedBalance.toString()}`);
+              
+              // If we got a non-zero balance, use it and break
+              // If balance is 0, continue to try other RPCs (they might have correct data)
+              if (fetchedBalance.toString() !== '0') {
+                balance = fetchedBalance;
+                console.log(`  ✅ Using non-zero balance from ${rpcUrl}: ${balance.toString()}`);
+                break;
+              } else {
+                // Balance is 0, but continue trying other RPCs
+                console.log(`  ⚠️  Balance is 0 from ${rpcUrl}, trying next RPC...`);
+                // Only set balance if we haven't found a non-zero balance yet
+                if (balance === null) {
+                  balance = fetchedBalance;
+                }
+                // Continue to try next RPC
+              }
             } catch (rpcError) {
               lastError = rpcError instanceof Error ? rpcError : new Error(String(rpcError));
-              console.warn(`RPC ${rpcUrl} failed for ${networkKey}, trying next...`, rpcError);
+              console.warn(`  ❌ RPC ${rpcUrl} failed for ${networkKey}:`, {
+                error: lastError.message,
+                errorStack: lastError.stack,
+              });
               // Continue to next RPC URL
             }
+          }
+          
+          // If we tried all RPCs and got 0 from all, log a warning
+          if (balance !== null && balance.toString() === '0' && rpcUrls.length > 1) {
+            console.warn(`  ⚠️  All ${rpcUrls.length} RPCs returned 0 balance for ${networkKey}. This might indicate:`, {
+              network: networkKey,
+              vaultAddress: checksummedVaultAddress,
+              userAddress: checksummedUserAddress,
+              rpcUrls: rpcUrls,
+            });
           }
           
           // If all RPCs failed, log error but don't throw - continue to next network
@@ -1500,18 +1562,27 @@ const PortfolioSubpage: React.FC = () => {
         }
       }
 
-      console.log(`📊 Total portfolio balance for ${(strategy as any).name || strategy.asset}: ${totalBalance}`, {
+      const finalBalance = totalBalance;
+      console.log(`📊 Total portfolio balance for ${(strategy as any).name || strategy.asset}: ${finalBalance}`, {
         strategy: (strategy as any).name || strategy.contract,
+        strategyName: (strategy as any).name,
         asset: strategy.asset,
         type: strategy.type,
-        totalBalance,
+        totalBalance: finalBalance,
         networksChecked: networks,
-        vaultAddress,
-        userAddress: address,
-        isGreaterThanZero: totalBalance > 0,
+        networksCheckedCount: networks.length,
+        vaultAddress: checksummedVaultAddress,
+        userAddress: checksummedUserAddress,
+        isGreaterThanZero: finalBalance > 0,
+        isGreaterThanThreshold: finalBalance > 0.000001,
       });
       
-      return totalBalance;
+      // Return the balance - ensure it's a number, not NaN
+      const returnBalance = isNaN(finalBalance) ? 0 : finalBalance;
+      if (returnBalance !== finalBalance) {
+        console.warn(`⚠️ Balance was NaN, returning 0 instead. Original: ${finalBalance}`);
+      }
+      return returnBalance;
     } catch (error) {
       console.error("Error checking strategy balance:", { 
         strategy: (strategy as any).name || strategy.contract,
@@ -1694,12 +1765,43 @@ const PortfolioSubpage: React.FC = () => {
             Object.entries(strategies as StrategyDuration)
               .filter(([type]) => type !== "INCENTIVE") // Skip INCENTIVE config
               .map(
-                ([type, strategy]) => ({
-                  ...strategy,
-                  duration,
-                  type: type.toLowerCase(),
-                  asset: "USD",
-                })
+                ([type, strategy]) => {
+                  const mappedStrategy = {
+                    ...strategy,
+                    duration,
+                    type: type.toLowerCase(),
+                    asset: "USD",
+                  };
+                  // Explicitly ensure name is preserved
+                  if (strategy.name) {
+                    mappedStrategy.name = strategy.name;
+                  }
+                  // Explicitly preserve network configs (base, ethereum, arbitrum, katana)
+                  if (strategy.base) {
+                    mappedStrategy.base = strategy.base;
+                  }
+                  if (strategy.ethereum) {
+                    mappedStrategy.ethereum = strategy.ethereum;
+                  }
+                  if (strategy.arbitrum) {
+                    mappedStrategy.arbitrum = strategy.arbitrum;
+                  }
+                  if (strategy.katana) {
+                    mappedStrategy.katana = strategy.katana;
+                  }
+                  console.log(`📋 Mapped USD strategy:`, {
+                    originalName: strategy.name,
+                    mappedName: mappedStrategy.name,
+                    type,
+                    contract: strategy.contract,
+                    shareAddress: strategy.shareAddress,
+                    hasBase: !!mappedStrategy.base,
+                    hasEthereum: !!mappedStrategy.ethereum,
+                    hasArbitrum: !!mappedStrategy.arbitrum,
+                    hasKatana: !!mappedStrategy.katana,
+                  });
+                  return mappedStrategy;
+                }
               )
         ),
         ...Object.entries(BTC_STRATEGIES as unknown as StrategyAsset).flatMap(
@@ -1734,9 +1836,22 @@ const PortfolioSubpage: React.FC = () => {
       const balances: StrategyWithBalance[] = [];
       const depositedChainsMap: Record<string, string[]> = {};
       
+      console.log(`\n📊 Starting balance check for ${allStrategies.length} strategies`);
+      
       for (let i = 0; i < allStrategies.length; i++) {
         const strategy = allStrategies[i];
+        const strategyName = (strategy as any).name || 'Unknown';
+        console.log(`\n🔄 [${i + 1}/${allStrategies.length}] Processing: ${strategyName}`, {
+          name: strategyName,
+          asset: strategy.asset,
+          type: strategy.type,
+          contract: strategy.contract,
+          shareAddress: strategy.shareAddress,
+          boringVaultAddress: strategy.boringVaultAddress,
+          hasBaseConfig: !!(strategy as any).base,
+        });
         const balance = await checkStrategyBalance(strategy);
+        console.log(`  ✅ Balance result for ${strategyName}: ${balance}`);
         
         // Only fetch deposited chains for strategies with balance
         if (balance > 0) {
@@ -1782,13 +1897,22 @@ const PortfolioSubpage: React.FC = () => {
       // Filter to only show strategies with balance > 0
       // Use a small threshold to account for floating point precision issues
       const MIN_BALANCE_THRESHOLD = 0.000001;
+      console.log(`\n🔍 Filtering ${balances.length} strategies...`);
+      balances.forEach((s, idx) => {
+        console.log(`  [${idx + 1}] ${(s as any).name || s.contract}: balance = ${s.balance} (${s.balance > MIN_BALANCE_THRESHOLD ? '✅ KEEP' : '❌ FILTER OUT'})`);
+      });
+      
       const filteredBalances = balances.filter((s) => {
         const hasBalance = s.balance > MIN_BALANCE_THRESHOLD;
         if (!hasBalance) {
-          console.log(`Filtering out ${(s as any).name || s.contract} - balance is ${s.balance} (below threshold ${MIN_BALANCE_THRESHOLD})`);
+          console.log(`  ❌ Filtering out ${(s as any).name || s.contract} - balance is ${s.balance} (below threshold ${MIN_BALANCE_THRESHOLD})`);
+        } else {
+          console.log(`  ✅ Keeping ${(s as any).name || s.contract} - balance is ${s.balance}`);
         }
         return hasBalance;
       });
+      
+      console.log(`\n📊 Final result: ${filteredBalances.length} strategies with balance > 0`);
       
       setStrategiesWithBalance(filteredBalances);
       setDepositedChainsPerStrategy(depositedChainsMap);
