@@ -1332,12 +1332,20 @@ const PortfolioSubpage: React.FC = () => {
       }
 
       console.log(`🔍 Checking balance for ${(strategy as any).name || strategy.contract} on networks:`, networks, {
+        strategyName: (strategy as any).name,
+        strategyContract: strategy.contract,
         vaultAddress,
         shareAddress: strategy.shareAddress,
         boringVaultAddress: strategy.boringVaultAddress,
         userAddress: address,
+        checksummedUserAddress: checksummedUserAddress,
+        checksummedVaultAddress: checksummedVaultAddress,
         asset: strategy.asset,
         type: strategy.type,
+        hasBaseConfig: !!(strategy as any).base,
+        hasEthereumConfig: !!(strategy as any).ethereum,
+        hasArbitrumConfig: !!(strategy as any).arbitrum,
+        hasKatanaConfig: !!(strategy as any).katana,
       });
 
       for (const networkKey of networks) {
@@ -1347,7 +1355,15 @@ const PortfolioSubpage: React.FC = () => {
 
         // Skip if network config doesn't exist
         if (!networkConfig || !networkConfig.rpc || !networkConfig.chainId) {
-          console.log(`⏭️ Skipping ${networkKey} - no config`);
+          console.warn(`⏭️ Skipping ${networkKey} - no config`, {
+            networkKey,
+            configKey,
+            hasConfig: !!networkConfig,
+            hasRpc: !!networkConfig?.rpc,
+            hasChainId: !!networkConfig?.chainId,
+            strategyName: (strategy as any).name,
+            strategyKeys: Object.keys(strategy),
+          });
           continue;
         }
 
@@ -1409,9 +1425,19 @@ const PortfolioSubpage: React.FC = () => {
             }
           }
           
-          // If all RPCs failed, throw the last error
+          // If all RPCs failed, log error but don't throw - continue to next network
           if (balance === null || decimals === null) {
-            throw lastError || new Error(`All RPC endpoints failed for ${networkKey}`);
+            const errorMsg = lastError?.message || `All RPC endpoints failed for ${networkKey}`;
+            console.error(`❌ Failed to fetch balance from ${networkKey}:`, {
+              network: networkKey,
+              strategy: (strategy as any).name || strategy.contract,
+              error: errorMsg,
+              rpcUrls: rpcUrls,
+              vaultAddress: checksummedVaultAddress,
+              userAddress: checksummedUserAddress,
+            });
+            // Continue to next network instead of throwing
+            continue;
           }
 
           const formattedBalance = parseFloat(
@@ -1419,7 +1445,17 @@ const PortfolioSubpage: React.FC = () => {
           );
 
           // Ensure we handle very small balances correctly (not rounded to 0)
-          const balanceToAdd = isNaN(formattedBalance) ? 0 : formattedBalance;
+          // Use a more precise check - even very small balances should be counted
+          const balanceToAdd = isNaN(formattedBalance) || formattedBalance < 0 ? 0 : formattedBalance;
+          
+          // Log if balance is very small but not zero to help debug
+          if (balanceToAdd > 0 && balanceToAdd < 0.000001) {
+            console.log(`⚠️ Very small balance detected on ${networkKey}: ${balanceToAdd}`, {
+              rawBalance: balance.toString(),
+              decimals,
+              formattedBalance,
+            });
+          }
 
           console.log(`✅ ${networkKey} balance for ${(strategy as any).name || strategy.asset}: ${balanceToAdd}`, {
             network: networkKey,
@@ -1428,35 +1464,39 @@ const PortfolioSubpage: React.FC = () => {
             rawBalanceBigInt: balance,
             decimals,
             formattedBalance: balanceToAdd,
-            vaultAddress,
+            vaultAddress: checksummedVaultAddress,
             shareAddress: strategy.shareAddress,
             boringVaultAddress: strategy.boringVaultAddress,
-            userAddress: address,
+            userAddress: checksummedUserAddress,
             isNaN: isNaN(formattedBalance),
             rpc: networkConfig.rpc,
+            rpcUrls: rpcUrls,
           });
           totalBalance += balanceToAdd;
         } catch (error) {
-          console.error(`❌ Error checking ${networkKey} balance for ${(strategy as any).name || strategy.asset}:`, {
+          const errorDetails = {
             network: networkKey,
             strategy: (strategy as any).name || strategy.contract,
-            vaultAddress,
+            vaultAddress: checksummedVaultAddress,
             shareAddress: strategy.shareAddress,
             boringVaultAddress: strategy.boringVaultAddress,
-            userAddress: address,
+            userAddress: checksummedUserAddress,
             rpc: networkConfig?.rpc,
+            rpcUrls: networkConfig?.chainObject?.rpcUrls?.default?.http || [networkConfig?.rpc],
             chainId: networkConfig?.chainId,
             error: error instanceof Error ? error.message : String(error),
             errorStack: error instanceof Error ? error.stack : undefined,
-          });
+          };
+          console.error(`❌ Error checking ${networkKey} balance for ${(strategy as any).name || strategy.asset}:`, errorDetails);
+          
           // Check if it's a rate limit error
-          if (error instanceof Error && error.message.includes("429")) {
+          if (error instanceof Error && (error.message.includes("429") || error.message.includes("rate limit"))) {
             console.warn(
               `Rate limited on ${networkKey}, waiting before retry...`
             );
             await delay(2000); // Wait 2 seconds before continuing
           }
-          // Continue to next network instead of failing completely
+          // Continue to next network instead of failing completely - don't let one network failure stop the whole check
         }
       }
 
@@ -1739,18 +1779,15 @@ const PortfolioSubpage: React.FC = () => {
         balances.push({ ...strategy, balance } as StrategyWithBalance);
       }
       
-      // Always include syBTC and syHLP even if balance is 0, otherwise filter to only show strategies with balance
+      // Filter to only show strategies with balance > 0
+      // Use a small threshold to account for floating point precision issues
+      const MIN_BALANCE_THRESHOLD = 0.000001;
       const filteredBalances = balances.filter((s) => {
-        // Always show syBTC (BTC asset, stable type)
-        if (s.asset === "BTC" && s.type === "stable") {
-          return true;
+        const hasBalance = s.balance > MIN_BALANCE_THRESHOLD;
+        if (!hasBalance) {
+          console.log(`Filtering out ${(s as any).name || s.contract} - balance is ${s.balance} (below threshold ${MIN_BALANCE_THRESHOLD})`);
         }
-        // Always show syHLP (USD asset, syhlp type or name contains "syHLP")
-        if (s.asset === "USD" && ((s as any).name === "syHLP" || s.type === "syhlp")) {
-          return true;
-        }
-        // For other strategies, only show if balance > 0
-        return s.balance > 0;
+        return hasBalance;
       });
       
       setStrategiesWithBalance(filteredBalances);
